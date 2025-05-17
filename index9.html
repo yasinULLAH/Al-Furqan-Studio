@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="en" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quran App - Yasin Ullah</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: 'Arial', sans-serif; /* Fallback font */
+            direction: rtl;
+            text-align: right;
+            margin: 0;
+            padding-bottom: 60px; /* Space for potential fixed footer */
+            background-color: #f8f9fa;
+        }
+        .arabic {
+            font-family: 'Traditional Arabic', 'Scheherazade New', 'Lateef', 'Amiri', serif; /* Quranic fonts */
+            font-size: 1.8rem;
+            line-height: 2.5;
+            word-spacing: 0.1rem;
+            text-align: right;
+            direction: rtl;
+        }
+        .urdu {
+            font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif; /* Urdu fonts */
+            font-size: 1.1rem;
+            line-height: 1.8;
+            text-align: right;
+            direction: rtl;
+            color: #333;
+        }
+         .english {
+            font-family: 'Arial', sans-serif;
+            font-size: 1rem;
+            line-height: 1.6;
+            text-align: left;
+            direction: ltr;
+            color: #555;
+            border-top: 1px dashed #ccc;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        .transliteration {
+             font-family: 'Arial', sans-serif;
+             font-size: 0.9rem;
+             line-height: 1.6;
+             text-align: left;
+             direction: ltr;
+             color: #777;
+             font-style: italic;
+             margin-top: 5px;
+        }
+        .ayah-container {
+            border-bottom: 1px solid #eee;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+        .ayah-number {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .word-by-word span {
+            display: inline-block;
+            margin: 5px;
+            padding: 5px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            text-align: center;
+            vertical-align: top; /* Align words nicely */
+        }
+        .word-by-word .arabic-word {
+            display: block;
+            font-family: 'Traditional Arabic', 'Scheherazade New', 'Lateef', 'Amiri', serif;
+            font-size: 1.4rem;
+            margin-bottom: 3px;
+            color: #0056b3;
+        }
+         .word-by-word .urdu-meaning {
+            display: block;
+            font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
+            font-size: 0.9rem;
+            color: #28a745;
+         }
+        .word-by-word .english-meaning {
+            display: block;
+            font-family: 'Arial', sans-serif;
+            font-size: 0.8rem;
+            color: #dc3545;
+            direction: ltr;
+            text-align: left;
+        }
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1050; /* Above Bootstrap modals */
+            text-align: center;
+        }
+        .loading-screen h2 {
+            margin-top: 20px;
+        }
+        .navbar-nav .nav-link {
+            cursor: pointer;
+        }
+        .bookmark-btn, .note-btn {
+            cursor: pointer;
+            color: #ccc;
+            margin-right: 5px;
+        }
+        .bookmark-btn.active {
+            color: #ffc107; /* Star color */
+        }
+        .note-btn.active {
+             color: #17a2b8; /* Info color */
+        }
+        .search-result-item {
+            cursor: pointer;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .search-result-item:hover {
+            background-color: #f8f9fa;
+        }
+        .mushaf-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            z-index: 1060; /* Above loading screen and modals */
+            overflow-y: auto;
+            padding: 20px;
+            display: none; /* Initially hidden */
+            direction: rtl;
+            text-align: right;
+        }
+        .mushaf-mode .arabic {
+            font-size: 2.5rem;
+            line-height: 3;
+            word-spacing: 0.2rem;
+            margin-bottom: 30px;
+        }
+        .mushaf-nav-buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1070;
+        }
+        .mushaf-nav-buttons button {
+            margin: 0 5px;
+        }
+        .mushaf-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1070;
+        }
+        /* Custom fonts - include via @font-face or link if available */
+        /* Example (requires font files):
+        @font-face {
+            font-family: 'Traditional Arabic';
+            src: url('fonts/traditional_arabic.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'Jameel Noori Nastaleeq';
+            src: url('fonts/jameel_noori_nastaleeq.ttf') format('truetype');
+        }
+        */
+         /* Placeholder for font loading if needed */
+         @import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap');
+         @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap');
+         .arabic { font-family: 'Scheherazade New', serif; }
+         .urdu { font-family: 'Noto Nastaliq Urdu', serif; }
+
+    </style>
+</head>
+<body>
+
+    <div class="loading-screen" id="loadingScreen">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h2 class="mt-3 text-primary">Loading Quran Data...</h2>
+        <p id="loadingStatus" class="text-muted">Checking cache...</p>
+    </div>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Quran App</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#navigateModal">Browse</a>
+                    </li>
+                     <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#searchModal">Search</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#bookmarksNotesModal">Bookmarks & Notes</a>
+                    </li>
+                     <li class="nav-item">
+                        <a class="nav-link" href="#" id="lastReadLink">Last Read</a>
+                    </li>
+                     <li class="nav-item">
+                        <a class="nav-link" href="#" id="mushafModeLink">Mushaf Mode</a>
+                    </li>
+                     <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#settingsModal">Settings</a>
+                    </li>
+                     <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#backupRestoreModal">Backup/Restore</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4" id="quranDisplayArea">
+        <!-- Ayahs will be loaded here -->
+    </div>
+
+    <!-- Navigate Modal -->
+    <div class="modal fade" id="navigateModal" tabindex="-1" aria-labelledby="navigateModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="navigateModalLabel">Browse Quran</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>By Surah & Ayah</h6>
+                    <div class="row g-3 align-items-center mb-4">
+                        <div class="col-auto">
+                            <label for="surahSelect" class="col-form-label">Surah:</label>
+                        </div>
+                        <div class="col-auto">
+                            <select class="form-select" id="surahSelect">
+                                <!-- Options populated by JS -->
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <label for="ayahSelect" class="col-form-label">Ayah:</label>
+                        </div>
+                         <div class="col-auto">
+                            <select class="form-select" id="ayahSelect">
+                                <!-- Options populated by JS -->
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-primary" id="goToAyahBtn">Go</button>
+                        </div>
+                    </div>
+
+                    <h6>By Juz</h6>
+                     <div class="row g-3 align-items-center mb-4">
+                        <div class="col-auto">
+                            <label for="juzSelect" class="col-form-label">Juz:</label>
+                        </div>
+                        <div class="col-auto">
+                            <select class="form-select" id="juzSelect">
+                                <!-- Options 1-30 populated by JS -->
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-primary" id="goToJuzBtn">Go</button>
+                        </div>
+                    </div>
+
+                    <h6>By Page</h6>
+                     <div class="row g-3 align-items-center mb-4">
+                        <div class="col-auto">
+                            <label for="pageSelect" class="col-form-label">Page:</label>
+                        </div>
+                        <div class="col-auto">
+                            <select class="form-select" id="pageSelect">
+                                <!-- Options 1-604 populated by JS -->
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-primary" id="goToPageBtn">Go</button>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Modal -->
+    <div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="searchModalLabel">Search Quran</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search Arabic, Urdu, or English">
+                        <button class="btn btn-primary" type="button" id="searchBtn">Search</button>
+                    </div>
+                    <div id="searchResults">
+                        <!-- Search results will be displayed here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookmarks & Notes Modal -->
+    <div class="modal fade" id="bookmarksNotesModal" tabindex="-1" aria-labelledby="bookmarksNotesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookmarksNotesModalLabel">Bookmarks & Notes</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>Bookmarks</h6>
+                    <ul class="list-group mb-4" id="bookmarksList">
+                        <!-- Bookmarks populated by JS -->
+                    </ul>
+
+                    <h6>Notes</h6>
+                     <ul class="list-group" id="notesList">
+                        <!-- Notes populated by JS -->
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     <!-- Note Edit Modal -->
+    <div class="modal fade" id="editNoteModal" tabindex="-1" aria-labelledby="editNoteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editNoteModalLabel">Edit Note for <span id="noteAyahRef"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea class="form-control" id="noteTextarea" rows="5"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveNoteBtn">Save Note</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>Display Options</h6>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="toggleUrdu">
+                        <label class="form-check-label" for="toggleUrdu">Show Urdu Translation</label>
+                    </div>
+                     <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="toggleEnglish">
+                        <label class="form-check-label" for="toggleEnglish">Show English Word-by-Word</label>
+                    </div>
+                     <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="toggleTransliteration">
+                        <label class="form-check-label" for="toggleTransliteration">Show Transliteration (if available)</label>
+                    </div>
+
+                    <h6 class="mt-4">Last Read</h6>
+                    <button class="btn btn-outline-secondary btn-sm" id="clearLastReadBtn">Clear Last Read Position</button>
+
+                     <h6 class="mt-4">Import Custom Data</h6>
+                     <p>You can import additional ayah-based data (like other translations or transliterations) in JSON format.</p>
+                     <p>Format: An array of objects, each with <code>surah</code> (number, 1-114), <code>ayah</code> (number, 1-based), <code>type</code> ("translation" or "transliteration"), <code>lang</code> (string, e.g., "en", "ur", "es"), and <code>text</code> (string for the ayah).</p>
+                     <button class="btn btn-outline-primary btn-sm" id="importCustomDataBtn">Import Custom Data File</button>
+                     <input type="file" id="importCustomDataFile" accept=".json" style="display: none;">
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup/Restore Modal -->
+    <div class="modal fade" id="backupRestoreModal" tabindex="-1" aria-labelledby="backupRestoreModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="backupRestoreModalLabel">Backup & Restore User Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Backup your bookmarks, notes, and settings.</p>
+                    <button class="btn btn-primary" id="exportDataBtn">Export Data</button>
+
+                    <hr>
+
+                    <p>Restore your data from a backup file.</p>
+                    <input type="file" class="form-control mb-2" id="importDataFile" accept=".json">
+                    <button class="btn btn-warning" id="importDataBtn">Import Data</button>
+                    <div class="alert alert-danger mt-3" role="alert" id="importError" style="display: none;">
+                        Import failed. Please ensure the file is a valid backup JSON.
+                    </div>
+                     <div class="alert alert-success mt-3" role="alert" id="importSuccess" style="display: none;">
+                        Import successful! Reloading app...
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mushaf Mode -->
+    <div class="mushaf-mode" id="mushafMode">
+        <button class="btn btn-secondary mushaf-close-btn" id="closeMushafMode">Close</button>
+        <div id="mushafAyahDisplay">
+            <!-- Current ayah Arabic text will be displayed here -->
+        </div>
+        <div class="mushaf-nav-buttons">
+            <button class="btn btn-primary" id="mushafPrevAyah">Previous Ayah</button>
+            <button class="btn btn-primary" id="mushafNextAyah">Next Ayah</button>
+        </div>
+    </div>
+
+
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Author: Yasin Ullah, Pakistani
+
+        // --- Configuration ---
+        const DATA_URL_AM = 'data.AM'; // Replace with actual URL
+        const DATA_URL_CSV = 'data4.csv'; // Replace with actual URL
+        const DATA_URL_WORD_MAP = 'word.AM'; // Replace with actual URL
+
+        const DB_NAME = 'quranAppDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'quranStore';
+
+        // --- Global Variables ---
+        let db = null; // IndexedDB instance
+        let quranData = []; // Array of Surahs, each is an array of Ayahs
+        let bookmarks = []; // Array of "surahIndex:ayahIndex" strings
+        let notes = {}; // Object mapping "surahIndex:ayahIndex" to note text
+        let settings = {
+            lastRead: "0:0", // "surahIndex:ayahIndex"
+            showUrdu: true,
+            showEnglish: true,
+            showTransliteration: false // Placeholder initially
+        };
+        let wordMap = []; // Array mapping data4.csv index to { surah, ayah, position }
+        let wordData = []; // Array from data4.csv
+
+        // Placeholder Transliteration data (can be replaced or extended)
+        // Format: transliterationData[surahIndex][ayahIndex] = "Transliteration text"
+        // Note: This is a minimal placeholder. Real transliteration data would be much larger.
+        // Users can import more data via settings.
+        let transliterationData = []; // Array of Surahs, each is an array of Ayah transliterations
+
+        // Juz and Page mappings (Hafs Madani) - 1-based indexing for Juz/Page, 0-based for Surah/Ayah
+        // juzStartAyahs[juzNumber-1] = { surahIndex: s, ayahIndex: a } (0-based)
+        const juzStartAyahs = [
+            { surahIndex: 0, ayahIndex: 0 }, // Juz 1: Al-Fatihah 1
+            { surahIndex: 1, ayahIndex: 141 }, // Juz 2: Al-Baqarah 142
+            { surahIndex: 1, ayahIndex: 252 }, // Juz 3: Al-Baqarah 253
+            { surahIndex: 2, ayahIndex: 91 },  // Juz 4: Aal-Imran 92
+            { surahIndex: 3, ayahIndex: 23 },  // Juz 5: An-Nisa 24
+            { surahIndex: 4, ayahIndex: 147 }, // Juz 6: An-Nisa 148
+            { surahIndex: 5, ayahIndex: 81 },  // Juz 7: Al-Ma'idah 82
+            { surahIndex: 6, ayahIndex: 110 }, // Juz 8: Al-An'am 111
+            { surahIndex: 7, ayahIndex: 87 },  // Juz 9: Al-A'raf 88
+            { surahIndex: 8, ayahIndex: 40 },  // Juz 10: Al-Anfal 41
+            { surahIndex: 9, ayahIndex: 92 },  // Juz 11: At-Tawbah 93
+            { surahIndex: 10, ayahIndex: 52 }, // Juz 12: Hud 53
+            { surahIndex: 11, ayahIndex: 52 }, // Juz 13: Yusuf 53
+            { surahIndex: 14, ayahIndex: 0 },  // Juz 14: Al-Hijr 1
+            { surahIndex: 16, ayahIndex: 95 }, // Juz 15: Al-Isra 1
+            { surahIndex: 18, ayahIndex: 74 }, // Juz 16: Al-Kahf 75
+            { surahIndex: 20, ayahIndex: 110 },// Juz 17: Al-Anbiya 111
+            { surahIndex: 22, ayahIndex: 78 }, // Juz 18: Al-Mu'minun 79
+            { surahIndex: 24, ayahIndex: 20 }, // Juz 19: Al-Furqan 21
+            { surahIndex: 26, ayahIndex: 0 },  // Juz 20: Ash-Shu'ara 1
+            { surahIndex: 28, ayahIndex: 75 }, // Juz 21: An-Naml 76
+            { surahIndex: 29, ayahIndex: 44 }, // Juz 22: Al-Ankabut 45
+            { surahIndex: 32, ayahIndex: 30 }, // Juz 23: Ya-Sin 1
+            { surahIndex: 38, ayahIndex: 37 }, // Juz 24: Az-Zumar 38
+            { surahIndex: 40, ayahIndex: 20 }, // Juz 25: Ghafir 21
+            { surahIndex: 45, ayahIndex: 32 }, // Juz 26: Al-Ahqaf 1
+            { surahIndex: 50, ayahIndex: 0 },  // Juz 27: Qaf 1
+            { surahIndex: 57, ayahIndex: 0 },  // Juz 28: Al-Hadid 1
+            { surahIndex: 66, ayahIndex: 0 },  // Juz 29: At-Tahrim 1
+            { surahIndex: 77, ayahIndex: 0 }   // Juz 30: An-Naba 1
+        ];
+
+        // pageStartAyahs[pageNumber-1] = { surahIndex: s, ayahIndex: a } (0-based)
+        // This is a large array, hardcoding a few examples, a real list would be 604 entries.
+        // A full list can be found online or generated. For this example, we'll use a minimal set
+        // and assume the user can provide a full list via import if needed.
+        // For simplicity, let's just map page 1 to 1:1, page 2 to 2:1, page 3 to 2:6, etc.
+        // A minimal set of actual Hafs page starts:
+        const pageStartAyahs = [
+            { surahIndex: 0, ayahIndex: 0 }, // Page 1: Al-Fatihah 1
+            { surahIndex: 1, ayahIndex: 0 }, // Page 2: Al-Baqarah 1
+            { surahIndex: 1, ayahIndex: 5 }, // Page 3: Al-Baqarah 6
+            { surahIndex: 1, ayahIndex: 16 }, // Page 4: Al-Baqarah 17
+            { surahIndex: 1, ayahIndex: 24 }, // Page 5: Al-Baqarah 25
+            { surahIndex: 1, ayahIndex: 37 }, // Page 6: Al-Baqarah 38
+            // ... add more entries if available ...
+            // Placeholder for page 604
+            { surahIndex: 113, ayahIndex: 0 }, // Page 604: An-Nas 1
+        ];
+         // To make the page navigation somewhat functional for more pages,
+         // we'll create a simplified mapping based on dividing total ayahs by 604.
+         // This is NOT accurate Hafs pagination but allows navigation beyond the first few pages.
+         // A proper implementation needs the full 604-entry map.
+         function getApproximateAyahForPage(pageNumber) {
+             if (pageNumber < 1 || pageNumber > 604) return null;
+             if (pageNumber <= pageStartAyahs.length) {
+                 return pageStartAyahs[pageNumber - 1]; // Use hardcoded if available
+             }
+             // Simple linear approximation for pages beyond hardcoded ones
+             const totalAyahs = 6236; // Approximate total ayahs
+             const ayahsPerPage = totalAyahs / 604;
+             let targetAyahIndex = Math.floor((pageNumber - 1) * ayahsPerPage);
+
+             // Find the closest real ayah index
+             let currentAyahCount = 0;
+             for (let s = 0; s < quranData.length; s++) {
+                 if (!quranData[s]) continue;
+                 for (let a = 0; a < quranData[s].length; a++) {
+                     if (currentAyahCount >= targetAyahIndex) {
+                         return { surahIndex: s, ayahIndex: a };
+                     }
+                     currentAyahCount++;
+                 }
+             }
+             // Fallback to last ayah if calculation goes beyond
+              const lastSurahIndex = quranData.length > 0 ? quranData.length - 1 : 0;
+              const lastAyahIndex = quranData[lastSurahIndex] && quranData[lastSurahIndex].length > 0 ? quranData[lastSurahIndex].length - 1 : 0;
+              return { surahIndex: lastSurahIndex, ayahIndex: lastAyahIndex };
+         }
+
+
+        // Surah Names (Arabic and English) - 0-based index
+        const surahNames = [
+            { arabic: "الفاتحة", english: "Al-Fatihah" },
+            { arabic: "البقرة", english: "Al-Baqarah" },
+            { arabic: "آل عمران", english: "Aal-Imran" },
+            { arabic: "النساء", english: "An-Nisa" },
+            { arabic: "المائدة", english: "Al-Ma'idah" },
+            { arabic: "الأنعام", english: "Al-An'am" },
+            { arabic: "الأعراف", english: "Al-A'raf" },
+            { arabic: "الأنفال", english: "Al-Anfal" },
+            { arabic: "التوبة", english: "At-Tawbah" },
+            { arabic: "يونس", english: "Yunus" },
+            { arabic: "هود", english: "Hud" },
+            { arabic: "يوسف", english: "Yusuf" },
+            { arabic: "الرعد", english: "Ar-Ra'd" },
+            { arabic: "ابراهيم", english: "Ibrahim" },
+            { arabic: "الحجر", english: "Al-Hijr" },
+            { arabic: "النحل", english: "An-Nahl" },
+            { arabic: "الإسراء", english: "Al-Isra" },
+            { arabic: "الكهف", english: "Al-Kahf" },
+            { arabic: "مريم", english: "Maryam" },
+            { arabic: "طه", english: "Taha" },
+            { arabic: "الأنبياء", english: "Al-Anbiya" },
+            { arabic: "الحج", english: "Al-Hajj" },
+            { arabic: "المؤمنون", english: "Al-Mu'minun" },
+            { arabic: "النور", english: "An-Nur" },
+            { arabic: "الفرقان", english: "Al-Furqan" },
+            { arabic: "الشعراء", english: "Ash-Shu'ara" },
+            { arabic: "النمل", english: "An-Naml" },
+            { arabic: "القصص", english: "Al-Qasas" },
+            { arabic: "العنكبوت", english: "Al-Ankabut" },
+            { arabic: "الروم", english: "Ar-Rum" },
+            { arabic: "لقمان", english: "Luqman" },
+            { arabic: "السجدة", english: "As-Sajdah" },
+            { arabic: "الأحزاب", english: "Al-Ahzab" },
+            { arabic: "سبأ", english: "Saba" },
+            { arabic: "فاطر", english: "Fatir" },
+            { arabic: "يس", english: "Ya-Sin" },
+            { arabic: "الصافات", english: "As-Saffat" },
+            { arabic: "ص", english: "Sad" },
+            { arabic: "الزمر", english: "Az-Zumar" },
+            { arabic: "غافر", english: "Ghafir" },
+            { arabic: "فصلت", english: "Fussilat" },
+            { arabic: "الشورى", english: "Ash-Shuraa" },
+            { arabic: "الزخرف", english: "Az-Zukhruf" },
+            { arabic: "الدخان", english: "Ad-Dukhan" },
+            { arabic: "الجاثية", english: "Al-Jathiyah" },
+            { arabic: "الأحقاف", english: "Al-Ahqaf" },
+            { arabic: "محمد", english: "Muhammad" },
+            { arabic: "الفتح", english: "Al-Fath" },
+            { arabic: "الحجرات", english: "Al-Hujurat" },
+            { arabic: "ق", english: "Qaf" },
+            { arabic: "الذاريات", english: "Adh-Dhariyat" },
+            { arabic: "الطور", english: "At-Tur" },
+            { arabic: "النجم", english: "An-Najm" },
+            { arabic: "القمر", english: "Al-Qamar" },
+            { arabic: "الرحمن", english: "Ar-Rahman" },
+            { arabic: "الواقعة", english: "Al-Waqi'ah" },
+            { arabic: "الحديد", english: "Al-Hadid" },
+            { arabic: "المجادلة", english: "Al-Mujadila" },
+            { arabic: "الحشر", english: "Al-Hashr" },
+            { arabic: "الممتحنة", english: "Al-Mumtahanah" },
+            { arabic: "الصف", english: "As-Saff" },
+            { arabic: "الجمعة", english: "Al-Jumu'ah" },
+            { arabic: "المنافقون", english: "Al-Munafiqun" },
+            { arabic: "التغابن", english: "At-Taghabun" },
+            { arabic: "الطلاق", english: "At-Talaq" },
+            { arabic: "التحريم", english: "At-Tahrim" },
+            { arabic: "الملك", english: "Al-Mulk" },
+            { arabic: "القلم", english: "Al-Qalam" },
+            { arabic: "الحاقة", english: "Al-Haqqah" },
+            { arabic: "المعارج", english: "Al-Ma'arij" },
+            { arabic: "نوح", english: "Nuh" },
+            { arabic: "الجن", english: "Al-Jinn" },
+            { arabic: "المزمل", english: "Al-Muzzammil" },
+            { arabic: "المدثر", english: "Al-Muddaththir" },
+            { arabic: "القيامة", english: "Al-Qiyamah" },
+            { arabic: "الإنسان", english: "Al-Insan" },
+            { arabic: "المرسلات", english: "Al-Mursalat" },
+            { arabic: "النبأ", english: "An-Naba" },
+            { arabic: "النازعات", english: "An-Nazi'at" },
+            { arabic: "عبس", english: "'Abasa" },
+            { arabic: "التكوير", english: "At-Takwir" },
+            { arabic: "الإنفطار", english: "Al-Infitar" },
+            { arabic: "المطففين", english: "Al-Mutaffifin" },
+            { arabic: "الإنشقاق", english: "Al-Inshiqaq" },
+            { arabic: "البروج", english: "Al-Buruj" },
+            { arabic: "الطارق", english: "At-Tariq" },
+            { arabic: "الأعلى", english: "Al-A'la" },
+            { arabic: "الغاشية", english: "Al-Ghashiyah" },
+            { arabic: "الفجر", english: "Al-Fajr" },
+            { arabic: "البلد", english: "Al-Balad" },
+            { arabic: "الشمس", english: "Ash-Shams" },
+            { arabic: "الليل", english: "Al-Layl" },
+            { arabic: "الضحى", english: "Ad-Duhaa" },
+            { arabic: "الشرح", english: "Ash-Sharh" },
+            { arabic: "التين", english: "At-Tin" },
+            { arabic: "العلق", english: "Al-'Alaq" },
+            { arabic: "القدر", english: "Al-Qadr" },
+            { arabic: "البينة", english: "Al-Bayyinah" },
+            { arabic: "الزلزلة", english: "Az-Zalzalah" },
+            { arabic: "العاديات", english: "Al-'Adiyat" },
+            { arabic: "القارعة", english: "Al-Qari'ah" },
+            { arabic: "التكاثر", english: "At-Takathur" },
+            { arabic: "العصر", english: "Al-'Asr" },
+            { arabic: "الهمزة", english: "Al-Humazah" },
+            { arabic: "الفيل", english: "Al-Fil" },
+            { arabic: "قريش", english: "Quraysh" },
+            { arabic: "الماعون", english: "Al-Ma'un" },
+            { arabic: "الكوثر", english: "Al-Kawthar" },
+            { arabic: "الكافرون", english: "Al-Kafirun" },
+            { arabic: "النصر", english: "An-Nasr" },
+            { arabic: "المسد", english: "Al-Masad" },
+            { arabic: "الإخلاص", english: "Al-Ikhlas" },
+            { arabic: "الفلق", english: "Al-Falaq" },
+            { arabic: "الناس", english: "An-Nas" }
+        ];
+
+
+        // --- IndexedDB Setup (Native) ---
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    resolve(db);
+                };
+
+                request.onerror = (event) => {
+                    console.error("IndexedDB error:", event.target.errorCode);
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        function idbGet(key) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject("IndexedDB not open.");
+                    return;
+                }
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.get(key);
+
+                request.onsuccess = (event) => {
+                    resolve(event.target.result);
+                };
+
+                request.onerror = (event) => {
+                    console.error(`IndexedDB get error for key ${key}:`, event.target.errorCode);
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        function idbSet(key, value) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject("IndexedDB not open.");
+                    return;
+                }
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.put(value, key);
+
+                request.onsuccess = (event) => {
+                    resolve(event.target.result);
+                };
+
+                request.onerror = (event) => {
+                     console.error(`IndexedDB set error for key ${key}:`, event.target.errorCode);
+                    reject(event.target.error);
+                };
+            });
+        }
+
+         function idbClear() {
+             return new Promise((resolve, reject) => {
+                 if (!db) {
+                     reject("IndexedDB not open.");
+                     return;
+                 }
+                 const transaction = db.transaction([STORE_NAME], 'readwrite');
+                 const store = transaction.objectStore(STORE_NAME);
+                 const request = store.clear();
+
+                 request.onsuccess = (event) => {
+                     resolve();
+                 };
+
+                 request.onerror = (event) => {
+                      console.error(`IndexedDB clear error:`, event.target.errorCode);
+                     reject(event.target.error);
+                 };
+             });
+         }
+
+
+        // --- Data Loading & Parsing ---
+
+        async function loadData() {
+            document.getElementById('loadingStatus').innerText = 'Checking cache...';
+            try {
+                await openDB(); // Ensure DB is open
+
+                const cachedQuranData = await idbGet('quranData');
+                const cachedBookmarks = await idbGet('bookmarks');
+                const cachedNotes = await idbGet('notes');
+                const cachedSettings = await idbGet('settings');
+                const cachedWordMap = await idbGet('wordMap');
+                const cachedWordData = await idbGet('wordData');
+                const cachedTransliteration = await idbGet('transliterationData');
+
+
+                if (cachedQuranData && cachedBookmarks && cachedNotes && cachedSettings && cachedWordMap && cachedWordData) {
+                    quranData = cachedQuranData;
+                    bookmarks = cachedBookmarks;
+                    notes = cachedNotes;
+                    settings = { ...settings, ...cachedSettings }; // Merge settings
+                    wordMap = cachedWordMap;
+                    wordData = cachedWordData;
+                    transliterationData = cachedTransliteration || []; // Load cached or initialize empty
+
+                    document.getElementById('loadingStatus').innerText = 'Loaded from cache.';
+                    console.log('Data loaded from cache.');
+                    initApp();
+                } else {
+                    document.getElementById('loadingStatus').innerText = 'Cache not found. Fetching data...';
+                    console.log('Cache not found. Fetching data from network.');
+                    await fetchDataAndParse();
+                    await saveDataToDB();
+                    document.getElementById('loadingStatus').innerText = 'Data fetched and cached.';
+                    console.log('Data fetched, parsed, and cached.');
+                    initApp();
+                }
+            } catch (error) {
+                console.error('Error loading data from cache or network:', error);
+                document.getElementById('loadingStatus').innerText = 'Error loading data. Please check console.';
+                // Attempt to fetch even if cache fails (might be offline, but try anyway)
+                 try {
+                     await fetchDataAndParse();
+                     await saveDataToDB(); // Try saving even after error
+                     document.getElementById('loadingStatus').innerText = 'Data fetched after error.';
+                     console.log('Data fetched and cached after initial error.');
+                     initApp();
+                 } catch (fetchError) {
+                      console.error('Fatal error fetching data:', fetchError);
+                      document.getElementById('loadingStatus').innerText = 'Fatal error fetching data. App cannot load.';
+                 }
+            }
+        }
+
+        async function fetchDataAndParse() {
+            document.getElementById('loadingStatus').innerText = 'Fetching data.AM...';
+            const dataAMResponse = await fetch(DATA_URL_AM);
+            if (!dataAMResponse.ok) throw new Error(`Failed to fetch ${DATA_URL_AM}: ${dataAMResponse.statusText}`);
+            const dataAMText = await dataAMResponse.text();
+            parseDataAM(dataAMText);
+            document.getElementById('loadingStatus').innerText = 'Fetching data4.csv...';
+
+            const dataCSVResponse = await fetch(DATA_URL_CSV);
+             if (!dataCSVResponse.ok) throw new Error(`Failed to fetch ${DATA_URL_CSV}: ${dataCSVResponse.statusText}`);
+            const dataCSVText = await dataCSVResponse.text();
+             parseDataCSV(dataCSVText);
+
+            document.getElementById('loadingStatus').innerText = 'Fetching word.AM...';
+            const dataWordMapResponse = await fetch(DATA_URL_WORD_MAP);
+            if (!dataWordMapResponse.ok) throw new Error(`Failed to fetch ${DATA_URL_WORD_MAP}: ${dataWordMapResponse.statusText}`);
+            const dataWordMapText = await dataWordMapResponse.text();
+            parseWordMap(dataWordMapText);
+
+            document.getElementById('loadingStatus').innerText = 'Combining data...';
+            combineData();
+        }
+
+        function parseDataAM(text) {
+            const lines = text.split('\n');
+            quranData = Array.from({ length: 114 }, () => []); // Initialize 114 empty surahs
+
+            // Regex to capture Arabic, Urdu, Surah, Ayah
+            // Handles potential variations in spacing or missing <br/>s
+            const ayahRegex = /^(.+)\s*ترجمہ:\s*(.+?)(?:<br\/>)?\s*س\s*(\d+)\s*آ\s*(\d+)\s*$/m;
+
+            lines.forEach(line => {
+                const match = line.match(ayahRegex);
+                if (match) {
+                    const arabic = match[1].trim();
+                    const urdu = match[2].trim();
+                    const surahNum = parseInt(match[3], 10);
+                    const ayahNum = parseInt(match[4], 10);
+
+                    if (surahNum >= 1 && surahNum <= 114 && ayahNum >= 1) {
+                        const surahIndex = surahNum - 1;
+                        const ayahIndex = ayahNum - 1;
+
+                        // Ensure surah array exists (should by initialization, but safety)
+                        if (!quranData[surahIndex]) {
+                             quranData[surahIndex] = [];
+                        }
+
+                        // Add ayah data
+                        quranData[surahIndex][ayahIndex] = {
+                            surah: surahNum,
+                            ayah: ayahNum,
+                            arabic: arabic,
+                            urdu: urdu,
+                            englishWordByWord: [], // Placeholder
+                            transliteration: '', // Placeholder
+                            notes: '', // Placeholder
+                            isBookmarked: false // Placeholder
+                        };
+                    } else {
+                        console.warn('Skipping invalid ayah line:', line);
+                    }
+                } else {
+                    console.warn('Line did not match expected format:', line);
+                }
+            });
+             console.log(`Parsed ${lines.length} lines from data.AM. Found ${quranData.flat().filter(a => a).length} ayahs.`); // Filter out empty slots
+        }
+
+        // Simple CSV Parser (replaces PapaParse)
+        function parseDataCSV(text) {
+            wordData = [];
+            const lines = text.split('\n');
+            if (lines.length === 0) return;
+
+            const headers = lines[0].split(','); // Simple split by comma
+            const quranTextIndex = headers.indexOf('quran_text');
+            const urMeaningIndex = headers.indexOf('ur_meaning');
+            const enMeaningIndex = headers.indexOf('en_meaning');
+
+            if (quranTextIndex === -1 || urMeaningIndex === -1 || enMeaningIndex === -1) {
+                console.error("CSV headers not found: quran_text, ur_meaning, en_meaning");
+                return; // Stop parsing if headers are missing
+            }
+
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue; // Skip empty lines
+
+                // Simple split by comma - might fail with commas inside quoted fields
+                const values = line.split(',');
+
+                if (values.length >= Math.max(quranTextIndex, urMeaningIndex, enMeaningIndex) + 1) {
+                     wordData.push({
+                         quran_text: values[quranTextIndex].trim(),
+                         ur_meaning: values[urMeaningIndex].trim(),
+                         en_meaning: values[enMeaningIndex].trim()
+                     });
+                } else {
+                    console.warn(`Skipping CSV line due to incorrect column count: ${line}`);
+                }
+            }
+             console.log(`Parsed ${wordData.length} entries from data4.csv.`);
+        }
+
+
+        function parseWordMap(text) {
+             wordMap = [];
+             const lines = text.split('\n');
+             // Regex to capture index, surah, ayah, position from lines like "1": {"surah": 1, "ayah": 1, "position": 0},
+             const mapRegex = /^"(\d+)":\s*{"surah":\s*(\d+),\s*"ayah":\s*(\d+),\s*"position":\s*(\d+)},?$/;
+
+             lines.forEach(line => {
+                 const match = line.match(mapRegex);
+                 if (match) {
+                     const index = parseInt(match[1], 10);
+                     const surah = parseInt(match[2], 10);
+                     const ayah = parseInt(match[3], 10);
+                     const position = parseInt(match[4], 10);
+
+                     // Store mapping, index is 1-based in file, but we'll use it as key/index directly
+                     wordMap[index] = { surah: surah, ayah: ayah, position: position };
+                 } else {
+                     // console.warn('Word map line did not match expected format:', line); // Too noisy
+                 }
+             });
+             console.log(`Parsed ${wordMap.length} entries from word.AM.`);
+        }
+
+        function combineData() {
+            // Iterate through the word map
+            wordMap.forEach((mapEntry, index) => {
+                // Check if mapEntry exists and there is corresponding data in wordData
+                if (mapEntry && index > 0 && index < wordData.length + 1 && wordData[index - 1]) { // wordData is 0-indexed, wordMap index is 1-based
+                    const surahIndex = mapEntry.surah - 1;
+                    const ayahIndex = mapEntry.ayah - 1;
+                    const position = mapEntry.position;
+
+                    if (quranData[surahIndex] && quranData[surahIndex][ayahIndex]) {
+                        const word = {
+                            arabic_word: wordData[index - 1].quran_text,
+                            urdu_meaning: wordData[index - 1].ur_meaning,
+                            english_meaning: wordData[index - 1].en_meaning
+                        };
+                        // Ensure the englishWordByWord array is initialized for this ayah
+                         if (!quranData[surahIndex][ayahIndex].englishWordByWord) {
+                            quranData[surahIndex][ayahIndex].englishWordByWord = [];
+                        }
+                        // Place the word data at the correct position
+                        quranData[surahIndex][ayahIndex].englishWordByWord[position] = word;
+                    } else {
+                         // console.warn(`Could not find ayah ${mapEntry.surah}:${mapEntry.ayah} for word map index ${index}.`); // Too noisy
+                    }
+                } else if (mapEntry) {
+                     // console.warn(`Word data not found for word map index ${index}. WordData length: ${wordData.length}`); // Too noisy
+                }
+            });
+
+             // Fill in any missing word positions with placeholders if necessary
+             // (This might happen if word.AM or data4.csv are incomplete/mismatched)
+             quranData.forEach(surah => {
+                 if (!surah) return;
+                 surah.forEach(ayah => {
+                     if (ayah && ayah.arabic) { // Check if ayah object exists and has arabic text
+                         const arabicWords = ayah.arabic.split(/\s+/).length; // Simple word count
+                         if (ayah.englishWordByWord.length < arabicWords) {
+                             // console.warn(`Ayah ${ayah.surah}:${ayah.ayah} has missing word-by-word data. Expected at least ${arabicWords}, found ${ayah.englishWordByWord.length}. Filling placeholders.`);
+                             for (let i = 0; i < arabicWords; i++) {
+                                 if (!ayah.englishWordByWord[i]) {
+                                     ayah.englishWordByWord[i] = {
+                                         arabic_word: ayah.arabic.split(/\s+/)[i] || '',
+                                         urdu_meaning: '?',
+                                         english_meaning: '?'
+                                     };
+                                 }
+                             }
+                         }
+                          // Remove empty slots if any (e.g., from sparse assignment)
+                         ayah.englishWordByWord = ayah.englishWordByWord.filter(word => word !== undefined && word !== null);
+                     }
+                 });
+             });
+
+            console.log('Data combination complete.');
+        }
+
+
+        async function saveDataToDB() {
+            try {
+                await idbSet('quranData', quranData);
+                await idbSet('bookmarks', bookmarks);
+                await idbSet('notes', notes);
+                await idbSet('settings', settings);
+                await idbSet('wordMap', wordMap); // Cache map and word data too
+                await idbSet('wordData', wordData);
+                 await idbSet('transliterationData', transliterationData);
+                console.log('Data saved to IndexedDB.');
+            } catch (error) {
+                console.error('Error saving data to IndexedDB:', error);
+            }
+        }
+
+        // --- UI Rendering ---
+
+        function renderAyahs(startSurahIndex, startAyahIndex, count = 20) {
+            const displayArea = document.getElementById('quranDisplayArea');
+            displayArea.innerHTML = ''; // Clear previous content
+
+            let renderedCount = 0;
+            let currentSurahIndex = startSurahIndex;
+            let currentAyahIndex = startAyahIndex;
+
+            while (renderedCount < count && currentSurahIndex < quranData.length) {
+                const surah = quranData[currentSurahIndex];
+                if (!surah) {
+                    currentSurahIndex++;
+                    currentAyahIndex = 0;
+                    continue;
+                }
+
+                 // Add Surah header if it's the first ayah of a new surah being displayed
+                 if (currentAyahIndex === 0) {
+                     const surahHeader = document.createElement('h3');
+                     surahHeader.classList.add('text-center', 'mb-4');
+                     surahHeader.textContent = `${currentSurahIndex + 1}. ${surahNames[currentSurahIndex]?.english || 'Surah'} - ${surahNames[currentSurahIndex]?.arabic || ''}`;
+                     displayArea.appendChild(surahHeader);
+                 }
+
+
+                if (currentAyahIndex < surah.length) {
+                    const ayah = surah[currentAyahIndex];
+                    if (ayah) { // Ensure ayah object exists
+                        const ayahElement = document.createElement('div');
+                        ayahElement.classList.add('ayah-container');
+                        ayahElement.id = `ayah-${currentSurahIndex}-${currentAyahIndex}`; // ID for scrolling/targeting
+
+                        const ayahNumberSpan = document.createElement('span');
+                        ayahNumberSpan.classList.add('ayah-number');
+                        ayahNumberSpan.textContent = `(${ayah.ayah})`; // Display Ayah number
+
+                         // Bookmark Button (Using simple text/icon as FontAwesome might not be included)
+                        const bookmarkBtn = document.createElement('span');
+                        bookmarkBtn.classList.add('bookmark-btn');
+                        bookmarkBtn.innerHTML = isBookmarked(currentSurahIndex, currentAyahIndex) ? '★' : '☆'; // Filled/empty star
+                        bookmarkBtn.classList.add(isBookmarked(currentSurahIndex, currentAyahIndex) ? 'active' : '');
+                        bookmarkBtn.title = 'Bookmark Ayah';
+                        bookmarkBtn.onclick = () => toggleBookmark(currentSurahIndex, currentAyahIndex);
+                         ayahNumberSpan.appendChild(bookmarkBtn); // Add bookmark icon next to number
+
+                         // Note Button (Using simple text/icon)
+                         const noteBtn = document.createElement('span');
+                         noteBtn.classList.add('note-btn');
+                         noteBtn.innerHTML = hasNote(currentSurahIndex, currentAyahIndex) ? '📝' : '🗒️'; // Filled/empty note icon
+                         noteBtn.classList.add(hasNote(currentSurahIndex, currentAyahIndex) ? 'active' : '');
+                         noteBtn.title = 'Add/Edit Note';
+                         noteBtn.onclick = () => openNoteModal(currentSurahIndex, currentAyahIndex);
+                         ayahNumberSpan.appendChild(noteBtn); // Add note icon next to number
+
+
+                        ayahElement.appendChild(ayahNumberSpan);
+
+                        // Arabic Text
+                        const arabicText = document.createElement('div');
+                        arabicText.classList.add('arabic');
+                        arabicText.textContent = ayah.arabic;
+                        ayahElement.appendChild(arabicText);
+
+                        // Urdu Translation (Toggleable)
+                        if (settings.showUrdu) {
+                            const urduTranslation = document.createElement('div');
+                            urduTranslation.classList.add('urdu');
+                            urduTranslation.textContent = ayah.urdu;
+                            ayahElement.appendChild(urduTranslation);
+                        }
+
+                        // English Word-by-Word (Toggleable)
+                        if (settings.showEnglish && ayah.englishWordByWord && ayah.englishWordByWord.length > 0) {
+                             const englishWbW = document.createElement('div');
+                             englishWbW.classList.add('english', 'word-by-word');
+                             ayah.englishWordByWord.forEach(word => {
+                                 if (word) { // Ensure word object exists
+                                     const wordSpan = document.createElement('span');
+                                     const arabicWordSpan = document.createElement('span');
+                                     arabicWordSpan.classList.add('arabic-word');
+                                     arabicWordSpan.textContent = word.arabic_word;
+                                     wordSpan.appendChild(arabicWordSpan);
+
+                                      const urduMeaningSpan = document.createElement('span');
+                                      urduMeaningSpan.classList.add('urdu-meaning');
+                                      urduMeaningSpan.textContent = word.urdu_meaning;
+                                      wordSpan.appendChild(urduMeaningSpan);
+
+                                     const englishMeaningSpan = document.createElement('span');
+                                     englishMeaningSpan.classList.add('english-meaning');
+                                     englishMeaningSpan.textContent = word.english_meaning;
+                                     wordSpan.appendChild(englishMeaningSpan);
+
+                                     englishWbW.appendChild(wordSpan);
+                                 }
+                             });
+                             ayahElement.appendChild(englishWbW);
+                         }
+
+
+                        // Transliteration (Toggleable, Placeholder or Data)
+                        if (settings.showTransliteration) {
+                            const translitText = transliterationData[currentSurahIndex]?.[currentAyahIndex] || '[Transliteration Placeholder]';
+                             const transliteration = document.createElement('div');
+                             transliteration.classList.add('transliteration');
+                             transliteration.textContent = translitText;
+                             ayahElement.appendChild(transliteration);
+                        }
+
+
+                        displayArea.appendChild(ayahElement);
+
+                        renderedCount++;
+                        currentAyahIndex++;
+                    } else {
+                         // Ayah object is null/undefined, skip it
+                         currentAyahIndex++;
+                    }
+
+                } else {
+                    // Move to the next surah
+                    currentSurahIndex++;
+                    currentAyahIndex = 0;
+                }
+            }
+
+            // Update last read position after rendering
+            settings.lastRead = `${startSurahIndex}:${startAyahIndex}`;
+            saveDataToDB(); // Save settings
+        }
+
+        // --- Navigation Logic ---
+
+        function populateNavigationModals() {
+            const surahSelect = document.getElementById('surahSelect');
+            surahSelect.innerHTML = ''; // Clear previous options
+            surahNames.forEach((surah, index) => {
+                const option = document.createElement('option');
+                option.value = index; // Use 0-based index
+                option.textContent = `${index + 1}. ${surah.english} - ${surah.arabic}`;
+                surahSelect.appendChild(option);
+            });
+
+            // Populate Ayah select based on initial Surah (Al-Fatihah)
+            populateAyahSelect(0);
+
+            // Populate Juz select
+            const juzSelect = document.getElementById('juzSelect');
+            juzSelect.innerHTML = '';
+            for (let i = 1; i <= 30; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Juz ${i}`;
+                 // Optional: Add starting ayah name
+                 const start = juzStartAyahs[i-1];
+                 if(start && quranData[start.surahIndex] && quranData[start.surahIndex][start.ayahIndex]) {
+                     option.textContent += ` (${surahNames[start.surahIndex]?.english || ''} ${start.ayahIndex + 1})`;
+                 }
+                juzSelect.appendChild(option);
+            }
+
+            // Populate Page select
+            const pageSelect = document.getElementById('pageSelect');
+            pageSelect.innerHTML = '';
+            for (let i = 1; i <= 604; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Page ${i}`;
+                 // Optional: Add starting ayah name (using approximate for demonstration)
+                 const start = getApproximateAyahForPage(i);
+                 if(start && quranData[start.surahIndex] && quranData[start.surahIndex][start.ayahIndex]) {
+                      option.textContent += ` (${surahNames[start.surahIndex]?.english || ''} ${start.ayahIndex + 1})`;
+                 }
+                pageSelect.appendChild(option);
+            }
+        }
+
+        function populateAyahSelect(surahIndex) {
+            const ayahSelect = document.getElementById('ayahSelect');
+            ayahSelect.innerHTML = ''; // Clear previous options
+            const surah = quranData[surahIndex];
+            if (surah) {
+                for (let i = 0; i < surah.length; i++) {
+                    const option = document.createElement('option');
+                    option.value = i; // Use 0-based index
+                    option.textContent = `Ayah ${i + 1}`;
+                    ayahSelect.appendChild(option);
+                }
+            }
+        }
+
+        function goToAyah(surahIndex, ayahIndex) {
+            if (surahIndex >= 0 && surahIndex < quranData.length &&
+                quranData[surahIndex] && ayahIndex >= 0 && ayahIndex < quranData[surahIndex].length) {
+                renderAyahs(surahIndex, ayahIndex);
+                // Scroll to the top of the display area
+                document.getElementById('quranDisplayArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                console.warn(`Invalid Ayah indices: ${surahIndex}:${ayahIndex}`);
+                alert('Invalid Surah or Ayah number.');
+            }
+        }
+
+        function goToJuz(juzNumber) {
+            if (juzNumber >= 1 && juzNumber <= 30) {
+                const start = juzStartAyahs[juzNumber - 1];
+                 if (start) {
+                    goToAyah(start.surahIndex, start.ayahIndex);
+                 } else {
+                     console.error(`Juz ${juzNumber} start not found in map.`);
+                     alert('Juz start position not found.');
+                 }
+            } else {
+                alert('Invalid Juz number.');
+            }
+        }
+
+        function goToPage(pageNumber) {
+            if (pageNumber >= 1 && pageNumber <= 604) {
+                const start = getApproximateAyahForPage(pageNumber); // Use approximate mapping
+                 if (start) {
+                     goToAyah(start.surahIndex, start.ayahIndex);
+                 } else {
+                     console.error(`Page ${pageNumber} start not found in map.`);
+                     alert('Page start position not found.');
+                 }
+            } else {
+                alert('Invalid Page number.');
+            }
+        }
+
+        function goToLastRead() {
+            const parts = settings.lastRead.split(':');
+            const surahIndex = parseInt(parts[0], 10);
+            const ayahIndex = parseInt(parts[1], 10);
+             // Validate last read position
+            if (!isNaN(surahIndex) && !isNaN(ayahIndex) &&
+                surahIndex >= 0 && surahIndex < quranData.length &&
+                quranData[surahIndex] && ayahIndex >= 0 && ayahIndex < quranData[surahIndex].length) {
+                goToAyah(surahIndex, ayahIndex);
+            } else {
+                // Default to start if last read is invalid
+                goToAyah(0, 0);
+            }
+        }
+
+        // --- Search Logic ---
+
+        // Function to normalize Arabic text (remove tashkeel)
+        function normalizeArabic(text) {
+            if (!text) return '';
+            // Remove Tashkeel (Fatha, Damma, Kasra, Sukun, Shadda, Maddah above Aleph, Hamza above Aleph)
+            text = text.replace(/[\u064E-\u0651\u0670\u0671]/g, '');
+            // Normalize Aleph variants (ا, أ, إ, آ) to simple Aleph (ا)
+             text = text.replace(/[\u0622\u0623\u0625]/g, '\u0627');
+             // Normalize Yeh variants (ي, ى) to Yeh (ي) - Be careful with Alif Maqsura
+             text = text.replace(/\u0649/g, '\u064A'); // Alif Maqsura (ى) to Yeh (ي)
+            // Remove Tatweel (ـ)
+             text = text.replace(/\u0640/g, '');
+             // Normalize Hamza variants (ء, ئ, ؤ) - Keep simple hamza? Or remove? Let's remove for broad search
+             text = text.replace(/[\u0621\u0624\u0626]/g, ''); // Hamza, Hamza on waw, Hamza on yeh
+            return text;
+        }
+
+        function searchQuran(query) {
+            const searchResultsDiv = document.getElementById('searchResults');
+            searchResultsDiv.innerHTML = ''; // Clear previous results
+
+            if (!query || query.trim() === '') {
+                searchResultsDiv.innerHTML = '<p class="text-muted">Enter text to search.</p>';
+                return;
+            }
+
+            const normalizedQuery = normalizeArabic(query.trim().toLowerCase());
+            const queryLower = query.trim().toLowerCase(); // For non-Arabic search
+            const results = [];
+
+            quranData.forEach((surah, surahIndex) => {
+                if (!surah) return;
+                surah.forEach((ayah, ayahIndex) => {
+                    if (!ayah) return;
+
+                    let match = false;
+                    let matchField = '';
+
+                    // Search Arabic (normalized)
+                    const normalizedArabic = normalizeArabic(ayah.arabic).toLowerCase();
+                    if (normalizedArabic.includes(normalizedQuery)) {
+                        match = true;
+                        matchField = 'Arabic';
+                    }
+
+                    // Search Urdu
+                    if (!match && ayah.urdu && ayah.urdu.toLowerCase().includes(queryLower)) {
+                         match = true;
+                         matchField = 'Urdu';
+                    }
+
+                    // Search English Word-by-Word meanings
+                    if (!match && ayah.englishWordByWord) {
+                        for (const word of ayah.englishWordByWord) {
+                            if (word && word.english_meaning && word.english_meaning.toLowerCase().includes(queryLower)) {
+                                match = true;
+                                matchField = 'English';
+                                break;
+                            }
+                        }
+                    }
+
+                    // Search Transliteration (if available)
+                    if (!match && settings.showTransliteration && transliterationData[surahIndex]?.[ayahIndex]) {
+                         if (transliterationData[surahIndex][ayahIndex].toLowerCase().includes(queryLower)) {
+                             match = true;
+                             matchField = 'Transliteration';
+                         }
+                    }
+
+
+                    if (match) {
+                        results.push({
+                            surahIndex: surahIndex,
+                            ayahIndex: ayahIndex,
+                            surahName: surahNames[surahIndex]?.english || `Surah ${surahIndex + 1}`,
+                            ayahNumber: ayah.ayah,
+                            arabic: ayah.arabic,
+                            urdu: ayah.urdu,
+                            matchField: matchField // Indicate where the match was found
+                        });
+                    }
+                });
+            });
+
+            if (results.length === 0) {
+                searchResultsDiv.innerHTML = '<p class="text-muted">No results found.</p>';
+            } else {
+                results.forEach(result => {
+                    const resultElement = document.createElement('div');
+                    resultElement.classList.add('search-result-item');
+                    resultElement.innerHTML = `
+                        <p><strong>${result.surahName} ${result.ayahNumber}:</strong> (Match in: ${result.matchField})</p>
+                        <p class="arabic">${result.arabic}</p>
+                        <p class="urdu">${result.urdu}</p>
+                    `;
+                    resultElement.onclick = () => {
+                        goToAyah(result.surahIndex, result.ayahIndex);
+                        // Close the modal
+                        const searchModal = bootstrap.Modal.getInstance(document.getElementById('searchModal'));
+                        if (searchModal) searchModal.hide();
+                    };
+                    searchResultsDiv.appendChild(resultElement);
+                });
+            }
+        }
+
+        // --- Bookmarks & Notes Logic ---
+
+        function getAyahKey(surahIndex, ayahIndex) {
+            return `${surahIndex}:${ayahIndex}`;
+        }
+
+        function isBookmarked(surahIndex, ayahIndex) {
+            const key = getAyahKey(surahIndex, ayahIndex);
+            return bookmarks.includes(key);
+        }
+
+        function hasNote(surahIndex, ayahIndex) {
+             const key = getAyahKey(surahIndex, ayahIndex);
+             return notes.hasOwnProperty(key) && notes[key].trim() !== '';
+        }
+
+        async function toggleBookmark(surahIndex, ayahIndex) {
+            const key = getAyahKey(surahIndex, ayahIndex);
+            const index = bookmarks.indexOf(key);
+            const bookmarkBtn = document.querySelector(`#ayah-${surahIndex}-${ayahIndex} .bookmark-btn`);
+
+            if (index === -1) {
+                // Add bookmark
+                bookmarks.push(key);
+                if (bookmarkBtn) {
+                    bookmarkBtn.classList.add('active');
+                    bookmarkBtn.innerHTML = '★';
+                }
+                console.log(`Bookmarked ${key}`);
+            } else {
+                // Remove bookmark
+                bookmarks.splice(index, 1);
+                 if (bookmarkBtn) {
+                     bookmarkBtn.classList.remove('active');
+                     bookmarkBtn.innerHTML = '☆';
+                 }
+                 console.log(`Removed bookmark ${key}`);
+            }
+            await saveDataToDB();
+            // Update bookmarks list in modal if open
+            renderBookmarksList();
+        }
+
+        function openNoteModal(surahIndex, ayahIndex) {
+            const key = getAyahKey(surahIndex, ayahIndex);
+            const noteTextarea = document.getElementById('noteTextarea');
+            const noteAyahRefSpan = document.getElementById('noteAyahRef');
+            const saveNoteBtn = document.getElementById('saveNoteBtn');
+
+            const surahName = surahNames[surahIndex]?.english || `Surah ${surahIndex + 1}`;
+            const ayahNumber = ayahIndex + 1;
+
+            noteAyahRefSpan.textContent = `${surahName} Ayah ${ayahNumber}`;
+            noteTextarea.value = notes[key] || ''; // Load existing note or empty
+
+            // Store current ayah key on the save button temporarily
+            saveNoteBtn.dataset.ayahKey = key;
+
+            const noteModal = new bootstrap.Modal(document.getElementById('editNoteModal'));
+            noteModal.show();
+        }
+
+        async function saveNote() {
+            const noteTextarea = document.getElementById('noteTextarea');
+            const saveNoteBtn = document.getElementById('saveNoteBtn');
+            const key = saveNoteBtn.dataset.ayahKey;
+            const text = noteTextarea.value.trim();
+
+            if (key) {
+                if (text === '') {
+                    // If note is empty, remove it
+                    delete notes[key];
+                    console.log(`Removed note for ${key}`);
+                } else {
+                    // Save or update note
+                    notes[key] = text;
+                     console.log(`Saved note for ${key}`);
+                }
+                await saveDataToDB();
+                // Update note icon on the ayah if visible
+                const parts = key.split(':');
+                const surahIndex = parseInt(parts[0], 10);
+                const ayahIndex = parseInt(parts[1], 10);
+                const noteBtn = document.querySelector(`#ayah-${surahIndex}-${ayahIndex} .note-btn`);
+                if (noteBtn) {
+                    if (hasNote(surahIndex, ayahIndex)) {
+                        noteBtn.classList.add('active');
+                        noteBtn.innerHTML = '📝';
+                    } else {
+                        noteBtn.classList.remove('active');
+                        noteBtn.innerHTML = '🗒️';
+                    }
+                }
+                // Update notes list in modal if open
+                renderNotesList();
+            }
+
+            // Close the modal
+            const noteModal = bootstrap.Modal.getInstance(document.getElementById('editNoteModal'));
+            if (noteModal) noteModal.hide();
+        }
+
+
+        function renderBookmarksList() {
+            const bookmarksList = document.getElementById('bookmarksList');
+            bookmarksList.innerHTML = ''; // Clear previous list
+
+            if (bookmarks.length === 0) {
+                bookmarksList.innerHTML = '<li class="list-group-item text-muted">No bookmarks yet.</li>';
+                return;
+            }
+
+            bookmarks.forEach(key => {
+                const parts = key.split(':');
+                const surahIndex = parseInt(parts[0], 10);
+                const ayahIndex = parseInt(parts[1], 10);
+
+                if (quranData[surahIndex] && quranData[surahIndex][ayahIndex]) {
+                    const surahName = surahNames[surahIndex]?.english || `Surah ${surahIndex + 1}`;
+                    const ayahNumber = ayahIndex + 1;
+                    const ayahText = quranData[surahIndex][ayahIndex].arabic.substring(0, 50) + '...'; // Show snippet
+
+                    const listItem = document.createElement('li');
+                    listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+                    listItem.innerHTML = `
+                        <span><strong>${surahName} ${ayahNumber}:</strong> ${ayahText}</span>
+                        <button class="btn btn-danger btn-sm remove-bookmark" data-key="${key}">Remove</button>
+                    `;
+                    listItem.querySelector('span').style.cursor = 'pointer';
+                     listItem.querySelector('span').onclick = () => {
+                         goToAyah(surahIndex, ayahIndex);
+                         // Close the modal
+                         const modal = bootstrap.Modal.getInstance(document.getElementById('bookmarksNotesModal'));
+                         if (modal) modal.hide();
+                     };
+                    listItem.querySelector('.remove-bookmark').onclick = (e) => {
+                        e.stopPropagation(); // Prevent list item click
+                        removeBookmark(key);
+                    };
+                    bookmarksList.appendChild(listItem);
+                } else {
+                     console.warn(`Bookmarked ayah key ${key} not found in data.`);
+                     // Optionally remove invalid bookmarks automatically
+                     // removeBookmark(key);
+                }
+            });
+        }
+
+        async function removeBookmark(key) {
+            const index = bookmarks.indexOf(key);
+            if (index !== -1) {
+                bookmarks.splice(index, 1);
+                await saveDataToDB();
+                renderBookmarksList(); // Refresh the list
+                 // Update icon on ayah if visible
+                const parts = key.split(':');
+                const surahIndex = parseInt(parts[0], 10);
+                const ayahIndex = parseInt(parts[1], 10);
+                 const bookmarkBtn = document.querySelector(`#ayah-${surahIndex}-${ayahIndex} .bookmark-btn`);
+                 if (bookmarkBtn) {
+                     bookmarkBtn.classList.remove('active');
+                     bookmarkBtn.innerHTML = '☆';
+                 }
+            }
+        }
+
+        function renderNotesList() {
+             const notesList = document.getElementById('notesList');
+             notesList.innerHTML = ''; // Clear previous list
+
+             const noteKeys = Object.keys(notes).filter(key => notes[key].trim() !== ''); // Only show non-empty notes
+
+             if (noteKeys.length === 0) {
+                 notesList.innerHTML = '<li class="list-group-item text-muted">No notes yet.</li>';
+                 return;
+             }
+
+             noteKeys.forEach(key => {
+                 const parts = key.split(':');
+                 const surahIndex = parseInt(parts[0], 10);
+                 const ayahIndex = parseInt(parts[1], 10);
+                 const noteText = notes[key];
+
+                  if (quranData[surahIndex] && quranData[surahIndex][ayahIndex]) {
+                     const surahName = surahNames[surahIndex]?.english || `Surah ${surahIndex + 1}`;
+                     const ayahNumber = ayahIndex + 1;
+                     const ayahSnippet = quranData[surahIndex][ayahIndex].arabic.substring(0, 50) + '...'; // Show snippet
+
+                     const listItem = document.createElement('li');
+                     listItem.classList.add('list-group-item');
+                     listItem.innerHTML = `
+                         <div>
+                             <strong>${surahName} ${ayahNumber}:</strong> ${ayahSnippet}
+                         </div>
+                         <p class="text-muted mt-2 mb-0">${noteText}</p>
+                         <div class="mt-2">
+                             <button class="btn btn-secondary btn-sm edit-note" data-key="${key}">Edit</button>
+                             <button class="btn btn-danger btn-sm remove-note" data-key="${key}">Remove</button>
+                         </div>
+                     `;
+                     listItem.querySelector('div').style.cursor = 'pointer';
+                      listItem.querySelector('div').onclick = () => {
+                          goToAyah(surahIndex, ayahIndex);
+                          // Close the modal
+                          const modal = bootstrap.Modal.getInstance(document.getElementById('bookmarksNotesModal'));
+                          if (modal) modal.hide();
+                      };
+                     listItem.querySelector('.edit-note').onclick = (e) => {
+                         e.stopPropagation(); // Prevent list item click
+                         const parts = e.target.dataset.key.split(':');
+                         openNoteModal(parseInt(parts[0], 10), parseInt(parts[1], 10));
+                     };
+                      listItem.querySelector('.remove-note').onclick = (e) => {
+                         e.stopPropagation(); // Prevent list item click
+                         removeNote(e.target.dataset.key);
+                     };
+                     notesList.appendChild(listItem);
+                 } else {
+                      console.warn(`Note key ${key} not found in data.`);
+                      // Optionally remove invalid notes automatically
+                      // removeNote(key);
+                 }
+             });
+        }
+
+        async function removeNote(key) {
+             if (notes.hasOwnProperty(key)) {
+                 delete notes[key];
+                 await saveDataToDB();
+                 renderNotesList(); // Refresh the list
+                  // Update icon on ayah if visible
+                 const parts = key.split(':');
+                 const surahIndex = parseInt(parts[0], 10);
+                 const ayahIndex = parseInt(parts[1], 10);
+                  const noteBtn = document.querySelector(`#ayah-${surahIndex}-${ayahIndex} .note-btn`);
+                  if (noteBtn) {
+                      noteBtn.classList.remove('active');
+                      noteBtn.innerHTML = '🗒️';
+                  }
+             }
+        }
+
+        // --- Settings Logic ---
+
+        function loadSettings() {
+             document.getElementById('toggleUrdu').checked = settings.showUrdu;
+             document.getElementById('toggleEnglish').checked = settings.showEnglish;
+             document.getElementById('toggleTransliteration').checked = settings.showTransliteration;
+
+             // Add event listeners to save settings on change
+             document.getElementById('toggleUrdu').addEventListener('change', saveSettings);
+             document.getElementById('toggleEnglish').addEventListener('change', saveSettings);
+             document.getElementById('toggleTransliteration').addEventListener('change', saveSettings);
+        }
+
+        async function saveSettings() {
+             settings.showUrdu = document.getElementById('toggleUrdu').checked;
+             settings.showEnglish = document.getElementById('toggleEnglish').checked;
+             settings.showTransliteration = document.getElementById('toggleTransliteration').checked;
+             await saveDataToDB();
+             console.log('Settings saved.');
+             // Re-render the current view to apply settings
+             const parts = settings.lastRead.split(':');
+             goToAyah(parseInt(parts[0], 10), parseInt(parts[1], 10));
+        }
+
+        async function clearLastRead() {
+            settings.lastRead = "0:0";
+            await saveDataToDB();
+            alert('Last read position cleared.');
+        }
+
+         async function importCustomData(file) {
+             const reader = new FileReader();
+             reader.onload = async (event) => {
+                 try {
+                     const data = JSON.parse(event.target.result);
+                     if (!Array.isArray(data)) {
+                         throw new Error("Imported data is not an array.");
+                     }
+
+                     let importedCount = 0;
+                     for (const entry of data) {
+                         // Basic validation for each entry
+                         if (typeof entry.surah === 'number' && entry.surah >= 1 && entry.surah <= 114 &&
+                             typeof entry.ayah === 'number' && entry.ayah >= 1 &&
+                             typeof entry.type === 'string' && ['translation', 'transliteration'].includes(entry.type) &&
+                             typeof entry.lang === 'string' && typeof entry.text === 'string')
+                         {
+                             const surahIndex = entry.surah - 1;
+                             const ayahIndex = entry.ayah - 1;
+
+                             if (quranData[surahIndex] && quranData[surahIndex][ayahIndex]) {
+                                 if (entry.type === 'transliteration') {
+                                     // Store transliteration data. Allow multiple transliterations per ayah by lang?
+                                     // For simplicity, let's just store one per ayah based on the last import for now.
+                                     // A more complex structure would be needed for multiple transliterations.
+                                     transliterationData[surahIndex] = transliterationData[surahIndex] || [];
+                                     transliterationData[surahIndex][ayahIndex] = entry.text; // Overwrite existing transliteration if any
+                                 } else if (entry.type === 'translation') {
+                                     // This app structure primarily uses fixed Urdu/English.
+                                     // To support multiple translations, the quranData structure would need modification.
+                                     // For now, we'll log a warning and skip translation import beyond the built-in ones.
+                                     console.warn(`Skipping import of additional translation (lang: ${entry.lang}) for ${entry.surah}:${entry.ayah}. App supports only built-in Urdu/English.`);
+                                     continue; // Skip to next entry
+                                 }
+                                 importedCount++;
+                             } else {
+                                 console.warn(`Skipping custom data for invalid ayah ${entry.surah}:${entry.ayah}`);
+                             }
+                         } else {
+                             console.warn("Skipping invalid custom data entry:", entry);
+                         }
+                     }
+
+                     await saveDataToDB(); // Save updated transliteration data
+                     alert(`Successfully imported ${importedCount} custom data entries (primarily transliteration).`);
+                     // Re-render to show changes if transliteration was imported
+                     const parts = settings.lastRead.split(':');
+                     goToAyah(parseInt(parts[0], 10), parseInt(parts[1], 10));
+
+                 } catch (e) {
+                     console.error("Error importing custom data:", e);
+                     alert("Failed to import custom data. Please ensure the file is a valid JSON array with correct format.");
+                 }
+             };
+             reader.onerror = (error) => {
+                 console.error("FileReader error:", error);
+                 alert("Error reading file.");
+             };
+             reader.readAsText(file);
+         }
+
+
+        // --- Backup & Restore Logic ---
+
+        async function exportData() {
+            const dataToExport = {
+                bookmarks: bookmarks,
+                notes: notes,
+                settings: settings,
+                transliterationData: transliterationData // Include custom transliteration
+                // Do NOT export quranData, wordMap, wordData as they are fetched from URLs
+            };
+
+            const jsonString = JSON.stringify(dataToExport, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'quran_app_backup.json';
+            document.body.appendChild(a); // Append to body is necessary for Firefox
+            a.click();
+            document.body.removeChild(a); // Clean up
+            URL.revokeObjectURL(url); // Free up memory
+        }
+
+        async function importData(file) {
+            const importErrorDiv = document.getElementById('importError');
+            const importSuccessDiv = document.getElementById('importSuccess');
+            importErrorDiv.style.display = 'none';
+            importSuccessDiv.style.display = 'none';
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+
+                    // Basic validation
+                    if (typeof importedData !== 'object' || !importedData.hasOwnProperty('bookmarks') || !importedData.hasOwnProperty('notes') || !importedData.hasOwnProperty('settings')) {
+                        throw new Error("Invalid backup file format.");
+                    }
+
+                    // Update global variables and IndexedDB
+                    bookmarks = importedData.bookmarks || [];
+                    notes = importedData.notes || {};
+                    settings = { ...settings, ...importedData.settings }; // Merge settings
+                    transliterationData = importedData.transliterationData || []; // Import custom transliteration
+
+                    await saveDataToDB();
+
+                    importSuccessDiv.style.display = 'block';
+                    console.log('Data imported successfully.');
+                    // Reload or re-initialize parts of the app
+                    setTimeout(() => {
+                         window.location.reload(); // Simple reload to ensure all UI reflects new data
+                    }, 1000);
+
+                } catch (e) {
+                    console.error("Error importing data:", e);
+                    importErrorDiv.style.display = 'block';
+                }
+            };
+            reader.onerror = (error) => {
+                console.error("FileReader error:", error);
+                importErrorDiv.style.display = 'block';
+            };
+            reader.readAsText(file);
+        }
+
+        // --- Mushaf Mode Logic ---
+        let currentMushafAyah = { surahIndex: 0, ayahIndex: 0 };
+
+        function enterMushafMode() {
+            document.getElementById('mushafMode').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Hide body scrollbar
+            // Start mushaf mode from the current last read position
+            const parts = settings.lastRead.split(':');
+            currentMushafAyah = { surahIndex: parseInt(parts[0], 10), ayahIndex: parseInt(parts[1], 10) };
+             // Validate the starting position
+             if (currentMushafAyah.surahIndex < 0 || currentMushafAyah.surahIndex >= quranData.length ||
+                 !quranData[currentMushafAyah.surahIndex] ||
+                 currentMushafAyah.ayahIndex < 0 || currentMushafAyah.ayahIndex >= quranData[currentMushafAyah.surahIndex].length) {
+                 currentMushafAyah = { surahIndex: 0, ayahIndex: 0 }; // Default to 1:1 if invalid
+             }
+            renderMushafAyah();
+        }
+
+        function exitMushafMode() {
+            document.getElementById('mushafMode').style.display = 'none';
+            document.body.style.overflow = ''; // Restore body scrollbar
+             // Save the last read position from mushaf mode
+             settings.lastRead = `${currentMushafAyah.surahIndex}:${currentMushafAyah.ayahIndex}`;
+             saveDataToDB();
+            // Optionally re-render the main view at the last read position
+             goToAyah(currentMushafAyah.surahIndex, currentMushafAyah.ayahIndex);
+        }
+
+        function renderMushafAyah() {
+            const displayArea = document.getElementById('mushafAyahDisplay');
+            displayArea.innerHTML = '';
+
+            const surahIndex = currentMushafAyah.surahIndex;
+            const ayahIndex = currentMushafAyah.ayahIndex;
+
+            if (quranData[surahIndex] && quranData[surahIndex][ayahIndex]) {
+                const ayah = quranData[surahIndex][ayahIndex];
+
+                 // Add Surah header if it's the first ayah of the surah
+                 if (ayahIndex === 0) {
+                     const surahHeader = document.createElement('h3');
+                     surahHeader.classList.add('text-center', 'mb-4');
+                     surahHeader.textContent = `${surahIndex + 1}. ${surahNames[surahIndex]?.english || 'Surah'} - ${surahNames[surahIndex]?.arabic || ''}`;
+                     displayArea.appendChild(surahHeader);
+                 }
+
+                const ayahElement = document.createElement('div');
+                ayahElement.classList.add('ayah-container'); // Reuse styling if appropriate
+                ayahElement.id = `mushaf-ayah-${surahIndex}-${ayahIndex}`;
+
+                const ayahNumberSpan = document.createElement('span');
+                 ayahNumberSpan.classList.add('ayah-number');
+                 ayahNumberSpan.textContent = `(${ayah.ayah})`; // Display Ayah number
+                 ayahElement.appendChild(ayahNumberSpan);
+
+                const arabicText = document.createElement('div');
+                arabicText.classList.add('arabic');
+                arabicText.textContent = ayah.arabic;
+                ayahElement.appendChild(arabicText);
+
+                displayArea.appendChild(ayahElement);
+
+                 // Scroll to top of the mushaf view
+                 displayArea.scrollTop = 0;
+
+            } else {
+                 displayArea.innerHTML = '<p class="text-center">End of Quran</p>';
+                 console.warn(`Attempted to render invalid mushaf ayah: ${surahIndex}:${ayahIndex}`);
+            }
+        }
+
+        function navigateMushaf(direction) {
+            let nextSurahIndex = currentMushafAyah.surahIndex;
+            let nextAyahIndex = currentMushafAyah.ayahIndex;
+
+            if (direction === 'next') {
+                nextAyahIndex++;
+                if (quranData[nextSurahIndex] && nextAyahIndex >= quranData[nextSurahIndex].length) {
+                    nextSurahIndex++;
+                    nextAyahIndex = 0;
+                }
+            } else if (direction === 'prev') {
+                nextAyahIndex--;
+                if (nextAyahIndex < 0) {
+                    nextSurahIndex--;
+                    if (nextSurahIndex >= 0 && quranData[nextSurahIndex] && quranData[nextSurahIndex].length > 0) {
+                        nextAyahIndex = quranData[nextSurahIndex].length - 1;
+                    } else {
+                        // Cannot go back further than 1:1
+                        nextSurahIndex = 0;
+                        nextAyahIndex = 0;
+                    }
+                }
+            }
+
+             // Check if the new position is valid
+             if (nextSurahIndex >= 0 && nextSurahIndex < quranData.length &&
+                 quranData[nextSurahIndex] && nextAyahIndex >= 0 && nextAyahIndex < quranData[nextSurahIndex].length) {
+                 currentMushafAyah = { surahIndex: nextSurahIndex, ayahIndex: nextAyahIndex };
+                 renderMushafAyah();
+             } else if (direction === 'next' && nextSurahIndex >= quranData.length) {
+                  // Reached the end
+                  const lastSurahIndex = quranData.length > 0 ? quranData.length - 1 : 0;
+                  const lastAyahIndex = quranData[lastSurahIndex] && quranData[lastSurahIndex].length > 0 ? quranData[lastSurahIndex].length - 1 : 0;
+                  currentMushafAyah = { surahIndex: lastSurahIndex, ayahIndex: lastAyahIndex };
+                  renderMushafAyah(); // Render the last ayah
+             } else if (direction === 'prev' && nextSurahIndex < 0) {
+                 // Reached the beginning
+                 currentMushafAyah = { surahIndex: 0, ayahIndex: 0 };
+                 renderMushafAyah(); // Render the first ayah
+             }
+        }
+
+
+        // --- Initialization ---
+
+        async function initApp() {
+            console.log('Initializing app...');
+            document.getElementById('loadingScreen').style.display = 'none';
+
+            // Populate navigation modals
+            populateNavigationModals();
+
+            // Load settings and apply them
+            loadSettings();
+
+            // Go to last read position or start
+            goToLastRead();
+
+            // Setup Event Listeners
+            document.getElementById('surahSelect').addEventListener('change', (event) => {
+                populateAyahSelect(parseInt(event.target.value, 10));
+            });
+            document.getElementById('goToAyahBtn').addEventListener('click', () => {
+                const surahIndex = parseInt(document.getElementById('surahSelect').value, 10);
+                const ayahIndex = parseInt(document.getElementById('ayahSelect').value, 10);
+                goToAyah(surahIndex, ayahIndex);
+                 // Close modal
+                 const modal = bootstrap.Modal.getInstance(document.getElementById('navigateModal'));
+                 if (modal) modal.hide();
+            });
+             document.getElementById('goToJuzBtn').addEventListener('click', () => {
+                const juzNumber = parseInt(document.getElementById('juzSelect').value, 10);
+                goToJuz(juzNumber);
+                 // Close modal
+                 const modal = bootstrap.Modal.getInstance(document.getElementById('navigateModal'));
+                 if (modal) modal.hide();
+            });
+             document.getElementById('goToPageBtn').addEventListener('click', () => {
+                const pageNumber = parseInt(document.getElementById('pageSelect').value, 10);
+                goToPage(pageNumber);
+                 // Close modal
+                 const modal = bootstrap.Modal.getInstance(document.getElementById('navigateModal'));
+                 if (modal) modal.hide();
+            });
+
+            document.getElementById('lastReadLink').addEventListener('click', (e) => {
+                 e.preventDefault();
+                 goToLastRead();
+            });
+
+            document.getElementById('searchBtn').addEventListener('click', () => {
+                const query = document.getElementById('searchInput').value;
+                searchQuran(query);
+            });
+             document.getElementById('searchInput').addEventListener('keypress', (event) => {
+                 if (event.key === 'Enter') {
+                     event.preventDefault(); // Prevent form submission
+                     document.getElementById('searchBtn').click();
+                 }
+             });
+
+             // Event listener for Bookmarks/Notes modal shown
+             document.getElementById('bookmarksNotesModal').addEventListener('show.bs.modal', () => {
+                 renderBookmarksList();
+                 renderNotesList();
+             });
+
+             document.getElementById('saveNoteBtn').addEventListener('click', saveNote);
+
+             document.getElementById('clearLastReadBtn').addEventListener('click', clearLastRead);
+
+             document.getElementById('importCustomDataBtn').addEventListener('click', () => {
+                 document.getElementById('importCustomDataFile').click();
+             });
+             document.getElementById('importCustomDataFile').addEventListener('change', (event) => {
+                 const file = event.target.files[0];
+                 if (file) {
+                     importCustomData(file);
+                     event.target.value = ''; // Clear the file input
+                 }
+             });
+
+
+             document.getElementById('exportDataBtn').addEventListener('click', exportData);
+
+             document.getElementById('importDataBtn').addEventListener('click', () => {
+                 const fileInput = document.getElementById('importDataFile');
+                 const file = fileInput.files[0];
+                 if (file) {
+                     importData(file);
+                 } else {
+                     alert('Please select a backup file to import.');
+                 }
+             });
+
+             // Mushaf Mode Listeners
+             document.getElementById('mushafModeLink').addEventListener('click', enterMushafMode);
+             document.getElementById('closeMushafMode').addEventListener('click', exitMushafMode);
+             document.getElementById('mushafPrevAyah').addEventListener('click', () => navigateMushaf('prev'));
+             document.getElementById('mushafNextAyah').addEventListener('click', () => navigateMushaf('next'));
+
+             console.log('App initialized.');
+        }
+
+        // --- Start the app ---
+        document.addEventListener('DOMContentLoaded', loadData);
+
+    </script>
+</body>
+</html>

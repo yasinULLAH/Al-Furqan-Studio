@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quran App</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.9/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6.2.0/dist/umd.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Scheherazade:wght@400;700&display=swap');
+    .uthmani { font-family: 'Scheherazade', serif; }
+    .tooltip-container { position: relative; display: inline-block; }
+    .tooltip {
+      visibility: hidden;
+      opacity: 0;
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(to bottom, #1e3a8a, #1e40af);
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      white-space: nowrap;
+      z-index: 20;
+      font-size: 14px;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+      margin-bottom: 10px;
+    }
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 8px solid transparent;
+      border-top-color: #1e40af;
+    }
+    .tooltip-container:hover .tooltip,
+    .tooltip-container.active .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+    @media (max-width: 640px) {
+      .tooltip {
+        white-space: normal;
+        max-width: 80vw;
+      }
+    }
+    .mushaf-view {
+        touch-action: pan-y; /* Allow vertical scroll but handle horizontal for swipe */
+    }
+    .sticky-close-icon {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background-color: rgba(0,0,0,0.6);
+      color: white;
+      border-radius: 50%;
+      width: 35px;
+      height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 1050;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+     .h-screen.bg-gray-100.flex.flex-col.items-center.justify-center.p-4 {
+      padding-top: 6px; /* Ensure content below potential sticky header/icon */
+    }
+    .flex.flex-wrap.gap-4.mb-6.bg-gray-800.p-4.rounded-lg.shadow-lg {
+      color: white;
+    }
+  </style>
+</head>
+<body className="bg-gray-900 text-white">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const getT1 = (s, a) => { // getTransliteration
+      if (s === "001" && a === "001") return "Bismillahir Rahmanir Rahim";
+      return `Transliteration for Surah ${s}, Ayah ${a}`;
+    };
+
+    const remD1 = txt => { // removeDiacritics
+      return txt
+        .normalize("NFD")
+        .replace(/[\u064B-\u065F\u0670]/g, "")
+        .replace(/[\u0610-\u061A\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06EF]/g, "");
+    };
+
+    const jM1 = Array.from({ length: 30 }, (_, i) => ({ // juzMapping
+      juz: i + 1,
+      start: { surah: "001", ayah: "001" },
+      end: { surah: "114", ayah: "006" }
+    }));
+    const pM1 = Array.from({ length: 604 }, (_, i) => ({ // pageMapping
+      page: i + 1,
+      start: { surah: "001", ayah: "001" },
+      end: { surah: "114", ayah: "006" }
+    }));
+
+    const App = () => {
+      const [ayahD, setAyahD] = useState([]); // ayahData
+      const [wordD, setWordD] = useState([]); // wordData
+      const [ld, setLd] = useState(true); // loading
+      const [er, setEr] = useState(null); // error
+      const [vM, setVM] = useState("ayah"); // viewMode
+      const [sQ, setSQ] = useState("");   // searchQuery
+      const [sS, setSS] = useState("001"); // selectedSurah
+      const [sA, setSA] = useState("001"); // selectedAyah
+      const [sJ, setSJ] = useState("");   // selectedJuz
+      const [sP, setSP] = useState("");   // selectedPage
+      const [shU, setShU] = useState(true); // showUrdu
+      const [shE, setShE] = useState(true); // showEnglish
+      const [shT, setShT] = useState(false); // showTransliteration
+      const [bks, setBks] = useState([]); // bookmarks
+      const [nts, setNts] = useState({}); // notes
+      const [mshfM, setMshfM] = useState(false); // mushafMode
+      const [lR, setLR] = useState({ surah: "001", ayah: "001" }); // lastRead
+      const [mP, setMP] = useState(1); // mushafPage
+      const [acT, setAcT] = useState("quran"); // activeTab
+      const [acTl, setAcTl] = useState(null); // activeTooltip
+      const [dA, setDA] = useState(100); // displayedAyahs
+      const [arFS, setArFS] = useState(28); // arabicFontSize (default 28px)
+
+      const tSX = useRef(0); // touchStartX
+      const tSY = useRef(0); // touchStartY
+
+      useEffect(() => {
+        const ldD = async () => { // loadData
+          try {
+            const cAD = await idbKeyval.get("ayahData"); // cachedAyahData
+            const cWD = await idbKeyval.get("wordData"); // cachedWordData
+            const cBks = await idbKeyval.get("bookmarks");
+            const cNts = await idbKeyval.get("notes");
+            const cLR = await idbKeyval.get("lastRead");
+            const cVM = await idbKeyval.get("viewMode");
+            const cAcT = await idbKeyval.get("activeTab");
+            const cShU = await idbKeyval.get("showUrdu");
+            const cShE = await idbKeyval.get("showEnglish");
+            const cShT = await idbKeyval.get("showTransliteration");
+            const cArFS = await idbKeyval.get("arabicFontSize");
+
+            if (cAD && cWD) {
+              setAyahD(cAD);
+              setWordD(cWD);
+              setBks(cBks || []);
+              setNts(cNts || {});
+              setLR(cLR || { surah: "001", ayah: "001" });
+              setVM(cVM || "ayah");
+              setAcT(cAcT || "quran");
+              setShU(cShU === null ? true : cShU);
+              setShE(cShE === null ? true : cShE);
+              setShT(cShT === null ? false : cShT);
+              setArFS(cArFS || 28);
+              setLd(false);
+              return;
+            }
+
+            const ayahR = await fetch('data.AM');
+            if (!ayahR.ok) throw new Error('Failed to fetch data.AM');
+            const ayahTxt = await ayahR.text();
+            const ayahLs = ayahTxt.split('\n').filter(l => l.trim());
+            const pAD = ayahLs.map(l => { // parsedAyahData
+              const [t, m] = l.split('<br/>');
+              const [ar, ur] = t.split(' ترجمہ: ');
+              const [, sr, , ay] = m.split(' ');
+              return {
+                arabic: ar, urdu: ur,
+                surah: sr.padStart(3, '0'), ayah: ay.padStart(3, '0')
+              };
+            });
+
+            const csvR = await fetch('data4.csv');
+            if (!csvR.ok) throw new Error('Failed to fetch data4.csv');
+            const csvTxt = await csvR.text();
+            const csvRes = Papa.parse(csvTxt, { header: true, skipEmptyLines: true });
+            if (csvRes.errors.length) throw new Error('CSV parsing errors');
+
+            const metaR = await fetch('word.AM');
+            if (!metaR.ok) throw new Error('Failed to fetch word.AM');
+            const metaTxt = await metaR.text();
+            const metaLs = metaTxt.split('\n').filter(l => l.trim());
+            const mD = {}; // metaData
+            let cIdx = null; // currentIndex
+            for (const l of metaLs) {
+              const idxM = l.match(/"(\d+)":\s*{/);
+              if (idxM) { cIdx = idxM[1]; mD[cIdx] = {}; continue; }
+              const kvM = l.match(/"(\w+)":\s*(\d+),?/);
+              if (kvM && cIdx) {
+                const [, k, v] = kvM; mD[cIdx][k] = parseInt(v);
+              }
+            }
+
+            const pWD = csvRes.data.map((r, i) => { // parsedWordData
+              const mt = mD[(i + 1).toString()] || {};
+              return {
+                quran_text: r.quran_text, ur_meaning: r.ur_meaning, en_meaning: r.en_meaning,
+                surah: mt.surah || 1, ayah: mt.ayah || 1, position: mt.position || 0
+              };
+            });
+
+            const enTrs = {}; // englishTranslations
+            pWD.forEach(w => {
+              const k = `${w.surah.toString().padStart(3, '0')}:${w.ayah.toString().padStart(3, '0')}`;
+              if (!enTrs[k]) enTrs[k] = [];
+              enTrs[k].push(w.en_meaning);
+            });
+            const pADwE = pAD.map(a => ({ // parsedAyahDataWithEnglish
+              ...a,
+              english: enTrs[`${a.surah}:${a.ayah}`]?.join(' ') || 'No English translation available'
+            }));
+
+            await idbKeyval.set("ayahData", pADwE);
+            await idbKeyval.set("wordData", pWD);
+            await idbKeyval.set("bookmarks", []);
+            await idbKeyval.set("notes", {});
+            await idbKeyval.set("lastRead", { surah: "001", ayah: "001" });
+            await idbKeyval.set("viewMode", "ayah");
+            await idbKeyval.set("activeTab", "quran");
+            await idbKeyval.set("showUrdu", true);
+            await idbKeyval.set("showEnglish", true);
+            await idbKeyval.set("showTransliteration", false);
+            await idbKeyval.set("arabicFontSize", 28);
+
+
+            setAyahD(pADwE);
+            setWordD(pWD);
+            setLd(false);
+          } catch (err) {
+            console.error('Error details:', err);
+            setEr(err.message);
+            setLd(false);
+          }
+        };
+        ldD();
+      }, []);
+
+      const svUD = async (k, v) => { await idbKeyval.set(k, v); }; // saveUserData
+
+      const tglBk = async (sr, ay) => { // toggleBookmark
+        const bkK = `${sr}:${ay}`;
+        const nBks = bks.includes(bkK) ? bks.filter(b => b !== bkK) : [...bks, bkK];
+        setBks(nBks); await svUD("bookmarks", nBks);
+      };
+
+      const svNt = async (sr, ay, nt) => { // saveNote
+        const ntK = `${sr}:${ay}`;
+        const nNts = { ...nts, [ntK]: nt };
+        setNts(nNts); await svUD("notes", nNts);
+      };
+
+      const upLR = async (sr, ay) => { // updateLastRead
+        const nLR = { surah: sr, ayah: ay };
+        setLR(nLR); await svUD("lastRead", nLR);
+      };
+      
+      const expD = () => { // exportData
+        const d = { bookmarks: bks, notes: nts, lastRead: lR, viewMode: vM, activeTab: acT, showUrdu: shU, showEnglish: shE, showTransliteration: shT, arabicFontSize: arFS };
+        const blb = new Blob([JSON.stringify(d)], { type: 'application/json' });
+        const u = URL.createObjectURL(blb);
+        const a = document.createElement('a');
+        a.href = u; a.download = 'quran_app_backup.json'; a.click(); URL.revokeObjectURL(u);
+      };
+
+      const impD = async (evt) => { // importData
+        const f = evt.target.files[0];
+        if (!f) return;
+        const rdr = new FileReader();
+        rdr.onload = async e => {
+          try {
+            const d = JSON.parse(e.target.result);
+            const b = d.bookmarks || []; setBks(b); await svUD("bookmarks", b);
+            const n = d.notes || {}; setNts(n); await svUD("notes", n);
+            const lr = d.lastRead || { surah: "001", ayah: "001" }; setLR(lr); await svUD("lastRead", lr);
+            const vm = d.viewMode || "ayah"; setVM(vm); await svUD("viewMode", vm);
+            const at = d.activeTab || "quran"; setAcT(at); await svUD("activeTab", at);
+            const su = d.showUrdu === null ? true : d.showUrdu; setShU(su); await svUD("showUrdu", su);
+            const se = d.showEnglish === null ? true : d.showEnglish; setShE(se); await svUD("showEnglish", se);
+            const st = d.showTransliteration === null ? false : d.showTransliteration; setShT(st); await svUD("showTransliteration", st);
+            const afs = d.arabicFontSize || 28; setArFS(afs); await svUD("arabicFontSize", afs);
+            alert("Data imported successfully!");
+          } catch (err) { alert("Failed to import data: Invalid file format"); }
+        };
+        rdr.readAsText(f);
+        evt.target.value = null; // Reset file input
+      };
+
+      const hS = () => { setDA(100); }; // handleSearch
+
+      const fAyhs = ayahD.filter(ay => { // filteredAyahs
+        const mN = (sS === "" || ay.surah === sS) && (sA === "" || ay.ayah === sA) && (sJ === "" || true) && (sP === "" || true); // matchesNav
+        const mS = sQ === "" || remD1(ay.arabic).includes(remD1(sQ)) || ay.urdu.includes(sQ) || ay.english.includes(sQ); // matchesSearch
+        return sQ ? mS : mN;
+      });
+
+      const fWrds = wordD.filter(w => { // filteredWords
+        const mN = (sS === "" || w.surah === parseInt(sS)) && (sA === "" || w.ayah === parseInt(sA)) && (sJ === "" || true) && (sP === "" || true);
+        const mS = sQ === "" || remD1(w.quran_text).includes(remD1(sQ)) || w.ur_meaning.includes(sQ) || w.en_meaning.includes(sQ);
+        return sQ ? mS : mN;
+      });
+
+      const pagAyhs = sS === "" && !sQ ? ayahD.slice(0, dA) : fAyhs.slice(0, dA); // paginatedAyahs
+
+      const srs = [...new Set(ayahD.map(a => a.surah))].sort(); // surahs
+      const ayhs = [...new Set(ayahD.filter(a => a.surah === sS).map(a => a.ayah))].sort();
+
+      const aPP = 10; // ayahsPerPage for Mushaf
+      const mshfAyhs = ayahD.slice((mP - 1) * aPP, mP * aPP);
+      const tMP = Math.ceil(ayahD.length / aPP); // totalMushafPages
+
+      const getAyhWs = (ay) => { // getAyahWords
+        return wordD.filter(w => w.surah === parseInt(ay.surah) && w.ayah === parseInt(ay.ayah))
+          .sort((a, b) => a.position - b.position)
+          .map((wt, i) => ({
+            word: wt.quran_text,
+            tooltip: `Urdu: ${wt.ur_meaning || 'N/A'}\nEnglish: ${wt.en_meaning || 'N/A'}`,
+            id: `${ay.surah}:${ay.ayah}:${i}`
+          }));
+      };
+
+      const tglTl = (id) => { setAcTl(acTl === id ? null : id); }; // toggleTooltip
+      const ldM = () => { setDA(p => p + 100); }; // loadMore
+
+      const nxtMP = () => setMP(p => Math.min(tMP, p + 1)); // nextMushafPage
+      const prvMP = () => setMP(p => Math.max(1, p - 1)); // prevMushafPage
+
+      useEffect(() => {
+        if (mshfM) {
+          const hKD = (e) => { // handleKeyDown
+            if (e.key === 'ArrowRight') nxtMP();
+            else if (e.key === 'ArrowLeft') prvMP();
+          };
+          window.addEventListener('keydown', hKD);
+          return () => window.removeEventListener('keydown', hKD);
+        }
+      }, [mshfM, tMP]);
+
+      const hTS = (e) => { tSX.current = e.touches[0].clientX; tSY.current = e.touches[0].clientY; }; // handleTouchStart
+      const hTE = (e) => { // handleTouchEnd
+        if (!tSX.current || !tSY.current) return;
+        const tEX = e.changedTouches[0].clientX; // touchEndX
+        const tEY = e.changedTouches[0].clientY; // touchEndY
+        const dX = tEX - tSX.current; // deltaX
+        const dY = tEY - tSY.current; // deltaY
+
+        if (Math.abs(dX) > Math.abs(dY) && Math.abs(dX) > 30) { // Horizontal swipe, threshold 30px
+          if (dX < 0) nxtMP(); // Swipe Left
+          else prvMP();     // Swipe Right
+        }
+        tSX.current = 0; tSY.current = 0;
+      };
+      
+      const chVM = async (mode) => { setVM(mode); await svUD("viewMode", mode); };
+      const chAcT = async (tab) => { setAcT(tab); await svUD("activeTab", tab); };
+      const chShU = async () => { const nV = !shU; setShU(nV); await svUD("showUrdu", nV); };
+      const chShE = async () => { const nV = !shE; setShE(nV); await svUD("showEnglish", nV); };
+      const chShT = async () => { const nV = !shT; setShT(nV); await svUD("showTransliteration", nV); };
+      const chArFS = async (size) => {
+        const newSize = Math.max(16, Math.min(60, size)); // Clamp font size
+        setArFS(newSize); await svUD("arabicFontSize", newSize);
+      };
+
+
+      if (ld) return <div className="flex items-center justify-center h-screen bg-gray-900"><div className="text-2xl font-semibold text-gray-300 animate-pulse">Loading Quran Data...</div></div>;
+      if (er) return <div className="flex items-center justify-center h-screen bg-gray-900"><div className="text-2xl font-semibold text-red-400">Error: {er}</div></div>;
+
+      if (mshfM) {
+        return (
+          <div className="h-screen bg-gray-100 flex flex-col items-center justify-center p-4 mushaf-view" onTouchStart={hTS} onTouchEnd={hTE}>
+            <div className="sticky-close-icon" onClick={() => setMshfM(false)}>&times;</div>
+            <div className="max-w-4xl w-full bg-white rounded-lg shadow-lg p-6 overflow-y-auto" style={{maxHeight: 'calc(100vh - 120px)'}}>
+              {mshfAyhs.map((ay, idx) => (
+                <p key={idx} className="uthmani text-right mb-4 leading-relaxed text-gray-800" dir="rtl" style={{ fontSize: `${arFS + 6}px`, textAlign: 'justify' }}> {/* Larger font for Mushaf */}
+                  {ay.arabic}
+                </p>
+              ))}
+              {mshfAyhs.length === 0 && <p className="text-center text-gray-500">No ayahs to display.</p>}
+            </div>
+            <div className="flex items-center gap-4 mt-4">
+               {/* Hidden navigation buttons, functionality handled by swipe/keyboard */}
+               <button onClick={prvMP} disabled={mP === 1} className="opacity-0 pointer-events-none absolute">Prev</button>
+               <span className="text-gray-800 font-semibold">Page {mP} of {tMP}</span>
+               <button onClick={nxtMP} disabled={mP === tMP} className="opacity-0 pointer-events-none absolute">Next</button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-gray-900">
+          <div className="max-w-5xl mx-auto p-6">
+            <h1 className="text-4xl font-bold text-center mb-6 text-gray-100">Quran App</h1>
+
+            <div className="flex border-b border-gray-700 mb-6 overflow-x-auto">
+              {['quran', 'bookmarks', 'notes', 'settings'].map(t => (
+                <button key={t} onClick={() => chAcT(t)}
+                  className={`px-4 py-3 text-lg font-semibold transition-all whitespace-nowrap ${acT === t ? 'border-b-2 border-blue-500 text-blue-400' : 'text-gray-400 hover:text-gray-200'}`}>
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {acT === 'quran' && (
+              <div>
+                <div className="sticky top-0 bg-gray-800 p-4 rounded-lg shadow-lg mb-6 z-10">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <select value={sS} onChange={e => { setSS(e.target.value); setSA(""); setSJ(""); setSP(""); setDA(100); upLR(e.target.value || "001", "001"); }}
+                      className="p-2 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">Select Surah</option>
+                      {srs.map(sr => <option key={sr} value={sr}>Surah {parseInt(sr)}</option>)}
+                    </select>
+                    <select value={sA} onChange={e => { setSA(e.target.value); upLR(sS, e.target.value); }}
+                      className="p-2 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">All Ayahs</option>
+                      {ayhs.map(ay => <option key={ay} value={ay}>Ayah {parseInt(ay)}</option>)}
+                    </select>
+                    <select value={sJ} onChange={e => { setSJ(e.target.value); setSS(""); setSA(""); setSP(""); setDA(100); }}
+                      className="p-2 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">Select Juz</option>
+                      {jM1.map(j => <option key={j.juz} value={j.juz}>Juz {j.juz}</option>)}
+                    </select>
+                    <select value={sP} onChange={e => { setSP(e.target.value); setSS(""); setSA(""); setSJ(""); setDA(100); }}
+                      className="p-2 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">Select Page</option>
+                      {pM1.map(p => <option key={p.page} value={p.page}>Page {p.page}</option>)}
+                    </select>
+                    <input type="text" defaultValue={sQ} onBlur={e => { setSQ(e.target.value); hS(); }} onKeyDown={e => { if (e.key === 'Enter') { setSQ(e.target.value); hS(); }}}
+                      placeholder="Search entire Quran..." className="p-2 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 sm:col-span-2 lg:col-span-1" />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-4 mb-6 bg-gray-800 p-4 rounded-lg shadow-lg text-sm">
+                  <label className="flex items-center"><input type="checkbox" checked={shU} onChange={chShU} className="mr-2 h-4 w-4"/>Urdu</label>
+                  <label className="flex items-center"><input type="checkbox" checked={shE} onChange={chShE} className="mr-2 h-4 w-4"/>English</label>
+                  <label className="flex items-center"><input type="checkbox" checked={shT} onChange={chShT} className="mr-2 h-4 w-4"/>Translit.</label>
+                  <button onClick={() => setMshfM(true)} className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Mushaf Mode</button>
+                </div>
+
+                <div className="mb-6 bg-gray-800 p-4 rounded-lg shadow-lg">
+                  <p className="text-gray-300">Last Read: Surah {parseInt(lR.surah)}, Ayah {parseInt(lR.ayah)}
+                    <button onClick={() => { setSS(lR.surah); setSA(lR.ayah); setSJ(""); setSP(""); setDA(100); }}
+                      className="ml-2 text-blue-400 hover:underline">Go to Last Read</button>
+                  </p>
+                </div>
+
+                <div className="mb-6 flex gap-4">
+                  <button onClick={() => chVM("ayah")} className={`px-6 py-2 rounded-lg transition-all ${vM === "ayah" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}>Ayah-by-Ayah</button>
+                  <button onClick={() => chVM("word")} className={`px-6 py-2 rounded-lg transition-all ${vM === "word" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}>Word-by-Word</button>
+                </div>
+
+                {vM === "ayah" ? (
+                  <div>
+                    {pagAyhs.length === 0 ? <p className="text-center text-gray-400">No results found.</p> : (
+                      pagAyhs.map((ay, idx) => (
+                        <div key={idx} className="mb-6 p-6 bg-gray-800 rounded-lg shadow-lg transition-all hover:shadow-xl">
+                          <p className="uthmani text-right text-gray-100" dir="rtl" style={{ fontSize: `${arFS}px` }}>
+                            {ay.arabic.split(/\s+/).map((w, i) => (
+                              <span key={i} className={`tooltip-container mx-1 ${acTl === `${ay.surah}:${ay.ayah}:${i}` ? 'active' : ''}`} onClick={() => tglTl(`${ay.surah}:${ay.ayah}:${i}`)}>
+                                {w}
+                                <span className="tooltip">
+                                  {(getAyhWs(ay)[i]?.tooltip.split('\n').map((l, j) => <div key={j}>{l}</div>)) || 'N/A'}
+                                </span>
+                              </span>
+                            ))}
+                          </p>
+                          {shU && <p className="text-lg text-right text-gray-300 mt-2" dir="rtl">ترجمہ: {ay.urdu}</p>}
+                          {shE && <p className="text-lg text-gray-300 mt-2">English: {ay.english}</p>}
+                          {shT && <p className="text-md text-gray-400 mt-2">Transliteration: {getT1(ay.surah, ay.ayah)}</p>}
+                          <p className="text-sm text-gray-500 mt-2">
+                            S{parseInt(ay.surah)}:A{parseInt(ay.ayah)}
+                            <button onClick={() => tglBk(ay.surah, ay.ayah)} className="ml-4 text-blue-400 hover:text-blue-300">{bks.includes(`${ay.surah}:${ay.ayah}`) ? "Unbookmark" : "Bookmark"}</button>
+                            <button onClick={() => { chAcT('notes'); setSS(ay.surah); setSA(ay.ayah); }} className="ml-4 text-green-400 hover:text-green-300">Add Note</button>
+                          </p>
+                        </div>
+                      ))
+                    )}
+                    {(sS === "" || sQ) && pagAyhs.length < fAyhs.length && (
+                      <div className="text-center mt-6"><button onClick={ldM} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Load More</button></div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    {fWrds.length === 0 ? <p className="text-center text-gray-400">No results found.</p> : (
+                      fWrds.slice(0, dA).map((w, idx) => (
+                        <div key={idx} className="mb-4 p-4 bg-gray-800 rounded-lg shadow-lg transition-all hover:shadow-xl">
+                          <p className="uthmani text-right text-gray-100" dir="rtl" style={{ fontSize: `${arFS}px` }}>{w.quran_text}</p>
+                          {shU && <p className="text-md text-gray-300 mt-2">Urdu: {w.ur_meaning}</p>}
+                          {shE && <p className="text-md text-gray-300 mt-2">English: {w.en_meaning}</p>}
+                          {shT && <p className="text-md text-gray-400 mt-2">Transliteration: {getT1(w.surah.toString().padStart(3, '0'), w.ayah.toString().padStart(3, '0'))}</p>}
+                          <p className="text-xs text-gray-500 mt-2">
+                            S{w.surah}:A{w.ayah}:P{w.position}
+                            <button onClick={() => tglBk(w.surah.toString().padStart(3, '0'), w.ayah.toString().padStart(3, '0'))} className="ml-4 text-blue-400 hover:text-blue-300">
+                              {bks.includes(`${w.surah.toString().padStart(3, '0')}:${w.ayah.toString().padStart(3, '0')}`) ? "Unbookmark" : "Bookmark"}
+                            </button>
+                            <button onClick={() => { chAcT('notes'); setSS(w.surah.toString().padStart(3, '0')); setSA(w.ayah.toString().padStart(3, '0')); }} className="ml-4 text-green-400 hover:text-green-300">Add Note</button>
+                          </p>
+                        </div>
+                      ))
+                    )}
+                    {fWrds.length > dA && (
+                      <div className="text-center mt-6"><button onClick={ldM} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Load More</button></div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {acT === 'bookmarks' && (
+              <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 className="text-2xl font-semibold text-gray-100 mb-4">Bookmarks</h2>
+                {bks.length === 0 ? <p className="text-gray-400">No bookmarks.</p> : (
+                  bks.map(bk => {
+                    const [sr, ay] = bk.split(':');
+                    const ayTxt = ayahD.find(a => a.surah === sr && a.ayah === ay)?.arabic || 'N/A';
+                    return (
+                      <div key={bk} className="p-4 bg-gray-700 rounded mb-2 transition-all hover:bg-gray-600">
+                        <p className="text-gray-200">S{parseInt(sr)}:A{parseInt(ay)}: {ayTxt.slice(0, 50)}...
+                          <button onClick={() => tglBk(sr, ay)} className="ml-4 text-red-400 hover:text-red-300">Remove</button>
+                          <button onClick={() => { chAcT('quran'); setSS(sr); setSA(ay); setDA(100); }} className="ml-4 text-blue-400 hover:text-blue-300">View</button>
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            {acT === 'notes' && (
+              <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 className="text-2xl font-semibold text-gray-100 mb-4">Notes</h2>
+                <div className="mb-4 flex gap-2">
+                  <select value={sS} onChange={e => { setSS(e.target.value); setSA(""); }} className="p-2 bg-gray-700 text-white border border-gray-600 rounded flex-grow">
+                    <option value="">Select Surah</option>
+                    {srs.map(sr => <option key={sr} value={sr}>Surah {parseInt(sr)}</option>)}
+                  </select>
+                  <select value={sA} onChange={e => setSA(e.target.value)} className="p-2 bg-gray-700 text-white border border-gray-600 rounded flex-grow">
+                    <option value="">Select Ayah</option>
+                    {ayhs.map(ay => <option key={ay} value={ay}>Ayah {parseInt(ay)}</option>)}
+                  </select>
+                </div>
+                {sS && sA && (
+                  <div className="mb-4">
+                    <p className="text-lg uthmani text-right text-gray-100" dir="rtl" style={{ fontSize: `${arFS}px` }}>
+                      {ayahD.find(a => a.surah === sS && a.ayah === sA)?.arabic || 'N/A'}
+                    </p>
+                    <textarea value={nts[`${sS}:${sA}`] || ""} onChange={e => svNt(sS, sA, e.target.value)}
+                      placeholder="Add or edit note..." className="w-full p-2 bg-gray-600 text-white border border-gray-500 rounded mt-2 focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"></textarea>
+                  </div>
+                )}
+                <h3 className="text-xl font-semibold text-gray-100 mb-2">All Notes</h3>
+                {Object.keys(nts).length === 0 ? <p className="text-gray-400">No notes.</p> : (
+                  Object.entries(nts).map(([k, nt]) => {
+                    const [sr, ay] = k.split(':');
+                    const ayTxt = ayahD.find(a => a.surah === sr && a.ayah === ay)?.arabic || 'N/A';
+                    return (
+                      <div key={k} className="p-4 bg-gray-700 rounded mb-2 transition-all hover:bg-gray-600">
+                        <p className="text-gray-200">S{parseInt(sr)}:A{parseInt(ay)}: {ayTxt.slice(0,50)}...</p>
+                        <p className="text-gray-300 mt-2 whitespace-pre-wrap">{nt}</p>
+                        <button onClick={() => { const nN = { ...nts }; delete nN[k]; setNts(nN); svUD("notes", nN);}}
+                          className="mt-2 text-red-400 hover:text-red-300">Delete Note</button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            {acT === 'settings' && (
+              <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 className="text-2xl font-semibold text-gray-100 mb-6">Settings</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 className="text-xl font-semibold text-gray-200 mb-3">Display Options</h3>
+                        <div className="space-y-3">
+                            <label className="flex items-center text-gray-300"><input type="checkbox" checked={shU} onChange={chShU} className="mr-3 h-5 w-5 rounded"/>Show Urdu Translation</label>
+                            <label className="flex items-center text-gray-300"><input type="checkbox" checked={shE} onChange={chShE} className="mr-3 h-5 w-5 rounded"/>Show English Translation</label>
+                            <label className="flex items-center text-gray-300"><input type="checkbox" checked={shT} onChange={chShT} className="mr-3 h-5 w-5 rounded"/>Show Transliteration</label>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-semibold text-gray-200 mb-3">Arabic Font Size</h3>
+                        <div className="flex items-center gap-4">
+                            <button onClick={() => chArFS(arFS - 2)} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-lg">-</button>
+                            <span className="text-gray-200 text-lg w-8 text-center">{arFS}px</span>
+                            <button onClick={() => chArFS(arFS + 2)} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-lg">+</button>
+                        </div>
+                    </div>
+                     <div>
+                        <h3 className="text-xl font-semibold text-gray-200 mb-3">Data Management</h3>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <button onClick={expD} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition w-full sm:w-auto">Export Data</button>
+                            <label className="px-4 py-2 bg-yellow-500 text-black rounded hover:bg-yellow-600 transition cursor-pointer w-full sm:w-auto text-center">
+                                Import Data
+                                <input type="file" accept=".json" onChange={impD} className="hidden"/>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+    ReactDOM.render(<App />, document.getElementById("root"));
+  </script>
+</body>
+</html>
