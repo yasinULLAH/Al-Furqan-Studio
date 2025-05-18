@@ -1,0 +1,1676 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quran App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            transition: background-color 0.3s;
+        }
+        .arabic-text {
+            font-family: 'Scheherazade New', serif;
+            font-size: 1.5rem;
+            direction: rtl;
+        }
+        .word-by-word {
+            cursor: pointer;
+            border-radius: 5px;
+            padding: 2px 4px;
+        }
+        .word-by-word:hover {
+            background-color: rgba(128, 128, 128, 0.2);
+        }
+        .mushaf-view {
+            font-size: 1.8rem;
+            line-height: 2.5rem;
+            text-align: right;
+        }
+        .mushaf-view .ayah-num {
+            font-size: 1.2rem;
+            color: #28a745;
+        }
+        .mushaf-container {
+            height: calc(100vh - 180px);
+            overflow-y: auto;
+        }
+        .surah-header {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+        }
+        .bismillah {
+            text-align: center;
+            margin: 15px 0;
+            font-size: 1.8rem;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .bookmark-btn.active {
+            color: #ffc107;
+        }
+        #fontSizeControl {
+            width: 100%;
+        }
+        .search-result {
+            cursor: pointer;
+            padding: 10px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+        }
+        .search-result:hover {
+            background-color: rgba(128, 128, 128, 0.1);
+        }
+        .ayah-index-item {
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+        .ayah-index-item:hover {
+            background-color: rgba(128, 128, 128, 0.1);
+        }
+        .note-container {
+            margin-top: 15px;
+        }
+        @media (max-width: 768px) {
+            .mushaf-view {
+                font-size: 1.5rem;
+                line-height: 2.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid my-3">
+<header class="d-flex justify-content-between align-items-center mb-3">
+<h1 class="h3">Quran App</h1>
+<div>
+<button class="btn btn-sm btn-outline-secondary me-2" id="themeToggle">
+<i class="bi bi-sun"></i>
+</button>
+<button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#settingsPanel">
+<i class="bi bi-gear"></i>
+</button>
+</div>
+</header>
+
+        <div id="mainLoader" class="text-center py-5">
+            <div class="spinner-border" role="status"></div>
+            <p id="loaderStatus">Loading Quran data...</p>
+        </div>
+    
+        <div id="mainContent" class="hidden">
+            <ul class="nav nav-tabs mb-3" id="mainTabs">
+                <li class="nav-item">
+                    <a class="nav-link active" id="ayahTab" data-bs-toggle="tab" href="#ayahView">Ayah View</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="mushafTab" data-bs-toggle="tab" href="#mushafView">Mushaf View</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="searchTab" data-bs-toggle="tab" href="#searchView">Search</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="bookmarksTab" data-bs-toggle="tab" href="#bookmarksView">Bookmarks</a>
+                </li>
+            </ul>
+    
+            <div class="tab-content">
+                <!-- Ayah View -->
+                <div class="tab-pane fade show active" id="ayahView">
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-2">
+                            <div class="input-group">
+                                <select class="form-select" id="surahSelect">
+                                    <option value="1">1. Al-Fatihah</option>
+                                </select>
+                                <select class="form-select" id="ayahSelect">
+                                    <option value="1">1</option>
+                                </select>
+                                <button class="btn btn-outline-secondary" id="goToAyah">Go</button>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <div class="btn-group w-100">
+                                <button class="btn btn-outline-secondary" id="prevAyah">
+                                    <i class="bi bi-chevron-left"></i> Prev
+                                </button>
+                                <button class="btn btn-outline-secondary" id="playAudio">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" id="bookmarkAyah">
+                                    <i class="bi bi-bookmark"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" id="nextAyah">
+                                    Next <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between">
+                            <span>Ayah Details</span>
+                            <div>
+                                <button class="btn btn-sm btn-outline-secondary me-1" id="noteBtn">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" id="exportBtn">
+                                    <i class="bi bi-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="ayahDetails"></div>
+                            
+                            <div id="noteContainer" class="note-container hidden">
+                                <div class="input-group mb-2">
+                                    <textarea class="form-control" id="noteText" rows="2" placeholder="Add a note for this ayah..."></textarea>
+                                    <button class="btn btn-outline-primary" id="saveNote">Save</button>
+                                </div>
+                            </div>
+    
+                            <div class="table-responsive mt-3" id="wordTableContainer">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Arabic</th>
+                                            <th>Urdu</th>
+                                            <th>English</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="wordTable"></tbody>
+                                </table>
+                            </div>
+    
+                            <div class="mt-3" id="translationsContainer">
+                                <div class="mb-2">
+                                    <strong>English:</strong>
+                                    <p id="englishTranslation"></p>
+                                </div>
+                                <div>
+                                    <strong>Urdu:</strong>
+                                    <p id="urduTranslation" dir="rtl"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Quran Index</span>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="toggleIndex">
+                                    <label class="form-check-label" for="toggleIndex">Show</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body hidden" id="ayahIndexContainer">
+                            <div class="row" id="ayahIndex"></div>
+                            <nav class="mt-3">
+                                <ul class="pagination pagination-sm justify-content-center" id="indexPagination"></ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+    
+                <!-- Mushaf View -->
+                <div class="tab-pane fade" id="mushafView">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <select class="form-select" id="mushafSurahSelect">
+                                    <option value="1">1. Al-Fatihah</option>
+                                </select>
+                                <button class="btn btn-outline-secondary" id="goToSurah">Go</button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <label class="input-group-text" for="fontSizeControl">Font</label>
+                                <input type="range" class="form-range" id="fontSizeControl" min="1" max="3" step="0.1" value="1.8">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="btn-group w-100">
+                                <button class="btn btn-outline-secondary" id="toggleMushafView">
+                                    <i class="bi bi-grid"></i> Single Surah
+                                </button>
+                                <button class="btn btn-outline-secondary" id="fullscreenMushaf">
+                                    <i class="bi bi-fullscreen"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <div class="mushaf-container card" id="mushafContainer">
+                        <div class="card-body">
+                            <div id="singleSurahView" class="mushaf-view"></div>
+                            <div id="continuousView" class="mushaf-view hidden"></div>
+                        </div>
+                    </div>
+                </div>
+    
+                <!-- Search View -->
+                <div class="tab-pane fade" id="searchView">
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchInput" placeholder="Search by text or Surah:Ayah (e.g. 1:1)">
+                                <button class="btn btn-outline-secondary" id="searchBtn">Search</button>
+                            </div>
+                            <div class="form-text">Search in Arabic, Urdu, or English</div>
+                        </div>
+                    </div>
+    
+                    <div id="searchResults" class="card">
+                        <div class="card-body">
+                            <div id="searchStatus" class="text-center">Enter your search query above</div>
+                            <div id="searchResultsList"></div>
+                        </div>
+                    </div>
+                </div>
+    
+                <!-- Bookmarks View -->
+                <div class="tab-pane fade" id="bookmarksView">
+                    <div class="card">
+                        <div class="card-header">Saved Bookmarks</div>
+                        <div class="card-body">
+                            <div id="bookmarksList">
+                                <p class="text-center text-muted">No bookmarks saved yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Offcanvas -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="settingsPanel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title">Settings</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="mb-3">
+                <label class="form-label">Appearance</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="darkThemeToggle" checked>
+                    <label class="form-check-label" for="darkThemeToggle">Dark Theme</label>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Ayah View Content</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="showWordTable" checked>
+                    <label class="form-check-label" for="showWordTable">Word-by-word Table</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="showTranslations" checked>
+                    <label class="form-check-label" for="showTranslations">Translations</label>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button class="btn btn-danger" id="clearDataBtn">
+                    Clear All Data & Reload
+                </button>
+            </div>
+    
+            <div class="mt-4">
+                <h6>About</h6>
+                <p class="small text-muted">Quran App v1.0<br>By Yasin Ullah Pakistani</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Constants
+        const DB_NAME = 'QuranDB';
+        const DB_VERSION = 1;
+        const ITEMS_PER_PAGE = 40;
+        const BISMILLAH = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
+        
+        // Surah metadata
+        const s = {
+            n: ["Al-Fatihah", "Al-Baqarah", "Al-Imran", "An-Nisa", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus", "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra", "Al-Kahf", "Maryam", "Ta-Ha", "Al-Anbiya", "Al-Hajj", "Al-Mu'minun", "An-Nur", "Al-Furqan", "Ash-Shu'ara", "An-Naml", "Al-Qasas", "Al-Ankabut", "Ar-Rum", "Luqman", "As-Sajdah", "Al-Ahzab", "Saba", "Fatir", "Ya-Sin", "As-Saffat", "Sad", "Az-Zumar", "Ghafir", "Fussilat", "Ash-Shura", "Az-Zukhruf", "Ad-Dukhan", "Al-Jathiyah", "Al-Ahqaf", "Muhammad", "Al-Fath", "Al-Hujurat", "Qaf", "Adh-Dhariyat", "At-Tur", "An-Najm", "Al-Qamar", "Ar-Rahman", "Al-Waqi'ah", "Al-Hadid", "Al-Mujadila", "Al-Hashr", "Al-Mumtahinah", "As-Saff", "Al-Jumu'ah", "Al-Munafiqun", "At-Taghabun", "At-Talaq", "At-Tahrim", "Al-Mulk", "Al-Qalam", "Al-Haqqah", "Al-Ma'arij", "Nuh", "Al-Jinn", "Al-Muzzammil", "Al-Muddathir", "Al-Qiyamah", "Al-Insan", "Al-Mursalat", "An-Naba", "An-Nazi'at", "Abasa", "At-Takwir", "Al-Infitar", "Al-Mutaffifin", "Al-Inshiqaq", "Al-Buruj", "At-Tariq", "Al-A'la", "Al-Ghashiyah", "Al-Fajr", "Al-Balad", "Ash-Shams", "Al-Lail", "Ad-Duha", "Ash-Sharh", "At-Tin", "Al-Alaq", "Al-Qadr", "Al-Bayyinah", "Az-Zalzalah", "Al-Adiyat", "Al-Qari'ah", "At-Takathur", "Al-Asr", "Al-Humazah", "Al-Fil", "Quraish", "Al-Ma'un", "Al-Kawthar", "Al-Kafirun", "An-Nasr", "Al-Masad", "Al-Ikhlas", "Al-Falaq", "An-Nas"],
+            a: ["الفاتحة", "البقرة", "آل عمران", "النساء", "المائدة", "الأنعام", "الأعراف", "الأنفال", "التوبة", "يونس", "هود", "يوسف", "الرعد", "إبراهيم", "الحجر", "النحل", "الإسراء", "الكهف", "مريم", "طه", "الأنبياء", "الحج", "المؤمنون", "النور", "الفرقان", "الشعراء", "النمل", "القصص", "العنكبوت", "الروم", "لقمان", "السجدة", "الأحزاب", "سبإ", "فاطر", "يس", "الصافات", "ص", "الزمر", "غافر", "فصلت", "الشورى", "الزخرف", "الدخان", "الجاثية", "الأحقاف", "محمد", "الفتح", "الحجرات", "ق", "الذاريات", "الطور", "النجم", "القمر", "الرحمن", "الواقعة", "الحديد", "المجادلة", "الحشر", "الممتحنة", "الصف", "الجمعة", "المنافقون", "التغابن", "الطلاق", "التحريم", "الملك", "القلم", "الحاقة", "المعارج", "نوح", "الجن", "المزمل", "المدثر", "القيامة", "الإنسان", "المرسلات", "النبأ", "النازعات", "عبس", "التكوير", "الإنفطار", "المطففين", "الإنشقاق", "البروج", "الطارق", "الأعلى", "الغاشية", "الفجر", "البلد", "الشمس", "الليل", "الضحى", "الشرح", "التين", "العلق", "القدر", "البينة", "الزلزلة", "العاديات", "القارعة", "التكاثر", "العصر", "الهمزة", "الفيل", "قريش", "الماعون", "الكوثر", "الكافرون", "النصر", "المسد", "الإخلاص", "الفلق", "الناس"],
+            c:  [7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 74, 98, 135, 112, 78, 64, 77, 227, 227, 88, 69, 60, 37, 34, 30, 73, 54, 37, 30]
+        };
+        
+        // App state
+        let db;
+        let currentSurah = 1;
+        let currentAyah = 1;
+        let mushafViewMode = 'single';
+        let currentMushafSurah = 1;
+        let currentFont = 1.8;
+        let indexCurrentPage = 1;
+        let continuousObserver;
+        
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+            setupEventListeners();
+            loadUserPreferences();
+        });
+    
+        async function initApp() {
+            try {
+                await initDB();
+                const dataLoaded = await checkDataLoaded();
+                
+                if (!dataLoaded) {
+                    await loadDataToIndexedDB();
+                }
+                
+                populateSelectOptions();
+                initMushafObserver();
+                loadAyah(currentSurah, currentAyah);
+                showContent();
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('loaderStatus').textContent = 'Error loading data. Please reload the app.';
+            }
+        }
+    
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = event => reject('Database error: ' + event.target.errorCode);
+                
+                request.onupgradeneeded = event => {
+                    const db = event.target.result;
+                    
+                    // Words store
+                    if (!db.objectStoreNames.contains('words')) {
+                        const wordsStore = db.createObjectStore('words', { keyPath: 'idGlobal' });
+                        wordsStore.createIndex('surah_ayah_pos', ['surah', 'ayah', 'position'], { unique: false });
+                        wordsStore.createIndex('surah_ayah', ['surah', 'ayah'], { unique: false });
+                    }
+                    
+                    // Bookmarks store
+                    if (!db.objectStoreNames.contains('bookmarks')) {
+                        const bookmarksStore = db.createObjectStore('bookmarks', { keyPath: 'id', autoIncrement: true });
+                        bookmarksStore.createIndex('surah_ayah', 'surah_ayah', { unique: true });
+                    }
+                    
+                    // Notes store
+                    if (!db.objectStoreNames.contains('notes')) {
+                        db.createObjectStore('notes', { keyPath: 'surah_ayah' });
+                    }
+                };
+                
+                request.onsuccess = event => {
+                    db = event.target.result;
+                    resolve();
+                };
+            });
+        }
+    
+        async function checkDataLoaded() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['words'], 'readonly');
+                const store = transaction.objectStore('words');
+                const countRequest = store.count();
+                
+                countRequest.onsuccess = () => {
+                    resolve(countRequest.result > 0);
+                };
+                
+                countRequest.onerror = event => {
+                    reject('Error checking data: ' + event.target.errorCode);
+                };
+            });
+        }
+
+       async function loadDataToIndexedDB() {
+    document.getElementById('loaderStatus').textContent = 'Loading Quran data...';
+    
+    try {
+        // Load data files from local directory
+        const data5Response = await fetch('data5.AM');
+        if (!data5Response.ok) throw new Error('Failed to fetch data5.AM');
+        const data5Text = await data5Response.text();
+
+        const wordResponse = await fetch('word2.AM');
+        if (!wordResponse.ok) throw new Error('Failed to fetch word.AM');
+        const wordText = await wordResponse.text();
+        
+        document.getElementById('loaderStatus').textContent = 'Processing data...';
+        
+        // Process data5.AM (quran_text,ur_meaning,en_meaning)
+        const data5Lines = data5Text.split('\n');
+        data5Lines.shift(); // Remove header
+        
+        // Process word.AM (word_id,surah,ayah,word_postion)
+        const wordLines = wordText.split('\n');
+        wordLines.shift(); // Remove header
+        
+        const wordsData = [];
+        const data5Map = {};
+        
+        // First, create a map of word data from data5.AM
+        data5Lines.forEach((line, idx) => {
+            if (!line.trim()) return;
+            const parts = line.split(',');
+            if (parts.length >= 3) {
+                data5Map[idx+1] = {
+                    quran_text: parts[0],
+                    ur_meaning: parts[1],
+                    en_meaning: parts[2]
+                };
+            }
+        });
+        
+        // Process word.AM and combine with data5.AM
+        wordLines.forEach(line => {
+            if (!line.trim()) return;
+            
+            const parts = line.split(',');
+            if (parts.length >= 4) {
+                const wordId = parseInt(parts[0]);
+                const surah = parseInt(parts[1]);
+                const ayah = parseInt(parts[2]);
+                const position = parseInt(parts[3]);
+                
+                // Ensure we have valid numbers
+                if (isNaN(wordId) || isNaN(surah) || isNaN(ayah) || isNaN(position) || wordId <= 0) {
+                    console.warn('Skipping invalid line:', line);
+                    return;
+                }
+                
+                const wordData = data5Map[wordId];
+                if (wordData) {
+                    wordsData.push({
+                        idGlobal: wordId,
+                        quran_text: wordData.quran_text || '',
+                        ur_meaning: wordData.ur_meaning || '',
+                        en_meaning: wordData.en_meaning || '',
+                        surah: surah,
+                        ayah: ayah,
+                        position: position
+                    });
+                }
+            }
+        });
+        
+        // Store the words data in IndexedDB
+        document.getElementById('loaderStatus').textContent = 'Saving data to local database...';
+        await storeWordsData(wordsData);
+        
+        document.getElementById('loaderStatus').textContent = 'Data loaded successfully!';
+        return true;
+    } catch (error) {
+        console.error('Data loading error:', error);
+        document.getElementById('loaderStatus').textContent = 'Error loading data: ' + error.message;
+        throw error;
+    }
+}
+
+async function storeWordsData(wordsData) {
+    const total = wordsData.length;
+    const batchSize = 100; // Smaller batch size
+    let completed = 0;
+    let failed = 0;
+    
+    while (completed < total) {
+        const endIdx = Math.min(completed + batchSize, total);
+        const batch = wordsData.slice(completed, endIdx);
+        
+        // Create a new transaction for each batch
+        await new Promise((resolve, reject) => {
+            const transaction = db.transaction(['words'], 'readwrite');
+            const store = transaction.objectStore('words');
+            
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = event => reject(event.target.error);
+            
+            for (const word of batch) {
+                try {
+                    if (typeof word.idGlobal === 'number' && word.idGlobal > 0) {
+                        store.add(word);
+                    } else {
+                        failed++;
+                        console.warn('Invalid idGlobal:', word);
+                    }
+                } catch (e) {
+                    failed++;
+                    console.error('Error adding word:', e);
+                }
+            }
+        });
+        
+        completed = endIdx;
+        document.getElementById('loaderStatus').textContent = 
+            `Saving data: ${Math.round((completed/total)*100)}% (${failed} errors)`;
+    }
+    
+    return Promise.resolve();
+}
+
+
+        function showContent() {
+            document.getElementById('mainLoader').classList.add('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+        }
+    
+        function populateSelectOptions() {
+            // Surah selects
+            const surahSelect = document.getElementById('surahSelect');
+            const mushafSurahSelect = document.getElementById('mushafSurahSelect');
+            
+            surahSelect.innerHTML = '';
+            mushafSurahSelect.innerHTML = '';
+            
+            for (let i = 0; i < 114; i++) {
+                const option = document.createElement('option');
+                option.value = i + 1;
+                option.textContent = `${i + 1}. ${s.n[i]}`;
+                
+                const option2 = option.cloneNode(true);
+                
+                surahSelect.appendChild(option);
+                mushafSurahSelect.appendChild(option2);
+            }
+            
+            populateAyahSelect(currentSurah);
+        }
+    
+        function populateAyahSelect(surahNum) {
+            const ayahSelect = document.getElementById('ayahSelect');
+            const maxAyahs = s.c[surahNum - 1];
+            
+            ayahSelect.innerHTML = '';
+            
+            for (let i = 1; i <= maxAyahs; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                ayahSelect.appendChild(option);
+            }
+        }
+    
+        async function loadAyah(surah, ayah) {
+            try {
+                currentSurah = parseInt(surah);
+                currentAyah = parseInt(ayah);
+                
+                // Update selects
+                document.getElementById('surahSelect').value = currentSurah;
+                populateAyahSelect(currentSurah);
+                document.getElementById('ayahSelect').value = currentAyah;
+                
+                // Get ayah words
+                const words = await getAyahWords(currentSurah, currentAyah);
+                
+                if (words.length === 0) {
+                    console.error('No words found for this ayah');
+                    return;
+                }
+                
+                // Display ayah details
+                displayAyahDetails(words);
+                displayWordTable(words);
+                generateTranslations(words);
+                
+                // Check if bookmarked
+                updateBookmarkButton();
+                
+                // Load note if exists
+                loadNote();
+                
+                // Update ayah index if visible
+                if (!document.getElementById('ayahIndexContainer').classList.contains('hidden')) {
+                    updateAyahIndex();
+                }
+            } catch (error) {
+                console.error('Error loading ayah:', error);
+            }
+        }
+    
+        async function getAyahWords(surah, ayah) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['words'], 'readonly');
+                const store = transaction.objectStore('words');
+                const index = store.index('surah_ayah');
+                const request = index.getAll([surah, ayah]);
+                
+                request.onsuccess = event => {
+                    const words = event.target.result;
+                    // Sort by position
+                    words.sort((a, b) => a.position - b.position);
+                    resolve(words);
+                };
+                
+                request.onerror = event => {
+                    reject('Error fetching ayah words: ' + event.target.errorCode);
+                };
+            });
+        }
+    
+        function displayAyahDetails(words) {
+            const ayahDetails = document.getElementById('ayahDetails');
+            const arabicWords = words.map(w => `<span class="word-by-word">${w.quran_text}</span>`).join(' ');
+            
+            ayahDetails.innerHTML = `
+                <h5 class="text-center mb-3">${s.n[currentSurah-1]} (${s.a[currentSurah-1]}) - ${currentSurah}:${currentAyah}</h5>
+                <p class="arabic-text text-center">${arabicWords}</p>
+            `;
+        }
+    
+        function displayWordTable(words) {
+            const wordTable = document.getElementById('wordTable');
+            wordTable.innerHTML = '';
+            
+            words.forEach(word => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="arabic-text">${word.quran_text}</td>
+                    <td dir="rtl">${word.ur_meaning}</td>
+                    <td>${word.en_meaning}</td>
+                `;
+                wordTable.appendChild(row);
+            });
+        }
+    
+        function generateTranslations(words) {
+            const englishTranslation = document.getElementById('englishTranslation');
+            const urduTranslation = document.getElementById('urduTranslation');
+            
+            let enText = words.map(w => w.en_meaning).join(' ');
+            let urText = words.map(w => w.ur_meaning).join(' ');
+            
+            // Basic cleanup
+            enText = enText.charAt(0).toUpperCase() + enText.slice(1);
+            enText = enText.replace(/$$/g, '');
+            if (!enText.endsWith('.') && !enText.endsWith('?') && !enText.endsWith('!')) {
+                enText += '.';
+            }
+            
+            englishTranslation.textContent = enText;
+            urduTranslation.textContent = urText;
+        }
+    
+        async function updateBookmarkButton() {
+            try {
+                const bookmarked = await isAyahBookmarked(currentSurah, currentAyah);
+                const bookmarkBtn = document.getElementById('bookmarkAyah');
+                
+                if (bookmarked) {
+                    bookmarkBtn.classList.add('active');
+                    bookmarkBtn.innerHTML = '<i class="bi bi-bookmark-fill"></i>';
+                } else {
+                    bookmarkBtn.classList.remove('active');
+                    bookmarkBtn.innerHTML = '<i class="bi bi-bookmark"></i>';
+                }
+            } catch (error) {
+                console.error('Error updating bookmark button:', error);
+            }
+        }
+    
+        async function isAyahBookmarked(surah, ayah) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['bookmarks'], 'readonly');
+                const store = transaction.objectStore('bookmarks');
+                const index = store.index('surah_ayah');
+                const request = index.count(`${surah}:${ayah}`);
+                
+                request.onsuccess = () => {
+                    resolve(request.result > 0);
+                };
+                
+                request.onerror = event => {
+                    reject('Error checking bookmark: ' + event.target.errorCode);
+                };
+            });
+        }
+    
+        async function toggleBookmark() {
+            try {
+                const surahAyah = `${currentSurah}:${currentAyah}`;
+                const bookmarked = await isAyahBookmarked(currentSurah, currentAyah);
+                
+                if (bookmarked) {
+                    await removeBookmark(surahAyah);
+                } else {
+                    await addBookmark(currentSurah, currentAyah, surahAyah);
+                }
+                
+                updateBookmarkButton();
+                
+                // Refresh bookmarks list if visible
+                if (document.getElementById('bookmarksTab').classList.contains('active')) {
+                    loadBookmarks();
+                }
+            } catch (error) {
+                console.error('Error toggling bookmark:', error);
+            }
+        }
+    
+        async function addBookmark(surah, ayah, surahAyah) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['bookmarks'], 'readwrite');
+                const store = transaction.objectStore('bookmarks');
+                
+                const bookmark = {
+                    surah_ayah: surahAyah,
+                    surah: surah,
+                    ayah: ayah,
+                    name: `${s.n[surah-1]} ${surah}:${ayah}`
+                };
+                
+                const request = store.add(bookmark);
+                
+                request.onsuccess = () => resolve();
+                request.onerror = event => reject('Error adding bookmark: ' + event.target.errorCode);
+            });
+        }
+    
+        async function removeBookmark(surahAyah) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['bookmarks'], 'readwrite');
+                const store = transaction.objectStore('bookmarks');
+                const index = store.index('surah_ayah');
+                
+                const getRequest = index.getKey(surahAyah);
+                
+                getRequest.onsuccess = () => {
+                    if (getRequest.result) {
+                        const deleteRequest = store.delete(getRequest.result);
+                        deleteRequest.onsuccess = () => resolve();
+                        deleteRequest.onerror = event => reject('Error removing bookmark: ' + event.target.errorCode);
+                    } else {
+                        resolve();
+                    }
+                };
+                
+                getRequest.onerror = event => reject('Error finding bookmark: ' + event.target.errorCode);
+            });
+        }
+    
+        async function loadNote() {
+            try {
+                const note = await getNote(`${currentSurah}:${currentAyah}`);
+                document.getElementById('noteText').value = note ? note.text : '';
+            } catch (error) {
+                console.error('Error loading note:', error);
+            }
+        }
+    
+        async function getNote(surahAyah) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['notes'], 'readonly');
+                const store = transaction.objectStore('notes');
+                const request = store.get(surahAyah);
+                
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = event => reject('Error getting note: ' + event.target.errorCode);
+            });
+        }
+    
+        async function saveNote() {
+            try {
+                const surahAyah = `${currentSurah}:${currentAyah}`;
+                const text = document.getElementById('noteText').value.trim();
+                
+                if (text) {
+                    await addOrUpdateNote(surahAyah, text);
+                } else {
+                    await removeNote(surahAyah);
+                }
+                
+                document.getElementById('noteContainer').classList.add('hidden');
+            } catch (error) {
+                console.error('Error saving note:', error);
+            }
+        }
+    
+        async function addOrUpdateNote(surahAyah, text) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['notes'], 'readwrite');
+                const store = transaction.objectStore('notes');
+                
+                const note = {
+                    surah_ayah: surahAyah,
+                    text: text
+                };
+                
+                const request = store.put(note);
+                
+                request.onsuccess = () => resolve();
+                request.onerror = event => reject('Error saving note: ' + event.target.errorCode);
+            });
+        }
+    
+        async function removeNote(surahAyah) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['notes'], 'readwrite');
+                const store = transaction.objectStore('notes');
+                
+                const request = store.delete(surahAyah);
+                
+                request.onsuccess = () => resolve();
+                request.onerror = event => reject('Error removing note: ' + event.target.errorCode);
+            });
+        }
+    
+        function exportAyah() {
+            const englishTranslation = document.getElementById('englishTranslation').textContent;
+            const urduTranslation = document.getElementById('urduTranslation').textContent;
+            const surahName = s.n[currentSurah - 1];
+            
+            const text = `${surahName} (${currentSurah}:${currentAyah})\n\n` +
+                         `English: ${englishTranslation}\n\n` +
+                         `Urdu: ${urduTranslation}`;
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `quran-${currentSurah}-${currentAyah}.txt`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+    
+        function navigateAyah(direction) {
+            const maxAyahs = s.c[currentSurah - 1];
+            
+            if (direction === 'next') {
+                if (currentAyah < maxAyahs) {
+                    loadAyah(currentSurah, currentAyah + 1);
+                } else if (currentSurah < 114) {
+                    loadAyah(currentSurah + 1, 1);
+                }
+            } else {
+                if (currentAyah > 1) {
+                    loadAyah(currentSurah, currentAyah - 1);
+                } else if (currentSurah > 1) {
+                    const prevSurahMaxAyahs = s.c[currentSurah - 2];
+                    loadAyah(currentSurah - 1, prevSurahMaxAyahs);
+                }
+            }
+        }
+    
+        function toggleNoteContainer() {
+            const container = document.getElementById('noteContainer');
+            container.classList.toggle('hidden');
+            
+            if (!container.classList.contains('hidden')) {
+                document.getElementById('noteText').focus();
+            }
+        }
+    
+        function updateAyahIndex() {
+            const totalPages = Math.ceil(6236 / ITEMS_PER_PAGE); // Total Quran ayahs
+            const currentIndex = getGlobalAyahIndex(currentSurah, currentAyah);
+            const currentPage = Math.ceil(currentIndex / ITEMS_PER_PAGE);
+            
+            loadAyahIndexPage(currentPage);
+        }
+    
+        function getGlobalAyahIndex(surah, ayah) {
+            let index = 0;
+            for (let i = 0; i < surah - 1; i++) {
+                index += s.c[i];
+            }
+            return index + ayah;
+        }
+    
+        function getAyahFromGlobalIndex(index) {
+            let count = 0;
+            for (let i = 0; i < 114; i++) {
+                if (count + s.c[i] >= index) {
+                    return {
+                        surah: i + 1,
+                        ayah: index - count
+                    };
+                }
+                count += s.c[i];
+            }
+            return { surah: 114, ayah: 6 }; // Default to last ayah
+        }
+    
+        async function loadAyahIndexPage(page) {
+            indexCurrentPage = page;
+            const startIdx = (page - 1) * ITEMS_PER_PAGE + 1;
+            const endIdx = Math.min(startIdx + ITEMS_PER_PAGE - 1, 6236);
+            
+            const container = document.getElementById('ayahIndex');
+            container.innerHTML = '';
+            
+            for (let i = startIdx; i <= endIdx; i++) {
+                const ayahInfo = getAyahFromGlobalIndex(i);
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'col-md-4 col-sm-6 mb-1';
+                itemDiv.innerHTML = `
+                    <div class="ayah-index-item" data-surah="${ayahInfo.surah}" data-ayah="${ayahInfo.ayah}">
+                        ${s.n[ayahInfo.surah-1]} ${ayahInfo.surah}:${ayahInfo.ayah}
+                    </div>
+                `;
+                container.appendChild(itemDiv);
+            }
+            
+            updatePagination(page, Math.ceil(6236 / ITEMS_PER_PAGE));
+        }
+    
+        function updatePagination(currentPage, totalPages) {
+            const pagination = document.getElementById('indexPagination');
+            pagination.innerHTML = '';
+            
+            // Previous button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage - 1}">&laquo;</a>`;
+            pagination.appendChild(prevLi);
+            
+            // Page numbers
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageLi = document.createElement('li');
+                pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
+                pagination.appendChild(pageLi);
+            }
+            
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage + 1}">&raquo;</a>`;
+            pagination.appendChild(nextLi);
+        }
+    
+        function toggleAyahIndex() {
+            const container = document.getElementById('ayahIndexContainer');
+            const isVisible = !container.classList.contains('hidden');
+            
+            if (isVisible) {
+                container.classList.add('hidden');
+            } else {
+                container.classList.remove('hidden');
+                updateAyahIndex();
+            }
+        }
+    
+        function loadMushafView() {
+            if (mushafViewMode === 'single') {
+                loadSingleSurahView(currentMushafSurah);
+            } else {
+                loadContinuousView();
+            }
+        }
+    
+        async function loadSingleSurahView(surah) {
+            try {
+                currentMushafSurah = parseInt(surah);
+                document.getElementById('mushafSurahSelect').value = currentMushafSurah;
+                
+                const singleView = document.getElementById('singleSurahView');
+                singleView.innerHTML = '';
+                
+                // Add Surah header
+                const surahHeader = document.createElement('div');
+                surahHeader.className = 'surah-header';
+                surahHeader.innerHTML = `
+                    <h2 class="arabic-text">${s.a[currentMushafSurah-1]}</h2>
+                    <h4>${s.n[currentMushafSurah-1]}</h4>
+                `;
+                singleView.appendChild(surahHeader);
+                
+                // Add Bismillah for all surahs except Surah 9
+                if (currentMushafSurah !== 9) {
+                    const bismillah = document.createElement('div');
+                    bismillah.className = 'bismillah arabic-text';
+                    bismillah.textContent = BISMILLAH;
+                    singleView.appendChild(bismillah);
+                }
+                
+                // Get all ayahs for the surah
+                const maxAyahs = s.c[currentMushafSurah - 1];
+                
+                for (let ayah = 1; ayah <= maxAyahs; ayah++) {
+                    const ayahWords = await getAyahWords(currentMushafSurah, ayah);
+                    const ayahText = ayahWords.map(w => w.quran_text).join(' ');
+                    
+                    const ayahDiv = document.createElement('div');
+                    ayahDiv.className = 'mb-3';
+                    ayahDiv.innerHTML = `
+                        <div class="arabic-text">
+                            ${ayahText}
+                            <span class="ayah-num">﴿${ayah}﴾</span>
+                        </div>
+                    `;
+                    
+                    // Make ayah clickable to navigate to ayah view
+                    ayahDiv.addEventListener('click', () => {
+                        document.getElementById('ayahTab').click();
+                        loadAyah(currentMushafSurah, ayah);
+                    });
+                    
+                    singleView.appendChild(ayahDiv);
+                }
+            } catch (error) {
+                console.error('Error loading mushaf view:', error);
+            }
+        }
+    
+        function initMushafObserver() {
+            continuousObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const target = entry.target;
+                        const nextBatch = parseInt(target.dataset.nextBatch);
+                        
+                        if (nextBatch && !target.dataset.loaded) {
+                            target.dataset.loaded = true;
+                            loadContinuousBatch(nextBatch);
+                        }
+                    }
+                });
+            }, {
+                root: document.getElementById('mushafContainer'),
+                rootMargin: '100px',
+                threshold: 0.1
+            });
+        }
+    
+        async function loadContinuousView() {
+            const continuousView = document.getElementById('continuousView');
+            continuousView.innerHTML = '';
+            
+            // Load initial batch
+            await loadContinuousBatch(1);
+            
+            // Add observer for infinite scroll
+            const loader = document.createElement('div');
+            loader.className = 'loading';
+            loader.dataset.nextBatch = '2';
+            loader.innerHTML = '<div class="spinner-border" role="status"></div>';
+            continuousView.appendChild(loader);
+            
+            continuousObserver.observe(loader);
+        }
+    
+       async function loadContinuousBatch(batchNum) {
+    try {
+        const BATCH_SIZE = 100;
+        const startGlobalAyah = (batchNum - 1) * BATCH_SIZE + 1;
+        let endGlobalAyah = startGlobalAyah + BATCH_SIZE - 1;
+        if (endGlobalAyah > 6236) endGlobalAyah = 6236;
+        
+        const continuousView = document.getElementById('continuousView');
+        const oldLoader = continuousView.querySelector('.loading');
+        if (oldLoader) {
+            continuousObserver.unobserve(oldLoader);
+            oldLoader.remove();
+        }
+        
+        let currentSurahInView = null;
+        let ayahsHtml = '';
+        
+        // Check if the last surah section exists to avoid duplicate headers
+        const existingSurahSections = continuousView.querySelectorAll('.surah-section');
+        if (existingSurahSections.length > 0) {
+            const lastSurahSection = existingSurahSections[existingSurahSections.length - 1];
+            currentSurahInView = parseInt(lastSurahSection.dataset.surah);
+        }
+        
+        for (let i = startGlobalAyah; i <= endGlobalAyah; i++) {
+            const ayahInfo = getAyahFromGlobalIndex(i);
+            const { surah, ayah } = ayahInfo;
+            
+            // Check for surah change
+            if (surah !== currentSurahInView) {
+                // Add surah header
+                if (currentSurahInView !== null) {
+                    ayahsHtml += '</div>';
+                }
+                
+                ayahsHtml += `
+                    <div class="surah-section" data-surah="${surah}">
+                        <div class="surah-header">
+                            <h2 class="arabic-text">${s.a[surah-1]}</h2>
+                            <h4>${s.n[surah-1]}</h4>
+                        </div>
+                `;
+                
+                // Add Bismillah for all surahs except Surah 9
+                if (surah !== 9) {
+                    ayahsHtml += `<div class="bismillah arabic-text">${BISMILLAH}</div>`;
+                }
+                
+                currentSurahInView = surah;
+            }
+            
+            const ayahWords = await getAyahWords(surah, ayah);
+            const ayahText = ayahWords.map(w => w.quran_text).join(' ');
+            
+            ayahsHtml += `
+                <span class="ayah-text" data-surah="${surah}" data-ayah="${ayah}">
+                    ${ayahText} <span class="ayah-num">﴿${ayah}﴾</span>
+                </span> `;
+        }
+        
+        if (ayahsHtml.endsWith('</div>')) {
+            // Don't close the last surah section if we're in the middle of a surah
+            // This allows us to append more ayahs to it later
+        } else if (currentSurahInView !== null) {
+            ayahsHtml += '</div>';
+        }
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = ayahsHtml;
+        
+        // Add click event to each ayah
+        tempDiv.querySelectorAll('.ayah-text').forEach(element => {
+            element.addEventListener('click', (e) => {
+                const surah = parseInt(e.currentTarget.dataset.surah);
+                const ayah = parseInt(e.currentTarget.dataset.ayah);
+                document.getElementById('ayahTab').click();
+                loadAyah(surah, ayah);
+            });
+        });
+        
+        // Append the new content
+        while (tempDiv.firstChild) {
+            // Check if we're adding a new surah section or appending to existing one
+            if (tempDiv.firstChild.classList && tempDiv.firstChild.classList.contains('surah-section')) {
+                const newSurahNum = parseInt(tempDiv.firstChild.dataset.surah);
+                const existingSection = continuousView.querySelector(`.surah-section[data-surah="${newSurahNum}"]`);
+                
+                if (existingSection) {
+                    // Move all children except the header from the new section to the existing section
+                    const newSection = tempDiv.firstChild;
+                    const children = Array.from(newSection.children);
+                    
+                    // Skip the first two elements (header and bismillah)
+                    for (let i = 2; i < children.length; i++) {
+                        existingSection.appendChild(children[i]);
+                    }
+                    tempDiv.removeChild(newSection);
+                } else {
+                    continuousView.appendChild(tempDiv.firstChild);
+                }
+            } else {
+                continuousView.appendChild(tempDiv.firstChild);
+            }
+        }
+        
+        // Add new observer target if not at the end
+        if (endGlobalAyah < 6236) {
+            const newLoader = document.createElement('div');
+            newLoader.className = 'loading';
+            newLoader.dataset.nextBatch = (batchNum + 1).toString();
+            newLoader.innerHTML = '<div class="spinner-border" role="status"></div>';
+            continuousView.appendChild(newLoader);
+            
+            continuousObserver.observe(newLoader);
+        }
+    } catch (error) {
+        console.error('Error loading continuous mushaf batch:', error);
+    }
+}
+
+
+        function toggleMushafViewMode() {
+            const singleView = document.getElementById('singleSurahView');
+            const continuousView = document.getElementById('continuousView');
+            const toggleBtn = document.getElementById('toggleMushafView');
+            
+            if (mushafViewMode === 'single') {
+                mushafViewMode = 'continuous';
+                singleView.classList.add('hidden');
+                continuousView.classList.remove('hidden');
+                toggleBtn.innerHTML = '<i class="bi bi-list"></i> Continuous';
+                loadContinuousView();
+            } else {
+                mushafViewMode = 'single';
+                continuousView.classList.add('hidden');
+                singleView.classList.remove('hidden');
+                toggleBtn.innerHTML = '<i class="bi bi-grid"></i> Single Surah';
+                loadSingleSurahView(currentMushafSurah);
+            }
+        }
+    
+        function updateFontSize() {
+    const size = document.getElementById('fontSizeControl').value;
+    currentFont = size;
+    
+    // Apply to mushaf views
+    document.getElementById('singleSurahView').style.fontSize = `${size}rem`;
+    document.getElementById('continuousView').style.fontSize = `${size}rem`;
+    
+    // Update line height proportionally
+    const lineHeight = parseFloat(size) * 1.4;
+    document.getElementById('singleSurahView').style.lineHeight = `${lineHeight}rem`;
+    document.getElementById('continuousView').style.lineHeight = `${lineHeight}rem`;
+    
+    // Ensure all Arabic text elements also get the font size
+    document.querySelectorAll('.arabic-text').forEach(el => {
+        el.style.fontSize = `${size}rem`;
+    });
+    
+    // Adjust bismillah size proportionally
+    document.querySelectorAll('.bismillah').forEach(el => {
+        el.style.fontSize = `${size}rem`;
+    });
+    
+    // Store preference
+    localStorage.setItem('fontSize', size);
+}
+
+// Add to loadUserPreferences function
+const savedFontSize = localStorage.getItem('fontSize');
+if (savedFontSize) {
+    currentFont = savedFontSize;
+    document.getElementById('fontSizeControl').value = currentFont;
+    updateFontSize();
+}
+  
+        function toggleFullscreenMushaf() {
+            const container = document.getElementById('mushafContainer');
+            
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    console.error('Error attempting to enable fullscreen:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+    
+        async function loadBookmarks() {
+            try {
+                const bookmarks = await getAllBookmarks();
+                const bookmarksList = document.getElementById('bookmarksList');
+                
+                if (bookmarks.length === 0) {
+                    bookmarksList.innerHTML = '<p class="text-center text-muted">No bookmarks saved yet</p>';
+                    return;
+                }
+                
+                bookmarksList.innerHTML = '';
+                
+                bookmarks.forEach(bookmark => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'card mb-2';
+                    itemDiv.innerHTML = `
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <span>${bookmark.name}</span>
+                            <div>
+                                <button class="btn btn-sm btn-primary go-to-bookmark" data-surah="${bookmark.surah}" data-ayah="${bookmark.ayah}">
+                                    <i class="bi bi-box-arrow-right"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-bookmark" data-id="${bookmark.id}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    bookmarksList.appendChild(itemDiv);
+                });
+                
+                // Add event listeners
+                document.querySelectorAll('.go-to-bookmark').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const surah = parseInt(e.currentTarget.dataset.surah);
+                        const ayah = parseInt(e.currentTarget.dataset.ayah);
+                        document.getElementById('ayahTab').click();
+                        loadAyah(surah, ayah);
+                    });
+                });
+                
+                document.querySelectorAll('.delete-bookmark').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const id = parseInt(e.currentTarget.dataset.id);
+                        await deleteBookmarkById(id);
+                        loadBookmarks();
+});
+});
+} catch (error) {
+console.error('Error loading bookmarks:', error);
+}
+}
+
+        async function getAllBookmarks() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['bookmarks'], 'readonly');
+                const store = transaction.objectStore('bookmarks');
+                const request = store.getAll();
+                
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = event => reject('Error getting bookmarks: ' + event.target.errorCode);
+            });
+        }
+    
+        async function deleteBookmarkById(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['bookmarks'], 'readwrite');
+                const store = transaction.objectStore('bookmarks');
+                const request = store.delete(id);
+                
+                request.onsuccess = () => resolve();
+                request.onerror = event => reject('Error deleting bookmark: ' + event.target.errorCode);
+            });
+        }
+    
+        async function search() {
+            try {
+                const query = document.getElementById('searchInput').value.trim();
+                const resultsContainer = document.getElementById('searchResultsList');
+                const statusContainer = document.getElementById('searchStatus');
+                
+                if (!query) {
+                    statusContainer.textContent = 'Enter your search query above';
+                    resultsContainer.innerHTML = '';
+                    return;
+                }
+                
+                statusContainer.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Searching...';
+                resultsContainer.innerHTML = '';
+                
+                let results = [];
+                
+                // Check if query is in format Surah:Ayah
+                if (/^\d+:\d+$/.test(query)) {
+                    const [surah, ayah] = query.split(':').map(Number);
+                    if (surah >= 1 && surah <= 114 && ayah >= 1 && ayah <= s.c[surah - 1]) {
+                        const words = await getAyahWords(surah, ayah);
+                        if (words.length > 0) {
+                            results.push({
+                                surah,
+                                ayah,
+                                text: words.map(w => w.quran_text).join(' '),
+                                translation: words.map(w => w.en_meaning).join(' ')
+                            });
+                        }
+                    }
+                } else {
+                    // Text search
+                    results = await searchText(query);
+                }
+                
+                if (results.length === 0) {
+                    statusContainer.textContent = 'No results found';
+                    return;
+                }
+                
+                statusContainer.textContent = `${results.length} result(s) found`;
+                
+                results.forEach(result => {
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = 'search-result';
+                    resultDiv.innerHTML = `
+                        <div class="d-flex justify-content-between">
+                            <strong>${s.n[result.surah-1]} ${result.surah}:${result.ayah}</strong>
+                            <button class="btn btn-sm btn-primary go-to-result">View</button>
+                        </div>
+                        <div class="arabic-text mt-1">${result.text}</div>
+                        <div class="mt-1">${result.translation}</div>
+                    `;
+                    
+                    resultDiv.querySelector('.go-to-result').addEventListener('click', () => {
+                        document.getElementById('ayahTab').click();
+                        loadAyah(result.surah, result.ayah);
+                    });
+                    
+                    resultsContainer.appendChild(resultDiv);
+                });
+            } catch (error) {
+                console.error('Error searching:', error);
+                document.getElementById('searchStatus').textContent = 'Error performing search';
+            }
+        }
+    
+        async function searchText(query) {
+            return new Promise((resolve, reject) => {
+                const results = [];
+                const transaction = db.transaction(['words'], 'readonly');
+                const store = transaction.objectStore('words');
+                
+                // Get all words (not efficient, but works for demo)
+                const request = store.openCursor();
+                const queryLower = query.toLowerCase();
+                
+                // Keep track of ayahs we've already found
+                const foundAyahs = new Set();
+                
+                request.onsuccess = event => {
+                    const cursor = event.target.result;
+                    
+                    if (cursor) {
+                        const word = cursor.value;
+                        const surahAyah = `${word.surah}:${word.ayah}`;
+                        
+                        // Check if we haven't processed this ayah yet
+                        if (!foundAyahs.has(surahAyah)) {
+                            const arabicMatch = word.quran_text.toLowerCase().includes(queryLower);
+                            const urMatch = word.ur_meaning.toLowerCase().includes(queryLower);
+                            const enMatch = word.en_meaning.toLowerCase().includes(queryLower);
+                            
+                            if (arabicMatch || urMatch || enMatch) {
+                                // Mark this ayah as found
+                                foundAyahs.add(surahAyah);
+                                
+                                // Get all words for this ayah to construct the full text
+                                getAyahWords(word.surah, word.ayah).then(words => {
+                                    results.push({
+                                        surah: word.surah,
+                                        ayah: word.ayah,
+                                        text: words.map(w => w.quran_text).join(' '),
+                                        translation: words.map(w => w.en_meaning).join(' ')
+                                    });
+                                    
+                                    // Limit results to avoid performance issues
+                                    if (results.length >= 50) {
+                                        resolve(results);
+                                        return;
+                                    }
+                                });
+                            }
+                        }
+                        
+                        cursor.continue();
+                    } else {
+                        resolve(results);
+                    }
+                };
+                
+                request.onerror = event => {
+                    reject('Error searching: ' + event.target.errorCode);
+                };
+            });
+        }
+    
+        function setupEventListeners() {
+            // Theme toggle
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('darkThemeToggle').addEventListener('click', toggleTheme);
+            
+            // Ayah navigation
+            document.getElementById('goToAyah').addEventListener('click', () => {
+                const surah = parseInt(document.getElementById('surahSelect').value);
+                const ayah = parseInt(document.getElementById('ayahSelect').value);
+                loadAyah(surah, ayah);
+            });
+            
+            document.getElementById('surahSelect').addEventListener('change', () => {
+                const surah = parseInt(document.getElementById('surahSelect').value);
+                populateAyahSelect(surah);
+            });
+            
+            document.getElementById('prevAyah').addEventListener('click', () => navigateAyah('prev'));
+            document.getElementById('nextAyah').addEventListener('click', () => navigateAyah('next'));
+            
+            // Audio playback
+            document.getElementById('playAudio').addEventListener('click', playAudio);
+            
+            // Bookmarking
+            document.getElementById('bookmarkAyah').addEventListener('click', toggleBookmark);
+            
+            // Notes
+            document.getElementById('noteBtn').addEventListener('click', toggleNoteContainer);
+            document.getElementById('saveNote').addEventListener('click', saveNote);
+            
+            // Export
+            document.getElementById('exportBtn').addEventListener('click', exportAyah);
+            
+            // Ayah Index
+            document.getElementById('toggleIndex').addEventListener('click', toggleAyahIndex);
+            document.getElementById('indexPagination').addEventListener('click', (e) => {
+                e.preventDefault();
+                if (e.target.hasAttribute('data-page')) {
+                    const page = parseInt(e.target.getAttribute('data-page'));
+                    loadAyahIndexPage(page);
+                }
+            });
+            
+            // Ayah Index item clicks
+            document.getElementById('ayahIndex').addEventListener('click', (e) => {
+                const item = e.target.closest('.ayah-index-item');
+                if (item) {
+                    const surah = parseInt(item.dataset.surah);
+                    const ayah = parseInt(item.dataset.ayah);
+                    loadAyah(surah, ayah);
+                }
+            });
+            
+            // Mushaf view
+            document.getElementById('mushafTab').addEventListener('click', loadMushafView);
+            document.getElementById('goToSurah').addEventListener('click', () => {
+                const surah = parseInt(document.getElementById('mushafSurahSelect').value);
+                if (mushafViewMode === 'single') {
+                    loadSingleSurahView(surah);
+                }
+            });
+            
+            document.getElementById('toggleMushafView').addEventListener('click', toggleMushafViewMode);
+            document.getElementById('fontSizeControl').addEventListener('input', updateFontSize);
+            document.getElementById('fullscreenMushaf').addEventListener('click', toggleFullscreenMushaf);
+            
+            // Search
+            document.getElementById('searchBtn').addEventListener('click', search);
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') search();
+            });
+            
+            // Bookmarks tab
+            document.getElementById('bookmarksTab').addEventListener('click', loadBookmarks);
+            
+            // Settings toggles
+            document.getElementById('showWordTable').addEventListener('change', (e) => {
+                document.getElementById('wordTableContainer').classList.toggle('hidden', !e.target.checked);
+                localStorage.setItem('showWordTable', e.target.checked);
+            });
+            
+            document.getElementById('showTranslations').addEventListener('change', (e) => {
+                document.getElementById('translationsContainer').classList.toggle('hidden', !e.target.checked);
+                localStorage.setItem('showTranslations', e.target.checked);
+            });
+            
+            // Clear data
+            document.getElementById('clearDataBtn').addEventListener('click', clearAllData);
+        }
+    
+        function toggleTheme() {
+            const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+            document.documentElement.setAttribute('data-bs-theme', isDark ? 'light' : 'dark');
+            
+            // Update button icon
+            const themeIcon = document.getElementById('themeToggle').querySelector('i');
+            themeIcon.className = isDark ? 'bi bi-moon' : 'bi bi-sun';
+            
+            // Update settings toggle
+            document.getElementById('darkThemeToggle').checked = !isDark;
+            
+            // Save preference
+            localStorage.setItem('darkTheme', !isDark);
+        }
+    
+        async function playAudio() {
+            const playBtn = document.getElementById('playAudio');
+            
+            try {
+                playBtn.disabled = true;
+                playBtn.innerHTML = '<i class="bi bi-hourglass"></i>';
+                
+                const audio = new Audio(`https://cdn.islamic.network/quran/audio/128/ar.alafasy/${getGlobalAyahIndex(currentSurah, currentAyah)}.mp3`);
+                
+                audio.addEventListener('canplaythrough', () => {
+                    playBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+                    audio.play();
+                });
+                
+                audio.addEventListener('ended', () => {
+                    playBtn.disabled = false;
+                    playBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+                });
+                
+                audio.addEventListener('error', () => {
+                    playBtn.disabled = false;
+                    playBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+                    alert('Error loading audio. Please try again later.');
+                });
+            } catch (error) {
+                console.error('Audio playback error:', error);
+                playBtn.disabled = false;
+                playBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+            }
+        }
+    
+        function loadUserPreferences() {
+            // Load theme preference
+            const darkTheme = localStorage.getItem('darkTheme') !== 'false';
+            if (!darkTheme) toggleTheme();
+            
+            // Load content preferences
+            const showWordTable = localStorage.getItem('showWordTable') !== 'false';
+            const showTranslations = localStorage.getItem('showTranslations') !== 'false';
+            
+            document.getElementById('showWordTable').checked = showWordTable;
+            document.getElementById('showTranslations').checked = showTranslations;
+            
+            if (!showWordTable) document.getElementById('wordTableContainer').classList.add('hidden');
+            if (!showTranslations) document.getElementById('translationsContainer').classList.add('hidden');
+            
+            // Set initial font size
+            document.getElementById('fontSizeControl').value = currentFont;
+        }
+    
+        function clearAllData() {
+            if (confirm('This will delete all your saved data including bookmarks and notes. Continue?')) {
+                indexedDB.deleteDatabase(DB_NAME);
+                localStorage.clear();
+                window.location.reload();
+            }
+        }
+    
+        // Initialize Surah counts array for demo (number of ayahs per surah)
+        s.c = [7, 286, 200, 176, 120, 165, 206, 111, 108, 109, 123, 111, 43, 52, 49, 73, 111, 104, 98, 135, 112, 78, 118, 64, 77, 227, 93, 69, 59, 37, 34, 30, 31, 34, 32, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+    </script>
+    </body>
+</html>
