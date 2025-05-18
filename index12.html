@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quran App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: ltr; }
+        .arabic-text, .arabic-word { font-family: 'KFGQPC Uthman Taha Naskh', 'Traditional Arabic', 'Al Mushaf', serif; font-size: 1.8rem; direction: rtl; line-height: 1.8; }
+        .urdu-text, .urdu-word { font-family: 'Noto Nastaliq Urdu', 'Arial', sans-serif; font-size: 1.4rem; direction: rtl; line-height: 1.8;}
+        .english-text { font-size: 1.1rem; line-height: 1.6; }
+        .word-table td, .word-table th { text-align: center; vertical-align: middle; padding: 0.5rem; }
+        .nav-tabs .nav-link.active { background-color: #343a40; color: white; border-color: #495057 #495057 #343a40; }
+        .nav-tabs .nav-link { color: #adb5bd; }
+        #mushafViewContainer .ayah-block { margin-bottom: 1rem; padding: 0.5rem; border-bottom: 1px solid #495057; }
+        #mushafViewContainer .ayah-text-mushaf { text-align: justify; font-size: 2rem; line-height: 2.8; color: #e9ecef;}
+        #mushafViewContainer .ayah-number-mushaf { font-size: 1rem; color: gold; padding: 0 0.3rem; } /* Changed color to gold for visibility */
+        .search-results-item { cursor: pointer; padding: 0.5rem; border-bottom: 1px solid #495057; }
+        .search-results-item:hover { background-color: #495057; }
+        #loadingIndicator, #progressIndicator {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background-color: rgba(33, 37, 41, 0.9); color: white; padding: 25px; border-radius: 8px; z-index: 1060; display: none; text-align: center;
+        }
+        .form-control, .form-select { background-color: #2b3035; color: #e9ecef; border-color: #495057; }
+        .form-control:focus, .form-select:focus { background-color: #343a40; color: #e9ecef; border-color: #0d6efd; box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); }
+        .table { color: #e9ecef; }
+        textarea.form-control { min-height: 100px; }
+        .btn-secondary { background-color: #495057; border-color: #495057; }
+        .btn-secondary:hover { background-color: #5a6268; border-color: #545b62; }
+        .page-content { display: none; } /* Hide all content initially */
+        .page-content.active { display: block; } /* Show active tab content */
+        .surah-title-arabic { font-family: 'KFGQPC Uthman Taha Naskh', 'Traditional Arabic', serif; font-size: 2rem; }
+        #audioPlayerContainer { margin-top: 10px; }
+        #quranFullView {font-size: 24px; text-align: right; padding:10px; border:1px solid #495057; border-radius:5px; margin-top:10px; max-height: 70vh; overflow-y: auto;} /* Ensure text-align for Arabic */
+        .alertPlaceholderClass {  /* Custom class for alert placeholder */
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1055;
+            width: 300px; /* Or whatever width you prefer */
+        }
+
+    </style>
+</head>
+<body>
+    <div id="alertPlaceholder" class="alertPlaceholderClass"></div>
+    <div id="loadingIndicator">
+        <div class="spinner-border text-light" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2 mb-0">Loading initial data... Please wait.</p>
+        <p><small>This may take a few moments on the first visit.</small></p>
+    </div>
+    <div id="progressIndicator">
+        <p id="progressText" class="mb-1">Processing...</p>
+        <div class="progress" style="height: 20px;">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-2">
+        <header class="d-flex justify-content-between align-items-center mb-3 p-2 bg-dark text-white rounded">
+            <h4 class="mb-0">Quran App</h4>
+            <div class="d-flex align-items-center">
+                <button id="toggleThemeBtn" class="btn btn-sm btn-outline-light me-2">Toggle Theme</button>
+                <span id="currentSuraAyahDisplay" class="me-2"></span>
+                <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="offcanvas" data-bs-target="#settingsOffcanvas" aria-controls="settingsOffcanvas">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear-fill" viewBox="0 0 16 16"><path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413-1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.858 2.929 2.929 0 0 1 0 5.858z"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation"><button class="nav-link active" id="ayah-view-tab" data-bs-toggle="tab" data-bs-target="#ayahViewPage" type="button" role="tab">Ayah View</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" id="mushaf-view-tab" data-bs-toggle="tab" data-bs-target="#mushafViewPage" type="button" role="tab">Mushaf View</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" id="search-tab" data-bs-toggle="tab" data-bs-target="#searchPage" type="button" role="tab">Search</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" id="bookmarks-tab" data-bs-toggle="tab" data-bs-target="#bookmarksPage" type="button" role="tab">Bookmarks</button></li>
+        </ul>
+
+        <div class="tab-content" id="mainTabContent">
+            <div class="tab-pane fade show active page-content" id="ayahViewPage" role="tabpanel">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="surahSelect" class="form-label">Surah:</label>
+                        <select id="surahSelect" class="form-select"></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="ayahSelect" class="form-label">Ayah:</label>
+                        <select id="ayahSelect" class="form-select"></select>
+                    </div>
+                    <div class="col-md-5 d-flex align-items-end">
+                        <button id="prevAyahBtn" class="btn btn-secondary me-1">Prev</button>
+                        <button id="nextAyahBtn" class="btn btn-secondary me-2">Next</button>
+                         <button id="playAudioBtn" class="btn btn-info me-1">Play Audio</button>
+                        <button id="bookmarkBtn" class="btn btn-warning me-1">Bookmark</button>
+                        <button id="exportAyahBtn" class="btn btn-success">Export Ayah</button>
+                    </div>
+                </div>
+                <div id="audioPlayerContainer" class="mb-2">
+                    <audio id="audioPlayer" controls class="w-100"></audio>
+                </div>
+                <div id="wordByWordView" class="mb-3">
+                    <h5>Word by Word:</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover word-table">
+                            <thead><tr><th>Arabic</th><th>Urdu Meaning</th><th>English Meaning</th></tr></thead>
+                            <tbody id="wordTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="ayahTranslationView" class="mb-3">
+                    <h5>Ayah Translations:</h5>
+                    <div class="card mb-2">
+                        <div class="card-header">English Translation</div>
+                        <div class="card-body english-text" id="englishTranslation"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header urdu-text text-end">اردو ترجمہ</div>
+                        <div class="card-body urdu-text text-end" id="urduTranslation"></div>
+                    </div>
+                </div>
+                 <div id="notesView" class="mb-3">
+                    <h5>Notes for <span id="noteAyahIdentifier"></span>:</h5>
+                    <textarea id="noteText" class="form-control mb-2" placeholder="Take notes for this ayah..."></textarea>
+                    <button id="saveNoteBtn" class="btn btn-primary">Save Note</button>
+                </div>
+                <div id="statsView" class="mt-3">
+                    <h5>Statistics:</h5>
+                    <p id="surahStats"></p>
+                </div>
+            </div>
+
+            <div class="tab-pane fade page-content" id="mushafViewPage" role="tabpanel">
+                <div class="row mb-3 align-items-center">
+                    <div class="col-md-4">
+                        <label for="mushafSurahSelect" class="form-label">Select Surah:</label>
+                        <select id="mushafSurahSelect" class="form-select"></select>
+                    </div>
+                    <div class="col-md-8">
+                        <h4 id="mushafSurahName" class="text-center surah-title-arabic mb-0"></h4>
+                    </div>
+                </div>
+                 <div id="quranFullView" class="arabic-text">
+                    Select a Surah to display.
+                </div>
+            </div>
+
+            <div class="tab-pane fade page-content" id="searchPage" role="tabpanel">
+                <div class="input-group mb-3">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search Arabic, Urdu, English text or Surah:Ayah (e.g., 1:1)">
+                    <button id="searchBtn" class="btn btn-primary">Search</button>
+                </div>
+                <div id="searchResultsSpinner" class="text-center" style="display: none;">
+                    <div class="spinner-border" role="status"><span class="visually-hidden">Searching...</span></div>
+                </div>
+                <div id="searchResultsInfo" class="mb-2"></div>
+                <ul id="searchResultsList" class="list-group"></ul>
+            </div>
+
+            <div class="tab-pane fade page-content" id="bookmarksPage" role="tabpanel">
+                <h4>Bookmarked Ayahs</h4>
+                <ul id="bookmarksList" class="list-group"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="settingsOffcanvas" aria-labelledby="settingsOffcanvasLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="settingsOffcanvasLabel">Settings</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="mb-3">
+                <label for="mushafFontSizeRange" class="form-label">Mushaf Font Size: <span id="mushafFontSizeValue">24</span>px</label>
+                <input type="range" class="form-range" min="16" max="48" step="1" id="mushafFontSizeRange" value="24">
+            </div>
+            <div class="mb-3 form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="showWordByWordToggle" checked>
+                <label class="form-check-label" for="showWordByWordToggle">Show Word-by-Word Table in Ayah View</label>
+            </div>
+            <div class="mb-3 form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="showAyahTranslationToggle" checked>
+                <label class="form-check-label" for="showAyahTranslationToggle">Show Ayah Translations in Ayah View</label>
+            </div>
+            <button id="clearAllDataBtn" class="btn btn-danger mt-3">Clear All Local Data & Reload</button>
+             <p class="mt-2"><small>Clearing data will remove words, bookmarks, and notes. Data will be re-fetched on reload.</small></p>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- Constants and Global Variables ---
+        const DB_NAME = 'QuranAppDB_v2';
+        const DB_VERSION = 1; // Increment if schema changes
+        const WORDS_STORE = 'words';
+        const BOOKMARKS_STORE = 'bookmarks';
+        const NOTES_STORE = 'notes';
+        const DATA_FILE_URL = './data5.AM'; // CSV: quran_text,ur_meaning,en_meaning
+        const WORD_MAP_URL = './word.AM'; // Text file, custom parsing needed
+        let db1;
+        let currentSurah = 1, currentAyah = 1;
+        let currentMushafSurah = 1;
+        let surahMaxAyahs = [0, 7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110, 98, 135, 112, 78, 118, 64, 77, 227, 93, 88, 69, 60, 34, 30, 73, 54, 45, 83, 182, 88, 75, 85, 54, 53, 89, 59, 37, 35, 38, 29, 18, 45, 60, 49, 62, 55, 78, 96, 29, 22, 24, 13, 14, 11, 11, 18, 12, 12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25, 22, 17, 19, 26, 30, 20, 15, 21, 11, 8, 8, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4, 5, 6];
+        const surahNames = ["", "Al-Fatiha", "Al-Baqarah", "Aal-e-Imran", "An-Nisa", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus", "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra", "Al-Kahf", "Maryam", "Ta-Ha", "Al-Anbiya", "Al-Hajj", "Al-Mu'minun", "An-Nur", "Al-Furqan", "Ash-Shu'ara", "An-Naml", "Al-Qasas", "Al-Ankabut", "Ar-Rum", "Luqman", "As-Sajdah", "Al-Ahzab", "Saba", "Fatir", "Ya-Sin", "As-Saffat", "Sad", "Az-Zumar", "Ghafir", "Fussilat", "Ash-Shura", "Az-Zukhruf", "Ad-Dukhan", "Al-Jathiyah", "Al-Ahqaf", "Muhammad", "Al-Fath", "Al-Hujurat", "Qaf", "Adh-Dhariyat", "At-Tur", "An-Najm", "Al-Qamar", "Ar-Rahman", "Al-Waqi'ah", "Al-Hadid", "Al-Mujadila", "Al-Hashr", "Al-Mumtahanah", "As-Saff", "Al-Jumu'ah", "Al-Munafiqun", "At-Taghabun", "At-Talaq", "At-Tahrim", "Al-Mulk", "Al-Qalam", "Al-Haqqah", "Al-Ma'arij", "Nuh", "Al-Jinn", "Al-Muzzammil", "Al-Muddaththir", "Al-Qiyamah", "Al-Insan", "Al-Mursalat", "An-Naba", "An-Nazi'at", "Abasa", "At-Takwir", "Al-Infitar", "Al-Mutaffifin", "Al-Inshiqaq", "Al-Buruj", "At-Tariq", "Al-A'la", "Al-Ghashiyah", "Al-Fajr", "Al-Balad", "Ash-Shams", "Al-Layl", "Ad-Duha", "Ash-Sharh", "At-Tin", "Al-Alaq", "Al-Qadr", "Al-Bayyinah", "Az-Zalzalah", "Al-Adiyat", "Al-Qari'ah", "At-Takathur", "Al-Asr", "Al-Humazah", "Al-Fil", "Quraysh", "Al-Ma'un", "Al-Kawthar", "Al-Kafirun", "An-Nasr", "Al-Masad", "Al-Ikhlas", "Al-Falaq", "An-Nas"];
+        const surahNamesArabic = ["", "ٱلْفَاتِحَة", "ٱلْبَقَرَة", "آلِ عِمْرَان", "ٱلنِّسَاء", "ٱلْمَائِدَة", "ٱلْأَنْعَام", "ٱلْأَعْرَاف", "ٱلْأَنْفَال", "ٱلتَّوْبَة", "يُونُس", "هُود", "يُوسُف", "ٱلرَّعْد", "إِبْرَاهِيم", "ٱلْحِجْر", "ٱلنَّحْل", "ٱلْإِسْرَاء", "ٱلْكَهْف", "مَرْيَم", "طه", "ٱلْأَنْبِيَاء", "ٱلْحَجّ", "ٱلْمُؤْمِنُونَ", "ٱلنُّور", "ٱلْفُرْقَان", "ٱلشُّعَرَاء", "ٱلنَّمْل", "ٱلْقَصَص", "ٱلْعَنْكَبُوت", "ٱلرُّوم", "لُقْمَان", "ٱلسَّجْدَة", "ٱلْأَحْزَاب", "سَبَأ", "فَاطِر", "يس", "ٱلصَّافَّات", "ص", "ٱلزُّمَر", "غَافِر", "فُصِّلَتْ", "ٱلشُّورَىٰ", "ٱلزُّخْرُف", "ٱلدُّخَان", "ٱلْجَاثِيَة", "ٱلْأَحْقَاف", "مُحَمَّد", "ٱلْفَتْح", "ٱلْحُجُرَات", "ق", "ٱلذَّارِيَات", "ٱلطُّور", "ٱلنَّجْم", "ٱلْقَمَر", "ٱلرَّحْمَٰن", "ٱلْوَاقِعَة", "ٱلْحَدِيد", "ٱلْمُجَادِلَة", "ٱلْحَشْر", "ٱلْﻤُمْتَحَنَة", "ٱلصَّفّ", "ٱلْجُمُعَة", "ٱلْمُنَافِقُونَ", "ٱلتَّغَابُن", "ٱلطَّلَاق", "ٱلتَّحْرِيم", "ٱلْمُلْك", "ٱلْقَلَم", "ٱلْحَاقَّة", "ٱلْمَعَارِج", "نُوح", "ٱلْجِنّ", "ٱلْمُزَّمِّل", "ٱلْمُدَّثِّر", "ٱلْقِيَامَة", "ٱلْإِنْسَان", "ٱلْمُرْسَلَات", "ٱلنَّبَأ", "ٱلنَّازِعَات", "عَبَسَ", "ٱلتَّكْوِير", "ٱلْإِنْفِطَار", "ٱلْمُطَفِّفِين", "ٱلْإِنْشِقَاق", "ٱلْبُرُوج", "ٱلطَّارِق", "ٱلْأَعْلَىٰ", "ٱلْغَاشِيَة", "ٱلْفَجْر", "ٱلْبَلَد", "ٱلشَّمْس", "ٱللَّيْل", "ٱلضُّحَىٰ", "ٱلشَّرْح", "ٱلتِّين", "ٱلْعَلَق", "ٱلْقَدْر", "ٱلْبَيِّنَة", "ٱلزَّلْزَلَة", "ٱلْعَادِيَات", "ٱلْقَارِعَة", "ٱلتَّكَاثُر", "ٱلْعَصْر", "ٱلْهُمَزَة", "ٱلْفِيل", "قُرَيْش", "ٱلْمَاعُون", "ٱلْكَوْثَر", "ٱلْكَافِرُونَ", "ٱلنَّصْر", "ٱلْمَسَد", "ٱلْإِخْلَاص", "ٱلْفَلَق", "ٱلنَّاس"];
+        // --- DOM Elements ---
+        const sS = _ => document.getElementById('surahSelect');
+        const aS = _ => document.getElementById('ayahSelect');
+        const wTB = _ => document.getElementById('wordTableBody');
+        const eT = _ => document.getElementById('englishTranslation');
+        const uT = _ => document.getElementById('urduTranslation');
+        const bmBtn = _ => document.getElementById('bookmarkBtn');
+        const nTxt = _ => document.getElementById('noteText');
+        const sNBtn = _ => document.getElementById('saveNoteBtn');
+        const nAI = _ => document.getElementById('noteAyahIdentifier');
+        const bmList = _ => document.getElementById('bookmarksList');
+        const srchIn = _ => document.getElementById('searchInput');
+        const srchBtn = _ => document.getElementById('searchBtn');
+        const srchResList = _ => document.getElementById('searchResultsList');
+        const srchResInfo = _ => document.getElementById('searchResultsInfo');
+        const srchSpin = _ => document.getElementById('searchResultsSpinner');
+        const audPlyr = _ => document.getElementById('audioPlayer');
+        const pABtn = _ => document.getElementById('playAudioBtn');
+        const lI = _ => document.getElementById('loadingIndicator');
+        const pI = _ => document.getElementById('progressIndicator');
+        const pTxt = _ => document.getElementById('progressText');
+        const pBar = _ => document.getElementById('progressBar');
+        const mSS = _ => document.getElementById('mushafSurahSelect');
+        const mSV = _ => document.getElementById('quranFullView');
+        const mFSN = _ => document.getElementById('mushafSurahName');
+        const mFSR = _ => document.getElementById('mushafFontSizeRange');
+        const mFSV = _ => document.getElementById('mushafFontSizeValue');
+        const cSAD = _ => document.getElementById('currentSuraAyahDisplay');
+        const sStats = _ => document.getElementById('surahStats');
+        const sWByWToggle = _ => document.getElementById('showWordByWordToggle');
+        const sATToggle = _ => document.getElementById('showAyahTranslationToggle');
+        const wByWView = _ => document.getElementById('wordByWordView');
+        const aTView = _ => document.getElementById('ayahTranslationView');
+        const alertPlcHldr = _ => document.getElementById('alertPlaceholder');
+
+
+        // --- Helper Functions ---
+        const gebi = id => document.getElementById(id);
+        const _log = console.log;
+        const _err = console.error;
+        const _warn = console.warn;
+
+        function showAlert(msg, type = 'info') { // Default type to info
+            const placeholder = alertPlcHldr();
+            if (!placeholder) {
+                _warn('Alert placeholder not found in DOM.');
+                return; 
+            }
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = [
+                `<div class="alert alert-${type} alert-dismissible fade show" role="alert" style="min-width: 250px;">`, // Ensure alerts are wide enough
+                `   <div>${msg}</div>`,
+                '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+                '</div>'
+            ].join('');
+            placeholder.append(wrapper.firstChild); // Append only the alert div itself
+            setTimeout(() => { 
+                const alertDiv = placeholder.querySelector('.alert'); // Find the specific alert to remove
+                if (alertDiv) new bootstrap.Alert(alertDiv).close(); // Use Bootstrap's close method for proper fade out
+            }, 5000);
+        }
+
+
+        function removeArabicDiacritics(txt) {
+            if (typeof txt !== 'string') return '';
+            return txt.replace(/[\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]/g, '');
+        }
+
+        function formatAyahRef(s, a) { return `${s}:${a}`; }
+        
+        // --- IndexedDB Functions ---
+        function initDB() {
+            return new Promise((res, rej) => {
+                lI().style.display = 'flex';
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = e => {
+                    db1 = e.target.result;
+                    if (!db1.objectStoreNames.contains(WORDS_STORE)) {
+                        const wStore = db1.createObjectStore(WORDS_STORE, { keyPath: 'idGlobal' }); // Changed keyPath to idGlobal
+                        wStore.createIndex('surah_ayah_position', ['surah', 'ayah', 'position'], { unique: false });
+                        wStore.createIndex('surah_ayah', ['surah', 'ayah'], { unique: false });
+                        wStore.createIndex('surah', 'surah', { unique: false });
+                    }
+                    if (!db1.objectStoreNames.contains(BOOKMARKS_STORE)) {
+                        const bmStore = db1.createObjectStore(BOOKMARKS_STORE, { keyPath: 'id', autoIncrement: true });
+                        bmStore.createIndex('surah_ayah', 'surah_ayah', { unique: true });
+                    }
+                    if (!db1.objectStoreNames.contains(NOTES_STORE)) {
+                        db1.createObjectStore(NOTES_STORE, { keyPath: 'surah_ayah' });
+                    }
+                    _log('DB upgrade needed/completed');
+                };
+                req.onsuccess = e => {
+                    db1 = e.target.result;
+                    _log('DB initialized');
+                    res(db1);
+                };
+                req.onerror = e => {
+                    _err('DB error:', e.target.error);
+                    showAlert('Error initializing database: ' + e.target.error.message, 'danger');
+                    lI().style.display = 'none';
+                    rej(e.target.error);
+                };
+            });
+        }
+
+        async function checkAndLoadInitialData() {
+            try {
+                const tx = db1.transaction(WORDS_STORE, 'readonly');
+                const store = tx.objectStore(WORDS_STORE);
+                const countReq = store.count();
+                countReq.onsuccess = async () => {
+                    if (countReq.result > 0) {
+                        _log('Data already loaded.');
+                        lI().style.display = 'none';
+                        await postDataLoadSetup();
+                    } else {
+                        _log('No data found. Loading from files...');
+                        lI().style.display = 'none'; 
+                        pI().style.display = 'block';
+                        pTxt().textContent = 'Fetching data files...';
+                        try {
+                            const [quranDataRes, wordMapRes] = await Promise.all([
+                                fetch(DATA_FILE_URL).catch(e => { throw new Error(`Failed to fetch ${DATA_FILE_URL}: ${e.message}`)}), 
+                                fetch(WORD_MAP_URL).catch(e => { throw new Error(`Failed to fetch ${WORD_MAP_URL}: ${e.message}`)})
+                            ]);
+
+                            if (!quranDataRes.ok) throw new Error(`HTTP error for ${DATA_FILE_URL}! status: ${quranDataRes.status}`);
+                            if (!wordMapRes.ok) throw new Error(`HTTP error for ${WORD_MAP_URL}! status: ${wordMapRes.status}`);
+                            
+                            const quranDataText = await quranDataRes.text();
+                            const wordMapText = await wordMapRes.text();
+                            
+                            // Parse wordMapText (custom regex parsing)
+                            const parsedWordMap = {};
+                            const regex = /"(\d+)":\s*\{\s*"surah":\s*(\d+),\s*"ayah":\s*(\d+),\s*"position":\s*(\d+)\s*\}/g;
+                            let matchRegex;
+                            while ((matchRegex = regex.exec(wordMapText)) !== null) {
+                                parsedWordMap[matchRegex[1]] = { // wordId is the key
+                                    surah: parseInt(matchRegex[2]),
+                                    ayah: parseInt(matchRegex[3]),
+                                    position: parseInt(matchRegex[4])
+                                };
+                            }
+
+                            if (Object.keys(parsedWordMap).length === 0 && wordMapText.length > 50) { // Heuristic check
+                                _err("word.AM parsing with regex failed. Check file format.");
+                                showAlert("Critical Error: word.AM parsing failed. Please ensure 'word.AM' is in the correct format (e.g., \"1\": {\"surah\":1,...}). App may not work correctly.", "danger");
+                                pI().style.display = 'none';
+                                return; 
+                            }
+                            
+                            pTxt().textContent = 'Processing and storing data...';
+                            await populateWordsStore(quranDataText, parsedWordMap);
+                            _log('Data loaded successfully.');
+                            pI().style.display = 'none';
+                            await postDataLoadSetup();
+                        } catch (err) {
+                            _err('Error loading initial data:', err);
+                            showAlert('Error loading initial data: ' + err.message + '. Please ensure data5.AM and word.AM are in the same directory and correctly formatted.', 'danger');
+                            pI().style.display = 'none';
+                            lI().style.display = 'none';
+                        }
+                    }
+                };
+                countReq.onerror = (e) => {
+                     _err('Error counting words:', e.target.error);
+                     showAlert('Error accessing database. Please try clearing site data or use a different browser.', 'danger');
+                     lI().style.display = 'none';
+                }
+            } catch (err) {
+                _err('DB transaction error for count:', err);
+                showAlert('Database access error: ' + err.message, 'danger');
+                lI().style.display = 'none';
+            }
+        }
+        
+        async function postDataLoadSetup() {
+            populateSurahDropdowns();
+            updateAyahDropdown(); // This will also set currentAyah if it's out of bounds for new surah
+            loadAyahView(currentSurah, currentAyah);
+            loadBookmarks();
+            loadMushafSurah(currentMushafSurah); 
+            applySettings(); 
+        }
+
+        async function populateWordsStore(qData, wMap) {
+            const lines = qData.trim().split('\n');
+            const dataEntries = lines.slice(1); 
+            const totalEntries = dataEntries.length;
+            let successfullyAdded = 0;
+
+            const tx = db1.transaction(WORDS_STORE, 'readwrite');
+            const store = tx.objectStore(WORDS_STORE);
+            
+            return new Promise((resolve, reject) => {
+                if (totalEntries === 0) {
+                    _warn("No data entries found in data5.AM to process.");
+                    pTxt().textContent = 'No data in data5.AM.';
+                    setTimeout(() => { pI().style.display = 'none'; resolve(); }, 1000);
+                    return;
+                }
+
+                dataEntries.forEach((line, index) => {
+                    const parts = line.split(',');
+                    if (parts.length < 3) { // Ensure at least 3 parts
+                        _warn('Skipping malformed line in data5.AM (not enough columns):', line);
+                        return; // Skip this entry
+                    }
+                    const [quran_text, ur_meaning, en_meaning] = parts.map(p => p.trim());
+                    const wordIdGlobalStr = String(index + 1); // Global word ID based on line number
+                    const metadata = wMap[wordIdGlobalStr];
+
+                    if (metadata && quran_text) { // ur_meaning and en_meaning can be empty but quran_text and metadata must exist
+                        const wordEntry = {
+                            idGlobal: parseInt(wordIdGlobalStr), 
+                            quran_text: quran_text,
+                            ur_meaning: ur_meaning || "", // Handle potentially empty meanings
+                            en_meaning: en_meaning || "",
+                            surah: parseInt(metadata.surah),
+                            ayah: parseInt(metadata.ayah),
+                            position: parseInt(metadata.position)
+                        };
+                        const req = store.add(wordEntry);
+                        req.onsuccess = () => {
+                            successfullyAdded++;
+                            const percentComplete = Math.round((successfullyAdded / totalEntries) * 100);
+                            pBar().style.width = percentComplete + '%';
+                            pBar().textContent = percentComplete + '%';
+                        };
+                        req.onerror = (e) => {
+                            // If it's a constraint error due to duplicate idGlobal, we should log it seriously.
+                            if (e.target.error.name === 'ConstraintError') {
+                                _err(`ConstraintError adding word ID ${wordIdGlobalStr}. This ID might already exist.`, wordEntry, e.target.error);
+                            } else {
+                                _warn(`Error adding word ID ${wordIdGlobalStr}:`, e.target.error);
+                            }
+                            // We don't decrement totalEntries here, progress bar might not reach 100% if many errors.
+                        };
+                    } else {
+                        _warn('Skipping entry due to missing metadata or quran_text. Word ID:', wordIdGlobalStr, 'Line:', line);
+                    }
+                });
+
+                tx.oncomplete = () => {
+                    _log(`${successfullyAdded} of ${totalEntries} words added to DB.`);
+                    pTxt().textContent = 'Data processing complete!';
+                    setTimeout(() => {
+                        pI().style.display = 'none';
+                        resolve();
+                    }, 500);
+                };
+                tx.onerror = e => {
+                    _err('Transaction error populating words store:', e.target.error);
+                    showAlert('Error saving data to database: ' + e.target.error.message, 'danger');
+                    pI().style.display = 'none';
+                    reject(e.target.error);
+                };
+            });
+        }
+
+        // --- UI Population and Display Logic ---
+        function populateSurahDropdowns() {
+            [sS(), mSS()].forEach(select => {
+                if (!select) return;
+                select.innerHTML = ''; // Clear existing options
+                for (let i = 1; i <= 114; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = `${i}. ${surahNames[i]}`;
+                    select.appendChild(opt);
+                }
+            });
+            sS().value = currentSurah; // Set default/current
+            mSS().value = currentMushafSurah;
+        }
+
+        function updateAyahDropdown() {
+            const maxAyahs = surahMaxAyahs[currentSurah] || 0; // Fallback to 0 if surah invalid
+             aS().innerHTML = ''; // Clear existing options
+            if (maxAyahs > 0) {
+                for (let i = 1; i <= maxAyahs; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = i;
+                    aS().appendChild(opt);
+                }
+                // Ensure currentAyah is within bounds, default to 1 if not
+                if (currentAyah > maxAyahs || currentAyah < 1) currentAyah = 1;
+                aS().value = currentAyah;
+            } else {
+                // Handle case where no ayahs (e.g., if surahMaxAyahs[currentSurah] is 0 or undefined)
+                const opt = document.createElement('option');
+                opt.textContent = "-";
+                aS().appendChild(opt);
+            }
+        }
+
+        async function loadAyahView(suraNum, ayahNum) {
+            if (!db1) { showAlert('Database not ready.', 'warning'); return; }
+            currentSurah = parseInt(suraNum);
+            currentAyah = parseInt(ayahNum);
+            
+            // Ensure dropdowns reflect the current state, especially after navigation
+            if (sS().value != currentSurah) sS().value = currentSurah;
+            updateAyahDropdown(); // This will also validate and set currentAyah for aS()
+
+            cSAD().textContent = `Surah ${surahNames[currentSurah]} (${currentSurah}), Ayah ${currentAyah}`;
+
+            const tx = db1.transaction(WORDS_STORE, 'readonly');
+            const store = tx.objectStore(WORDS_STORE);
+            const index = store.index('surah_ayah_position');
+            // Ensure ayahNum is at least 0 for range start, though positions are usually 0-indexed
+            const range = IDBKeyRange.bound([currentSurah, currentAyah, 0], [currentSurah, currentAyah, Infinity]);
+            
+            const words = [];
+            index.openCursor(range).onsuccess = e => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    words.push(cursor.value);
+                    cursor.continue();
+                } else {
+                    displayWordByWord(words);
+                    generateAndDisplayAyahTranslations(words);
+                    loadNote();
+                    updateBookmarkButtonStatus();
+                    updateAudioPlayerSource();
+                    calculateSurahStats(currentSurah);
+                }
+            };
+            tx.onerror = e => _err('Error fetching ayah data:', e.target.error);
+        }
+        
+        function displayWordByWord(words) {
+            wTB().innerHTML = '';
+            if (words.length === 0) {
+                wTB().innerHTML = '<tr><td colspan="3">No data available for this ayah.</td></tr>';
+                return;
+            }
+            words.sort((a,b) => a.position - b.position).forEach(w => { // Ensure sorted by position client-side too
+                const row = wTB().insertRow();
+                row.insertCell().textContent = w.quran_text;
+                row.cells[0].classList.add('arabic-word');
+                row.insertCell().textContent = w.ur_meaning;
+                row.cells[1].classList.add('urdu-word');
+                row.insertCell().textContent = w.en_meaning;
+            });
+        }
+
+        function generateAndDisplayAyahTranslations(words) {
+            let enTrans = words.sort((a,b)=>a.position - b.position).map(w => w.en_meaning.replace(/[()]/g, '')).join(' ').trim();
+            let urTrans = words.sort((a,b)=>a.position - b.position).map(w => w.ur_meaning.replace(/[()]/g, '')).join(' ').trim();
+
+            if (enTrans) enTrans = enTrans.charAt(0).toUpperCase() + enTrans.slice(1) + '.';
+            else enTrans = "Translation not available.";
+            
+            if (urTrans) urTrans += '۔';
+            else urTrans = "ترجمہ دستیاب نہیں ہے۔";
+
+            eT().textContent = enTrans;
+            uT().textContent = urTrans;
+        }
+
+        async function loadMushafSurah(suraNum) {
+            currentMushafSurah = parseInt(suraNum);
+            if (mSS()) mSS().value = currentMushafSurah;
+            if (mFSN()) mFSN().textContent = surahNamesArabic[currentMushafSurah] ? `${surahNamesArabic[currentMushafSurah]} (${surahNames[currentMushafSurah]})` : 'Select Surah';
+            
+            if (!db1) { showAlert('Database not ready.', 'warning'); if(mSV()) mSV().innerHTML = 'Database not ready.'; return; }
+            if(mSV()) mSV().innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading Surah...</span></div><p>Loading Surah...</p></div>';
+
+            const tx = db1.transaction(WORDS_STORE, 'readonly');
+            const store = tx.objectStore(WORDS_STORE);
+            const index = store.index('surah_ayah_position'); 
+            const range = IDBKeyRange.bound([currentMushafSurah, 0, 0], [currentMushafSurah, Infinity, Infinity]); 
+
+            const ayahs = {}; 
+            
+            index.openCursor(range).onsuccess = e => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    const word = cursor.value;
+                    if (!ayahs[word.ayah]) ayahs[word.ayah] = [];
+                    // Store word objects to sort by position before joining
+                    ayahs[word.ayah].push({text: word.quran_text, position: word.position});
+                    cursor.continue();
+                } else {
+                    // Sort words within each ayah by position then join
+                    for (const ayahNum in ayahs) {
+                        ayahs[ayahNum] = ayahs[ayahNum]
+                            .sort((a, b) => a.position - b.position)
+                            .map(w => w.text)
+                            .join(' ');
+                    }
+                    renderMushafView(ayahs);
+                }
+            };
+            tx.onerror = e => {
+                _err('Error fetching surah for Mushaf view:', e.target.error);
+                if(mSV()) mSV().innerHTML = '<p class="text-danger">Error loading Surah. Please try again.</p>';
+            };
+        }
+
+        function renderMushafView(ayahsData) {
+            if (!mSV()) return;
+            mSV().innerHTML = ''; 
+            if (Object.keys(ayahsData).length === 0) {
+                mSV().innerHTML = `<p>No text available for Surah ${surahNames[currentMushafSurah]}.</p>`;
+                return;
+            }
+
+            const bismillah = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+            if (currentMushafSurah !== 1 && currentMushafSurah !== 9) { 
+                 const bismillahDiv = document.createElement('div');
+                 bismillahDiv.className = 'text-center mb-3 arabic-text'; // Added arabic-text class
+                 bismillahDiv.style.fontSize = mFSR().value * 0.9 + 'px'; // Slightly smaller than main text
+                 bismillahDiv.textContent = bismillah;
+                 mSV().appendChild(bismillahDiv);
+            }
+
+            const fragment = document.createDocumentFragment();
+            const sortedAyahNums = Object.keys(ayahsData).map(Number).sort((a, b) => a - b);
+
+            for (const ayahNum of sortedAyahNums) {
+                const ayahText = ayahsData[ayahNum];
+                
+                const ayahDiv = document.createElement('div');
+                ayahDiv.className = 'ayah-block'; 
+                
+                const textSpan = document.createElement('span');
+                textSpan.className = 'ayah-text-mushaf'; // This class is in style, but not #mushafViewContainer .ayah-text-mushaf
+                textSpan.textContent = ayahText;
+                
+                const numSpan = document.createElement('span');
+                numSpan.className = 'ayah-number-mushaf';
+                numSpan.textContent = `﴿${ayahNum.toLocaleString('ar-EG')}﴾`; 
+
+                ayahDiv.appendChild(textSpan);
+                ayahDiv.appendChild(numSpan);
+                fragment.appendChild(ayahDiv);
+            }
+            mSV().appendChild(fragment);
+            applyMushafFontSize(); 
+        }
+        
+        function applyMushafFontSize() {
+            const size = mFSR().value;
+            if (mSV()) mSV().style.fontSize = `${size}px`;
+            // Also adjust line height proportionally for better readability in Mushaf view
+            if (mSV()) mSV().style.lineHeight = `${Math.max(1.8, size / 15)}`; 
+            if (mFSV()) mFSV().textContent = size;
+            localStorage.setItem('mushafFontSize', size);
+
+            // Adjust Bismillah font size if it exists
+            const bismillahDiv = mSV().querySelector('.text-center.mb-3.arabic-text');
+            if (bismillahDiv) {
+                 bismillahDiv.style.fontSize = size * 0.9 + 'px';
+            }
+        }
+        
+        // --- Core Functionalities ---
+        function navigateAyah(direction) {
+            let newSurah = currentSurah;
+            let newAyah = currentAyah;
+
+            if (direction === 'next') {
+                if (newAyah < surahMaxAyahs[newSurah]) {
+                    newAyah++;
+                } else if (newSurah < 114) {
+                    newSurah++;
+                    newAyah = 1;
+                } else { showAlert('You are at the end of the Quran.', 'info'); return; } 
+            } else if (direction === 'prev') {
+                if (newAyah > 1) {
+                    newAyah--;
+                } else if (newSurah > 1) {
+                    newSurah--;
+                    newAyah = surahMaxAyahs[newSurah];
+                } else { showAlert('You are at the beginning of the Quran.', 'info'); return; } 
+            }
+            loadAyahView(newSurah, newAyah);
+        }
+        
+        async function toggleBookmark() {
+            if (!db1) return;
+            const suraAyahStr = formatAyahRef(currentSurah, currentAyah);
+            const tx = db1.transaction(BOOKMARKS_STORE, 'readwrite');
+            const store = tx.objectStore(BOOKMARKS_STORE);
+            const index = store.index('surah_ayah');
+            const req = index.get(suraAyahStr);
+
+            req.onsuccess = e => {
+                const existing = e.target.result;
+                if (existing) { 
+                    store.delete(existing.id).onsuccess = () => {
+                        showAlert('Bookmark removed.', 'info');
+                        updateBookmarkButtonStatus(false);
+                        loadBookmarks(); 
+                    };
+                } else { 
+                    store.add({ surah_ayah: suraAyahStr, surah: currentSurah, ayah: currentAyah, name: surahNames[currentSurah] }).onsuccess = () => {
+                        showAlert('Ayah bookmarked!', 'success');
+                        updateBookmarkButtonStatus(true);
+                        loadBookmarks(); 
+                    };
+                }
+            };
+            req.onerror = e => _err('Error accessing bookmark:', e.target.error);
+        }
+
+        async function updateBookmarkButtonStatus(isBookmarked) {
+            if (isBookmarked === undefined) { 
+                 if (!db1) { bmBtn().textContent = 'Bookmark'; bmBtn().classList.remove('btn-danger'); bmBtn().classList.add('btn-warning'); return; }
+                const suraAyahStr = formatAyahRef(currentSurah, currentAyah);
+                const tx = db1.transaction(BOOKMARKS_STORE, 'readonly');
+                const store = tx.objectStore(BOOKMARKS_STORE);
+                const index = store.index('surah_ayah');
+                index.get(suraAyahStr).onsuccess = e => {
+                    const B = !!e.target.result;
+                    bmBtn().textContent = B ? 'Unbookmark' : 'Bookmark';
+                    bmBtn().classList.toggle('btn-danger', B);
+                    bmBtn().classList.toggle('btn-warning', !B);
+                };
+            } else {
+                bmBtn().textContent = isBookmarked ? 'Unbookmark' : 'Bookmark';
+                bmBtn().classList.toggle('btn-danger', isBookmarked);
+                bmBtn().classList.toggle('btn-warning', !isBookmarked);
+            }
+        }
+
+        function loadBookmarks() {
+            if (!db1 || !bmList()) return;
+            const tx = db1.transaction(BOOKMARKS_STORE, 'readonly');
+            const store = tx.objectStore(BOOKMARKS_STORE);
+            bmList().innerHTML = '';
+            store.openCursor().onsuccess = e => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    const bm = cursor.value;
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center search-results-item';
+                    li.textContent = `Surah ${bm.name} (${bm.surah}), Ayah ${bm.ayah}`;
+                    li.dataset.surah = bm.surah;
+                    li.dataset.ayah = bm.ayah;
+                    li.onclick = () => {
+                        loadAyahView(parseInt(bm.surah), parseInt(bm.ayah));
+                        const ayahViewTab = gebi('ayah-view-tab');
+                        if(ayahViewTab) new bootstrap.Tab(ayahViewTab).show();
+                    };
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'btn btn-sm btn-outline-danger';
+                    delBtn.innerHTML = '&times;'; // More compact delete icon
+                    delBtn.setAttribute('aria-label', 'Remove bookmark');
+                    delBtn.onclick = (ev) => {
+                        ev.stopPropagation();
+                        removeBookmark(bm.id);
+                    };
+                    li.appendChild(delBtn);
+                    bmList().appendChild(li);
+                    cursor.continue();
+                } else {
+                     if (bmList().children.length === 0) {
+                        bmList().innerHTML = '<li class="list-group-item">No bookmarks yet.</li>';
+                    }
+                }
+            };
+        }
+
+        function removeBookmark(bookmarkId) {
+            if (!db1) return;
+            const tx = db1.transaction(BOOKMARKS_STORE, 'readwrite');
+            const store = tx.objectStore(BOOKMARKS_STORE);
+            store.delete(bookmarkId).onsuccess = () => {
+                showAlert('Bookmark removed.', 'info');
+                loadBookmarks(); 
+                updateBookmarkButtonStatus(); 
+            };
+        }
+        
+        function loadNote() {
+            if (!db1) return;
+            const suraAyahStr = formatAyahRef(currentSurah, currentAyah);
+            if (nAI()) nAI().textContent = `${surahNames[currentSurah]} (${currentSurah}:${currentAyah})`;
+            const tx = db1.transaction(NOTES_STORE, 'readonly');
+            tx.objectStore(NOTES_STORE).get(suraAyahStr).onsuccess = e => {
+                if (nTxt()) nTxt().value = e.target.result ? e.target.result.text : '';
+            };
+        }
+
+        function saveNote() {
+            if (!db1) return;
+            const suraAyahStr = formatAyahRef(currentSurah, currentAyah);
+            const text = nTxt() ? nTxt().value.trim() : "";
+            const tx = db1.transaction(NOTES_STORE, 'readwrite');
+            const store = tx.objectStore(NOTES_STORE);
+            if (text) {
+                store.put({ surah_ayah: suraAyahStr, text: text }).onsuccess = () => showAlert('Note saved!', 'success');
+            } else { 
+                store.delete(suraAyahStr).onsuccess = () => showAlert('Note cleared.', 'info');
+            }
+            tx.onerror = e => showAlert('Error saving note: '+ e.target.error.message, 'danger');
+        }
+        
+        async function performSearch() {
+            if (!db1) { showAlert('Database not ready for search.', 'warning'); return; }
+            const query = srchIn().value.trim();
+            if (!query) { if(srchResList()) srchResList().innerHTML = ''; if(srchResInfo()) srchResInfo().textContent = 'Please enter a search term.'; return; }
+
+            if(srchSpin()) srchSpin().style.display = 'block';
+            if(srchResList()) srchResList().innerHTML = '';
+            if(srchResInfo()) srchResInfo().textContent = 'Searching...';
+
+            const saMatch = query.match(/^(\d{1,3}):(\d{1,3})$/);
+            if (saMatch) {
+                const s = parseInt(saMatch[1]);
+                const a = parseInt(saMatch[2]);
+                if (s > 0 && s <= 114 && a > 0 && a <= surahMaxAyahs[s]) {
+                    if(srchSpin()) srchSpin().style.display = 'none';
+                    if(srchResInfo()) srchResInfo().textContent = `Navigating to Surah ${s}, Ayah ${a}.`;
+                    loadAyahView(s,a);
+                     const ayahViewTab = gebi('ayah-view-tab');
+                     if(ayahViewTab) new bootstrap.Tab(ayahViewTab).show();
+                    return;
+                } else {
+                    if(srchSpin()) srchSpin().style.display = 'none';
+                    if(srchResInfo()) srchResInfo().textContent = 'Invalid Surah:Ayah format or out of range.';
+                    return;
+                }
+            }
+            
+            const results = new Map(); 
+            const lowerQuery = query.toLowerCase();
+            const normalizedArabicQuery = removeArabicDiacritics(query);
+
+            const tx = db1.transaction(WORDS_STORE, 'readonly');
+            const store = tx.objectStore(WORDS_STORE);
+            let itemsScanned = 0;
+            let matchesFound = 0;
+
+            store.openCursor().onsuccess = e => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    itemsScanned++;
+                    const word = cursor.value;
+                    const saKey = formatAyahRef(word.surah, word.ayah);
+
+                    if (!results.has(saKey)) { 
+                         if ((word.quran_text && removeArabicDiacritics(word.quran_text).includes(normalizedArabicQuery)) ||
+                            (word.ur_meaning && word.ur_meaning.toLowerCase().includes(lowerQuery)) ||
+                            (word.en_meaning && word.en_meaning.toLowerCase().includes(lowerQuery))) {
+                            results.set(saKey, word);
+                            matchesFound++;
+                        }
+                    }
+                    if (itemsScanned % 5000 === 0) { 
+                        if(srchResInfo()) srchResInfo().textContent = `Scanned ${itemsScanned} words... Found ${matchesFound} unique ayahs.`;
+                    }
+                    cursor.continue();
+                } else { 
+                    if(srchSpin()) srchSpin().style.display = 'none';
+                    if (results.size > 0) {
+                        if(srchResInfo()) srchResInfo().textContent = `Found ${results.size} unique ayahs matching "${query}".`;
+                        results.forEach((word, key) => {
+                            const [s, a] = key.split(':').map(Number);
+                            const li = document.createElement('li');
+                            li.className = 'list-group-item search-results-item';
+                            // Show a snippet of the matched word or its context if possible
+                            let context = word.quran_text; 
+                            if (word.en_meaning && word.en_meaning.toLowerCase().includes(lowerQuery)) context = word.en_meaning;
+                            else if (word.ur_meaning && word.ur_meaning.toLowerCase().includes(lowerQuery)) context = word.ur_meaning;
+                            li.textContent = `S${s}:${a} (${surahNames[s]}) - "...${context.substring(0,30)}..."`;
+                            li.dataset.surah = s;
+                            li.dataset.ayah = a;
+                            li.onclick = () => {
+                                loadAyahView(s,a);
+                                 const ayahViewTab = gebi('ayah-view-tab');
+                                 if(ayahViewTab) new bootstrap.Tab(ayahViewTab).show();
+                            };
+                           if(srchResList()) srchResList().appendChild(li);
+                        });
+                    } else {
+                        if(srchResInfo()) srchResInfo().textContent = `No results found for "${query}". Scanned ${itemsScanned} words.`;
+                    }
+                }
+            };
+            tx.onerror = e => {
+                _err('Search transaction error:', e.target.error);
+                if(srchSpin()) srchSpin().style.display = 'none';
+                if(srchResInfo()) srchResInfo().textContent = 'Error during search.';
+                showAlert('Search error: ' + e.target.error.message, 'danger');
+            };
+        }
+        
+        // --- Additional Features ---
+        function updateAudioPlayerSource() {
+            const apiUrl = `https://api.alquran.cloud/v1/ayah/${currentSurah}:${currentAyah}/ar.alafasy`;
+            
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code === 200 && data.data.audio) {
+                        if(audPlyr()) audPlyr().src = data.data.audio;
+                    } else {
+                        _warn('Audio not found or API error:', data.status || 'Unknown error');
+                        if(audPlyr()) audPlyr().removeAttribute('src'); 
+                        showAlert('Audio for this ayah could not be loaded.', 'warning');
+                    }
+                })
+                .catch(err => {
+                    _err('Error fetching audio URL:', err);
+                     if(audPlyr()) audPlyr().removeAttribute('src');
+                    showAlert('Failed to fetch audio information.', 'danger');
+                });
+        }
+
+        function exportAyahTranslations() {
+            const enT = eT() ? eT().textContent : "N/A";
+            const urT = uT() ? uT().textContent : "N/A";
+            let content = `Ayah: Surah ${surahNames[currentSurah]} (${currentSurah}), Ayah ${currentAyah}\n\n`;
+            content += `English Translation:\n${enT}\n\n`;
+            content += `Urdu Translation:\n${urT}\n\n`;
+            
+            const words = [];
+            if (wTB()) {
+                const rows = wTB().rows;
+                for (let i = 0; i < rows.length; i++) {
+                    words.push({
+                        ar: rows[i].cells[0] ? rows[i].cells[0].textContent : "",
+                        ur: rows[i].cells[1] ? rows[i].cells[1].textContent : "",
+                        en: rows[i].cells[2] ? rows[i].cells[2].textContent : "",
+                    });
+                }
+            }
+            if (words.length > 0) {
+                content += "Word by Word:\n";
+                content += "Arabic | Urdu Meaning | English Meaning\n";
+                content += "---------------------------------------\n";
+                words.forEach(w => {
+                    content += `${w.ar} | ${w.ur} | ${w.en}\n`;
+                });
+            }
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `quran_ayah_${currentSurah}_${currentAyah}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+            showAlert('Ayah data exported.', 'success');
+        }
+
+        async function calculateSurahStats(suraNum) {
+            if (!db1) { if(sStats()) sStats().textContent = 'Database not ready.'; return; }
+            const tx = db1.transaction(WORDS_STORE, 'readonly');
+            const store = tx.objectStore(WORDS_STORE);
+            const index = store.index('surah'); 
+            const range = IDBKeyRange.only(parseInt(suraNum));
+            
+            const countReq = index.count(range);
+            countReq.onsuccess = () => {
+                const wordCount = countReq.result;
+                if(sStats()) sStats().textContent = `Surah ${surahNames[suraNum]} (${suraNum}) has ${surahMaxAyahs[suraNum]} ayahs and ${wordCount} words.`;
+            };
+            countReq.onerror = (e) => {
+                _err('Error counting words for stats:', e.target.error);
+                if(sStats()) sStats().textContent = 'Could not retrieve surah statistics.';
+            };
+        }
+
+        function applySettings() {
+            const savedFontSize = localStorage.getItem('mushafFontSize');
+            if (savedFontSize && mFSR()) {
+                mFSR().value = savedFontSize;
+            }
+            applyMushafFontSize(); // Call to apply initial size and update display
+
+            const showWbw = localStorage.getItem('showWordByWord') !== 'false'; 
+            const showAt = localStorage.getItem('showAyahTranslation') !== 'false'; 
+            if(sWByWToggle()) sWByWToggle().checked = showWbw;
+            if(sATToggle()) sATToggle().checked = showAt;
+            if(wByWView()) wByWView().style.display = showWbw ? '' : 'none';
+            if(aTView()) aTView().style.display = showAt ? '' : 'none';
+
+            const savedTheme = localStorage.getItem('theme') || 'dark'; // Default to dark
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        }
+        
+        function clearAllData() {
+            if (confirm("Are you sure you want to clear all locally stored Quran data, bookmarks, and notes? The app will attempt to reload data afterwards.")) {
+                if(lI()){
+                    lI().innerHTML = '<div class="spinner-border text-light" role="status"></div><p class="mt-2 mb-0">Clearing data...</p>';
+                    lI().style.display = 'flex';
+                }
+                const deleteReq = indexedDB.deleteDatabase(DB_NAME);
+                deleteReq.onsuccess = () => {
+                    localStorage.removeItem('mushafFontSize');
+                    localStorage.removeItem('showWordByWord');
+                    localStorage.removeItem('showAyahTranslation');
+                    localStorage.removeItem('theme');
+                    showAlert('All local data cleared. Reloading app...', 'info');
+                    setTimeout(() => window.location.reload(), 2000);
+                };
+                deleteReq.onerror = (e) => {
+                     _err("Error deleting database:", e.target.error);
+                     showAlert('Error clearing data. You may need to clear site data manually from browser settings.', 'danger');
+                     if(lI()) lI().style.display = 'none';
+                };
+                 deleteReq.onblocked = () => {
+                    _warn("Database deletion blocked. Close other tabs/connections to this app.");
+                    showAlert('Could not delete database as it is in use. Please close other tabs of this app and try again.', 'warning');
+                    if(lI()) lI().style.display = 'none';
+                };
+            }
+        }
+
+        // --- Event Listeners ---
+        window.onload = async () => {
+            try {
+                await initDB();
+                await checkAndLoadInitialData(); // This will call postDataLoadSetup on completion
+            } catch (err) {
+                _err("Initialization failed:", err);
+                showAlert('Application initialization failed. Please try refreshing the page or clearing browser data for this site.', 'danger');
+                lI().style.display = 'none';
+            }
+
+            if(sS()) sS().onchange = () => { loadAyahView(parseInt(sS().value), 1); }; // Reset to ayah 1 on surah change
+            if(aS()) aS().onchange = () => { loadAyahView(currentSurah, parseInt(aS().value)); };
+            
+            const prevBtn = gebi('prevAyahBtn'); if(prevBtn) prevBtn.onclick = () => navigateAyah('prev');
+            const nextBtn = gebi('nextAyahBtn'); if(nextBtn) nextBtn.onclick = () => navigateAyah('next');
+            
+            if(bmBtn()) bmBtn().onclick = toggleBookmark;
+            if(sNBtn()) sNBtn().onclick = saveNote;
+            if(pABtn() && audPlyr()) pABtn().onclick = () => audPlyr().play().catch(e => showAlert("Audio play failed. User interaction might be needed first or audio source issue.", "warning"));
+            const expBtn = gebi('exportAyahBtn'); if(expBtn) expBtn.onclick = exportAyahTranslations;
+
+            if(srchBtn()) srchBtn().onclick = performSearch;
+            if(srchIn()) srchIn().onkeyup = e => { if (e.key === 'Enter') performSearch(); };
+            
+            if(mSS()) mSS().onchange = () => loadMushafSurah(parseInt(mSS().value));
+            if(mFSR()) {
+                mFSR().oninput = applyMushafFontSize; 
+                mFSR().onchange = applyMushafFontSize; 
+            }
+            
+            if(sWByWToggle()) sWByWToggle().onchange = e => {
+                if(wByWView()) wByWView().style.display = e.target.checked ? '' : 'none';
+                localStorage.setItem('showWordByWord', e.target.checked);
+            };
+            if(sATToggle()) sATToggle().onchange = e => {
+                if(aTView()) aTView().style.display = e.target.checked ? '' : 'none';
+                localStorage.setItem('showAyahTranslation', e.target.checked);
+            };
+            const themeToggle = gebi('toggleThemeBtn'); 
+            if(themeToggle) themeToggle.onclick = () => {
+                const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-bs-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+            };
+            const clearBtn = gebi('clearAllDataBtn'); if(clearBtn) clearBtn.onclick = clearAllData;
+
+            const mainTabs = gebi('mainTabs');
+            if(mainTabs) mainTabs.addEventListener('shown.bs.tab', event => {
+                const targetTabId = event.target.getAttribute('data-bs-target');
+                if (targetTabId === '#bookmarksPage') {
+                    loadBookmarks();
+                } else if (targetTabId === '#mushafViewPage' && mSV() && (!mSV().hasChildNodes() || mSV().textContent.includes("Select a Surah"))) { 
+                    loadMushafSurah(currentMushafSurah);
+                }
+            });
+        };
+
+    </script>
+</body>
+</html>
