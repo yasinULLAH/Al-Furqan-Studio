@@ -1,0 +1,222 @@
+        async function loadInitialQuranData() {
+            showLoading("Loading Quran & Word Data...");
+            try {
+                // Retrieve settings outside of any potentially pending transactions
+                const settings = await getAllData(STORE_SETTINGS);
+                const settingsMap = new Map(settings.map(s => [s.name, s.value]));
+
+                const currentDBVersionForCheck = 9; // Latest version where all these data are loaded/reloaded
+                const shouldLoadQuran = !(settingsMap.get('quranDataLoaded') && settingsMap.get('quranDataLoadedVersion') === currentDBVersionForCheck);
+                const shouldLoadWordTranslations = !(settingsMap.get('wordTranslationsLoaded') && settingsMap.get('wordTranslationsLoadedVersion') === currentDBVersionForCheck);
+                const shouldLoadWordMetadata = !(settingsMap.get('wordMetadataLoaded') && settingsMap.get('wordMetadataLoadedVersion') === currentDBVersionForCheck);
+
+                if (!shouldLoadQuran && !shouldLoadWordTranslations && !shouldLoadWordMetadata) {
+                    console.log("All necessary Quran, word translation, and word metadata already loaded for current DB version.");
+                    quranDataLoaded = true;
+                    await populateSurahAyahSelects();
+                    await loadAyah(currentSurah, currentAyah);
+                    hideLoading();
+                    return;
+                }
+
+                const allQuranDataMap = new Map();
+                let wordTranslationEntries = [];
+                let wordMetadataEntries = [];
+
+                // Collect all necessary stores for the transaction
+                const storesToAccessInTransaction = new Set([STORE_SETTINGS]);
+                if (shouldLoadQuran) storesToAccessInTransaction.add(STORE_QURAN);
+                if (shouldLoadWordTranslations) storesToAccessInTransaction.add(STORE_WORD_TRANSLATIONS);
+                if (shouldLoadWordMetadata) storesToAccessInTransaction.add(STORE_WORD_METADATA);
+
+                // --- 1. Load Full Quran Ayah Texts & Translations ---
+                // (Existing fetch logic for quran data remains here)
+                if (shouldLoadQuran) {
+                    console.log("Fetching full Quran ayah texts and translations...");
+                    for (const key in TRANSLATION_CONFIG) {
+                        const config = TRANSLATION_CONFIG[key];
+                        try {
+                            const response = await fetch(config.file);
+                            if (!response.ok) {
+                                console.warn(`HTTP error! status: ${response.status} for ${config.file}. Skipping.`);
+                                continue;
+                            }
+                            const text = await response.text();
+                            console.log(`${config.label} data fetched (${config.file}). Parsing...`);
+
+                            const lines = text.split('\n').filter(line => line.trim() !== '');
+                            for (const line of lines) {
+                                const parts = line.split(' ترجمہ: ');
+                                if (parts.length < 2) continue;
+                                const arabicPart = parts[0].trim();
+                                const rest = parts[1];
+                                const metaMatch = rest.match(/<br\/>\s*(?:s|س)\s*\.?\s*(\d{1,3})\s*(?:a|آ)\s*\.?\s*(\d{1,3})\s*$/i);
+                                if (!metaMatch) continue;
+
+                                const translationPart = rest.substring(0, metaMatch.index).trim();
+                                const surahNum = parseInt(metaMatch[1], 10);
+                                const ayahNum = parseInt(metaMatch[2], 10);
+
+                                if (isNaN(surahNum) || isNaN(ayahNum) || surahNum < 1 || surahNum > 114 || ayahNum < 1) continue;
+
+                                const mapKey = `${surahNum}-${ayahNum}`;
+                                let entry = allQuranDataMap.get(mapKey);
+                                if (!entry) {
+                                    entry = { surah: surahNum, ayah: ayahNum, arabic: arabicPart, urdu: '', english: '', Bangali: '' };
+                                    allQuranDataMap.set(mapKey, entry);
+                                }
+                                entry[key] = translationPart;
+                            }
+                        } catch (fetchError) {
+                             console.error(`Error fetching/parsing ${config.file}:`, fetchError);
+                        }
+                    }
+                    console.log(`Parsed ${allQuranDataMap.size} unique full ayahs.`);
+                }
+
+                // --- 2. Load Word Translations (from data5 new.AM) ---
+                // (Existing fetch logic for word translations remains here)
+                if (shouldLoadWordTranslations) {
+                    console.log(`Fetching word translations from ${WORD_TRANSLATION_FILE}...`);
+                    try {
+                        const response = await fetch(WORD_TRANSLATION_FILE);
+                        if (!response.ok) {
+                            console.warn(`Failed to fetch ${WORD_TRANSLATION_FILE}: ${response.status}`);
+                        } else {
+                            const csvText = await response.text();
+                            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+                            if (lines.length > 0) {
+                                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                                const wordIdIndex = headers.indexOf('word_id');
+                                const urMeaningIndex = headers.indexOf('ur_meaning');
+                                const enMeaningIndex = headers.indexOf('en_meaning');
+
+                                if (wordIdIndex === -1) {
+                                    console.error(`'word_id' header not found in ${WORD_TRANSLATION_FILE}. Cannot process word translations.`);
+                                } else {
+                                    for (let i = 1; i < lines.length; i++) {
+                                        const values = lines[i].split(',');
+                                        const word_id_val = values[wordIdIndex] ? values[wordIdIndex].trim() : null;
+                                        if (!word_id_val) continue;
+
+                                        const entry = {
+                                            word_id: parseInt(word_id_val, 10),
+                                            ur_meaning: urMeaningIndex > -1 && values[urMeaningIndex] ? values[urMeaningIndex].trim() : '',
+                                            en_meaning: enMeaningIndex > -1 && values[enMeaningIndex] ? values[enMeaningIndex].trim() : '',
+                                        };
+                                        if (!isNaN(entry.word_id)) {
+                                            wordTranslationEntries.push(entry);
+                                        }
+                                    }
+                                    console.log(`Parsed ${wordTranslationEntries.length} word translation entries from ${WORD_TRANSLATION_FILE}.`);
+                                }
+                            }
+                        }
+                    } catch (fetchError) {
+                        console.error(`Error fetching/parsing ${WORD_TRANSLATION_FILE}:`, fetchError);
+                    }
+                }
+
+                // --- 3. Load Word Metadata (from data2.AM) ---
+                // (Existing fetch logic for word metadata remains here)
+                if (shouldLoadWordMetadata) {
+                    console.log(`Fetching word metadata from ${WORD_METADATA_FILE}...`);
+                    try {
+                        const response = await fetch(WORD_METADATA_FILE);
+                        if (!response.ok) {
+                            console.warn(`Failed to fetch ${WORD_METADATA_FILE}: ${response.status}`);
+                        } else {
+                            const csvText = await response.text();
+                            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+                            if (lines.length > 0) {
+                                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                                const wordIdIndex = headers.indexOf('word_id');
+                                const surahIndex = headers.indexOf('surah');
+                                const ayahIndex = headers.indexOf('ayah');
+                                const positionIndex = headers.indexOf('word_postion'); // Your CSV uses 'word_postion'
+
+                                if (wordIdIndex === -1 || surahIndex === -1 || ayahIndex === -1 || positionIndex === -1) {
+                                    console.error(`One or more required headers (word_id, surah, ayah, word_postion) not found in ${WORD_METADATA_FILE}.`);
+                                } else {
+                                    for (let i = 1; i < lines.length; i++) {
+                                        const values = lines[i].split(',');
+                                        const entry = {
+                                            word_id: parseInt(values[wordIdIndex] ? values[wordIdIndex].trim() : '', 10),
+                                            surah: parseInt(values[surahIndex] ? values[surahIndex].trim() : '', 10),
+                                            ayah: parseInt(values[ayahIndex] ? values[ayahIndex].trim() : '', 10),
+                                            word_position: parseInt(values[positionIndex] ? values[positionIndex].trim() : '', 10)
+                                        };
+                                        if (!isNaN(entry.word_id) && !isNaN(entry.surah) && !isNaN(entry.ayah) && !isNaN(entry.word_position)) {
+                                            wordMetadataEntries.push(entry);
+                                        }
+                                    }
+                                    console.log(`Parsed ${wordMetadataEntries.length} word metadata entries from ${WORD_METADATA_FILE}.`);
+                                }
+                            }
+                        }
+                    } catch (fetchError) {
+                         console.error(`Error fetching/parsing ${WORD_METADATA_FILE}:`, fetchError);
+                    }
+                }
+
+                // --- Transaction to Store Data ---
+                // Only proceed with a transaction if there's actual data to load/store
+                if (shouldLoadQuran || shouldLoadWordTranslations || shouldLoadWordMetadata) {
+                    const transaction = db.transaction(Array.from(storesToAccessInTransaction), 'readwrite');
+
+                    // Get object store references from *this* transaction
+                    const quranStore = transaction.objectStore(STORE_QURAN);
+                    const wordTranslationsStore = transaction.objectStore(STORE_WORD_TRANSLATIONS);
+                    const wordMetadataStore = transaction.objectStore(STORE_WORD_METADATA);
+                    const settingsStore = transaction.objectStore(STORE_SETTINGS);
+
+                    transaction.oncomplete = async () => {
+                        console.log("Data loading/storing transaction complete.");
+                        quranDataLoaded = true;
+                        await populateSurahAyahSelects();
+                        await loadAyah(currentSurah, currentAyah);
+                        hideLoading();
+                    };
+                    transaction.onerror = (event) => {
+                        console.error("Transaction failed during initial data load:", event.target.error);
+                        hideLoading();
+                        alert("Failed to store initial data: " + event.target.error.message);
+                    };
+
+                    // Add data and update settings flags *within this transaction*
+                    if (shouldLoadQuran && allQuranDataMap.size > 0) {
+                        quranStore.clear(); // Clear existing data to ensure full reload/update
+                        for (const entry of allQuranDataMap.values()) {
+                            quranStore.put(entry);
+                        }
+                        settingsStore.put({ name: 'quranDataLoaded', value: true, quranDataLoadedVersion: currentDBVersionForCheck });
+                    }
+                    if (shouldLoadWordTranslations && wordTranslationEntries.length > 0) {
+                        wordTranslationsStore.clear();
+                        for (const entry of wordTranslationEntries) {
+                            wordTranslationsStore.put(entry);
+                        }
+                        settingsStore.put({ name: 'wordTranslationsLoaded', value: true, wordTranslationsLoadedVersion: currentDBVersionForCheck });
+                    }
+                    if (shouldLoadWordMetadata && wordMetadataEntries.length > 0) {
+                        wordMetadataStore.clear();
+                        for (const entry of wordMetadataEntries) {
+                            wordMetadataStore.put(entry);
+                        }
+                        settingsStore.put({ name: 'wordMetadataLoaded', value: true, wordMetadataLoadedVersion: currentDBVersionForCheck });
+                    }
+                    // The transaction commits when all operations initiated within it complete successfully.
+                } else {
+                     console.log("No new data needed to be fetched and stored. Initializing UI.");
+                     quranDataLoaded = true;
+                     await populateSurahAyahSelects();
+                     await loadAyah(currentSurah, currentAyah);
+                     hideLoading();
+                }
+
+            } catch (error) {
+                console.error("Error in loadInitialQuranData:", error);
+                hideLoading();
+                alert("Failed to load application data: " + error.message);
+            }
+        }
