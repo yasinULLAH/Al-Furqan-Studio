@@ -183,7 +183,6 @@
             border-radius: var(--border-radius);
             box-shadow: 0 2px 5px var(--color-shadow);
             overflow-y: auto; /* Allow main content area to scroll */
-            /* max-height: calc(100vh - (var(--padding-main) * 2) - 60px); */ /* Adjust based on header height */
         }
 
         header {
@@ -295,23 +294,6 @@
             color: var(--color-text-secondary);
         }
 
-        .word-translation-tooltip {
-            position: absolute;
-            background-color: var(--color-accent-dark);
-            color: white;
-            padding: 5px 10px;
-            border-radius: var(--border-radius);
-            font-size: 0.9rem;
-            z-index: 100;
-            pointer-events: none; /* Don't interfere with clicks */
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .word-translation-tooltip.visible {
-            opacity: 1;
-        }
-
         /* Tafsir Builder */
         .tafsir-editor {
             margin-top: 20px;
@@ -418,7 +400,7 @@
             border: 1px solid var(--color-border);
             border-radius: var(--border-radius);
             background-color: var(--color-bg-primary);
-            font-size: x-large;
+            /* font-size: x-large; Removed for consistency, use result-context */
         }
         .search-results .result-context {
             font-size: large;
@@ -497,8 +479,6 @@
             outline-offset: 2px;
         }
 
-        /* Ensure sufficient contrast - relies on theme colors being chosen correctly */
-
         /* Screen reader only class */
         .sr-only {
             position: absolute;
@@ -554,7 +534,6 @@
              }
             .main-content {
                 padding: 15px;
-                 max-height: calc(100vh - (10px * 2) - 60px - 20px - 20px); /* Adjust for mobile padding, header, sidebar margin */
             }
             header {
                 flex-direction: column;
@@ -596,30 +575,19 @@
              background-color: rgba(0, 188, 212, 0.3);
              border-bottom-color: var(--color-highlight);
         }
-        body.theme-holo .word-translation-tooltip {
-             background-color: var(--color-accent);
-             box-shadow: 0 0 10px var(--color-accent);
-        }
          body.theme-holo nav a.active {
             background-color: var(--color-accent);
             box-shadow: 0 0 8px var(--color-accent);
          }
-#word-translation-area > p:nth-child(3){
-    display: none;
-}
-
     </style>
     <!-- Optional: Include fonts if not available locally -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@404&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jameel+Noori+Nastaleeq+Regular&display=swap">
-    <!-- Add other fonts like Noto Nastaliq Urdu, Noto Sans Bangali, Orbitron, Merriweather if needed -->
-     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap">
-     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bangali&display=swap">
-     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap">
-     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap">
-
-
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jameel+Noori+Nastaleeq&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bangali&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap">
 </head>
 <body dir="ltr"> <!-- Default direction, will be set dynamically if needed -->
 
@@ -677,6 +645,7 @@
                 </div>
                  <div id="word-translation-area" class="mt-20">
                      <!-- Word translation or full ayah translation on word click -->
+                     <p class="text-center">Click on an Arabic word to see its translation.</p>
                  </div>
             </section>
 
@@ -752,7 +721,7 @@
                 <div class="root-analyzer-form mb-20">
                     <div class="flex-group mb-10">
                         <label for="root-input" class="sr-only">Arabic Root Word</label>
-                        <input type="text" id="root-input" placeholder="Enter Arabic Root (e.g., ق-و-ل) or (علم) or (ر۔ب)" lang="ar" dir="rtl">
+                        <input type="text" id="root-input" placeholder="Enter Arabic Root (e.g., ق-و-ل) or (ع ل م) or (ر۔ب)" lang="ar" dir="rtl">
                         <button id="analyze-root-btn">Analyze Root</button>
                     </div>
                     <label for="root-description">Description/Notes for this Root (Optional):</label>
@@ -876,6 +845,12 @@
                      <button id="clear-data-btn" style="background-color: var(--color-error);">Clear All Data</button>
                      <p id="clear-status" aria-live="polite"></p>
                  </div>
+                 <div class="settings-section mb-20">
+                <h3>Export Personal Tafsir to Word (.docx)</h3>
+                <p>Generates a .docx file of all your Tafsir notes (basic styling).</p>
+                <button id="export-tafsir-to-docx-btn">Export Tafsir to .docx</button>
+                <p id="export-tafsir-docx-status" aria-live="polite"></p>
+            </div>
             </section>
 
         </main>
@@ -907,8 +882,8 @@
     <script>
         // Author: Yasin Ullah, Pakistani
 
-        const DB_NAME = 'NurAlQuranStudioDB';
-        const DB_VERSION = 2; // Increment this version number for new translation fields
+        const DB_NAME = 'NurAlQuranStudioDByas';
+        const DB_VERSION = 7; // << UPDATED for new word_metadata store and word_translations key
         let db;
 
         // Object Store Names
@@ -921,12 +896,21 @@
         const STORE_RECITATIONS = 'recitations';
         const STORE_HIFZ = 'hifz';
         const STORE_SETTINGS = 'settings';
+        const STORE_WORD_TRANSLATIONS = 'word_translations'; // Keyed by word_id
+        const STORE_WORD_METADATA = 'word_metadata';         // Keyed by word_id, indexed by location
+
+        // Data file names
+        const WORD_TRANSLATION_FILE = 'data5 new.AM'; // Contains word_id, ur_meaning, en_meaning
+        const WORD_METADATA_FILE = 'word2.AM';       // Contains word_id, surah, ayah, word_postion
 
         // Global state
         let currentSurah = 1;
         let currentAyah = 1;
         let totalAyahsInSurah = 7; // Default for Surah 1
         let quranDataLoaded = false;
+        // allWordTranslationsCached is no longer the primary matching source but can be kept for other uses if needed.
+        // let allWordTranslationsCached = [];
+
         const surahNames = [
             "Al-Fatihah", "Al-Baqarah", "Al 'Imran", "An-Nisa'", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus",
             "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra'", "Al-Kahf", "Maryam", "Taha",
@@ -941,94 +925,133 @@
             "Al-Qari'ah", "At-Takathur", "Al-'Asr", "Al-Humazah", "Al-Fil", "Quraysh", "Al-Ma'un", "Al-Kawthar", "Al-Kafirun", "An-Nasr",
             "Al-Masad", "Al-Ikhlas", "Al-Falaq", "An-Nas"
         ];
-        // Map Surah number (1-based) to total Ayahs
         const surahAyahCounts = [
             0, 7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110, 98, 135, 112, 78, 118, 64, 77, 227, 93, 88, 69,
             60, 34, 30, 73, 54, 45, 83, 182, 88, 75, 85, 54, 53, 89, 59, 37, 35, 38, 29, 18, 45, 60, 49, 62, 55, 78, 96, 29, 22, 24,
             13, 14, 11, 11, 18, 12, 12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25, 22, 17, 19, 26, 30,
             20, 15, 21, 11, 8, 5, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4, 5, 6
-        ]; // Index 0 is dummy, Surah 1 is index 1
+        ];
 
-        // New: Configuration for different translations
         const TRANSLATION_CONFIG = {
-            urdu: { file: 'data.AM', lang: 'ur', dir: 'rtl', label: 'Urdu' },
+            urdu: { file: 'data new.AM', lang: 'ur', dir: 'rtl', label: 'Urdu' },
             english: { file: 'dataENG.AM', lang: 'en', dir: 'ltr', label: 'English' },
             Bangali: { file: 'dataBNG.AM', lang: 'bn', dir: 'ltr', label: 'Bangali' }
         };
 
 
         // --- IndexedDB Functions ---
-
         function openDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(DB_NAME, DB_VERSION);
 
                 request.onupgradeneeded = (event) => {
                     db = event.target.result;
-                    // Create object stores if they don't exist
+                    const oldVersion = event.oldVersion;
+                    console.log(`IndexedDB upgrade needed from version ${oldVersion} to ${DB_VERSION}.`);
+
+                    // Quran Store
                     if (!db.objectStoreNames.contains(STORE_QURAN)) {
-                        const quranStore = db.createObjectStore(STORE_QURAN, { keyPath: ['surah', 'ayah'] });
-                        // Add indexes for search/lookup if needed later, e.g., by text content (full text search is complex)
-                        // quranStore.createIndex('arabic', 'arabic', { unique: false });
-                        // quranStore.createIndex('urdu', 'urdu', { unique: false });
-                    } else if (event.oldVersion < 2) { // If upgrading from version 1 to 2
-                        // Clear existing quran data to repopulate with all translations
-                        // This assumes a full re-import of all translations is desired on upgrade.
-                        // For larger datasets, a more sophisticated migration (e.g., add new fields without clearing) would be needed.
-                        console.log("Upgrading Quran store schema. Clearing existing data for re-population.");
-                        db.deleteObjectStore(STORE_QURAN); // Delete and recreate
-                        const quranStore = db.createObjectStore(STORE_QURAN, { keyPath: ['surah', 'ayah'] });
+                        db.createObjectStore(STORE_QURAN, { keyPath: ['surah', 'ayah'] });
+                    } else if (oldVersion < 2) { // Example for multi-translation support (adjust version if needed)
+                        console.log(`Upgrading ${STORE_QURAN} store schema. Clearing existing data for re-population.`);
+                        db.deleteObjectStore(STORE_QURAN);
+                        db.createObjectStore(STORE_QURAN, { keyPath: ['surah', 'ayah'] });
                     }
 
-
+                    // Tafsir Store
                     if (!db.objectStoreNames.contains(STORE_TAFSIR)) {
                         db.createObjectStore(STORE_TAFSIR, { keyPath: ['surah', 'ayah'] });
                     }
+
+                    // Themes Store
                     if (!db.objectStoreNames.contains(STORE_THEMES)) {
                         db.createObjectStore(STORE_THEMES, { keyPath: 'id', autoIncrement: true });
                     }
+
+                    // Theme Ayahs Store
                     if (!db.objectStoreNames.contains(STORE_THEME_AYAHS)) {
                         const themeAyahsStore = db.createObjectStore(STORE_THEME_AYAHS, { keyPath: 'id', autoIncrement: true });
                         themeAyahsStore.createIndex('themeId', 'themeId', { unique: false });
                         themeAyahsStore.createIndex('surahAyah', ['surah', 'ayah'], { unique: false });
                     }
+
+                    // Roots Store
                     if (!db.objectStoreNames.contains(STORE_ROOTS)) {
                         db.createObjectStore(STORE_ROOTS, { keyPath: 'id', autoIncrement: true });
+                        // You might add an index for 'root' if you search by it often
+                        // rootsStore.createIndex('rootTerm', 'root', { unique: true }); // If root terms are unique
                     }
-                     if (!db.objectStoreNames.contains(STORE_ROOT_AYAHS)) {
+
+                    // Root Ayahs Store (currently not used for linking in provided code, but good to have)
+                    if (!db.objectStoreNames.contains(STORE_ROOT_AYAHS)) {
                         const rootAyahsStore = db.createObjectStore(STORE_ROOT_AYAHS, { keyPath: 'id', autoIncrement: true });
                         rootAyahsStore.createIndex('rootId', 'rootId', { unique: false });
                         rootAyahsStore.createIndex('surahAyah', ['surah', 'ayah'], { unique: false });
                         rootAyahsStore.createIndex('word', 'word', { unique: false });
                     }
+
+                    // Recitations Store
                     if (!db.objectStoreNames.contains(STORE_RECITATIONS)) {
                         const recitationStore = db.createObjectStore(STORE_RECITATIONS, { keyPath: 'id', autoIncrement: true });
                         recitationStore.createIndex('surah', 'surah', { unique: false });
                         recitationStore.createIndex('date', 'date', { unique: false });
                     }
+
+                    // Hifz Store
                     if (!db.objectStoreNames.contains(STORE_HIFZ)) {
                         const hifzStore = db.createObjectStore(STORE_HIFZ, { keyPath: ['surah', 'ayah'] });
                         hifzStore.createIndex('status', 'status', { unique: false });
                         hifzStore.createIndex('nextReviewDate', 'nextReviewDate', { unique: false });
                     }
+
+                    // Settings Store
                     if (!db.objectStoreNames.contains(STORE_SETTINGS)) {
                          db.createObjectStore(STORE_SETTINGS, { keyPath: 'name' });
+                    }
+
+                    // Word Translations Store (data5 new.AM) - Keyed by word_id
+                    if (db.objectStoreNames.contains(STORE_WORD_TRANSLATIONS)) {
+                        if (oldVersion < 7) { // Version 7 introduced word_id keying
+                            console.log(`Re-creating '${STORE_WORD_TRANSLATIONS}' for DB_VERSION ${DB_VERSION} to be keyed by 'word_id'.`);
+                            db.deleteObjectStore(STORE_WORD_TRANSLATIONS);
+                            db.createObjectStore(STORE_WORD_TRANSLATIONS, { keyPath: 'word_id' });
+                        }
+                    } else {
+                        console.log(`Creating new '${STORE_WORD_TRANSLATIONS}' store, keyed by 'word_id'.`);
+                        db.createObjectStore(STORE_WORD_TRANSLATIONS, { keyPath: 'word_id' });
+                    }
+
+                    // Word Metadata Store (data2.AM) - Keyed by word_id, indexed by location
+                    if (!db.objectStoreNames.contains(STORE_WORD_METADATA)) {
+                        console.log(`Creating new '${STORE_WORD_METADATA}' store for DB_VERSION ${DB_VERSION}.`);
+                        const wordMetadataStore = db.createObjectStore(STORE_WORD_METADATA, { keyPath: 'word_id' });
+                        wordMetadataStore.createIndex('location_idx', ['surah', 'ayah', 'word_position'], { unique: true });
+                    } else if (oldVersion < 7) { // Version 7 introduced this store
+                        console.log(`Re-creating '${STORE_WORD_METADATA}' for DB_VERSION ${DB_VERSION}.`);
+                        db.deleteObjectStore(STORE_WORD_METADATA);
+                        const wordMetadataStore = db.createObjectStore(STORE_WORD_METADATA, { keyPath: 'word_id' });
+                        wordMetadataStore.createIndex('location_idx', ['surah', 'ayah', 'word_position'], { unique: true });
                     }
                 };
 
                 request.onsuccess = (event) => {
                     db = event.target.result;
+                    console.log("IndexedDB opened successfully.");
                     resolve(db);
                 };
 
                 request.onerror = (event) => {
-                    console.error("IndexedDB error:", event.target.errorCode);
-                    reject("Failed to open IndexedDB.");
+                    console.error("IndexedDB error:", event.target.errorCode, event.target.error);
+                    reject("Failed to open IndexedDB: " + event.target.error.message);
                 };
             });
         }
 
         function getObjectStore(storeName, mode) {
+            if (!db) {
+                console.error("getObjectStore called but DB is not initialized.");
+                throw new Error("Database not initialized.");
+            }
             const transaction = db.transaction(storeName, mode);
             return transaction.objectStore(storeName);
         }
@@ -1038,7 +1061,10 @@
                 const store = getObjectStore(storeName, 'readwrite');
                 const request = store.add(data);
                 request.onsuccess = () => resolve(request.result);
-                request.onerror = (event) => reject(event.target.error);
+                request.onerror = (event) => {
+                    console.error(`Error adding data to ${storeName}:`, event.target.error);
+                    reject(event.target.error);
+                };
             });
         }
 
@@ -1047,7 +1073,10 @@
                 const store = getObjectStore(storeName, 'readwrite');
                 const request = store.put(data);
                 request.onsuccess = () => resolve(request.result);
-                request.onerror = (event) => reject(event.target.error);
+                request.onerror = (event) => {
+                    console.error(`Error putting data to ${storeName}:`, event.target.error);
+                    reject(event.target.error);
+                };
             });
         }
 
@@ -1056,7 +1085,10 @@
                 const store = getObjectStore(storeName, 'readonly');
                 const request = store.get(key);
                 request.onsuccess = () => resolve(request.result);
-                request.onerror = (event) => reject(event.target.error);
+                request.onerror = (event) => {
+                     console.error(`Error getting data from ${storeName} with key ${key}:`, event.target.error);
+                    reject(event.target.error);
+                };
             });
         }
 
@@ -1065,7 +1097,10 @@
                 const store = getObjectStore(storeName, 'readonly');
                 const request = store.getAll();
                 request.onsuccess = () => resolve(request.result);
-                request.onerror = (event) => reject(event.target.error);
+                request.onerror = (event) => {
+                    console.error(`Error getting all data from ${storeName}:`, event.target.error);
+                    reject(event.target.error);
+                };
             });
         }
 
@@ -1074,7 +1109,10 @@
                 const store = getObjectStore(storeName, 'readwrite');
                 const request = store.delete(key);
                 request.onsuccess = () => resolve();
-                request.onerror = (event) => reject(event.target.error);
+                request.onerror = (event) => {
+                    console.error(`Error deleting data from ${storeName} with key ${key}:`, event.target.error);
+                    reject(event.target.error);
+                };
             });
         }
 
@@ -1083,18 +1121,29 @@
                 const store = getObjectStore(storeName, 'readwrite');
                 const request = store.clear();
                 request.onsuccess = () => resolve();
-                request.onerror = (event) => reject(event.target.error);
+                request.onerror = (event) => {
+                    console.error(`Error clearing store ${storeName}:`, event.target.error);
+                    reject(event.target.error);
+                };
             });
          }
 
-        // --- Data Loading and Parsing ---
 
+        // --- Data Loading and Parsing ---
         async function loadQuranData() {
-            showLoading("Loading Quran data...");
+            showLoading("Loading Quran & Word Data...");
             try {
-                const settings = await getData(STORE_SETTINGS, 'quranDataLoaded');
-                if (settings && settings.value === true) {
-                    console.log("Quran data already loaded in IndexedDB.");
+                const settingsLoadedQuran = await getData(STORE_SETTINGS, 'quranDataLoaded').catch(() => null);
+                const settingsLoadedWordTranslations = await getData(STORE_SETTINGS, 'wordTranslationsLoaded').catch(() => null);
+                const settingsLoadedWordMetadata = await getData(STORE_SETTINGS, 'wordMetadataLoaded').catch(() => null);
+
+                const currentDBVersionForCheck = 7;
+                const shouldLoadQuran = !(settingsLoadedQuran && settingsLoadedQuran.value === true && DB_VERSION >= 2);
+                const shouldLoadWordTranslations = !(settingsLoadedWordTranslations && settingsLoadedWordTranslations.value === true && DB_VERSION >= currentDBVersionForCheck);
+                const shouldLoadWordMetadata = !(settingsLoadedWordMetadata && settingsLoadedWordMetadata.value === true && DB_VERSION >= currentDBVersionForCheck);
+
+                if (!shouldLoadQuran && !shouldLoadWordTranslations && !shouldLoadWordMetadata) {
+                    console.log("All necessary Quran, word translation, and word metadata already loaded.");
                     quranDataLoaded = true;
                     await populateSurahAyahSelects();
                     await loadAyah(currentSurah, currentAyah);
@@ -1102,95 +1151,189 @@
                     return;
                 }
 
-                console.log("Fetching all translation files and combining...");
-                const allQuranDataMap = new Map(); // Key: "surah-ayah", Value: { surah, ayah, arabic, urdu, english, Bangali }
+                const storesToAccessInTransaction = [STORE_SETTINGS];
+                if (shouldLoadQuran) storesToAccessInTransaction.push(STORE_QURAN);
+                if (shouldLoadWordTranslations) storesToAccessInTransaction.push(STORE_WORD_TRANSLATIONS);
+                if (shouldLoadWordMetadata) storesToAccessInTransaction.push(STORE_WORD_METADATA);
 
-                // Loop through each translation configuration
-                for (const key in TRANSLATION_CONFIG) {
-                    const config = TRANSLATION_CONFIG[key];
-                    const response = await fetch(config.file);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status} for ${config.file}`);
+                const allQuranDataMap = new Map();
+                let wordTranslationEntries = [];
+                let wordMetadataEntries = [];
+
+                // --- 1. Load Full Quran Ayah Texts & Translations ---
+                if (shouldLoadQuran) {
+                    console.log("Fetching full Quran ayah texts and translations...");
+                    for (const key in TRANSLATION_CONFIG) {
+                        const config = TRANSLATION_CONFIG[key];
+                        try {
+                            const response = await fetch(config.file);
+                            if (!response.ok) {
+                                console.warn(`HTTP error! status: ${response.status} for ${config.file}. Skipping.`);
+                                continue;
+                            }
+                            const text = await response.text();
+                            console.log(`${config.label} data fetched (${config.file}). Parsing...`);
+
+                            const lines = text.split('\n').filter(line => line.trim() !== '');
+                            for (const line of lines) {
+                                const parts = line.split(' ترجمہ: ');
+                                if (parts.length < 2) continue;
+                                const arabicPart = parts[0].trim();
+                                const rest = parts[1];
+                                const metaMatch = rest.match(/<br\/>\s*(?:s|س)\s*\.?\s*(\d{1,3})\s*(?:a|آ)\s*\.?\s*(\d{1,3})\s*$/i);
+                                if (!metaMatch) continue;
+
+                                const translationPart = rest.substring(0, metaMatch.index).trim();
+                                const surahNum = parseInt(metaMatch[1], 10);
+                                const ayahNum = parseInt(metaMatch[2], 10);
+
+                                if (isNaN(surahNum) || isNaN(ayahNum) || surahNum < 1 || surahNum > 114 || ayahNum < 1) continue;
+
+                                const mapKey = `${surahNum}-${ayahNum}`;
+                                let entry = allQuranDataMap.get(mapKey);
+                                if (!entry) {
+                                    entry = { surah: surahNum, ayah: ayahNum, arabic: arabicPart, urdu: '', english: '', Bangali: '' };
+                                    allQuranDataMap.set(mapKey, entry);
+                                }
+                                entry[key] = translationPart;
+                            }
+                        } catch (fetchError) {
+                             console.error(`Error fetching/parsing ${config.file}:`, fetchError);
+                        }
                     }
-                    const text = await response.text();
-                    console.log(`${config.label} data fetched. Parsing...`);
+                    console.log(`Parsed ${allQuranDataMap.size} unique full ayahs.`);
+                }
 
-                    const lines = text.split('\n').filter(line => line.trim() !== '');
+                // --- 2. Load Word Translations (from data5 new.AM) ---
+                if (shouldLoadWordTranslations) {
+                    console.log(`Fetching word translations from ${WORD_TRANSLATION_FILE}...`);
+                    try {
+                        const response = await fetch(WORD_TRANSLATION_FILE);
+                        if (!response.ok) {
+                            console.warn(`Failed to fetch ${WORD_TRANSLATION_FILE}: ${response.status}`);
+                        } else {
+                            const csvText = await response.text();
+                            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+                            if (lines.length > 0) {
+                                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                                const wordIdIndex = headers.indexOf('word_id');
+                                const urMeaningIndex = headers.indexOf('ur_meaning');
+                                const enMeaningIndex = headers.indexOf('en_meaning');
+                                // const quranTextIndex = headers.indexOf('quran_text'); // Not strictly needed for ID-based lookup
 
-                    for (const line of lines) {
-                        const parts = line.split(' ترجمہ: ');
-                        if (parts.length < 2) {
-                            console.warn(`Skipping malformed line in ${config.file}:`, line);
-                            continue;
+                                if (wordIdIndex === -1) {
+                                    console.error(`'word_id' header not found in ${WORD_TRANSLATION_FILE}. Cannot process word translations.`);
+                                } else {
+                                    for (let i = 1; i < lines.length; i++) {
+                                        const values = lines[i].split(',');
+                                        const word_id_val = values[wordIdIndex] ? values[wordIdIndex].trim() : null;
+                                        if (!word_id_val) continue;
+
+                                        const entry = {
+                                            word_id: parseInt(word_id_val, 10),
+                                            ur_meaning: urMeaningIndex > -1 && values[urMeaningIndex] ? values[urMeaningIndex].trim() : '',
+                                            en_meaning: enMeaningIndex > -1 && values[enMeaningIndex] ? values[enMeaningIndex].trim() : '',
+                                        };
+                                        if (!isNaN(entry.word_id)) {
+                                            wordTranslationEntries.push(entry);
+                                        }
+                                    }
+                                    console.log(`Parsed ${wordTranslationEntries.length} word translation entries from ${WORD_TRANSLATION_FILE}.`);
+                                }
+                            }
                         }
-                        const arabicPart = parts[0].trim();
-                        const rest = parts[1];
-
-                        const metaMatch = rest.match(/<br\/>س (\d{3}) آ (\d{3})$/);
-                        if (!metaMatch) {
-                            console.warn(`Skipping line with missing metadata in ${config.file}:`, line);
-                            continue;
-                        }
-
-                        const translationPart = rest.substring(0, metaMatch.index).trim();
-                        const surahNum = parseInt(metaMatch[1], 10);
-                        const ayahNum = parseInt(metaMatch[2], 10);
-
-                        if (isNaN(surahNum) || isNaN(ayahNum) || surahNum < 1 || surahNum > 114 || ayahNum < 1) {
-                            console.warn(`Skipping line with invalid surah/ayah number in ${config.file}:`, line);
-                            continue;
-                        }
-
-                        const mapKey = `${surahNum}-${ayahNum}`;
-                        let entry = allQuranDataMap.get(mapKey);
-
-                        // If this is the first time we see this ayah, create the base entry
-                        if (!entry) {
-                            entry = {
-                                surah: surahNum,
-                                ayah: ayahNum,
-                                arabic: arabicPart, // Arabic should be consistent across files
-                                urdu: '',
-                                english: '',
-                                Bangali: ''
-                            };
-                            allQuranDataMap.set(mapKey, entry);
-                        }
-
-                        // Assign the translation to the correct language field
-                        entry[key] = translationPart;
+                    } catch (fetchError) {
+                        console.error(`Error fetching/parsing ${WORD_TRANSLATION_FILE}:`, fetchError);
                     }
                 }
 
-                console.log(`Parsed ${allQuranDataMap.size} unique ayahs with all translations. Storing in IndexedDB...`);
+                // --- 3. Load Word Metadata (from data2.AM) ---
+                if (shouldLoadWordMetadata) {
+                    console.log(`Fetching word metadata from ${WORD_METADATA_FILE}...`);
+                    try {
+                        const response = await fetch(WORD_METADATA_FILE);
+                        if (!response.ok) {
+                            console.warn(`Failed to fetch ${WORD_METADATA_FILE}: ${response.status}`);
+                        } else {
+                            const csvText = await response.text();
+                            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+                            if (lines.length > 0) {
+                                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                                const wordIdIndex = headers.indexOf('word_id');
+                                const surahIndex = headers.indexOf('surah');
+                                const ayahIndex = headers.indexOf('ayah');
+                                const positionIndex = headers.indexOf('word_postion'); // Your CSV uses 'word_postion'
 
-                const store = getObjectStore(STORE_QURAN, 'readwrite');
-                const transaction = store.transaction;
+                                if (wordIdIndex === -1 || surahIndex === -1 || ayahIndex === -1 || positionIndex === -1) {
+                                    console.error(`One or more required headers (word_id, surah, ayah, word_postion) not found in ${WORD_METADATA_FILE}.`);
+                                } else {
+                                    for (let i = 1; i < lines.length; i++) {
+                                        const values = lines[i].split(',');
+                                        const entry = {
+                                            word_id: parseInt(values[wordIdIndex] ? values[wordIdIndex].trim() : '', 10),
+                                            surah: parseInt(values[surahIndex] ? values[surahIndex].trim() : '', 10),
+                                            ayah: parseInt(values[ayahIndex] ? values[ayahIndex].trim() : '', 10),
+                                            word_position: parseInt(values[positionIndex] ? values[positionIndex].trim() : '', 10)
+                                        };
+                                        if (!isNaN(entry.word_id) && !isNaN(entry.surah) && !isNaN(entry.ayah) && !isNaN(entry.word_position)) {
+                                            wordMetadataEntries.push(entry);
+                                        }
+                                    }
+                                    console.log(`Parsed ${wordMetadataEntries.length} word metadata entries from ${WORD_METADATA_FILE}.`);
+                                }
+                            }
+                        }
+                    } catch (fetchError) {
+                         console.error(`Error fetching/parsing ${WORD_METADATA_FILE}:`, fetchError);
+                    }
+                }
 
-                transaction.oncomplete = async () => {
-                    console.log("All Quran data stored successfully.");
-                    quranDataLoaded = true;
-                    await putData(STORE_SETTINGS, { name: 'quranDataLoaded', value: true });
-                    await populateSurahAyahSelects();
-                    await loadAyah(currentSurah, currentAyah);
-                    hideLoading();
-                };
+                // --- Transaction to Store Data ---
+                if (storesToAccessInTransaction.length > 1 && (shouldLoadQuran || shouldLoadWordTranslations || shouldLoadWordMetadata)) {
+                    const transaction = db.transaction(storesToAccessInTransaction, 'readwrite');
+                    transaction.oncomplete = async () => {
+                        console.log("Data loading/storing transaction complete.");
+                        if (shouldLoadQuran) await putData(STORE_SETTINGS, { name: 'quranDataLoaded', value: true }).catch(console.error);
+                        if (shouldLoadWordTranslations) await putData(STORE_SETTINGS, { name: 'wordTranslationsLoaded', value: true }).catch(console.error);
+                        if (shouldLoadWordMetadata) await putData(STORE_SETTINGS, { name: 'wordMetadataLoaded', value: true }).catch(console.error);
 
-                transaction.onerror = (event) => {
-                    console.error("Transaction failed:", event.target.error);
-                    hideLoading();
-                    alert("Failed to store Quran data: " + event.target.error);
-                };
+                        quranDataLoaded = true;
+                        await populateSurahAyahSelects();
+                        await loadAyah(currentSurah, currentAyah);
+                        hideLoading();
+                    };
+                    transaction.onerror = (event) => {
+                        console.error("Transaction failed during initial data load:", event.target.error);
+                        hideLoading();
+                        alert("Failed to store initial data: " + event.target.error.message);
+                    };
 
-                // Add/update all combined ayah entries
-                for (const entry of allQuranDataMap.values()) {
-                    store.put(entry); // Use put() to update existing or add new
+                    if (shouldLoadQuran && allQuranDataMap.size > 0) {
+                        const quranStore = transaction.objectStore(STORE_QURAN);
+                        for (const entry of allQuranDataMap.values()) quranStore.put(entry);
+                    }
+                    if (shouldLoadWordTranslations && wordTranslationEntries.length > 0) {
+                        const store = transaction.objectStore(STORE_WORD_TRANSLATIONS);
+                        store.clear();
+                        for (const entry of wordTranslationEntries) store.put(entry);
+                    }
+                    if (shouldLoadWordMetadata && wordMetadataEntries.length > 0) {
+                        const store = transaction.objectStore(STORE_WORD_METADATA);
+                        store.clear();
+                        for (const entry of wordMetadataEntries) store.put(entry);
+                    }
+                } else {
+                     console.log("No new data needed to be fetched and stored. Initializing UI.");
+                     quranDataLoaded = true;
+                     await populateSurahAyahSelects();
+                     await loadAyah(currentSurah, currentAyah);
+                     hideLoading();
                 }
 
             } catch (error) {
-                console.error("Error loading or parsing Quran data:", error);
+                console.error("Error in loadQuranData:", error);
                 hideLoading();
-                alert("Failed to load Quran data: " + error.message);
+                alert("Failed to load application data: " + error.message);
             }
         }
 
@@ -1199,33 +1342,29 @@
         function populateSurahAyahSelects() {
             const surahSelect = document.getElementById('surah-select');
             const ayahSelect = document.getElementById('ayah-select');
-             const recSurahSelect = document.getElementById('rec-surah-select');
-             const hifzSurahSelect = document.getElementById('hifz-surah-select');
+            const recSurahSelect = document.getElementById('rec-surah-select');
+            const hifzSurahSelect = document.getElementById('hifz-surah-select');
 
-            // Populate Surah selects
-            if (surahSelect.options.length === 0) { // Prevent re-populating
+            if (surahSelect.options.length === 0) {
                 for (let i = 1; i <= 114; i++) {
                     const option = document.createElement('option');
                     option.value = i;
                     option.textContent = `${i}. ${surahNames[i - 1]}`;
-                    surahSelect.appendChild(option);
-                     recSurahSelect.appendChild(option.cloneNode(true));
-                     hifzSurahSelect.appendChild(option.cloneNode(true));
+                    surahSelect.appendChild(option.cloneNode(true));
+                    recSurahSelect.appendChild(option.cloneNode(true));
+                    hifzSurahSelect.appendChild(option.cloneNode(true));
                 }
             }
-
-            // Populate Ayah select for the current surah
             surahSelect.value = currentSurah;
-             recSurahSelect.value = currentSurah;
-             hifzSurahSelect.value = currentSurah;
-
+            recSurahSelect.value = currentSurah;
+            hifzSurahSelect.value = currentSurah;
             updateAyahSelect(currentSurah);
             ayahSelect.value = currentAyah;
         }
 
         function updateAyahSelect(surahNum) {
             const ayahSelect = document.getElementById('ayah-select');
-            ayahSelect.innerHTML = ''; // Clear current options
+            ayahSelect.innerHTML = '';
             totalAyahsInSurah = surahAyahCounts[surahNum];
             for (let i = 1; i <= totalAyahsInSurah; i++) {
                 const option = document.createElement('option');
@@ -1233,7 +1372,6 @@
                 option.textContent = i;
                 ayahSelect.appendChild(option);
             }
-             // Ensure currentAyah is valid for the new surah
             if (currentAyah > totalAyahsInSurah) {
                 currentAyah = 1;
             }
@@ -1242,7 +1380,8 @@
 
         async function loadAyah(surah, ayah) {
             if (!db) {
-                console.error("Database not open.");
+                console.error("Database not open for loadAyah.");
+                document.getElementById('quran-display').innerHTML = `<p class="text-center" style="color: var(--color-error);">Database not ready. Please try again later.</p>`;
                 return;
             }
             showLoading(`Loading Ayah ${surah}:${ayah}...`);
@@ -1265,9 +1404,9 @@
                     currentAyah = ayah;
                     document.getElementById('surah-select').value = surah;
                     document.getElementById('ayah-select').value = ayah;
-                     document.getElementById('rec-surah-select').value = surah;
-                     document.getElementById('hifz-surah-select').value = surah;
-                    updateAyahSelect(surah); // Ensure Ayah select matches
+                    document.getElementById('rec-surah-select').value = surah;
+                    document.getElementById('hifz-surah-select').value = surah;
+                    updateAyahSelect(surah);
 
                     const ayahElement = document.createElement('div');
                     ayahElement.classList.add('ayah');
@@ -1279,83 +1418,66 @@
                     ayahNumber.textContent = `Surah ${surah}:${ayah} (${surahNames[surah-1]})`;
                     ayahElement.appendChild(ayahNumber);
 
-                    const arabicText = document.createElement('div');
-                    arabicText.classList.add('ayah-arabic');
-                    arabicText.setAttribute('lang', 'ar');
-                    arabicText.setAttribute('dir', 'rtl');
+                    const arabicTextElement = document.createElement('div');
+                    arabicTextElement.classList.add('ayah-arabic');
+                    arabicTextElement.setAttribute('lang', 'ar');
+                    arabicTextElement.setAttribute('dir', 'rtl');
 
-                    // Basic word splitting - This is NOT linguistically accurate for Arabic
-                    const words = quran.arabic.split(/\s+/);
-                    words.forEach(word => {
+                    const words = quran.arabic.split(/\s+/).filter(w => w.trim() !== '');
+                    words.forEach((wordText, index) => {
                         const span = document.createElement('span');
-                        span.textContent = word + ' '; // Add space back
-                        span.setAttribute('data-word', word);
-                        span.setAttribute('tabindex', '0'); // Make words focusable
-                        span.setAttribute('role', 'button'); // Indicate they are interactive
-                        // Add event listener later
-                        arabicText.appendChild(span);
+                        span.textContent = wordText + ' ';
+                        span.setAttribute('data-word-text', wordText.trim());
+                        span.setAttribute('data-word-position', index);
+                        span.setAttribute('data-surah', surah);
+                        span.setAttribute('data-ayah', ayah);
+                        span.setAttribute('tabindex', '0');
+                        span.setAttribute('role', 'button');
+                        arabicTextElement.appendChild(span);
                     });
-
-                    ayahElement.appendChild(arabicText);
+                    ayahElement.appendChild(arabicTextElement);
 
                     const translationText = document.createElement('div');
                     translationText.classList.add('ayah-translation');
-
-                    // Determine translation based on selected value
                     const selectedTranslationKey = document.getElementById('translation-select').value;
                     const translationInfo = TRANSLATION_CONFIG[selectedTranslationKey];
-
                     if (translationInfo) {
                         translationText.setAttribute('lang', translationInfo.lang);
                         translationText.setAttribute('dir', translationInfo.dir);
                         translationText.style.fontFamily = `var(--font-${selectedTranslationKey})`;
                         translationText.style.textAlign = translationInfo.dir === 'rtl' ? 'right' : 'left';
-                        translationText.textContent = quran[selectedTranslationKey] || "Translation not available for this language.";
+                        translationText.textContent = quran[selectedTranslationKey] || "Translation not available.";
                     } else {
-                        // Fallback if selection is invalid (shouldn't happen with proper config)
-                        translationText.setAttribute('lang', 'en');
-                        translationText.setAttribute('dir', 'ltr');
-                        translationText.style.fontFamily = `var(--font-general)`;
-                        translationText.style.textAlign = 'left';
-                        translationText.textContent = "Translation not found or configuration error.";
+                        translationText.textContent = "Translation configuration error.";
                     }
-
                     ayahElement.appendChild(translationText);
-
                     displayArea.appendChild(ayahElement);
 
-                    // Update Tafsir section
-                    const tafsirAyahElement = ayahElement.cloneNode(true); // Clone the ayah display
+                    const tafsirAyahElement = ayahElement.cloneNode(true);
                     tafsirAyahElement.querySelector('.ayah-number').textContent = `Tafsir for Surah ${surah}:${ayah}`;
-                    tafsirAyahElement.querySelectorAll('.ayah-arabic span').forEach(span => span.outerHTML = span.textContent); // Remove word spans
-                    tafsirAyahElement.classList.remove('ayah'); // Remove ayah styling if needed, or keep it
+                    tafsirAyahElement.querySelectorAll('.ayah-arabic span').forEach(span => span.outerHTML = span.textContent);
                     tafsirAyahDisplay.innerHTML = '';
                     tafsirAyahDisplay.appendChild(tafsirAyahElement);
                     tafsirNotes.value = tafsir ? tafsir.notes : '';
 
+                    const themeAyahElement = ayahElement.cloneNode(true);
+                    themeAyahElement.querySelector('.ayah-number').textContent = `Ayah for Linking: Surah ${surah}:${ayah}`;
+                    themeAyahElement.querySelectorAll('.ayah-arabic span').forEach(span => span.outerHTML = span.textContent);
+                    themeAyahDisplay.innerHTML = '';
+                    themeAyahDisplay.appendChild(themeAyahElement);
+                    document.getElementById('current-ayah-theme-ref').textContent = `${surah}:${ayah}`;
+                    await populateThemeSelects();
+                    await displayLinkedAyahsForCurrentTheme();
 
-                    // Update Thematic Linker section
-                     const themeAyahElement = ayahElement.cloneNode(true); // Clone the ayah display
-                     themeAyahElement.querySelector('.ayah-number').textContent = `Ayah for Linking: Surah ${surah}:${ayah}`;
-                     themeAyahElement.querySelectorAll('.ayah-arabic span').forEach(span => span.outerHTML = span.textContent); // Remove word spans
-                     themeAyahElement.classList.remove('ayah');
-                     themeAyahDisplay.innerHTML = '';
-                     themeAyahDisplay.appendChild(themeAyahElement);
-                     document.getElementById('current-ayah-theme-ref').textContent = `${surah}:${ayah}`;
-                     await populateThemeSelects(); // Repopulate theme selects when ayah changes
-                     await displayLinkedAyahsForCurrentTheme(); // Refresh linked ayahs list
-
-                    // Add word click listeners AFTER adding to DOM
                     addWordClickListeners();
-
-
                 } else {
                     displayArea.innerHTML = `<p class="text-center" style="color: var(--color-error);">Ayah ${surah}:${ayah} not found in data.</p>`;
-                     tafsirAyahDisplay.innerHTML = `<p class="text-center">Navigate to a valid Ayah in the Quran Viewer to add Tafsir.</p>`;
-                     themeAyahDisplay.innerHTML = `<p class="text-center">Navigate to a valid Ayah in the Quran Viewer to link themes.</p>`;
-                     document.getElementById('current-ayah-theme-ref').textContent = 'N/A';
-                     tafsirNotes.value = '';
+                    tafsirAyahDisplay.innerHTML = `<p class="text-center">Navigate to a valid Ayah to add Tafsir.</p>`;
+                    themeAyahDisplay.innerHTML = `<p class="text-center">Navigate to a valid Ayah to link themes.</p>`;
+                    document.getElementById('current-ayah-theme-ref').textContent = 'N/A';
+                    tafsirNotes.value = '';
                 }
+                document.getElementById('word-translation-area').innerHTML = '<p class="text-center">Click on an Arabic word to see its translation.</p>';
             } catch (error) {
                 console.error("Error loading ayah:", error);
                 document.getElementById('quran-display').innerHTML = `<p class="text-center" style="color: var(--color-error);">Error loading Ayah: ${error.message}</p>`;
@@ -1366,90 +1488,131 @@
 
         function addWordClickListeners() {
             document.querySelectorAll('.ayah-arabic span').forEach(wordSpan => {
-                wordSpan.removeEventListener('click', handleWordClick); // Prevent duplicate listeners
+                wordSpan.removeEventListener('click', handleWordClick);
                 wordSpan.addEventListener('click', handleWordClick);
-                 wordSpan.removeEventListener('focus', handleWordFocus); // For accessibility
-                 wordSpan.addEventListener('focus', handleWordFocus);
-                 wordSpan.removeEventListener('blur', handleWordBlur); // For accessibility
-                 wordSpan.addEventListener('blur', handleWordBlur);
+                wordSpan.removeEventListener('focus', handleWordFocus);
+                wordSpan.addEventListener('focus', handleWordFocus);
+                wordSpan.removeEventListener('blur', handleWordBlur);
+                wordSpan.addEventListener('blur', handleWordBlur);
             });
         }
 
-        function handleWordClick(event) {
-            const word = event.target.getAttribute('data-word');
-            const ayahElement = event.target.closest('.ayah');
-            const surah = ayahElement.getAttribute('data-surah');
-            const ayah = ayahElement.getAttribute('data-ayah');
+        async function handleWordClick(event) {
+            const wordSpan = event.target;
+            const clickedWordActualText = wordSpan.getAttribute('data-word-text');
+            const surahNum = parseInt(wordSpan.getAttribute('data-surah'), 10);
+            const ayahNum = parseInt(wordSpan.getAttribute('data-ayah'), 10);
+            const wordPosition = parseInt(wordSpan.getAttribute('data-word-position'), 10);
 
-            // Get the currently displayed translation text
-            const translationDiv = ayahElement.querySelector('.ayah-translation');
-            const fullTranslation = translationDiv ? translationDiv.textContent : 'Translation not found.';
+            if (!clickedWordActualText || isNaN(surahNum) || isNaN(ayahNum) || isNaN(wordPosition)) {
+                console.warn("[handleWordClick] Clicked word span is missing required data attributes.", wordSpan.dataset);
+                document.getElementById('word-translation-area').innerHTML = `<p style="color: var(--color-error);">Error: Could not identify clicked word's metadata.</p>`;
+                return;
+            }
+            console.log(`[handleWordClick] Clicked: "${clickedWordActualText}" (S:${surahNum}, A:${ayahNum}, Pos:${wordPosition})`);
 
-            // Get the selected translation language details from the UI
-            const selectedTranslationKey = document.getElementById('translation-select').value;
-            const translationInfo = TRANSLATION_CONFIG[selectedTranslationKey];
-            const translationLabel = translationInfo ? translationInfo.label : 'Selected Translation';
-            const translationLang = translationInfo ? translationInfo.lang : 'en';
-            const translationDir = translationInfo ? translationInfo.dir : 'ltr';
-            const translationFont = translationInfo ? `var(--font-${selectedTranslationKey})` : `var(--font-general)`;
-            const translationTextAlign = translationInfo.dir === 'rtl' ? 'right' : 'left';
+            const ayahElement = wordSpan.closest('.ayah');
+            const fullAyahTranslationDiv = ayahElement.querySelector('.ayah-translation');
+            const fullAyahTranslationText = fullAyahTranslationDiv ? fullAyahTranslationDiv.textContent : 'Full ayah translation not found.';
 
+            const selectedFullTranslationKey = document.getElementById('translation-select').value;
+            const fullTranslationInfo = TRANSLATION_CONFIG[selectedFullTranslationKey];
+            const fullTranslationLabel = fullTranslationInfo ? fullTranslationInfo.label : 'Selected Translation';
+            const fullTranslationLang = fullTranslationInfo ? fullTranslationInfo.lang : 'en';
+            const fullTranslationDir = fullTranslationInfo ? fullTranslationInfo.dir : 'ltr';
+            const fullTranslationFont = fullTranslationInfo ? `var(--font-${selectedFullTranslationKey})` : `var(--font-general)`;
+            const fullTranslationTextAlign = fullTranslationInfo && fullTranslationInfo.dir === 'rtl' ? 'right' : 'left';
+
+            let wordUrduMeaning = "N/A";
+            let wordEnglishMeaning = "N/A";
+
+            try {
+                const metadataStore = getObjectStore(STORE_WORD_METADATA, 'readonly');
+                const locationIndex = metadataStore.index('location_idx');
+                const metadataRequest = locationIndex.get([surahNum, ayahNum, wordPosition]);
+
+                const wordMetadataEntry = await new Promise((resolve, reject) => {
+                    metadataRequest.onsuccess = () => resolve(metadataRequest.result);
+                    metadataRequest.onerror = (e) => {
+                        console.error("Error fetching from word_metadata:", e.target.error);
+                        reject(e.target.error);
+                    };
+                });
+
+                if (wordMetadataEntry && typeof wordMetadataEntry.word_id !== 'undefined') {
+                    const word_id = wordMetadataEntry.word_id;
+                    console.log(`[handleWordClick] Found word_id: ${word_id}`);
+                    const translationEntry = await getData(STORE_WORD_TRANSLATIONS, word_id);
+                    if (translationEntry) {
+                        console.log(`[handleWordClick] Translation data for word_id ${word_id}:`, translationEntry);
+                        wordUrduMeaning = translationEntry.ur_meaning || "N/A";
+                        wordEnglishMeaning = translationEntry.en_meaning || "N/A";
+                        if (translationEntry.ur_meaning === "") wordUrduMeaning = "N/A (empty)";
+                        if (translationEntry.en_meaning === "") wordEnglishMeaning = "N/A (empty)";
+                    } else {
+                        console.warn(`[handleWordClick] No translation entry in '${STORE_WORD_TRANSLATIONS}' for word_id: ${word_id}.`);
+                    }
+                } else {
+                    console.warn(`[handleWordClick] No metadata entry in '${STORE_WORD_METADATA}' for S${surahNum}:A${ayahNum}, Pos:${wordPosition}. Word: "${clickedWordActualText}"`);
+                }
+            } catch (error) {
+                console.error("[handleWordClick] Error during word data lookup:", error);
+                wordUrduMeaning = "Lookup Error";
+                wordEnglishMeaning = "Lookup Error";
+            }
 
             const translationArea = document.getElementById('word-translation-area');
             translationArea.innerHTML = `
-                <p><strong>Selected Word:</strong> <span lang="ar" dir="rtl" style="font-family: var(--font-arabic); font-size: 1.2rem;">${word}</span></p>
-                <p><strong>Full Ayah Translation (${surah}:${ayah}) - ${translationLabel}:</strong> <span lang="${translationLang}" dir="${translationDir}" style="font-family: ${translationFont}; text-align: ${translationTextAlign};">${fullTranslation}</span></p>
-                <p style="font-size:0.9em; color: var(--color-text-secondary);"><em>Note: Word-by-word translation is not available with the current data format. Displaying full Ayah translation.</em></p>
+                <p><strong>Selected Word:</strong> <span lang="ar" dir="rtl" style="font-family: var(--font-arabic); font-size: 1.2rem;">${clickedWordActualText}</span></p>
+                <p><strong>Urdu Meaning:</strong> <span lang="ur" dir="rtl" style="font-family: var(--font-urdu);">${wordUrduMeaning}</span></p>
+                <p><strong>English Meaning:</strong> <span lang="en" dir="ltr" style="font-family: var(--font-english);">${wordEnglishMeaning}</span></p>
+                <p><strong>Full Ayah Translation (${surahNum}:${ayahNum}) - ${fullTranslationLabel}:</strong> <span lang="${fullTranslationLang}" dir="${fullTranslationDir}" style="font-family: ${fullTranslationFont}; text-align: ${fullTranslationTextAlign};">${fullAyahTranslationText}</span></p>
             `;
-
-             // Basic simulation of bio-luminescent highlight
-             document.querySelectorAll('.ayah-arabic span').forEach(span => {
-                 span.style.backgroundColor = 'transparent'; // Reset others
-             });
-             event.target.style.backgroundColor = 'var(--color-highlight)'; // Highlight clicked word
+            document.querySelectorAll('.ayah-arabic span').forEach(span => {
+                span.style.backgroundColor = 'transparent';
+            });
+            wordSpan.style.backgroundColor = 'var(--color-highlight)';
         }
 
-         // Accessibility: Show translation on focus for keyboard users
         function handleWordFocus(event) {
-             handleWordClick(event); // Reuse click handler logic
+             handleWordClick(event);
         }
-
-         // Accessibility: Clear translation on blur
-         function handleWordBlur(event) {
-            const translationArea = document.getElementById('word-translation-area');
-            // Optional: Clear the area or just reset highlight
-            // translationArea.innerHTML = '';
-             event.target.style.backgroundColor = 'transparent'; // Reset highlight
-         }
-
+        function handleWordBlur(event) {
+             event.target.style.backgroundColor = 'transparent';
+        }
 
         function showSection(sectionId) {
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.remove('active');
                 section.setAttribute('aria-hidden', 'true');
             });
-            document.getElementById(sectionId).classList.add('active');
-             document.getElementById(sectionId).setAttribute('aria-hidden', 'false');
+            const activeSection = document.getElementById(sectionId);
+            if (activeSection) {
+                activeSection.classList.add('active');
+                activeSection.setAttribute('aria-hidden', 'false');
+                activeSection.focus(); // For accessibility, focus the new section
+            }
 
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active');
-                 link.setAttribute('aria-current', 'false');
+                link.setAttribute('aria-current', 'false');
             });
-            document.querySelector(`.nav-link[data-section="${sectionId}"]`).classList.add('active');
-             document.querySelector(`.nav-link[data-section="${sectionId}"]`).setAttribute('aria-current', 'page');
+            const activeLink = document.querySelector(`.nav-link[data-section="${sectionId}"]`);
+            if (activeLink) {
+                activeLink.classList.add('active');
+                activeLink.setAttribute('aria-current', 'page');
+            }
 
-             // Load data specific to the section if needed
              if (sectionId === 'themes') {
                  populateThemeSelects();
-                 displayLinkedAyahsForCurrentTheme(); // Refresh linked ayahs list on section switch
-             } else if (sectionId === 'roots') {
-                 // Maybe load recent root searches or popular ones? For now, just show the section.
+                 displayLinkedAyahsForCurrentTheme();
              } else if (sectionId === 'recitation') {
                  loadRecitationLogs();
              } else if (sectionId === 'hifz') {
-                 // Load Hifz data for the currently selected surah in that section
                  const hifzSurahSelect = document.getElementById('hifz-surah-select');
-                 loadHifzForSurah(parseInt(hifzSurahSelect.value, 10));
+                 if (hifzSurahSelect.value) {
+                    loadHifzForSurah(parseInt(hifzSurahSelect.value, 10));
+                 }
              }
         }
 
@@ -1457,12 +1620,11 @@
             const loadingOverlay = document.getElementById('loading-overlay');
             loadingOverlay.textContent = message;
             loadingOverlay.style.display = 'flex';
-             document.body.setAttribute('aria-busy', 'true');
+            document.body.setAttribute('aria-busy', 'true');
         }
-
         function hideLoading() {
             document.getElementById('loading-overlay').style.display = 'none';
-             document.body.setAttribute('aria-busy', 'false');
+            document.body.setAttribute('aria-busy', 'false');
         }
 
         function setStatusMessage(elementId, message, isError = false) {
@@ -1470,18 +1632,16 @@
             if (statusElement) {
                 statusElement.textContent = message;
                 statusElement.style.color = isError ? 'var(--color-error)' : 'var(--color-success)';
-                 statusElement.style.fontWeight = 'bold';
-                // Clear message after a few seconds
+                statusElement.style.fontWeight = 'bold';
                 setTimeout(() => {
                     statusElement.textContent = '';
-                     statusElement.style.color = '';
-                     statusElement.style.fontWeight = '';
-                }, 9000);
+                    statusElement.style.color = '';
+                    statusElement.style.fontWeight = '';
+                }, 7000);
             }
         }
 
         // --- Tafsir Functions ---
-
         async function saveTafsir() {
             if (!db) return;
             const notes = document.getElementById('tafsir-notes').value.trim();
@@ -1493,13 +1653,11 @@
                  setStatusMessage('tafsir-status', 'Navigate to an Ayah first.', true);
                  return;
             }
-
             showLoading(`Saving Tafsir for ${currentSurah}:${currentAyah}...`);
             try {
                 await putData(STORE_TAFSIR, { surah: currentSurah, ayah: currentAyah, notes: notes });
                 setStatusMessage('tafsir-status', `Tafsir saved for ${currentSurah}:${currentAyah}.`, false);
             } catch (error) {
-                console.error("Error saving tafsir:", error);
                 setStatusMessage('tafsir-status', 'Failed to save Tafsir.', true);
             } finally {
                 hideLoading();
@@ -1507,87 +1665,66 @@
         }
 
         // --- Thematic Linker Functions ---
-
-    async function populateThemeSelects() {
-            if (!db) return;
-            const themeSelectElements = [
-                document.getElementById('parent-theme-select'),
-                document.getElementById('link-theme-select')
-            ];
-
-            try {
-                const themes = await getAllData(STORE_THEMES);
-
-                themeSelectElements.forEach(select => {
-                    const preservedValue = select.value; // Preserve selected value before clearing
-                    select.innerHTML = ''; // Clear current options
-
-                    // Add default option
-                    const defaultOption = document.createElement('option');
-                    defaultOption.value = "";
-                    if (select.id === 'parent-theme-select') {
-                        defaultOption.textContent = "-- No Parent --";
-                    } else { // link-theme-select
-                        defaultOption.textContent = "-- Select Theme --";
-                    }
-                    select.appendChild(defaultOption);
-
-                    // Populate with themes
-                    themes.forEach(theme => {
-                        const option = document.createElement('option');
-                        option.value = theme.id;
-                        option.textContent = theme.name;
-                        select.appendChild(option);
-                    });
-
-                    // Restore previous selection if it's a valid option
-                    if (select.querySelector(`option[value="${preservedValue}"]`)) {
-                        select.value = preservedValue;
-                    } else {
-                        select.value = ""; // Fallback to default if preservedValue is no longer valid
-                    }
-                });
-
-            } catch (error) {
-                console.error("Error populating theme selects:", error);
-                setStatusMessage('theme-manager-status', 'Failed to load themes.', true);
-            }
-        }
+        async function populateThemeSelects() {
+            if (!db) return;
+            const themeSelectElements = [
+                document.getElementById('parent-theme-select'),
+                document.getElementById('link-theme-select')
+            ];
+            try {
+                const themes = await getAllData(STORE_THEMES);
+                themeSelectElements.forEach(select => {
+                    const preservedValue = select.value;
+                    select.innerHTML = '';
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = "";
+                    defaultOption.textContent = select.id === 'parent-theme-select' ? "-- No Parent --" : "-- Select Theme --";
+                    select.appendChild(defaultOption);
+                    themes.forEach(theme => {
+                        const option = document.createElement('option');
+                        option.value = theme.id;
+                        option.textContent = theme.name;
+                        select.appendChild(option);
+                    });
+                    if (select.querySelector(`option[value="${preservedValue}"]`)) {
+                        select.value = preservedValue;
+                    } else {
+                        select.value = "";
+                    }
+                });
+            } catch (error) {
+                setStatusMessage('theme-manager-status', 'Failed to load themes.', true);
+            }
+        }
 
         async function displayThemesList() {
              if (!db) return;
              const themesListElement = document.getElementById('themes-list');
              themesListElement.innerHTML = '';
-
              try {
                  const themes = await getAllData(STORE_THEMES);
                  if (themes.length === 0) {
                      themesListElement.innerHTML = '<li>No themes added yet.</li>';
                      return;
                  }
-
-                 // Simple flat list for now. Tree structure is more complex.
                  themes.forEach(theme => {
                      const li = document.createElement('li');
                      li.innerHTML = `
-                         <span data-theme-id="${theme.id}" class="view-theme-ayahs">${theme.name}</span>
+                         <span data-theme-id="${theme.id}" class="view-theme-ayahs" tabindex="0" role="button">${theme.name}</span>
                          <div class="theme-actions" style="display: inline-block;">
                              <button data-theme-id="${theme.id}" class="delete-theme-btn">Delete</button>
                          </div>
                      `;
                       themesListElement.appendChild(li);
                  });
-
-                 // Add listeners for view/delete buttons
                  themesListElement.querySelectorAll('.view-theme-ayahs').forEach(span => {
                      span.addEventListener('click', handleViewThemeAyahs);
+                     span.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') handleViewThemeAyahs(e); });
                  });
                  themesListElement.querySelectorAll('.delete-theme-btn').forEach(button => {
                      button.addEventListener('click', handleDeleteTheme);
                  });
-
              } catch (error) {
-                 console.error("Error displaying themes list:", error);
                  themesListElement.innerHTML = `<li>Error loading themes: ${error.message}</li>`;
              }
         }
@@ -1603,17 +1740,15 @@
                 setStatusMessage('theme-manager-status', 'Theme name cannot be empty.', true);
                 return;
             }
-
             showLoading("Adding theme...");
             try {
-                await addData(STORE_THEMES, { name: name, parentId: parentId, description: '' });
+                await addData(STORE_THEMES, { name: name, parentId: parentId, description: '' }); // Add description field
                 setStatusMessage('theme-manager-status', `Theme "${name}" added.`, false);
                 nameInput.value = '';
                 parentSelect.value = '';
-                await populateThemeSelects(); // Refresh selects
-                await displayThemesList(); // Refresh list
+                await populateThemeSelects();
+                await displayThemesList();
             } catch (error) {
-                console.error("Error adding theme:", error);
                  setStatusMessage('theme-manager-status', 'Failed to add theme.', true);
             } finally {
                 hideLoading();
@@ -1623,45 +1758,31 @@
          async function handleDeleteTheme(event) {
              if (!db) return;
              const themeId = parseInt(event.target.getAttribute('data-theme-id'), 10);
-             if (isNaN(themeId)) return;
-
-             if (!confirm("Are you sure you want to delete this theme and all its linked ayahs?")) {
-                 return;
-             }
+             if (isNaN(themeId) || !confirm("Delete this theme and all its linked ayahs?")) return;
 
              showLoading("Deleting theme...");
              try {
-                 // Delete theme
                  await deleteData(STORE_THEMES, themeId);
-
-                 // Delete linked ayahs for this theme
                  const store = getObjectStore(STORE_THEME_AYAHS, 'readwrite');
                  const index = store.index('themeId');
-                 const range = IDBKeyRange.only(themeId);
-                 const request = index.openCursor(range);
-
-                 request.onsuccess = (event) => {
-                     const cursor = event.target.result;
+                 const request = index.openCursor(IDBKeyRange.only(themeId));
+                 request.onsuccess = (e) => {
+                     const cursor = e.target.result;
                      if (cursor) {
                          cursor.delete();
                          cursor.continue();
                      } else {
-                         // Cursor finished
                          setStatusMessage('theme-manager-status', 'Theme and linked ayahs deleted.', false);
-                         populateThemeSelects(); // Refresh selects
-                         displayThemesList(); // Refresh list
+                         populateThemeSelects();
+                         displayThemesList();
                          hideLoading();
                      }
                  };
-
-                 request.onerror = (event) => {
-                     console.error("Error deleting linked ayahs:", event.target.error);
+                 request.onerror = () => {
                      setStatusMessage('theme-manager-status', 'Theme deleted, but failed to delete all linked ayahs.', true);
                      hideLoading();
                  };
-
              } catch (error) {
-                 console.error("Error deleting theme:", error);
                  setStatusMessage('theme-manager-status', 'Failed to delete theme.', true);
                  hideLoading();
              }
@@ -1678,36 +1799,25 @@
                 setStatusMessage('theme-linker-status', 'Please select a theme.', true);
                 return;
             }
-             if (currentSurah === 0 || currentAyah === 0) {
+            if (currentSurah === 0 || currentAyah === 0) {
                  setStatusMessage('theme-linker-status', 'Navigate to an Ayah first.', true);
                  return;
             }
-
-            showLoading(`Linking Ayah ${currentSurah}:${currentAyah} to theme...`);
+            showLoading(`Linking Ayah ${currentSurah}:${currentAyah}...`);
             try {
-                 // Check if link already exists (optional, but good practice)
-                 const existingLinks = await new Promise((resolve, reject) => {
-                     const store = getObjectStore(STORE_THEME_AYAHS, 'readonly');
-                     const index = store.index('surahAyah');
-                     const range = IDBKeyRange.only([currentSurah, currentAyah]);
-                     const request = index.getAll(range);
-                     request.onsuccess = () => resolve(request.result);
-                     request.onerror = (event) => reject(event.target.error);
-                 });
-
-                 const linkExists = existingLinks.some(link => link.themeId === themeId);
-
-                 if (linkExists) {
-                     setStatusMessage('theme-linker-status', 'Ayah is already linked to this theme.', true);
+                 const store = getObjectStore(STORE_THEME_AYAHS, 'readonly');
+                 const index = store.index('surahAyah');
+                 const request = index.getAll(IDBKeyRange.only([currentSurah, currentAyah]));
+                 const existingLinks = await new Promise(r => { request.onsuccess = () => r(request.result); });
+                 if (existingLinks.some(link => link.themeId === themeId)) {
+                     setStatusMessage('theme-linker-status', 'Ayah already linked to this theme.', true);
                  } else {
                     await addData(STORE_THEME_AYAHS, { themeId: themeId, surah: currentSurah, ayah: currentAyah, notes: notes });
-                    setStatusMessage('theme-linker-status', `Ayah ${currentSurah}:${currentAyah} linked successfully.`, false);
-                    notesInput.value = ''; // Clear notes after linking
-                    await displayLinkedAyahsForCurrentTheme(); // Refresh the list
+                    setStatusMessage('theme-linker-status', `Ayah ${currentSurah}:${currentAyah} linked.`, false);
+                    notesInput.value = '';
+                    await displayLinkedAyahsForCurrentTheme();
                  }
-
             } catch (error) {
-                console.error("Error linking ayah to theme:", error);
                  setStatusMessage('theme-linker-status', 'Failed to link Ayah.', true);
             } finally {
                 hideLoading();
@@ -1718,42 +1828,29 @@
              if (!db) return;
              const themeId = parseInt(event.target.getAttribute('data-theme-id'), 10);
              if (isNaN(themeId)) return;
-
              showLoading("Loading linked ayahs...");
              try {
                  const theme = await getData(STORE_THEMES, themeId);
                  if (!theme) {
-                     setStatusMessage('theme-manager-status', 'Theme not found.', true);
-                     hideLoading();
-                     return;
+                     setStatusMessage('theme-manager-status', 'Theme not found.', true); hideLoading(); return;
                  }
-
                  document.getElementById('modal-theme-name').textContent = theme.name;
-                 const linkedAyahsListElement = document.getElementById('modal-linked-ayahs-list');
-                 linkedAyahsListElement.innerHTML = '';
-
+                 const listEl = document.getElementById('modal-linked-ayahs-list');
+                 listEl.innerHTML = '';
                  const store = getObjectStore(STORE_THEME_AYAHS, 'readonly');
                  const index = store.index('themeId');
-                 const range = IDBKeyRange.only(themeId);
-                 const request = index.openCursor(range);
-
+                 const request = index.openCursor(IDBKeyRange.only(themeId));
                  const linkedAyahs = [];
-                 request.onsuccess = (event) => {
-                     const cursor = event.target.result;
+                 request.onsuccess = (e) => {
+                     const cursor = e.target.result;
                      if (cursor) {
                          linkedAyahs.push(cursor.value);
                          cursor.continue();
                      } else {
-                         // Cursor finished
                          if (linkedAyahs.length === 0) {
-                             linkedAyahsListElement.innerHTML = '<li>No ayahs linked to this theme yet.</li>';
+                             listEl.innerHTML = '<li>No ayahs linked yet.</li>';
                          } else {
-                             // Sort by surah, then ayah
-                             linkedAyahs.sort((a, b) => {
-                                 if (a.surah !== b.surah) return a.surah - b.surah;
-                                 return a.ayah - b.ayah;
-                             });
-
+                             linkedAyahs.sort((a, b) => (a.surah !== b.surah) ? a.surah - b.surah : a.ayah - b.ayah);
                              linkedAyahs.forEach(link => {
                                  const li = document.createElement('li');
                                  li.innerHTML = `
@@ -1761,196 +1858,130 @@
                                      ${link.notes ? ` - <em>${link.notes}</em>` : ''}
                                      <button data-link-id="${link.id}" class="delete-theme-link-btn" style="margin-left: 10px;">Unlink</button>
                                  `;
-                                 linkedAyahsListElement.appendChild(li);
+                                 listEl.appendChild(li);
                              });
-
-                             // Add listeners for unlink buttons
-                             linkedAyahsListElement.querySelectorAll('.delete-theme-link-btn').forEach(button => {
+                             listEl.querySelectorAll('.delete-theme-link-btn').forEach(button => {
                                  button.addEventListener('click', handleDeleteThemeLink);
                              });
                          }
                          hideLoading();
                          document.getElementById('themeAyahsModal').style.display = 'flex';
-                          // Store current theme ID on modal for refresh after unlink
                          document.getElementById('themeAyahsModal').querySelector('.modal-content').setAttribute('data-current-theme-id', themeId);
+                         document.getElementById('themeAyahsModalTitle').focus();
                      }
                  };
-
-                 request.onerror = (event) => {
-                     console.error("Error fetching linked ayahs:", event.target.error);
-                     linkedAyahsListElement.innerHTML = `<li>Error loading linked ayahs: ${event.target.error}</li>`;
-                     hideLoading();
-                 };
-
-
+                 request.onerror = () => { listEl.innerHTML = `<li>Error loading.</li>`; hideLoading(); };
              } catch (error) {
-                 console.error("Error loading theme details:", error);
-                 setStatusMessage('theme-manager-status', 'Failed to load theme details.', true);
-                 hideLoading();
+                 setStatusMessage('theme-manager-status', 'Failed to load theme details.', true); hideLoading();
              }
         }
 
          async function handleDeleteThemeLink(event) {
              if (!db) return;
              const linkId = parseInt(event.target.getAttribute('data-link-id'), 10);
-             if (isNaN(linkId)) return;
-
-             if (!confirm("Are you sure you want to unlink this Ayah from this theme?")) {
-                 return;
-             }
-
+             if (isNaN(linkId) || !confirm("Unlink this Ayah?")) return;
              showLoading("Unlinking Ayah...");
              try {
                  await deleteData(STORE_THEME_AYAHS, linkId);
-                 setStatusMessage('theme-linker-status', 'Ayah unlinked successfully.', false); // Use linker status area
-                 // Refresh the modal list
+                 setStatusMessage('theme-linker-status', 'Ayah unlinked.', false);
                  const modalContent = event.target.closest('.modal-content');
                  const currentModalThemeId = parseInt(modalContent.getAttribute('data-current-theme-id'), 10);
-
                  if (!isNaN(currentModalThemeId)) {
-                     // Re-fetch and display the list for the current modal theme
                      await displayLinkedAyahsForThemeInModal(currentModalThemeId);
                  } else {
-                      // If theme ID lookup fails, just close the modal and refresh the main theme list
                       document.getElementById('themeAyahsModal').style.display = 'none';
                       displayThemesList();
                  }
-
              } catch (error) {
-                 console.error("Error unlinking ayah:", error);
                  setStatusMessage('theme-linker-status', 'Failed to unlink Ayah.', true);
              } finally {
                  hideLoading();
              }
          }
 
-         // Helper to display linked ayahs within the modal after an unlink
          async function displayLinkedAyahsForThemeInModal(themeId) {
              if (!db) return;
-             const linkedAyahsListElement = document.getElementById('modal-linked-ayahs-list');
-             linkedAyahsListElement.innerHTML = ''; // Clear current list
-
+             const listEl = document.getElementById('modal-linked-ayahs-list');
+             listEl.innerHTML = '';
              try {
                  const store = getObjectStore(STORE_THEME_AYAHS, 'readonly');
                  const index = store.index('themeId');
-                 const range = IDBKeyRange.only(themeId);
-                 const request = index.openCursor(range);
-
+                 const request = index.openCursor(IDBKeyRange.only(themeId));
                  const linkedAyahs = [];
-                 request.onsuccess = (event) => {
-                     const cursor = event.target.result;
+                 request.onsuccess = (e) => {
+                     const cursor = e.target.result;
                      if (cursor) {
                          linkedAyahs.push(cursor.value);
                          cursor.continue();
                      } else {
-                         // Cursor finished
-                         if (linkedAyahs.length === 0) {
-                             linkedAyahsListElement.innerHTML = '<li>No ayahs linked to this theme yet.</li>';
-                         } else {
-                             linkedAyahs.sort((a, b) => {
-                                 if (a.surah !== b.surah) return a.surah - b.surah;
-                                 return a.ayah - b.ayah;
-                             });
+                         if (linkedAyahs.length === 0) { listEl.innerHTML = '<li>No ayahs linked.</li>'; }
+                         else {
+                             linkedAyahs.sort((a, b) => (a.surah !== b.surah) ? a.surah - b.surah : a.ayah - b.ayah);
                              linkedAyahs.forEach(link => {
                                  const li = document.createElement('li');
                                  li.innerHTML = `
                                      <strong>Surah ${link.surah}:${link.ayah}</strong>
                                      ${link.notes ? ` - <em>${link.notes}</em>` : ''}
-                                     <button data-link-id="${link.id}" class="delete-theme-link-btn" style="margin-left: 10px;">Unlink</button>
+                                     <button data-link-id="${link.id}" class="delete-theme-link-btn">Unlink</button>
                                  `;
-                                 linkedAyahsListElement.appendChild(li);
+                                 listEl.appendChild(li);
                              });
-                             linkedAyahsListElement.querySelectorAll('.delete-theme-link-btn').forEach(button => {
-                                 button.addEventListener('click', handleDeleteThemeLink);
-                             });
+                             listEl.querySelectorAll('.delete-theme-link-btn').forEach(b => b.addEventListener('click', handleDeleteThemeLink));
                          }
                      }
                  };
-
-                 request.onerror = (event) => {
-                     console.error("Error fetching linked ayahs for modal refresh:", event.target.error);
-                     linkedAyahsListElement.innerHTML = `<li>Error loading linked ayahs: ${event.target.error}</li>`;
-                 };
-
-             } catch (error) {
-                 console.error("Error refreshing modal list:", error);
-                 linkedAyahsListElement.innerHTML = `<li>Error refreshing list: ${error.message}</li>`;
-             }
+                 request.onerror = () => { listEl.innerHTML = `<li>Error refreshing list.</li>`; };
+             } catch (error) { listEl.innerHTML = `<li>Error: ${error.message}</li>`; }
          }
-
 
          async function displayLinkedAyahsForCurrentTheme() {
              if (!db) return;
              const themeSelect = document.getElementById('link-theme-select');
              const themeId = themeSelect.value ? parseInt(themeSelect.value, 10) : null;
-             const linkedAyahsListElement = document.getElementById('linked-ayahs-list');
-             const linkedThemeNameElement = document.getElementById('linked-theme-name');
-
-             linkedAyahsListElement.innerHTML = ''; // Clear current list
+             const listEl = document.getElementById('linked-ayahs-list');
+             const nameEl = document.getElementById('linked-theme-name');
+             listEl.innerHTML = '';
 
              if (!themeId) {
-                 linkedThemeNameElement.textContent = 'N/A';
-                 linkedAyahsListElement.innerHTML = '<li>Select a theme above to see linked ayahs.</li>';
+                 nameEl.textContent = 'N/A';
+                 listEl.innerHTML = '<li>Select a theme to see linked ayahs.</li>';
                  return;
              }
-
-             showLoading("Loading linked ayahs for selected theme...");
+             showLoading("Loading linked ayahs...");
              try {
                  const theme = await getData(STORE_THEMES, themeId);
-                 linkedThemeNameElement.textContent = theme ? theme.name : 'Unknown Theme';
-
+                 nameEl.textContent = theme ? theme.name : 'Unknown';
                  const store = getObjectStore(STORE_THEME_AYAHS, 'readonly');
                  const index = store.index('themeId');
-                 const range = IDBKeyRange.only(themeId);
-                 const request = index.openCursor(range);
-
+                 const request = index.openCursor(IDBKeyRange.only(themeId));
                  const linkedAyahs = [];
-                 request.onsuccess = (event) => {
-                     const cursor = event.target.result;
+                 request.onsuccess = (e) => {
+                     const cursor = e.target.result;
                      if (cursor) {
                          linkedAyahs.push(cursor.value);
                          cursor.continue();
                      } else {
-                         // Cursor finished
-                         if (linkedAyahs.length === 0) {
-                             linkedAyahsListElement.innerHTML = '<li>No ayahs linked to this theme yet.</li>';
-                         } else {
-                             linkedAyahs.sort((a, b) => {
-                                 if (a.surah !== b.surah) return a.surah - b.surah;
-                                 return a.ayah - b.ayah;
-                             });
+                         if (linkedAyahs.length === 0) { listEl.innerHTML = '<li>No ayahs linked.</li>'; }
+                         else {
+                             linkedAyahs.sort((a, b) => (a.surah !== b.surah) ? a.surah - b.surah : a.ayah - b.ayah);
                              linkedAyahs.forEach(link => {
                                  const li = document.createElement('li');
-                                 li.innerHTML = `
-                                     <strong>Surah ${link.surah}:${link.ayah}</strong>
-                                     ${link.notes ? ` - <em>${link.notes}</em>` : ''}
-                                 `;
-                                 linkedAyahsListElement.appendChild(li);
+                                 li.innerHTML = `<strong>S ${link.surah}:${link.ayah}</strong> ${link.notes ? `- <em>${link.notes}</em>` : ''}`;
+                                 listEl.appendChild(li);
                              });
                          }
                          hideLoading();
                      }
                  };
-
-                 request.onerror = (event) => {
-                     console.error("Error fetching linked ayahs:", event.target.error);
-                     linkedAyahsListElement.innerHTML = `<li>Error loading linked ayahs: ${event.target.error}</li>`;
-                     hideLoading();
-                 };
-
+                 request.onerror = () => { listEl.innerHTML = `<li>Error loading.</li>`; hideLoading(); };
              } catch (error) {
-                 console.error("Error loading theme details for display:", error);
-                 linkedThemeNameElement.textContent = 'Error';
-                 linkedAyahsListElement.innerHTML = `<li>Error loading theme details: ${error.message}</li>`;
-                 hideLoading();
+                 nameEl.textContent = 'Error'; listEl.innerHTML = `<li>Error: ${error.message}</li>`; hideLoading();
              }
          }
 
 
-        // --- Root Word Analyzer Functions ---
-
-        
-        async function analyzeRoot() {
+        // --- Root Word Analyzer Functions --- (Simplified: String Search)
+         async function analyzeRoot() {
              if (!db) return;
              const rootInput = document.getElementById('root-input');
              const rootTerm = rootInput.value.trim();
@@ -2037,27 +2068,22 @@
              const description = descriptionInput.value.trim();
 
              if (!rootTerm) {
-                 setStatusMessage('root-status', 'Please enter the root word you want to save notes for.', true);
+                 setStatusMessage('root-status', 'Enter root word to save notes.', true);
                  return;
              }
-
              showLoading("Saving root notes...");
              try {
-                 // Check if root already exists, if so, update. Otherwise, add.
-                 let existingRoot = null;
                  const allRoots = await getAllData(STORE_ROOTS);
-                 existingRoot = allRoots.find(r => r.root === rootTerm);
-
+                 let existingRoot = allRoots.find(r => r.root === rootTerm);
                  if (existingRoot) {
                      existingRoot.description = description;
                      await putData(STORE_ROOTS, existingRoot);
-                     setStatusMessage('root-status', `Notes updated for root "${rootTerm}".`, false);
+                     setStatusMessage('root-status', `Notes updated for "${rootTerm}".`, false);
                  } else {
-                     await addData(STORE_ROOTS, { root: rootTerm, description: description, notes: '' }); // 'notes' field might be redundant with description? Adjust schema if needed.
+                     await addData(STORE_ROOTS, { root: rootTerm, description: description });
                      setStatusMessage('root-status', `Root "${rootTerm}" and notes saved.`, false);
                  }
              } catch (error) {
-                 console.error("Error saving root notes:", error);
                  setStatusMessage('root-status', 'Failed to save root notes.', true);
              } finally {
                  hideLoading();
@@ -2066,49 +2092,34 @@
 
 
         // --- Recitation Log Functions ---
-
         async function loadRecitationLogs() {
              if (!db) return;
-             const recitationListElement = document.getElementById('recitations-list');
-             recitationListElement.innerHTML = '';
-
+             const listEl = document.getElementById('recitations-list');
+             listEl.innerHTML = '';
              showLoading("Loading recitation logs...");
              try {
                  const logs = await getAllData(STORE_RECITATIONS);
                  if (logs.length === 0) {
-                     recitationListElement.innerHTML = '<li>No entries logged yet.</li>';
-                     hideLoading();
-                     return;
+                     listEl.innerHTML = '<li>No entries logged yet.</li>'; hideLoading(); return;
                  }
-
-                 // Sort logs by date (newest first)
                  logs.sort((a, b) => new Date(b.date) - new Date(a.date));
-
                  logs.forEach(log => {
                      const li = document.createElement('li');
                      const range = log.ayahStart && log.ayahEnd ? `Ayahs ${log.ayahStart}-${log.ayahEnd}` :
-                                   log.ayahStart ? `Ayah ${log.ayahStart}` :
-                                   log.ayahEnd ? `Up to Ayah ${log.ayahEnd}` : 'Full Surah';
+                                   log.ayahStart ? `Ayah ${log.ayahStart}` : 'Full Surah';
                      li.innerHTML = `
-                         <strong>Surah ${log.surah} (${surahNames[log.surah-1]})</strong> - ${range}
-                         <br>
+                         <strong>S ${log.surah} (${surahNames[log.surah-1]})</strong> - ${range} <br>
                          Qari: ${log.qari || 'N/A'} | Date: ${log.date || 'N/A'}
                          ${log.notes ? `<br>Notes: <em>${log.notes}</em>` : ''}
                          <div style="margin-top: 5px;">
-                             <button data-log-id="${log.id}" class="delete-recitation-btn" style="padding: 3px 8px; font-size: 0.8rem;">Delete</button>
+                             <button data-log-id="${log.id}" class="delete-recitation-btn">Delete</button>
                          </div>
                      `;
-                     recitationListElement.appendChild(li);
+                     listEl.appendChild(li);
                  });
-
-                 // Add listeners for delete buttons
-                 recitationListElement.querySelectorAll('.delete-recitation-btn').forEach(button => {
-                     button.addEventListener('click', handleDeleteRecitationLog);
-                 });
-
+                 listEl.querySelectorAll('.delete-recitation-btn').forEach(b => b.addEventListener('click', handleDeleteRecitationLog));
              } catch (error) {
-                 console.error("Error loading recitation logs:", error);
-                 recitationListElement.innerHTML = `<li>Error loading logs: ${error.message}</li>`;
+                 listEl.innerHTML = `<li>Error: ${error.message}</li>`;
              } finally {
                  hideLoading();
              }
@@ -2116,63 +2127,33 @@
 
         async function saveRecitationLog() {
             if (!db) return;
-            const surahSelect = document.getElementById('rec-surah-select');
-            const ayahStartInput = document.getElementById('rec-ayah-start');
-            const ayahEndInput = document.getElementById('rec-ayah-end');
-            const qariInput = document.getElementById('rec-qari');
-            const dateInput = document.getElementById('rec-date');
-            const notesInput = document.getElementById('rec-notes');
+            const surah = parseInt(document.getElementById('rec-surah-select').value, 10);
+            const ayahStart = document.getElementById('rec-ayah-start').value ? parseInt(document.getElementById('rec-ayah-start').value, 10) : null;
+            const ayahEnd = document.getElementById('rec-ayah-end').value ? parseInt(document.getElementById('rec-ayah-end').value, 10) : null;
+            const qari = document.getElementById('rec-qari').value.trim();
+            const date = document.getElementById('rec-date').value;
+            const notes = document.getElementById('rec-notes').value.trim();
 
-            const surah = parseInt(surahSelect.value, 10);
-            const ayahStart = ayahStartInput.value ? parseInt(ayahStartInput.value, 10) : null;
-            const ayahEnd = ayahEndInput.value ? parseInt(ayahEndInput.value, 10) : null;
-            const qari = qariInput.value.trim();
-            const date = dateInput.value; // YYYY-MM-DD format
-            const notes = notesInput.value.trim();
-
-            if (isNaN(surah)) {
-                 setStatusMessage('recitation-status', 'Please select a Surah.', true);
-                 return;
+            if (isNaN(surah)) { setStatusMessage('recitation-status', 'Select Surah.', true); return; }
+            if (!date) { setStatusMessage('recitation-status', 'Select date.', true); return; }
+            if (ayahStart && (isNaN(ayahStart) || ayahStart < 1 || ayahStart > surahAyahCounts[surah])) {
+                setStatusMessage('recitation-status', `Invalid Ayah Start.`, true); return;
             }
-            if (!date) {
-                 setStatusMessage('recitation-status', 'Please select a date.', true);
-                 return;
+            if (ayahEnd && (isNaN(ayahEnd) || ayahEnd < 1 || ayahEnd > surahAyahCounts[surah])) {
+                setStatusMessage('recitation-status', `Invalid Ayah End.`, true); return;
             }
-             if (ayahStart !== null && (isNaN(ayahStart) || ayahStart < 1 || ayahStart > surahAyahCounts[surah])) {
-                  setStatusMessage('recitation-status', `Invalid Ayah Start for Surah ${surah}.`, true);
-                  return;
-             }
-             if (ayahEnd !== null && (isNaN(ayahEnd) || ayahEnd < 1 || ayahEnd > surahAyahCounts[surah])) {
-                  setStatusMessage('recitation-status', `Invalid Ayah End for Surah ${surah}.`, true);
-                  return;
-             }
-             if (ayahStart !== null && ayahEnd !== null && ayahStart > ayahEnd) {
-                 setStatusMessage('recitation-status', 'Ayah Start cannot be after Ayah End.', true);
-                 return;
-             }
-
+            if (ayahStart && ayahEnd && ayahStart > ayahEnd) {
+                setStatusMessage('recitation-status', 'Start Ayah > End Ayah.', true); return;
+            }
 
             showLoading("Saving recitation log...");
             try {
-                await addData(STORE_RECITATIONS, {
-                    surah: surah,
-                    ayahStart: ayahStart,
-                    ayahEnd: ayahEnd,
-                    qari: qari,
-                    date: date,
-                    notes: notes
-                });
+                await addData(STORE_RECITATIONS, { surah, ayahStart, ayahEnd, qari, date, notes });
                 setStatusMessage('recitation-status', 'Log entry saved.', false);
-                // Clear form
-                ayahStartInput.value = '';
-                ayahEndInput.value = '';
-                qariInput.value = '';
-                dateInput.value = '';
-                notesInput.value = '';
-                loadRecitationLogs(); // Refresh list
+                ['rec-ayah-start', 'rec-ayah-end', 'rec-qari', 'rec-date', 'rec-notes'].forEach(id => document.getElementById(id).value = '');
+                loadRecitationLogs();
             } catch (error) {
-                console.error("Error saving recitation log:", error);
-                setStatusMessage('recitation-status', 'Failed to save log entry.', true);
+                setStatusMessage('recitation-status', 'Failed to save log.', true);
             } finally {
                 hideLoading();
             }
@@ -2181,90 +2162,57 @@
          async function handleDeleteRecitationLog(event) {
              if (!db) return;
              const logId = parseInt(event.target.getAttribute('data-log-id'), 10);
-             if (isNaN(logId)) return;
-
-             if (!confirm("Are you sure you want to delete this log entry?")) {
-                 return;
-             }
-
+             if (isNaN(logId) || !confirm("Delete this log entry?")) return;
              showLoading("Deleting log entry...");
              try {
                  await deleteData(STORE_RECITATIONS, logId);
                  setStatusMessage('recitation-status', 'Log entry deleted.', false);
-                 loadRecitationLogs(); // Refresh list
+                 loadRecitationLogs();
              } catch (error) {
-                 console.error("Error deleting log entry:", error);
-                 setStatusMessage('recitation-status', 'Failed to delete log entry.', true);
+                 setStatusMessage('recitation-status', 'Failed to delete log.', true);
              } finally {
                  hideLoading();
              }
          }
 
-        // --- Memorization Hub Functions (Simplified SRS) ---
-
+        // --- Memorization Hub Functions ---
         async function loadHifzForSurah(surah) {
              if (!db) return;
-             const hifzAyahsListElement = document.getElementById('hifz-ayahs-list');
-             hifzAyahsListElement.innerHTML = '';
-
+             const listEl = document.getElementById('hifz-ayahs-list');
+             listEl.innerHTML = '';
              if (isNaN(surah) || surah < 1 || surah > 114) {
-                 hifzAyahsListElement.innerHTML = '<p class="text-center">Select a valid Surah.</p>';
-                 return;
+                 listEl.innerHTML = '<p class="text-center">Select a valid Surah.</p>'; return;
              }
-
-             showLoading(`Loading Hifz data for Surah ${surah}...`);
+             showLoading(`Loading Hifz for Surah ${surah}...`);
              try {
                  const totalAyahs = surahAyahCounts[surah];
-                 const ayahs = [];
+                 const store = getObjectStore(STORE_HIFZ, 'readonly');
+                 const request = store.getAll(IDBKeyRange.bound([surah, 1], [surah, totalAyahs]));
+                 const hifzEntries = await new Promise(r => { request.onsuccess = () => r(request.result); });
+                 const hifzMap = new Map(hifzEntries.map(e => [e.ayah, e]));
 
-                 // Fetch all Hifz entries for this surah
-                 const hifzEntries = await new Promise((resolve, reject) => {
-                     const store = getObjectStore(STORE_HIFZ, 'readonly');
-                     const range = IDBKeyRange.bound([surah, 1], [surah, totalAyahs]);
-                     const request = store.getAll(range);
-                      request.onsuccess = () => resolve(request.result);
-                     request.onerror = (event) => reject(event.target.error);
-                 });
-
-                 // Map Hifz entries for quick lookup
-                 const hifzMap = new Map(hifzEntries.map(entry => [entry.ayah, entry]));
-
-                 // Display each ayah with its status and controls
                  for (let i = 1; i <= totalAyahs; i++) {
-                     const ayahData = hifzMap.get(i) || { surah: surah, ayah: i, status: 'not-started', lastReviewDate: null, nextReviewDate: null, reviewCount: 0, notes: '' };
-
-                     const li = document.createElement('div'); // Use div for better layout
-                     li.classList.add('ayah'); // Reuse ayah styling
+                     const ayahData = hifzMap.get(i) || { surah, ayah: i, status: 'not-started', lastReviewDate: null, nextReviewDate: null, reviewCount: 0, notes: '' };
+                     const li = document.createElement('div');
+                     li.classList.add('ayah');
                      li.innerHTML = `
-                         <div class="ayah-number">Surah ${surah}:${i}</div>
+                         <div class="ayah-number">S ${surah}:${i}</div>
                          <div class="hifz-ayah-controls">
-                             Status: <span class="hifz-ayah-status status-${ayahData.status}" data-surah="${surah}" data-ayah="${i}">${ayahData.status.replace('-', ' ')}</span>
-                             ${ayahData.nextReviewDate ? ` | Next Review: ${ayahData.nextReviewDate}` : ''}
-                             <br>
-                             <button data-surah="${surah}" data-ayah="${i}" data-status="in-progress" class="set-hifz-status-btn">Set In Progress</button>
-                             <button data-surah="${surah}" data-ayah="${i}" data-status="memorized" class="set-hifz-status-btn">Set Memorized</button>
+                             Status: <span class="hifz-ayah-status status-${ayahData.status}">${ayahData.status.replace('-', ' ')}</span>
+                             ${ayahData.nextReviewDate ? ` | Next Review: ${ayahData.nextReviewDate}` : ''} <br>
+                             <button data-surah="${surah}" data-ayah="${i}" data-status="in-progress" class="set-hifz-status-btn">In Progress</button>
+                             <button data-surah="${surah}" data-ayah="${i}" data-status="memorized" class="set-hifz-status-btn">Memorized</button>
                              ${ayahData.status === 'memorized' ? `<button data-surah="${surah}" data-ayah="${i}" class="record-review-btn">Record Review</button>` : ''}
                              <button data-surah="${surah}" data-ayah="${i}" class="view-hifz-notes-btn">Notes</button>
                          </div>
                      `;
-                     hifzAyahsListElement.appendChild(li);
+                     listEl.appendChild(li);
                  }
-
-                 // Add listeners for status buttons
-                 hifzAyahsListElement.querySelectorAll('.set-hifz-status-btn').forEach(button => {
-                     button.addEventListener('click', handleSetHifzStatus);
-                 });
-                 hifzAyahsListElement.querySelectorAll('.record-review-btn').forEach(button => {
-                     button.addEventListener('click', handleRecordReview);
-                 });
-                  hifzAyahsListElement.querySelectorAll('.view-hifz-notes-btn').forEach(button => {
-                     button.addEventListener('click', handleViewHifzNotes);
-                 });
-
-
+                 listEl.querySelectorAll('.set-hifz-status-btn').forEach(b => b.addEventListener('click', handleSetHifzStatus));
+                 listEl.querySelectorAll('.record-review-btn').forEach(b => b.addEventListener('click', handleRecordReview));
+                 listEl.querySelectorAll('.view-hifz-notes-btn').forEach(b => b.addEventListener('click', handleViewHifzNotes));
              } catch (error) {
-                 console.error("Error loading Hifz data:", error);
-                 hifzAyahsListElement.innerHTML = `<li>Error loading Hifz data: ${error.message}</li>`;
+                 listEl.innerHTML = `<li>Error: ${error.message}</li>`;
              } finally {
                  hideLoading();
              }
@@ -2275,31 +2223,21 @@
              const surah = parseInt(event.target.getAttribute('data-surah'), 10);
              const ayah = parseInt(event.target.getAttribute('data-ayah'), 10);
              const status = event.target.getAttribute('data-status');
-
              showLoading(`Setting status for ${surah}:${ayah}...`);
              try {
-                 const existing = await getData(STORE_HIFZ, [surah, ayah]) || { surah: surah, ayah: ayah, status: 'not-started', lastReviewDate: null, nextReviewDate: null, reviewCount: 0, notes: '' };
-
+                 const existing = await getData(STORE_HIFZ, [surah, ayah]) || { surah, ayah, status: 'not-started', lastReviewDate: null, nextReviewDate: null, reviewCount: 0, notes: '' };
                  existing.status = status;
-                 // Reset review data if status is changed from memorized
                  if (status !== 'memorized') {
-                     existing.lastReviewDate = null;
-                     existing.nextReviewDate = null;
+                     existing.lastReviewDate = null; existing.nextReviewDate = null; existing.reviewCount = 0;
+                 } else if (!existing.lastReviewDate) {
+                     existing.lastReviewDate = new Date().toISOString().split('T')[0];
                      existing.reviewCount = 0;
-                 } else {
-                     // If setting to memorized, set initial review date/count if not already set
-                      if (!existing.lastReviewDate) {
-                          existing.lastReviewDate = new Date().toISOString().split('T')[0]; // Today
-                          existing.reviewCount = 0; // Reset count for new memorization
-                          existing.nextReviewDate = calculateNextReview(existing.lastReviewDate, existing.reviewCount);
-                      }
+                     existing.nextReviewDate = calculateNextReview(existing.lastReviewDate, existing.reviewCount);
                  }
-
                  await putData(STORE_HIFZ, existing);
                  setStatusMessage('hifz-status', `Status updated for ${surah}:${ayah}.`, false);
-                 loadHifzForSurah(surah); // Refresh list
+                 loadHifzForSurah(surah);
              } catch (error) {
-                 console.error("Error setting Hifz status:", error);
                  setStatusMessage('hifz-status', 'Failed to update status.', true);
              } finally {
                  hideLoading();
@@ -2310,68 +2248,49 @@
              if (!db) return;
              const surah = parseInt(event.target.getAttribute('data-surah'), 10);
              const ayah = parseInt(event.target.getAttribute('data-ayah'), 10);
-
              showLoading(`Recording review for ${surah}:${ayah}...`);
              try {
                  const existing = await getData(STORE_HIFZ, [surah, ayah]);
-
                  if (!existing || existing.status !== 'memorized') {
-                     setStatusMessage('hifz-status', 'Ayah must be marked as memorized to record a review.', true);
-                     hideLoading();
-                     return;
+                     setStatusMessage('hifz-status', 'Ayah not memorized.', true); hideLoading(); return;
                  }
-
-                 existing.lastReviewDate = new Date().toISOString().split('T')[0]; // Today
+                 existing.lastReviewDate = new Date().toISOString().split('T')[0];
                  existing.reviewCount = (existing.reviewCount || 0) + 1;
                  existing.nextReviewDate = calculateNextReview(existing.lastReviewDate, existing.reviewCount);
-
                  await putData(STORE_HIFZ, existing);
-                 setStatusMessage('hifz-status', `Review recorded for ${surah}:${ayah}. Next review: ${existing.nextReviewDate}`, false);
-                 loadHifzForSurah(surah); // Refresh list
+                 setStatusMessage('hifz-status', `Review recorded. Next: ${existing.nextReviewDate}`, false);
+                 loadHifzForSurah(surah);
              } catch (error) {
-                 console.error("Error recording Hifz review:", error);
                  setStatusMessage('hifz-status', 'Failed to record review.', true);
              } finally {
                  hideLoading();
              }
         }
 
-        // Simplified SRS interval calculation (example)
         function calculateNextReview(lastReviewDate, reviewCount) {
             const date = new Date(lastReviewDate);
-            let daysToAdd = 0;
-            if (reviewCount === 0) daysToAdd = 1; // Review tomorrow
-            else if (reviewCount === 1) daysToAdd = 3; // 3 days later
-            else if (reviewCount === 2) daysToAdd = 7; // 7 days later
-            else if (reviewCount === 3) daysToAdd = 15; // 15 days later
-            else daysToAdd = 30; // 30 days later (can be more complex)
-
+            let daysToAdd = [1, 3, 7, 15, 30, 60, 90][Math.min(reviewCount, 6)] || 120; // Cap at 120 or extend
             date.setDate(date.getDate() + daysToAdd);
-            return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+            return date.toISOString().split('T')[0];
         }
 
          async function handleViewHifzNotes(event) {
              if (!db) return;
              const surah = parseInt(event.target.getAttribute('data-surah'), 10);
              const ayah = parseInt(event.target.getAttribute('data-ayah'), 10);
-
              showLoading(`Loading notes for ${surah}:${ayah}...`);
              try {
-                 const existing = await getData(STORE_HIFZ, [surah, ayah]) || { surah: surah, ayah: ayah, status: 'not-started', lastReviewDate: null, nextReviewDate: null, reviewCount: 0, notes: '' };
-
-                 const notes = prompt(`Notes for Surah ${surah}:${ayah}:\n\n${existing.notes}\n\nEdit notes below:`, existing.notes || '');
-
+                 const existing = await getData(STORE_HIFZ, [surah, ayah]) || { surah, ayah, status: 'not-started', notes: '' };
+                 const notes = prompt(`Notes for Surah ${surah}:${ayah}:\n${existing.notes}\nEdit notes:`, existing.notes || '');
                  if (notes !== null && notes !== existing.notes) {
                      existing.notes = notes;
                      await putData(STORE_HIFZ, existing);
-                     setStatusMessage('hifz-status', `Notes updated for ${surah}:${ayah}.`, false);
-                     loadHifzForSurah(surah); // Refresh list
+                     setStatusMessage('hifz-status', `Notes updated.`, false);
+                     loadHifzForSurah(surah);
                  } else {
-                      setStatusMessage('hifz-status', 'Notes not changed.', false);
+                      setStatusMessage('hifz-status', 'Notes unchanged.', false);
                  }
-
              } catch (error) {
-                 console.error("Error viewing/saving Hifz notes:", error);
                  setStatusMessage('hifz-status', 'Failed to load/save notes.', true);
              } finally {
                  hideLoading();
@@ -2380,8 +2299,7 @@
 
 
         // --- Advanced Search Functions ---
-
-        async function performSearch() {
+         async function performSearch() {
              if (!db) return;
              const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
              const searchScopes = Array.from(document.querySelectorAll('.search-scope:checked')).map(cb => cb.value);
@@ -2578,11 +2496,11 @@
              }
         }
 
+
         function highlightMatch(text, searchTerm) {
             if (!text || !searchTerm) return text;
-            // Use a regex with global and case-insensitive flags
             const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-            return text.replace(regex, '<mark style="background-color: var(--color-highlight);">$1</mark>');
+            return text.replace(regex, '<mark>$1</mark>');
         }
 
         async function handleGoToAyahFromSearch(event) {
@@ -2590,346 +2508,454 @@
              const ayah = parseInt(event.target.getAttribute('data-ayah'), 10);
              if (!isNaN(surah) && !isNaN(ayah)) {
                  await loadAyah(surah, ayah);
-                 showSection('quran'); // Switch to Quran viewer
-                 // Scroll to the ayah if needed (requires more complex DOM manipulation)
+                 showSection('quran');
              }
         }
 
 
-        // --- Data Export/Import (Backup/Restore) ---
-
+        // --- Data Export/Import ---
         async function exportData() {
              if (!db) return;
              showLoading("Exporting data...");
              try {
                  const data = {};
-                 // Get data from all user-generated stores
-                 data[STORE_TAFSIR] = await getAllData(STORE_TAFSIR);
-                 data[STORE_THEMES] = await getAllData(STORE_THEMES);
-                 data[STORE_THEME_AYAHS] = await getAllData(STORE_THEME_AYAHS);
-                 data[STORE_ROOTS] = await getAllData(STORE_ROOTS);
-                 data[STORE_ROOT_AYAHS] = await getAllData(STORE_ROOT_AYAHS);
-                 data[STORE_RECITATIONS] = await getAllData(STORE_RECITATIONS);
-                 data[STORE_HIFZ] = await getAllData(STORE_HIFZ);
-                 // Don't export quran data or settings
-
+                 const userStores = [STORE_TAFSIR, STORE_THEMES, STORE_THEME_AYAHS, STORE_ROOTS, STORE_ROOT_AYAHS, STORE_RECITATIONS, STORE_HIFZ];
+                 for (const storeName of userStores) {
+                     data[storeName] = await getAllData(storeName);
+                 }
                  const jsonString = JSON.stringify(data, null, 2);
                  const blob = new Blob([jsonString], { type: 'application/json' });
                  const url = URL.createObjectURL(blob);
-
                  const a = document.createElement('a');
                  a.href = url;
                  a.download = `nur-al-quran-studio-backup-${new Date().toISOString().split('T')[0]}.json`;
-                 document.body.appendChild(a);
-                 a.click();
-                 document.body.removeChild(a);
-                 URL.revokeObjectURL(url);
-
-                 setStatusMessage('export-status', 'Data exported successfully.', false);
-
+                 document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                 setStatusMessage('export-status', 'Data exported.', false);
              } catch (error) {
-                 console.error("Error exporting data:", error);
-                 setStatusMessage('export-status', 'Failed to export data.', true);
+                 setStatusMessage('export-status', 'Export failed.', true);
              } finally {
                  hideLoading();
              }
         }
 
         async function importData(file) {
-             if (!db) return;
-
-             if (!confirm("Importing data will overwrite your existing personal data. Are you sure you want to continue?")) {
-                 return;
-             }
-
+             if (!db || !file || !confirm("Importing will overwrite existing data. Continue?")) return;
              showLoading("Importing data...");
              try {
                  const reader = new FileReader();
                  reader.onload = async (event) => {
                      try {
                          const data = JSON.parse(event.target.result);
-
-                         // Validate data structure (basic check)
                          const userStores = [STORE_TAFSIR, STORE_THEMES, STORE_THEME_AYAHS, STORE_ROOTS, STORE_ROOT_AYAHS, STORE_RECITATIONS, STORE_HIFZ];
                          for (const storeName of userStores) {
-                             if (!Array.isArray(data[storeName])) {
-                                 throw new Error(`Invalid data format for store: ${storeName}`);
-                             }
+                             if (!Array.isArray(data[storeName])) throw new Error(`Invalid data for ${storeName}`);
                          }
-
                          const transaction = db.transaction(userStores, 'readwrite');
-
                          transaction.oncomplete = async () => {
-                             console.log("Import transaction complete.");
-                             setStatusMessage('import-status', 'Data imported successfully.', false);
-                             // Refresh relevant UI sections
-                             await loadAyah(currentSurah, currentAyah); // Reload current ayah data (tafsir, themes)
-                             displayThemesList();
-                             loadRecitationLogs();
-                             loadHifzForSurah(document.getElementById('hifz-surah-select').value);
+                             setStatusMessage('import-status', 'Data imported.', false);
+                             await loadAyah(currentSurah, currentAyah); // Refresh UI
+                             displayThemesList(); loadRecitationLogs();
+                             if(document.getElementById('hifz-surah-select').value) loadHifzForSurah(parseInt(document.getElementById('hifz-surah-select').value,10));
                              hideLoading();
                          };
-
-                         transaction.onerror = (event) => {
-                             console.error("Import transaction failed:", event.target.error);
-                              setStatusMessage('import-status', 'Import failed during transaction.', true);
-                             hideLoading();
-                         };
-
-                         // Clear existing user data and add new data
+                         transaction.onerror = () => { setStatusMessage('import-status', 'Import transaction failed.', true); hideLoading(); };
                          for (const storeName of userStores) {
                              const store = transaction.objectStore(storeName);
-                             store.clear(); // Clear existing data
+                             store.clear();
                              if (data[storeName]) {
-                                  // Need to handle auto-increment keys carefully for themes/roots/recitations/theme_ayahs/root_ayahs
-                                  // For simplicity, we'll just add them and IndexedDB will assign new keys.
-                                  // This means relationships (parent themes, theme links, root links) based on old IDs will be broken.
-                                  // A proper import would require mapping old IDs to new IDs.
-                                  // For this single-file app, we accept this limitation or require the export/import to preserve IDs (more complex).
-                                  // Let's assume for simplicity that auto-increment handles it, but warn the user if relationships break.
-                                  if (storeName === STORE_TAFSIR || storeName === STORE_HIFZ) {
-                                       // These use composite keys [surah, ayah], safe to just add/put
-                                       data[storeName].forEach(item => store.put(item)); // Use put to overwrite if key exists
-                                  } else {
-                                       // These use auto-increment IDs. Adding will assign *new* IDs.
-                                       // Relationships based on old IDs (parentId, themeId, rootId) will be incorrect.
-                                       // A robust solution needs ID mapping during import.
-                                       // For now, we'll add and warn.
-                                        console.warn(`Importing store "${storeName}" with auto-increment keys. Relationships based on old IDs may be broken.`);
-                                       data[storeName].forEach(item => {
-                                           // Remove old ID so IndexedDB assigns a new one
-                                           const newItem = { ...item };
-                                           delete newItem.id;
-                                           store.add(newItem); // Use add to prevent key conflicts if old IDs were somehow preserved
-                                       });
-                                  }
+                                data[storeName].forEach(item => {
+                                    // For auto-increment stores, remove old ID if present to let DB assign new.
+                                    // This simplified import might break ID-based relationships if IDs aren't managed carefully.
+                                    if ([STORE_THEMES, STORE_THEME_AYAHS, STORE_ROOTS, STORE_ROOT_AYAHS, STORE_RECITATIONS].includes(storeName)) {
+                                        const newItem = {...item};
+                                        delete newItem.id; // Let DB assign new ID
+                                        store.add(newItem).catch(e => console.warn(`Could not add item to ${storeName} during import: `, item, e));
+                                    } else {
+                                        store.put(item).catch(e => console.warn(`Could not put item to ${storeName} during import: `, item, e));
+                                    }
+                                });
                              }
                          }
-
                      } catch (parseError) {
-                         console.error("Error parsing imported data:", parseError);
-                         setStatusMessage('import-status', 'Failed to parse imported data. Invalid file format.', true);
-                         hideLoading();
+                         setStatusMessage('import-status', 'Invalid import file format.', true); hideLoading();
                      }
                  };
-                 reader.onerror = (event) => {
-                      console.error("Error reading file:", event.target.error);
-                      setStatusMessage('import-status', 'Failed to read file.', true);
-                      hideLoading();
-                 };
+                 reader.onerror = () => { setStatusMessage('import-status', 'Failed to read file.', true); hideLoading(); };
                  reader.readAsText(file);
-
              } catch (error) {
-                 console.error("Error initiating import:", error);
-                 setStatusMessage('import-status', 'Failed to initiate import.', true);
-                 hideLoading();
+                 setStatusMessage('import-status', 'Import initiation failed.', true); hideLoading();
              }
         }
 
          async function clearAllPersonalData() {
-             if (!db) return;
-
-             if (!confirm("Are you absolutely sure you want to delete ALL your personal data (Tafsir, Themes, Roots, Logs, Hifz)? This action cannot be undone.")) {
-                 return;
-             }
-
+             if (!db || !confirm("DELETE ALL personal data? This cannot be undone.")) return;
              showLoading("Clearing all personal data...");
              try {
                  const userStores = [STORE_TAFSIR, STORE_THEMES, STORE_THEME_AYAHS, STORE_ROOTS, STORE_ROOT_AYAHS, STORE_RECITATIONS, STORE_HIFZ];
                  const transaction = db.transaction(userStores, 'readwrite');
-
                  transaction.oncomplete = () => {
-                     console.log("All user data cleared.");
                      setStatusMessage('clear-status', 'All personal data cleared.', false);
-                     // Reset UI
+                     // Reset UI elements
                      document.getElementById('tafsir-notes').value = '';
                      document.getElementById('themes-list').innerHTML = '<li>No themes added yet.</li>';
                      document.getElementById('root-occurrences-list').innerHTML = '<li>Enter a root word and click "Analyze Root".</li>';
                      document.getElementById('recitations-list').innerHTML = '<li>No entries logged yet.</li>';
-                      document.getElementById('hifz-ayahs-list').innerHTML = '<p class="text-center">Select a Surah to track Hifz progress.</p>';
-                     populateThemeSelects(); // Clear theme selects
+                     document.getElementById('hifz-ayahs-list').innerHTML = '<p class="text-center">Select a Surah to track Hifz progress.</p>';
+                     populateThemeSelects();
                      hideLoading();
                  };
-
-                 transaction.onerror = (event) => {
-                     console.error("Error clearing data transaction:", event.target.error);
-                     setStatusMessage('clear-status', 'Failed to clear data during transaction.', true);
-                     hideLoading();
-                 };
-
-                 userStores.forEach(storeName => {
-                     transaction.objectStore(storeName).clear();
-                 });
-
+                 transaction.onerror = () => { setStatusMessage('clear-status', 'Failed to clear data.', true); hideLoading(); };
+                 userStores.forEach(storeName => transaction.objectStore(storeName).clear());
              } catch (error) {
-                 console.error("Error initiating data clear:", error);
-                 setStatusMessage('clear-status', 'Failed to initiate data clear.', true);
-                 hideLoading();
+                 setStatusMessage('clear-status', 'Data clear failed.', true); hideLoading();
              }
          }
 
         // --- Settings Functions ---
-
         function applyTheme(themeName) {
-            document.body.className = ''; // Remove existing theme classes
-            if (themeName !== 'serene') { // 'serene' is the default, no class needed
-                document.body.classList.add(`theme-${themeName}`);
-            }
-             // Save preference (optional, but good UX)
-             if (db) {
-                 putData(STORE_SETTINGS, { name: 'theme', value: themeName }).catch(console.error);
-             }
+            document.body.className = '';
+            if (themeName !== 'serene') document.body.classList.add(`theme-${themeName}`);
+            if (db) putData(STORE_SETTINGS, { name: 'theme', value: themeName }).catch(console.error);
         }
-
         async function loadThemePreference() {
              if (!db) return;
              try {
                  const settings = await getData(STORE_SETTINGS, 'theme');
-                 const theme = settings ? settings.value : 'serene'; // Default to serene
+                 const theme = settings ? settings.value : 'serene';
                  document.getElementById('theme-switcher').value = theme;
                  applyTheme(theme);
-             } catch (error) {
-                 console.error("Error loading theme preference:", error);
-                 // Fallback to default
-                 document.getElementById('theme-switcher').value = 'serene';
-                 applyTheme('serene');
+             } catch (error) { // Fallback to default
+                 document.getElementById('theme-switcher').value = 'serene'; applyTheme('serene');
              }
         }
 
 
-        // --- Event Listeners ---
+        // --- Event Listeners Setup ---
+        function setupEventListeners() {
+            document.getElementById('surah-select').addEventListener('change', (event) => {
+                currentSurah = parseInt(event.target.value, 10);
+                updateAyahSelect(currentSurah);
+                loadAyah(currentSurah, currentAyah);
+            });
+            document.getElementById('ayah-select').addEventListener('change', (event) => {
+                currentAyah = parseInt(event.target.value, 10);
+                loadAyah(currentSurah, currentAyah);
+            });
+            document.getElementById('translation-select').addEventListener('change', () => loadAyah(currentSurah, currentAyah));
 
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    showSection(event.target.getAttribute('data-section'));
+                });
+            });
+
+            document.getElementById('save-tafsir-btn').addEventListener('click', saveTafsir);
+            document.getElementById('add-theme-btn').addEventListener('click', addTheme);
+            document.getElementById('link-ayah-to-theme-btn').addEventListener('click', linkAyahToTheme);
+            document.getElementById('link-theme-select').addEventListener('change', displayLinkedAyahsForCurrentTheme);
+            document.getElementById('analyze-root-btn').addEventListener('click', analyzeRoot);
+            document.getElementById('save-root-notes-btn').addEventListener('click', saveRootNotes);
+            document.getElementById('save-recitation-btn').addEventListener('click', saveRecitationLog);
+            document.getElementById('rec-surah-select').addEventListener('change', (event) => {
+                 const surah = parseInt(event.target.value, 10);
+                 const totalAyahs = surahAyahCounts[surah];
+                 document.getElementById('rec-ayah-start').max = totalAyahs;
+                 document.getElementById('rec-ayah-end').max = totalAyahs;
+            });
+            document.getElementById('hifz-surah-select').addEventListener('change', (event) => {
+                 loadHifzForSurah(parseInt(event.target.value, 10));
+            });
+            document.getElementById('perform-search-btn').addEventListener('click', performSearch);
+            document.getElementById('export-data-btn').addEventListener('click', exportData);
+            document.getElementById('import-file').addEventListener('change', (event) => {
+                 document.getElementById('import-data-btn').disabled = !event.target.files[0];
+            });
+            document.getElementById('import-data-btn').addEventListener('click', () => {
+                 const fileInput = document.getElementById('import-file');
+                 if (fileInput.files.length > 0) importData(fileInput.files[0]);
+                 else setStatusMessage('import-status', 'Select file to import.', true);
+            });
+            document.getElementById('clear-data-btn').addEventListener('click', clearAllPersonalData);
+            document.getElementById('theme-switcher').addEventListener('change', (event) => applyTheme(event.target.value));
+
+            document.querySelectorAll('.modal .close-button').forEach(button => {
+                button.addEventListener('click', (event) => event.target.closest('.modal').style.display = 'none');
+            });
+            window.addEventListener('click', (event) => {
+                 document.querySelectorAll('.modal').forEach(modal => { if (event.target === modal) modal.style.display = 'none'; });
+            });
+            window.addEventListener('keydown', (event) => { // Close modals with Escape key
+                if (event.key === 'Escape') {
+                    document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
+                }
+            });
+            setupTafsirDocxButton();
+        }
+
+        // --- App Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
-            // Open DB first
             try {
                 await openDB();
-                await loadThemePreference(); // Load theme early
-                await loadQuranData(); // This also populates selects and loads initial ayah
-                displayThemesList(); // Load themes for the manager list
-                loadRecitationLogs(); // Load initial recitation logs
-
-                // Add event listeners after DB is open and initial data is loaded
-                document.getElementById('surah-select').addEventListener('change', (event) => {
-                    currentSurah = parseInt(event.target.value, 10);
-                    updateAyahSelect(currentSurah);
-                    loadAyah(currentSurah, currentAyah);
-                });
-
-                document.getElementById('ayah-select').addEventListener('change', (event) => {
-                    currentAyah = parseInt(event.target.value, 10);
-                    loadAyah(currentSurah, currentAyah);
-                });
-
-                 document.getElementById('translation-select').addEventListener('change', (event) => {
-                     // Reload the current ayah to apply the new translation display
-                     loadAyah(currentSurah, currentAyah);
-                 });
-
-
-                document.querySelectorAll('.nav-link').forEach(link => {
-                    link.addEventListener('click', (event) => {
-                        event.preventDefault();
-                        const sectionId = event.target.getAttribute('data-section');
-                        showSection(sectionId);
-                    });
-                });
-
-                document.getElementById('save-tafsir-btn').addEventListener('click', saveTafsir);
-
-                document.getElementById('add-theme-btn').addEventListener('click', addTheme);
-                 document.getElementById('link-ayah-to-theme-btn').addEventListener('click', linkAyahToTheme);
-                 document.getElementById('link-theme-select').addEventListener('change', displayLinkedAyahsForCurrentTheme); // Update linked ayahs list when theme selected
-
-                document.getElementById('analyze-root-btn').addEventListener('click', analyzeRoot);
-                 document.getElementById('save-root-notes-btn').addEventListener(
-                    'click', async () => { // Use async directly here
-                        // Load existing notes first if root input has a value
-                        const rootTerm = document.getElementById('root-input').value.trim();
-                        if (rootTerm) {
-                             showLoading(`Loading notes for "${rootTerm}"...`);
-                             try {
-                                 const allRoots = await getAllData(STORE_ROOTS);
-                                 const existingRoot = allRoots.find(r => r.root === rootTerm);
-                                 if (existingRoot) {
-                                     document.getElementById('root-description').value = existingRoot.description || '';
-                                     setStatusMessage('root-status', `Loaded notes for "${rootTerm}".`, false);
-                                 } else {
-                                      document.getElementById('root-description').value = ''; // Clear if root not found
-                                      setStatusMessage('root-status', `No existing notes for "${rootTerm}".`, false);
-                                 }
-                             } catch (error) {
-                                 console.error("Error loading root notes:", error);
-                                 setStatusMessage('root-status', 'Failed to load root notes.', true);
-                             } finally {
-                                 hideLoading();
-                             }
-                        } else {
-                            setStatusMessage('root-status', 'Enter a root term to load/save notes.', true);
-                        }
-                    }
-                 );
-                 // Listener for saving notes after potentially loading them
-                 document.getElementById('save-root-notes-btn').addEventListener('click', saveRootNotes);
-
-
-                document.getElementById('save-recitation-btn').addEventListener('click', saveRecitationLog);
-                 document.getElementById('rec-surah-select').addEventListener('change', (event) => {
-                     // Optional: Update min/max for ayah inputs based on surah
-                     const surah = parseInt(event.target.value, 10);
-                     const totalAyahs = surahAyahCounts[surah];
-                     document.getElementById('rec-ayah-start').setAttribute('max', totalAyahs);
-                     document.getElementById('rec-ayah-end').setAttribute('max', totalAyahs);
-                 });
-
-
-                 document.getElementById('hifz-surah-select').addEventListener('change', (event) => {
-                     loadHifzForSurah(parseInt(event.target.value, 10));
-                 });
-
-                document.getElementById('perform-search-btn').addEventListener('click', performSearch);
-
-                document.getElementById('export-data-btn').addEventListener('click', exportData);
-                 document.getElementById('import-file').addEventListener('change', (event) => {
-                     // Enable import button only when a file is selected
-                     const file = event.target.files[0];
-                     document.getElementById('import-data-btn').disabled = !file;
-                 });
-                 document.getElementById('import-data-btn').addEventListener('click', (event) => {
-                     const fileInput = document.getElementById('import-file');
-                     if (fileInput.files.length > 0) {
-                         importData(fileInput.files[0]);
-                     } else {
-                         setStatusMessage('import-status', 'Please select a file to import.', true);
-                     }
-                 });
-                 document.getElementById('clear-data-btn').addEventListener('click', clearAllPersonalData);
-
-                 document.getElementById('theme-switcher').addEventListener('change', (event) => {
-                     applyTheme(event.target.value);
-                 });
-
-                 // Modal Close Buttons
-                 document.querySelectorAll('.modal .close-button').forEach(button => {
-                     button.addEventListener('click', (event) => {
-                         event.target.closest('.modal').style.display = 'none';
-                     });
-                 });
-                 // Close modal on outside click
-                 window.addEventListener('click', (event) => {
-                     document.querySelectorAll('.modal').forEach(modal => {
-                         if (event.target === modal) {
-                             modal.style.display = 'none';
-                         }
-                     });
-                 });
-
-
+                await loadThemePreference();
+                setupEventListeners(); // Setup listeners after DB is open
+                await loadQuranData(); // This populates selects and loads initial ayah
+                displayThemesList();
+                // loadRecitationLogs(); // Called when section is shown
+                // loadHifzForSurah(); // Called when section is shown and surah selected
             } catch (error) {
                 console.error("App initialization failed:", error);
                 hideLoading();
-                alert("Failed to initialize the application: " + error.message + "\nPlease check your browser console for details.");
+                alert("Failed to initialize: " + error.message + "\nPlease clear website data and refresh. Check console for details.");
             }
         });
     </script>
 </body>
 </html>
+<script>
+        // --- Tafsir Export to DOCX Functions ---
+
+        async function loadDocxJs() {
+            return new Promise((resolve, reject) => {
+                if (window.docx) { // Check if already loaded
+                    console.log("docx.js already loaded.");
+                    resolve(window.docx);
+                    return;
+                }
+                console.log("Loading docx.js library...");
+                const script = document.createElement('script');
+                // Using jsDelivr CDN - always check for the latest stable version
+                script.src = 'https://cdn.jsdelivr.net/npm/docx@9.5.0/dist/index.iife.min.js';
+                script.onload = () => {
+                    console.log("docx.js loaded successfully.");
+                    resolve(window.docx); // The library attaches itself to window.docx
+                };
+                script.onerror = (err) => {
+                    console.error("Failed to load docx.js library:", err);
+                    reject("Failed to load DOCX library. Please check your internet connection.");
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+
+        async function exportTafsirToDocx() {
+            setStatusMessage('export-tafsir-docx-status', 'Initializing DOCX export...', false);
+            showLoading("Preparing Tafsir for DOCX export...");
+
+            let docx;
+            try {
+                docx = await loadDocxJs();
+                if (!docx || !docx.Document || !docx.Packer || !docx.Paragraph || !docx.TextRun || !docx.HeadingLevel) {
+                    throw new Error("DOCX library not loaded correctly or is an incompatible version.");
+                }
+            } catch (error) {
+                console.error("Error loading DOCX library:", error);
+                setStatusMessage('export-tafsir-docx-status', typeof error === 'string' ? error : 'Failed to load DOCX library.', true);
+                hideLoading();
+                return;
+            }
+
+            if (!db) {
+                setStatusMessage('export-tafsir-docx-status', 'Database not ready.', true);
+                hideLoading();
+                return;
+            }
+
+            try {
+                const allTafsirEntries = await getAllData(STORE_TAFSIR);
+                if (!allTafsirEntries || allTafsirEntries.length === 0) {
+                    setStatusMessage('export-tafsir-docx-status', 'No Tafsir notes found to export.', false);
+                    hideLoading();
+                    return;
+                }
+
+                allTafsirEntries.sort((a, b) => {
+                    if (a.surah !== b.surah) return a.surah - b.surah;
+                    return a.ayah - b.ayah;
+                });
+
+                const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ShadingType, convertInchesToTwip } = docx;
+
+                const children = [];
+
+                // Document Title
+                children.push(
+                    new Paragraph({
+                        text: "My Personal Quran Tafsir",
+                        heading: HeadingLevel.TITLE,
+                        alignment: AlignmentType.CENTER,
+                    })
+                );
+                children.push(new Paragraph(" ")); // Spacer
+
+                let currentProcessingSurah = -1;
+
+                for (const tafsirEntry of allTafsirEntries) {
+                    if (tafsirEntry.surah !== currentProcessingSurah) {
+                        currentProcessingSurah = tafsirEntry.surah;
+                        const surahNameStr = surahNames[currentProcessingSurah - 1] || `Surah ${currentProcessingSurah}`;
+
+                        // Surah Title
+                        children.push(
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: `Surah ${currentProcessingSurah}: ${surahNameStr}`,
+                                        bold: true,
+                                        size: 32, // 16pt font size (2 * 16)
+                                        color: "2E74B5", // A blue color
+                                    }),
+                                ],
+                                heading: HeadingLevel.HEADING_1,
+                                spacing: { before: convertInchesToTwip(0.2), after: convertInchesToTwip(0.1) },
+                            })
+                        );
+                    }
+
+                    // Fetch Arabic text for the Ayah
+                    const quranAyahData = await getData(STORE_QURAN, [tafsirEntry.surah, tafsirEntry.ayah]);
+                    const arabicText = quranAyahData ? quranAyahData.arabic : "Arabic text not found.";
+
+                    // Ayah Reference
+                    children.push(
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: `Ayah ${tafsirEntry.ayah}`,
+                                    bold: true,
+                                    size: 28, // 14pt
+                                    color: "1F4E79", // Darker blue
+                                }),
+                            ],
+                            spacing: { before: convertInchesToTwip(0.15), after: convertInchesToTwip(0.05) },
+                        })
+                    );
+
+                    // Arabic Text Paragraph
+                    // Note: RTL text handling in docx.js might require specific paragraph properties.
+                    // Fonts also need to be available on the system opening the DOCX.
+                    children.push(
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: arabicText,
+                                    font: "Scheherazade New", // Specify an Arabic font
+                                    size: 36, // 18pt
+                                    rightToLeft: true, // Crucial for Arabic
+                                }),
+                            ],
+                            alignment: AlignmentType.RIGHT,
+                            bidirectional: true, // Important for mixed LTR/RTL content handling in Word
+                            shading: { // Basic background color
+                                type: ShadingType.SOLID,
+                                color: "E8F5E9", // Light green (hex without #)
+                                fill: "E8F5E9",
+                            },
+                            spacing: { after: convertInchesToTwip(0.1) },
+                        })
+                    );
+
+                    // Tafsir Notes Paragraph
+                    // Split notes by newline and create separate TextRuns or Paragraphs for proper line breaks
+                    const notesLines = tafsirEntry.notes.split('\n');
+                    notesLines.forEach((line, index) => {
+                        children.push(
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: line,
+                                        size: 24, // 12pt
+                                    }),
+                                ],
+                                indentation: { left: convertInchesToTwip(0.25) }, // Indent Tafsir notes
+                                spacing: { after: (index === notesLines.length - 1) ? convertInchesToTwip(0.15) : convertInchesToTwip(0.02) },
+                            })
+                        );
+                    });
+                     children.push(new Paragraph(" ")); // Spacer after each tafsir entry
+                }
+
+                const doc = new Document({
+                    sections: [{
+                        properties: {
+                            page: {
+                                margin: {
+                                    top: convertInchesToTwip(0.75),
+                                    right: convertInchesToTwip(0.75),
+                                    bottom: convertInchesToTwip(0.75),
+                                    left: convertInchesToTwip(0.75),
+                                },
+                            },
+                        },
+                        children: children,
+                    }],
+                    // Define default fonts if possible, though this is more for the document's meta
+                    // Actual font rendering depends on the user's system.
+                    styles: {
+                        default: {
+                            document: {
+                                run: {
+                                    font: "Calibri", // Default LTR font
+                                    size: 22, // 11pt default
+                                },
+                                paragraph: {
+                                    spacing: { line: 276 } // approx 1.15 line spacing
+                                }
+                            },
+                        },
+                        paragraphStyles: [
+                            {
+                                id: "arabicStyle",
+                                name: "Arabic Text",
+                                basedOn: "Normal",
+                                next: "Normal",
+                                run: {
+                                    font: "Scheherazade New",
+                                    size: 36,
+                                    rightToLeft: true,
+                                },
+                                paragraph: {
+                                    alignment: AlignmentType.RIGHT,
+                                    bidirectional: true,
+                                }
+                            }
+                        ]
+                    }
+                });
+
+                // Packer to generate the .docx file
+                Packer.toBlob(doc).then(blob => {
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `Personal-Tafsir-${new Date().toISOString().split('T')[0]}.docx`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                    setStatusMessage('export-tafsir-docx-status', 'Tafsir DOCX file generated.', false);
+                }).catch(packError => {
+                    console.error("Error packing DOCX:", packError);
+                    setStatusMessage('export-tafsir-docx-status', 'Failed to generate DOCX file.', true);
+                });
+
+            } catch (error) {
+                console.error("Error exporting Tafsir to DOCX:", error);
+                setStatusMessage('export-tafsir-docx-status', 'Failed to export Tafsir to DOCX.', true);
+            } finally {
+                hideLoading();
+            }
+        }
+
+
+        // Add this to your setupEventListeners function
+        function setupTafsirDocxButton() {
+            const exportDocxBtn = document.getElementById('export-tafsir-to-docx-btn');
+            if (exportDocxBtn) {
+                exportDocxBtn.addEventListener('click', exportTafsirToDocx);
+            } else {
+                console.warn("Export Tafsir to DOCX button not found.");
+            }
+        }
+
+</script>
