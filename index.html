@@ -22,10 +22,10 @@
             --color-highlight: #fff9c4; /* Light Yellow */
             --color-error: #ef5350; /* Red */
             --color-success: #66bb6a; /* Green */
-            --font-arabic: 'Scheherazade New', 'Lateef', 'Amiri', 'Traditional Arabic', serif; /* Preferred Arabic fonts */
-            --font-urdu: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Pak Nastaleeq', serif; /* Preferred Urdu fonts */
-            --font-pashto: 'Noto Sans Pashto', 'Arial', sans-serif; /* Pashto fonts */
-            --font-general: 'Roboto', 'Segoe UI', sans-serif; /* General UI font */
+            --font-arabic: 'Scheherazade New', 'Lateef', 'Amiri', 'Traditional Arabic', calibri; /* Preferred Arabic fonts */
+            --font-urdu: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Pak Nastaleeq', calibri; /* Preferred Urdu fonts */
+            --font-Bangali: 'Noto Sans Bangali', 'Arial', calibri; /* Bangali fonts */
+            --font-general: 'Roboto', 'Segoe UI', calibri; /* General UI font */
             --border-radius: 8px;
             --padding-main: 20px;
             --transition-speed: 0.3s;
@@ -44,9 +44,9 @@
             --color-highlight: #ffe082; /* Light Amber */
             --color-error: #c62828; /* Dark Red */
             --color-success: #388e3c; /* Dark Green */
-            --font-arabic: 'Scheherazade New', serif;
-            --font-urdu: 'Jameel Noori Nastaleeq', serif;
-            --font-general: 'Merriweather', serif;
+            --font-arabic: 'Scheherazade New', calibri;
+            --font-urdu: 'Jameel Noori Nastaleeq', calibri;
+            --font-general: 'Merriweather', calibri;
         }
 
         /* Futuristic Holo-Quran Theme */
@@ -62,9 +62,9 @@
             --color-highlight: #80deea; /* Light Cyan */
             --color-error: #ff5252; /* Red */
             --color-success: #00e676; /* Green */
-            --font-arabic: 'Orbitron', sans-serif; /* Futuristic Arabic (placeholder, needs actual font) */
-            --font-urdu: 'Orbitron', sans-serif; /* Placeholder */
-            --font-general: 'Orbitron', sans-serif;
+            --font-arabic: 'Orbitron', calibri; /* Futuristic Arabic (placeholder, needs actual font) */
+            --font-urdu: 'Orbitron', calibri; /* Placeholder */
+            --font-general: 'Orbitron', calibri;
             --border-radius: 4px;
         }
 
@@ -178,7 +178,7 @@
             border-radius: var(--border-radius);
             box-shadow: 0 2px 5px var(--color-shadow);
             overflow-y: auto; /* Allow main content area to scroll */
-            max-height: calc(100vh - (var(--padding-main) * 2) - 60px); /* Adjust based on header height */
+            /* max-height: calc(100vh - (var(--padding-main) * 2) - 60px); */ /* Adjust based on header height */
         }
 
         header {
@@ -367,6 +367,7 @@
             border: 1px solid var(--color-border);
             border-radius: var(--border-radius);
             background-color: var(--color-bg-primary);
+            font-size: 1.5rem;
         }
 
         /* Recitation Log */
@@ -414,9 +415,10 @@
             border: 1px solid var(--color-border);
             border-radius: var(--border-radius);
             background-color: var(--color-bg-primary);
+            font-size: x-large;
         }
         .search-results .result-context {
-            font-size: 0.9rem;
+            font-size: large;
             color: var(--color-text-secondary);
             margin-top: 5px;
         }
@@ -599,16 +601,18 @@
             background-color: var(--color-accent);
             box-shadow: 0 0 8px var(--color-accent);
          }
-
+#word-translation-area > p:nth-child(3){
+    display: none;
+}
 
     </style>
     <!-- Optional: Include fonts if not available locally -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@404&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jameel+Noori+Nastaleeq+Regular&display=swap">
-    <!-- Add other fonts like Noto Nastaliq Urdu, Noto Sans Pashto, Orbitron, Merriweather if needed -->
+    <!-- Add other fonts like Noto Nastaliq Urdu, Noto Sans Bangali, Orbitron, Merriweather if needed -->
      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap">
-     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Pashto&display=swap">
+     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bangali&display=swap">
      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap">
      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap">
 
@@ -660,8 +664,8 @@
                      <select id="translation-select" aria-label="Select Translation">
                          <option value="urdu">Urdu (Included)</option>
                          <!-- Placeholders for future translations -->
-                         <option value="english" disabled>English (Not available in data.AM)</option>
-                         <option value="pashto" disabled>Pashto (Not available in data.AM)</option>
+                         <option value="english" disabled>English - Cooming soon insha-Allah(SWT)</option>
+                         <option value="Bangali" disabled>Bangali - Cooming soon insha-Allah(SWT)</option>
                      </select>
                  </div>
 
@@ -746,7 +750,7 @@
                 <div class="root-analyzer-form mb-20">
                     <div class="flex-group mb-10">
                         <label for="root-input" class="sr-only">Arabic Root Word</label>
-                        <input type="text" id="root-input" placeholder="Enter Arabic Root (e.g., ق-و-ل)" lang="ar" dir="rtl">
+                        <input type="text" id="root-input" placeholder="Enter Arabic Root (e.g., ق-و-ل) or (علم) or (ر۔ب)" lang="ar" dir="rtl">
                         <button id="analyze-root-btn">Analyze Root</button>
                     </div>
                     <label for="root-description">Description/Notes for this Root (Optional):</label>
@@ -1123,7 +1127,7 @@
                         urdu: urduPart,
                         // Add placeholders for other translations if data becomes available
                         english: '',
-                        pashto: ''
+                        Bangali: ''
                     });
                 }
 
@@ -1414,7 +1418,7 @@
                     statusElement.textContent = '';
                      statusElement.style.color = '';
                      statusElement.style.fontWeight = '';
-                }, 5000);
+                }, 9000);
             }
         }
 
@@ -1922,7 +1926,19 @@
                      // Split words and check each word individually
                      const words = ayahData.arabic.split(/\s+/);
                      words.forEach(word => {
-                         if (word.includes(rootTerm)) {
+                         wordan = word.replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").replace(/ؤ|و/g, "(و|ؤ)").replace(/ك|ک/g, "(ك|ک)").replace(/آ|ا|أ|إ/g, "(آ|ا|أ|إ)").replace(/ى|ی|ي/g, "(ى|ی|ي)").replace(/ہ|ھ|ة|ۃ|ه/g, "(ہ|ھ|ة|ۃ|ه)").replace(/ے/g, "(ے|ی)").replace(/م/g, "(مٰ|م)");
+                        wordan2 = word.replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"")
+
+                         
+
+                         rootTerma1 = rootTerm.replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").replace(/ؤ|و/g, "(و|ؤ)").replace(/ك|ک/g, "(ك|ک)").replace(/آ|ا|أ|إ/g, "(آ|ا|أ|إ)").replace(/ى|ی|ي/g, "(ى|ی|ي)").replace(/ہ|ھ|ة|ۃ|ه/g, "(ہ|ھ|ة|ۃ|ه)").replace(/ے/g, "(ے|ی)").replace(/م/g, "(مٰ|م)").replaceAll(" ",".{0,1}").replaceAll("-",".{0,1}").replaceAll("-",".{0,1}");
+                         
+                         rootTerma = rootTerm.replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").replace(/ؤ|و/g, "(و|ؤ)").replace(/ك|ک/g, "(ك|ک)").replace(/آ|ا|أ|إ/g, "(آ|ا|أ|إ)").replace(/ى|ی|ي/g, "(ى|ی|ي)").replace(/ہ|ھ|ة|ۃ|ه/g, "(ہ|ھ|ة|ۃ|ه)").replace(/ے/g, "(ے|ی)").replace(/م/g, "(مٰ|م)").replaceAll(" ","").replaceAll("-","").replaceAll("-","");
+                        
+                         //console.log(wordan.match(/rootTerma/)!=undefined);
+                         rootTerma1 = new RegExp(rootTerma1)
+                         //console.log(rootTerma1 +"\n"+ wordan2)
+                         if (wordan2.match(rootTerma1)!=undefined || wordan.includes(rootTerma)) {
                              foundOccurrences.push({
                                  surah: ayahData.surah,
                                  ayah: ayahData.ayah,
@@ -2333,8 +2349,9 @@
                  if (searchScopes.includes('quran-arabic') || searchScopes.includes('quran-translation')) {
                      const allAyahs = await getAllData(STORE_QURAN);
                      allAyahs.forEach(ayah => {
-                         const matchArabic = searchScopes.includes('quran-arabic') && ayah.arabic.toLowerCase().includes(searchTerm);
-                         const matchTranslation = searchScopes.includes('quran-translation') && ayah.urdu.toLowerCase().includes(searchTerm); // Currently only Urdu available
+                        //console.log(ayah.arabic.replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,""))
+                         const matchArabic = searchScopes.includes('quran-arabic') && ayah.arabic.toLowerCase().replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").replace(/ؤ|و/g, "(و|ؤ)").replace(/ك|ک/g, "(ك|ک)").replace(/آ|ا|أ|إ/g, "(آ|ا|أ|إ)").replace(/ى|ی|ي/g, "(ى|ی|ي)").replace(/ہ|ھ|ة|ۃ|ه/g, "(ہ|ھ|ة|ۃ|ه)").replace(/ے/g, "(ے|ی)").replace(/م/g, "(مٰ|م)").includes(searchTerm.replace(/ؤ|و/g, "(و|ؤ)").replace(/ك|ک/g, "(ك|ک)").replace(/آ|ا|أ|إ/g, "(آ|ا|أ|إ)").replace(/ى|ی|ي/g, "(ى|ی|ي)").replace(/ہ|ھ|ة|ۃ|ه/g, "(ہ|ھ|ة|ۃ|ه)").replace(/ے/g, "(ے|ی)").replace(/م/g, "(مٰ|م)"));
+                         const matchTranslation = searchScopes.includes('quran-translation') && ayah.urdu.toLowerCase().replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").includes(searchTerm); // Currently only Urdu available
 
                          if (matchArabic || matchTranslation) {
                              results.push({
@@ -2370,7 +2387,7 @@
                  if (searchScopes.includes('themes')) {
                      const allThemes = await getAllData(STORE_THEMES);
                      allThemes.forEach(theme => {
-                         if (theme.description && theme.description.toLowerCase().includes(searchTerm)) {
+                         if (theme.description && theme.description.toLowerCase().replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").includes(searchTerm)) {
                               results.push({
                                  type: 'Theme',
                                  ref: `Theme: ${theme.name}`,
@@ -2383,7 +2400,7 @@
                      const allThemeAyahLinks = await getAllData(STORE_THEME_AYAHS);
                       const themesMap = new Map((await getAllData(STORE_THEMES)).map(t => [t.id, t.name]));
                      allThemeAyahLinks.forEach(link => {
-                         if (link.notes && link.notes.toLowerCase().includes(searchTerm)) {
+                         if (link.notes && link.notes.toLowerCase().replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").includes(searchTerm)) {
                               results.push({
                                  type: 'Theme Link',
                                  ref: `Surah ${link.surah}:${link.ayah} (Theme: ${themesMap.get(link.themeId) || 'Unknown'})`,
@@ -2400,7 +2417,7 @@
                  if (searchScopes.includes('roots')) {
                      const allRoots = await getAllData(STORE_ROOTS);
                      allRoots.forEach(root => {
-                         if (root.description && root.description.toLowerCase().includes(searchTerm)) { // Assuming 'description' is the notes field
+                         if (root.description && root.description.toLowerCase().replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").includes(searchTerm)) { // Assuming 'description' is the notes field
                              results.push({
                                  type: 'Root',
                                  ref: `Root: ${root.root}`,
@@ -2416,7 +2433,7 @@
                  if (searchScopes.includes('recitation')) {
                      const allRecitations = await getAllData(STORE_RECITATIONS);
                      allRecitations.forEach(log => {
-                         if (log.notes && log.notes.toLowerCase().includes(searchTerm)) {
+                         if (log.notes && log.notes.toLowerCase().replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").includes(searchTerm)) {
                               const range = log.ayahStart && log.ayahEnd ? `${log.ayahStart}-${log.ayahEnd}` :
                                    log.ayahStart ? `${log.ayahStart}` :
                                    log.ayahEnd ? `Up to ${log.ayahEnd}` : 'Full Surah';
@@ -2434,7 +2451,7 @@
                  if (searchScopes.includes('hifz')) {
                      const allHifz = await getAllData(STORE_HIFZ);
                      allHifz.forEach(hifz => {
-                         if (hifz.notes && hifz.notes.toLowerCase().includes(searchTerm)) {
+                         if (hifz.notes && hifz.notes.toLowerCase().replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").includes(searchTerm)) {
                              results.push({
                                  type: 'Hifz',
                                  ref: `Surah ${hifz.surah}:${hifz.ayah}`,
