@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Optimized Single-File PDF/Image Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+
+        #toolbar {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: #333;
+            color: white;
+            gap: 10px;
+            flex-shrink: 0; /* Don't allow toolbar to shrink */
+        }
+        #toolbar button, #toolbar input[type="number"], #toolbar input[type="file"], #toolbar select {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #555;
+            color: white;
+            box-sizing: border-box; /* Include padding in element's total width/height */
+        }
+        #toolbar input[type="number"] {
+            width: 60px;
+            text-align: center;
+        }
+        #toolbar button:hover {
+            background-color: #777;
+        }
+        #toolbar label {
+            background-color: #555;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #toolbar label:hover {
+            background-color: #777;
+        }
+        #toolbar input[type="file"] {
+            display: none; /* Hide default file input */
+        }
+
+        #viewerContainer {
+            flex-grow: 1; /* Occupy remaining vertical space */
+            overflow-y: scroll; /* Enable vertical scrolling */
+            background-color: #eee;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center pages horizontally */
+            gap: 10px; /* Space between pages */
+            position: relative;
+        }
+
+        .pdfPage {
+            background-color: white;
+            box-shadow: 0 0 8px rgba(0,0,0,0.2);
+            margin-bottom: 10px; /* Space between pages */
+            display: flex; /* To center the canvas/image inside */
+            justify-content: center;
+            align-items: center;
+            min-height: 800px; /* Crucial placeholder height for scrollbar. Adjusted dynamically. */
+            width: 100%; /* Take full width of viewerContainer padding area */
+            max-width: 800px; /* Max width for pages */
+            position: relative; /* For loading spinner */
+        }
+        .pdfPage canvas, .pdfPage img {
+            display: block; /* Remove extra space below inline elements */
+            max-width: 100%; /* Ensure content doesn't overflow page div */
+            height: auto; /* Maintain aspect ratio */
+        }
+        .loading-overlay, .page-loading-spinner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em;
+            z-index: 100;
+        }
+        .hidden {
+            display: none;
+        }
+        /* Basic spinner animation */
+        .page-loading-spinner::after {
+            content: '';
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toolbar">
+        <label for="pdfFileInput">Load Document</label>
+        <input type="file" id="pdfFileInput" accept=".pdf,image/*" multiple webkitdirectory>
+
+        <button id="prevPage">Prev</button>
+        <input type="number" id="pageNumberInput" value="1" min="1">
+        <span>/ <span id="numPagesSpan">0</span></span>
+        <button id="nextPage">Next</button>
+        <select id="zoomSelect">
+            <option value="0.5">50%</option>
+            <option value="1" selected>100%</option>
+            <option value="1.5">150%</option>
+            <option value="2">200%</option>
+            <option value="auto">Fit Width</option>
+        </select>
+        <button id="printDoc">Print</button>
+        <button id="downloadDoc">Download</button>
+    </div>
+
+    <div id="viewerContainer">
+        <div id="loadingOverlay" class="hidden">Loading Document...</div>
+        <!-- Pages will be dynamically added here -->
+    </div>
+
+    <script>
+        // --- IndexedDB Configuration ---
+        const DB_NAME = 'PdfViewerCacheDB';
+        const STORE_NAME = 'files';
+        const PDFJS_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        const PDFJS_WORKER_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // --- IndexedDB Utility Functions ---
+        function openIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onsuccess = (event) => resolve(event.target.result);
+                request.onerror = (event) => reject(event.target.error);
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    db.createObjectStore(STORE_NAME);
+                };
+            });
+        }
+
+        async function getFileBlobFromIndexedDB(key) {
+            const db = await openIndexedDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const getRequest = objectStore.get(key);
+                getRequest.onsuccess = () => resolve(getRequest.result);
+                getRequest.onerror = () => reject(getRequest.error);
+            });
+        }
+
+        async function putFileBlobIntoIndexedDB(key, blob) {
+            const db = await openIndexedDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const putRequest = objectStore.put(blob, key);
+                putRequest.onsuccess = () => resolve();
+                putRequest.onerror = (event) => reject(event.target.error);
+            });
+        }
+
+        let pdfjsLibLoaded = false;
+        let pdfjsWorkerBlobUrl = null;
+
+        // --- Core PDF.js Library Loading ---
+        async function loadPdfJsLibraries() {
+            showLoading(true, "Loading PDF.js libraries...");
+            try {
+                // Load pdf.min.js
+                let pdfJsBlob = await getFileBlobFromIndexedDB('pdf.min.js');
+                if (!pdfJsBlob) {
+                    console.log('Fetching pdf.min.js from network...');
+                    const response = await fetch(PDFJS_CDN_URL);
+                    pdfJsBlob = await response.blob();
+                    await putFileBlobIntoIndexedDB('pdf.min.js', pdfJsBlob);
+                } else {
+                    console.log('Loading pdf.min.js from IndexedDB.');
+                }
+                const pdfJsBlobUrl = URL.createObjectURL(pdfJsBlob);
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = pdfJsBlobUrl;
+                    script.onload = () => {
+                        URL.revokeObjectURL(pdfJsBlobUrl); // Revoke after script loads
+                        resolve();
+                    };
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+                pdfjsLibLoaded = true;
+
+                // Load pdf.worker.min.js
+                let pdfWorkerBlob = await getFileBlobFromIndexedDB('pdf.worker.min.js');
+                if (!pdfWorkerBlob) {
+                    console.log('Fetching pdf.worker.min.js from network...');
+                    const response = await fetch(PDFJS_WORKER_CDN_URL);
+                    pdfWorkerBlob = await response.blob();
+                    await putFileBlobIntoIndexedDB('pdf.worker.min.js', pdfWorkerBlob);
+                } else {
+                    console.log('Loading pdf.worker.min.js from IndexedDB.');
+                }
+                pdfjsWorkerBlobUrl = URL.createObjectURL(pdfWorkerBlob);
+                pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerBlobUrl;
+
+                console.log('PDF.js libraries loaded and initialized.');
+
+            } catch (error) {
+                console.error('Error loading PDF.js libraries:', error);
+                alert('Failed to load PDF.js libraries. Please check your internet connection or try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+
+        // --- Global State Variables ---
+        let pdfDocument = null; // For native PDFs
+        let imageFiles = [];    // For image-based PDFs
+        let documentType = null; // 'pdf' or 'images'
+        let currentDocumentSource = null; // The original File or URL for download
+
+        let currentPageNum = 1;
+        let totalPages = 0;
+        let currentScale = 1; // Default zoom scale
+        const pageRenderQueue = new Map(); // Map<pageNum, { taskPromise, ... }>
+        const renderedPagesCache = new Map(); // Map<pageNum, HTMLCanvasElement | HTMLImageElement>
+        const PRELOAD_RANGE = 8; // Pages to load around the current page (e.g., current +/- 8)
+        const activeBlobUrls = new Set(); // Keep track of Blob URLs to revoke later
+
+        // DOM Elements
+        const pdfFileInput = document.getElementById('pdfFileInput');
+        const prevPageBtn = document.getElementById('prevPage');
+        const nextPageBtn = document.getElementById('nextPage');
+        const pageNumberInput = document.getElementById('pageNumberInput');
+        const numPagesSpan = document.getElementById('numPagesSpan');
+        const zoomSelect = document.getElementById('zoomSelect');
+        const viewerContainer = document.getElementById('viewerContainer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const printDocBtn = document.getElementById('printDoc');
+        const downloadDocBtn = document.getElementById('downloadDoc');
+
+        // --- Utility Functions ---
+        function showLoading(show, message = 'Loading...') {
+            loadingOverlay.textContent = message;
+            loadingOverlay.classList.toggle('hidden', !show);
+        }
+
+        // Debounce function
+        function _debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
+        }
+
+        function getPageDiv(pageNum) {
+            return document.getElementById(`page-container-${pageNum}`);
+        }
+
+        function clearViewer() {
+            viewerContainer.innerHTML = '';
+            pdfDocument = null;
+            imageFiles = [];
+            documentType = null;
+            currentPageNum = 1;
+            totalPages = 0;
+            numPagesSpan.textContent = '0';
+            pageNumberInput.value = 1;
+            pageNumberInput.max = 1;
+            renderedPagesCache.clear();
+            pageRenderQueue.clear();
+            // Revoke all previously created Blob URLs for pages
+            activeBlobUrls.forEach(url => URL.revokeObjectURL(url));
+            activeBlobUrls.clear();
+            intersectionObserver.disconnect(); // Stop observing old elements
+        }
+
+        function updateToolbarState() {
+            const docLoaded = documentType !== null;
+            prevPageBtn.disabled = !docLoaded || currentPageNum === 1;
+            nextPageBtn.disabled = !docLoaded || currentPageNum === totalPages;
+            pageNumberInput.disabled = !docLoaded;
+            zoomSelect.disabled = !docLoaded;
+            printDocBtn.disabled = !docLoaded;
+            downloadDocBtn.disabled = !docLoaded;
+        }
+
+        // --- Page Display (Rendering/Showing) Logic ---
+
+        async function displayPage(pageNum) {
+            if (pageNum < 1 || pageNum > totalPages) return;
+
+            const pageDiv = getPageDiv(pageNum);
+            if (!pageDiv) {
+                console.warn(`Page container for ${pageNum} not found.`);
+                return;
+            }
+
+            // Check if page is already rendered and in cache
+            if (renderedPagesCache.has(pageNum)) {
+                const cachedElement = renderedPagesCache.get(pageNum);
+                if (pageDiv.firstChild !== cachedElement) {
+                    pageDiv.innerHTML = ''; // Clear any loading indicator or old content
+                    pageDiv.appendChild(cachedElement);
+                }
+                return; // Already rendered and in DOM
+            }
+
+            // Check if rendering is already in progress for this page
+            if (pageRenderQueue.has(pageNum)) {
+                return;
+            }
+
+            // Add loading spinner
+            const spinnerDiv = document.createElement('div');
+            spinnerDiv.className = 'page-loading-spinner';
+            pageDiv.innerHTML = ''; // Clear placeholder text
+            pageDiv.appendChild(spinnerDiv);
+
+            let renderPromise;
+            if (documentType === 'pdf') {
+                renderPromise = renderNativePdfPage(pageNum, pageDiv);
+            } else if (documentType === 'images') {
+                renderPromise = renderImagePage(pageNum, pageDiv);
+            } else {
+                console.error("Unknown document type for displayPage.");
+                pageDiv.innerHTML = '<p style="color: red;">Error displaying page.</p>';
+                return;
+            }
+
+            pageRenderQueue.set(pageNum, renderPromise);
+            try {
+                await renderPromise;
+                spinnerDiv.remove(); // Remove spinner on success
+            } catch (error) {
+                console.error(`Error displaying page ${pageNum}:`, error);
+                spinnerDiv.remove();
+                pageDiv.innerHTML = '<p style="color: red;">Error loading page.</p>';
+            } finally {
+                pageRenderQueue.delete(pageNum);
+            }
+        }
+
+        async function renderNativePdfPage(pageNum, pageDiv) {
+            if (!pdfDocument) return Promise.reject("PDF document not loaded.");
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            pageDiv.appendChild(canvas);
+
+            const page = await pdfDocument.getPage(pageNum);
+            const viewport = page.getViewport({ scale: currentScale });
+
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            // Ensure placeholder height is set correctly based on rendered page
+            const initialPlaceholderHeight = viewport.height / viewport.width * pageDiv.clientWidth;
+            pageDiv.style.minHeight = `${initialPlaceholderHeight}px`;
+
+            const renderTask = page.render({
+                canvasContext: context,
+                viewport: viewport,
+            });
+
+            await renderTask.promise;
+            renderedPagesCache.set(pageNum, canvas); // Cache the rendered canvas
+        }
+
+        async function renderImagePage(pageNum, pageDiv) {
+            if (!imageFiles || imageFiles.length === 0) return Promise.reject("Image files not loaded.");
+
+            const imageFile = imageFiles[pageNum - 1]; // Page numbers are 1-based, array is 0-based
+            if (!imageFile) return Promise.reject(`Image file for page ${pageNum} not found.`);
+
+            const img = document.createElement('img');
+            const blobUrl = URL.createObjectURL(imageFile);
+            activeBlobUrls.add(blobUrl); // Keep track to revoke later
+            img.src = blobUrl;
+            img.style.width = `${currentScale * 100}%`; // Apply zoom by percentage
+            img.style.height = 'auto'; // Maintain aspect ratio
+
+            // Load image to get its dimensions for placeholder height
+            await new Promise((resolve, reject) => {
+                img.onload = () => {
+                    const imgAspectRatio = img.naturalHeight / img.naturalWidth;
+                    const placeholderHeight = pageDiv.clientWidth * imgAspectRatio; // Use container width for calculation
+                    pageDiv.style.minHeight = `${placeholderHeight}px`;
+                    resolve();
+                };
+                img.onerror = reject;
+            });
+
+            pageDiv.appendChild(img);
+            renderedPagesCache.set(pageNum, img); // Cache the rendered image element
+        }
+
+        // --- Lazy Loading & Visibility Logic ---
+
+        const intersectionObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                const pageNum = parseInt(entry.target.dataset.pageNum);
+                if (entry.isIntersecting) {
+                    // Page is visible or near visible, queue for rendering/display
+                    displayPage(pageNum);
+                } else {
+                    // Page is out of view, remove element to save memory, but keep in cache
+                    const cachedElement = renderedPagesCache.get(pageNum);
+                    if (cachedElement && entry.target.contains(cachedElement)) {
+                        cachedElement.remove();
+                    }
+                }
+            });
+        }, {
+            root: viewerContainer,
+            rootMargin: '200px 0px', // Preload when 200px from viewport edge
+            threshold: 0 // As soon as it enters/leaves
+        });
+
+
+        // --- Document Loading & Initialization ---
+
+        async function loadDocument(inputFiles) {
+            clearViewer(); // Clear previous document and its state
+            showLoading(true, "Processing document...");
+            updateToolbarState(); // Disable until loaded
+
+            try {
+                if (!inputFiles || inputFiles.length === 0) {
+                    throw new Error("No files selected.");
+                }
+
+                // Determine document type
+                const firstFile = inputFiles[0];
+                if (inputFiles.length === 1 && firstFile.name.toLowerCase().endsWith('.pdf')) {
+                    // It's a single .pdf file
+                    documentType = 'pdf';
+                    currentDocumentSource = firstFile;
+                    await loadNativePdf(firstFile);
+                } else if (firstFile.webkitRelativePath) {
+                    // It's a folder (indicated by webkitRelativePath)
+                    documentType = 'images';
+                    currentDocumentSource = inputFiles; // Store the FileList
+                    await loadImagePdf(inputFiles);
+                } else {
+                    throw new Error("Unsupported file type or selection. Please select a .pdf file or a folder of images.");
+                }
+
+                // Initial render of first few pages
+                updatePageDisplay(1);
+                viewerContainer.scrollTop = 0; // Scroll to top
+
+            } catch (error) {
+                console.error('Error loading document:', error);
+                viewerContainer.innerHTML = `<p style="color: red;">Failed to load document: ${error.message}</p>`;
+                documentType = null; // Reset type on error
+            } finally {
+                showLoading(false);
+                updateToolbarState(); // Enable/disable based on new state
+            }
+        }
+
+        async function loadNativePdf(file) {
+            showLoading(true, "Loading PDF...");
+            if (!pdfjsLibLoaded) {
+                 await loadPdfJsLibraries();
+            }
+
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
+
+            pdfDocument = await loadingTask.promise;
+            totalPages = pdfDocument.numPages;
+            numPagesSpan.textContent = totalPages;
+            pageNumberInput.setAttribute('max', totalPages);
+
+            // Create placeholder divs for all pages
+            for (let i = 1; i <= totalPages; i++) {
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'pdfPage';
+                pageDiv.id = `page-container-${i}`;
+                pageDiv.dataset.pageNum = i;
+                pageDiv.innerHTML = ``; // Placeholder for loading spinner
+                viewerContainer.appendChild(pageDiv);
+                intersectionObserver.observe(pageDiv); // Start observing
+            }
+            console.log('Native PDF loaded.');
+        }
+
+        async function loadImagePdf(files) {
+            showLoading(true, "Loading images...");
+            const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+
+            // Filter and sort image files
+            imageFiles = Array.from(files)
+                .filter(file => imageExtensions.some(ext => file.name.toLowerCase().endsWith(ext)))
+                .sort((a, b) => a.webkitRelativePath.localeCompare(b.webkitRelativePath, undefined, { numeric: true, sensitivity: 'base' }));
+
+            if (imageFiles.length === 0) {
+                throw new Error("No image files found in the selected folder.");
+            }
+
+            totalPages = imageFiles.length;
+            numPagesSpan.textContent = totalPages;
+            pageNumberInput.setAttribute('max', totalPages);
+
+            // Create placeholder divs for all pages
+            for (let i = 1; i <= totalPages; i++) {
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'pdfPage';
+                pageDiv.id = `page-container-${i}`;
+                pageDiv.dataset.pageNum = i;
+                pageDiv.innerHTML = ``; // Placeholder for loading spinner
+                viewerContainer.appendChild(pageDiv);
+                intersectionObserver.observe(pageDiv); // Start observing
+            }
+            console.log('Image-based PDF loaded.');
+        }
+
+
+        // --- Navigation & UI Updates ---
+
+        function updatePageDisplay(newPage) {
+            currentPageNum = Math.max(1, Math.min(newPage, totalPages));
+            pageNumberInput.value = currentPageNum;
+
+            // Scroll to the current page
+            const targetPageDiv = getPageDiv(currentPageNum);
+            if (targetPageDiv) {
+                viewerContainer.scrollTo({
+                    top: targetPageDiv.offsetTop - viewerContainer.offsetTop,
+                    behavior: 'smooth'
+                });
+            }
+
+            // Queue display of pages in the preload range
+            const startPage = Math.max(1, currentPageNum - PRELOAD_RANGE);
+            const endPage = Math.min(totalPages, currentPageNum + PRELOAD_RANGE);
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (!renderedPagesCache.has(i) && !pageRenderQueue.has(i)) {
+                    displayPage(i);
+                }
+            }
+            updateToolbarState();
+        }
+
+        const debouncedScroll = _debounce(() => {
+            if (documentType === null) return;
+
+            // Determine visible page to update page number input
+            const pageElements = viewerContainer.querySelectorAll('.pdfPage');
+            let foundVisiblePage = false;
+            for (let i = 0; i < pageElements.length; i++) {
+                const pageEl = pageElements[i];
+                const rect = pageEl.getBoundingClientRect();
+                // Check if the top half of the page is in view, or if it's the first page and its top is at or above viewport top
+                if ((rect.top >= 0 && rect.top <= viewerContainer.clientHeight / 2) ||
+                    (i === 0 && rect.top <= 0 && rect.bottom > 0) ) {
+                    const newCurrentPage = parseInt(pageEl.dataset.pageNum);
+                    if (newCurrentPage !== currentPageNum) {
+                        updatePageDisplay(newCurrentPage);
+                        foundVisiblePage = true;
+                        break;
+                    }
+                }
+            }
+            // If no specific page is clearly visible based on top-half,
+            // check if the last page is the one in view.
+            if (!foundVisiblePage && totalPages > 0) {
+                 const lastPageEl = getPageDiv(totalPages);
+                 if (lastPageEl) {
+                     const rect = lastPageEl.getBoundingClientRect();
+                     if (rect.bottom <= viewerContainer.clientHeight && rect.bottom > 0) { // If bottom is within view
+                        const newCurrentPage = parseInt(lastPageEl.dataset.pageNum);
+                        if (newCurrentPage !== currentPageNum) {
+                            updatePageDisplay(newCurrentPage);
+                        }
+                     }
+                 }
+            }
+
+        }, 150); // Debounce scroll event
+
+        // --- Event Listeners ---
+
+        pdfFileInput.addEventListener('change', (event) => {
+            if (event.target.files.length > 0) {
+                loadDocument(event.target.files);
+            }
+        });
+
+        prevPageBtn.addEventListener('click', () => {
+            updatePageDisplay(currentPageNum - 1);
+        });
+
+        nextPageBtn.addEventListener('click', () => {
+            updatePageDisplay(currentPageNum + 1);
+        });
+
+        pageNumberInput.addEventListener('change', (event) => {
+            updatePageDisplay(parseInt(event.target.value));
+        });
+
+        zoomSelect.addEventListener('change', async (event) => {
+            const newZoomValue = event.target.value;
+            let calculatedScale = parseFloat(newZoomValue);
+
+            if (newZoomValue === 'auto') {
+                // Calculate fit-to-width for the first page
+                let referencePage;
+                if (documentType === 'pdf') {
+                    if (!pdfDocument) return;
+                    referencePage = await pdfDocument.getPage(1);
+                    const viewport = referencePage.getViewport({ scale: 1 });
+                    calculatedScale = (viewerContainer.clientWidth - 40) / viewport.width; // 40px for padding
+                } else if (documentType === 'images') {
+                    if (!imageFiles[0]) return;
+                    const tempImg = new Image();
+                    const blobUrl = URL.createObjectURL(imageFiles[0]);
+                    tempImg.src = blobUrl;
+                    await new Promise(resolve => { tempImg.onload = resolve; });
+                    URL.revokeObjectURL(blobUrl); // Revoke immediately after getting dimensions
+                    calculatedScale = (viewerContainer.clientWidth - 40) / tempImg.naturalWidth;
+                }
+            }
+            currentScale = calculatedScale;
+
+            // Clear cache and re-render all visible pages with new scale
+            renderedPagesCache.clear();
+            viewerContainer.querySelectorAll('.pdfPage canvas, .pdfPage img').forEach(el => el.remove());
+            updatePageDisplay(currentPageNum);
+        });
+
+        viewerContainer.addEventListener('scroll', debouncedScroll);
+
+        printDocBtn.addEventListener('click', async () => {
+            if (documentType === 'pdf' && pdfDocument) {
+                // For native PDFs, open in a new tab for browser's print functionality
+                const pdfData = await pdfDocument.getData();
+                const blob = new Blob([pdfData], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const printWindow = window.open(url, '_blank');
+                if (printWindow) {
+                    printWindow.onload = () => {
+                        printWindow.print();
+                        URL.revokeObjectURL(url); // Revoke the Blob URL after print dialog opens
+                    };
+                } else {
+                    alert('Pop-up blocked. Please allow pop-ups for printing.');
+                }
+            } else if (documentType === 'images' && imageFiles.length > 0) {
+                // For image-based, open each image in a new temporary window/iframe
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write('<html><head><title>Print Document</title>');
+                printWindow.document.write('<style>@page { margin: 0; size: auto; } body { margin: 0; text-align: center; } img { display: block; max-width: 100%; height: auto; page-break-after: always; }</style>');
+                printWindow.document.write('</head><body>');
+                for (const file of imageFiles) {
+                    const imgUrl = URL.createObjectURL(file);
+                    printWindow.document.write(`<img src="${imgUrl}">`);
+                    activeBlobUrls.add(imgUrl); // Add to active Blob URLs for proper revocation
+                }
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.onload = () => printWindow.print();
+            } else {
+                console.warn("No document loaded to print.");
+            }
+        });
+
+        downloadDocBtn.addEventListener('click', () => {
+            if (documentType === 'pdf' && currentDocumentSource instanceof File) {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(currentDocumentSource);
+                link.download = currentDocumentSource.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            } else if (documentType === 'images' && currentDocumentSource instanceof FileList) {
+                // For image folders, we can't easily download the "folder" via a single click.
+                // A common solution is to offer a ZIP download, which is complex for a single HTML.
+                // For simplicity, we'll just alert that direct folder download isn't supported.
+                alert('Downloading an image-based document (folder) directly as a single entity is not supported in this simple viewer. You can save individual images if needed.');
+            } else {
+                console.warn("No document loaded to download or source is not a File.");
+            }
+        });
+
+        // --- Initial Setup ---
+        updateToolbarState(); // Initialize toolbar state
+        // Load PDF.js libraries on page load
+        // Note: The `loadPdfJsLibraries()` function itself has `showLoading` calls
+        // This is necessary because `pdfjsLib` isn't available until the script has executed.
+        // We defer the loading of the document until pdfjsLib is ready.
+        // The file input will trigger document loading only after pdfjsLib is ready.
+
+        // You could also pre-load a PDF from a URL here:
+        // window.onload = () => {
+        //     loadDocument(new File(['...'], 'example.pdf', { type: 'application/pdf' })); // Example with dummy PDF data
+        // };
+
+        // For demo purposes, you can manually load libraries
+        loadPdfJsLibraries();
+    </script>
+</body>
+</html>

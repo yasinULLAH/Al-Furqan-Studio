@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دفتر الحضور والتقدم</title>
+    <style>
+        body {
+            font-family: 'Tahoma', 'Arial', sans-serif; /* Common Arabic-supporting font */
+            direction: rtl;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            font-size: 10pt; /* Smaller font to fit more */
+        }
+        .container {
+            background-color: #fff;
+            padding: 15px;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 1200px; /* Adjust as needed */
+            margin: auto;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* Align to top */
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #d1c4e9; /* Light purple border */
+        }
+        .header-info, .student-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .student-info {
+            align-items: flex-end; /* Align text to the right */
+        }
+        .student-info div, .header-info div {
+            margin-bottom: 5px;
+        }
+        .student-info label, .header-info label {
+            font-weight: bold;
+            margin-left: 8px; /* Margin for RTL */
+        }
+        .student-info input, .header-info input, select {
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .main-content {
+            display: flex;
+            gap: 15px;
+        }
+        .grid-area {
+            flex-grow: 1;
+            overflow-x: auto; /* For horizontal scrolling if table is too wide */
+        }
+        .attendance-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed; /* Helps with fixed column widths */
+        }
+        .attendance-table th, .attendance-table td {
+            border: 1px solid #b0bec5; /* Bluish-grey border */
+            padding: 3px;
+            text-align: center;
+            min-width: 25px; /* Min width for day cells */
+            height: 25px; /* Fixed height */
+            font-size: 0.8em;
+            cursor: pointer;
+            position: relative; /* For absolute positioned marks */
+        }
+        .attendance-table th {
+            background-color: #e8eaf6; /* Light indigo */
+        }
+        .attendance-table td.subject-name {
+            text-align: right;
+            padding-right: 8px;
+            font-weight: bold;
+            background-color: #fce4ec; /* Light pink */
+            min-width: 100px; /* Wider for subject names */
+            cursor: default;
+        }
+        .attendance-table td.data-cell:hover {
+            background-color: #ede7f6; /* Light purple on hover */
+        }
+        /* Example marks - you can extend this */
+        .mark-present::after { content: '↑'; color: green; font-weight: bold; }
+        .mark-absent::after { content: '↓'; color: red; font-weight: bold; }
+        .mark-late::after { content: '♢'; color: orange; font-weight: bold; }
+        .mark-custom { font-size: 0.9em; } /* For direct text input */
+
+        .sidebar {
+            min-width: 200px;
+            border: 1px solid #d1c4e9;
+            padding: 10px;
+            background-color: #f3e5f5; /* Light purple */
+        }
+        .sidebar h3 {
+            margin-top: 0;
+            text-align: center;
+            color: #4a148c; /* Dark purple */
+        }
+        .sidebar div {
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        .sidebar label {
+            font-weight: bold;
+        }
+        .controls {
+            margin-top: 20px;
+            text-align: left; /* Buttons align left for RTL consistency with LTR forms */
+        }
+        .controls button, .controls select {
+            padding: 8px 12px;
+            margin-right: 10px; /* Margin for RTL */
+            background-color: #5e35b1; /* Purple */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .controls button:hover {
+            background-color: #4527a0; /* Darker purple */
+        }
+        .form-id-label {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #4a148c;
+            margin-right: 10px;
+        }
+        .section-title {
+            font-weight: bold;
+            background-color: #e1bee7; /* Lighter purple for section */
+            padding: 5px;
+            text-align: right !important;
+        }
+        .small-input { width: 60px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-info">
+                <div>
+                    <span class="form-id-label">۳۰۵</span> <!-- Example Static ID -->
+                    <label for="formIdentifier">شناسه فرم:</label>
+                    <input type="text" id="formIdentifier" placeholder="مثلا: کلاس اول الف - علی">
+                </div>
+                <div>
+                    <label for="currentMonth">ماه:</label>
+                    <input type="text" id="currentMonth" placeholder="مثال: حمل">
+                </div>
+                <div>
+                    <label for="currentYear">سال:</label>
+                    <input type="number" id="currentYear" placeholder="مثال: ۱۴۰۳" class="small-input">
+                </div>
+            </div>
+            <div class="student-info">
+                <div><label for="studentName">نام:</label><input type="text" id="studentName"></div>
+                <div><label for="fatherName">ولدیت:</label><input type="text" id="fatherName"></div>
+                <div><label for="className">جماعت:</label><input type="text" id="className"></div>
+                <!-- Add more fields as in the image: آدرس, etc. -->
+            </div>
+        </header>
+
+        <div class="controls">
+            <button id="saveButton">ذخیره</button>
+            <button id="loadButton">بارگذاری فرم</button>
+            <select id="savedFormsDropdown"></select>
+            <button id="clearButton">پاک کردن فرم فعلی</button>
+            <button id="deleteFormButton">حذف فرم ذخیره شده</button>
+        </div>
+
+        <div class="main-content">
+            <div class="grid-area">
+                <table class="attendance-table" id="attendanceTable">
+                    <!-- Table will be generated by JavaScript -->
+                </table>
+            </div>
+            <aside class="sidebar">
+                <h3>کیفیت</h3>
+                <div><label>قبولیت:</label> <span></span></div>
+                <div><label>مطابقات:</label> <span></span></div>
+                <div><label>حفظ درجه بندی آیت کریمه:</label> <span></span></div>
+                <div><label>تجوید:</label> <span></span></div>
+                <div><label>تکرار:</label> <span></span></div>
+                <div><label>صوت:</label> <span></span></div>
+                <div><label>لحن:</label> <span></span></div>
+                <!-- More items from the quality panel -->
+            </aside>
+        </div>
+
+        <!-- Placeholder for bottom summary table if you want to add it later -->
+        <!--
+        <div class="summary-table-container">
+            <h4>گوشواره اختیاری مضامین</h4>
+            <table> ... </table>
+        </div>
+        -->
+
+    </div>
+
+    <script>
+        const DB_NAME = 'AttendanceDB';
+        const DB_VERSION = 1;
+        const FORMS_STORE_NAME = 'forms';
+        let db;
+
+        const subjectsConfig = [
+            { name: "حاضری روزانه جماعت", type: "section" },
+            { name: "اول وقت", type: "data" },
+            { name: "دوم", type: "data" },
+            { name: "قرآن", type: "data" },
+            { name: "علوم", type: "data" },
+            { name: "آداب", type: "data" },
+            { name: "خطاطی", type: "data" },
+            { name: "افتخارات", type: "data" },
+            { name: "قانون", type: "data" },
+            { name: "عقیده", type: "data" },
+            { name: "سیره نبوی", type: "data"},
+            { name: "تجوید عملی", type: "data" },
+            { name: "احکام", type: "data" },
+            { name: "زبان عربی", type: "data" },
+            { name: "سوره یس", type: "data", sub_details: "روزانه ۷ آیات" },
+            { name: "سوره ملک", type: "data", sub_details: "هفتگی" },
+            { name: "آخری ۱۰ سورتونه", type: "data" }
+            // Add all subjects from the image
+        ];
+        const daysInMonth = 30; // As per the image
+        const markCycle = ['', '↑', '↓', '♢', 'X']; // Cycle through these marks on click
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initDB().then(() => {
+                populateSavedFormsDropdown();
+                generateTable();
+                // Try to load last active form or a default state
+                const lastFormId = localStorage.getItem('lastActiveFormId');
+                if (lastFormId) {
+                    loadForm(lastFormId);
+                }
+            });
+
+            document.getElementById('saveButton').addEventListener('click', saveForm);
+            document.getElementById('loadButton').addEventListener('click', () => {
+                const selectedId = document.getElementById('savedFormsDropdown').value;
+                if (selectedId) loadForm(selectedId);
+                else alert('لطفاً یک فرم برای بارگذاری انتخاب کنید.');
+            });
+            document.getElementById('clearButton').addEventListener('click', clearCurrentForm);
+            document.getElementById('deleteFormButton').addEventListener('click', deleteSelectedSavedForm);
+
+        });
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = event => {
+                    db = event.target.result;
+                    if (!db.objectStoreNames.contains(FORMS_STORE_NAME)) {
+                        db.createObjectStore(FORMS_STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+
+                request.onsuccess = event => {
+                    db = event.target.result;
+                    resolve();
+                };
+
+                request.onerror = event => {
+                    console.error('IndexedDB error:', event.target.errorCode);
+                    reject(event.target.errorCode);
+                };
+            });
+        }
+
+        function generateTable() {
+            const table = document.getElementById('attendanceTable');
+            table.innerHTML = ''; // Clear existing table
+
+            // Header Row (Days)
+            const header = table.createTHead().insertRow();
+            header.insertCell().textContent = 'مضمون / تاریخ'; // Subject/Date
+            for (let i = 1; i <= daysInMonth; i++) {
+                const th = document.createElement('th');
+                th.textContent = i;
+                header.appendChild(th);
+            }
+
+            // Data Rows (Subjects)
+            const tbody = table.createTBody();
+            subjectsConfig.forEach((subjectItem, subjectIndex) => {
+                const row = tbody.insertRow();
+                const nameCell = row.insertCell();
+                nameCell.textContent = subjectItem.name;
+                nameCell.classList.add('subject-name');
+                if (subjectItem.sub_details) {
+                    const detailSpan = document.createElement('span');
+                    detailSpan.textContent = ` (${subjectItem.sub_details})`;
+                    detailSpan.style.fontSize = '0.8em';
+                    detailSpan.style.display = 'block';
+                    nameCell.appendChild(detailSpan);
+                }
+
+                if (subjectItem.type === "section") {
+                    nameCell.colSpan = daysInMonth + 1;
+                    nameCell.classList.add('section-title');
+                    nameCell.style.textAlign = 'center'; // Center section titles
+                } else {
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const cell = row.insertCell();
+                        cell.classList.add('data-cell');
+                        cell.dataset.subject = subjectItem.name; // Store subject name for easier data retrieval
+                        cell.dataset.day = day;
+                        cell.addEventListener('click', handleCellClick);
+                    }
+                }
+            });
+        }
+
+        function handleCellClick(event) {
+            const cell = event.currentTarget;
+            let currentMark = cell.textContent;
+            let currentIndex = markCycle.indexOf(currentMark);
+            
+            // If currentMark is not in cycle (e.g. manually typed), start from beginning
+            if (currentIndex === -1) {
+                 // Check if it's a number (like 50, 100)
+                if (!isNaN(parseFloat(currentMark)) && isFinite(currentMark)) {
+                    // If it's a number, prompt to change or clear
+                    const newMark = prompt(`Enter new value for ${cell.dataset.subject}, Day ${cell.dataset.day} (current: ${currentMark}). Leave blank to cycle symbols, or type your value.`, currentMark);
+                    if (newMark === null) return; // Cancelled
+                    if (newMark === "") { // User wants to cycle
+                        currentIndex = -1; // Will go to first symbol
+                    } else {
+                        cell.textContent = newMark;
+                        cell.className = 'data-cell mark-custom'; // Reset classes and add custom
+                        return;
+                    }
+                } else {
+                    currentIndex = -1; // Start cycle for non-numeric, non-symbol text
+                }
+            }
+
+            const nextIndex = (currentIndex + 1) % markCycle.length;
+            const newMark = markCycle[nextIndex];
+            cell.textContent = newMark;
+
+            // Update cell class for styling (optional)
+            cell.className = 'data-cell'; // Reset classes
+            if (newMark === '↑') cell.classList.add('mark-present');
+            else if (newMark === '↓') cell.classList.add('mark-absent');
+            else if (newMark === '♢') cell.classList.add('mark-late');
+            else if (newMark !== '') cell.classList.add('mark-custom'); // For 'X' or other symbols
+        }
+
+        function getFormDataFromUI() {
+            const formId = document.getElementById('formIdentifier').value.trim() || `form-${Date.now()}`;
+            const studentName = document.getElementById('studentName').value;
+            const fatherName = document.getElementById('fatherName').value;
+            const className = document.getElementById('className').value;
+            const currentMonth = document.getElementById('currentMonth').value;
+            const currentYear = document.getElementById('currentYear').value;
+
+            const gridData = {};
+            subjectsConfig.forEach(subjectItem => {
+                if (subjectItem.type === "data") {
+                    gridData[subjectItem.name] = {};
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const cell = document.querySelector(`.data-cell[data-subject="${subjectItem.name}"][data-day="${day}"]`);
+                        if (cell) {
+                            gridData[subjectItem.name][day] = cell.textContent;
+                        }
+                    }
+                }
+            });
+            return { id: formId, studentName, fatherName, className, currentMonth, currentYear, gridData };
+        }
+
+        function populateFormFromData(data) {
+            document.getElementById('formIdentifier').value = data.id;
+            document.getElementById('studentName').value = data.studentName || '';
+            document.getElementById('fatherName').value = data.fatherName || '';
+            document.getElementById('className').value = data.className || '';
+            document.getElementById('currentMonth').value = data.currentMonth || '';
+            document.getElementById('currentYear').value = data.currentYear || '';
+
+            subjectsConfig.forEach(subjectItem => {
+                 if (subjectItem.type === "data" && data.gridData && data.gridData[subjectItem.name]) {
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const cell = document.querySelector(`.data-cell[data-subject="${subjectItem.name}"][data-day="${day}"]`);
+                        if (cell) {
+                            const mark = data.gridData[subjectItem.name][day] || '';
+                            cell.textContent = mark;
+                            // Optionally re-apply classes based on mark
+                            cell.className = 'data-cell'; // Reset
+                            if (mark === '↑') cell.classList.add('mark-present');
+                            else if (mark === '↓') cell.classList.add('mark-absent');
+                            else if (mark === '♢') cell.classList.add('mark-late');
+                            else if (mark !== '') cell.classList.add('mark-custom');
+                        }
+                    }
+                }
+            });
+        }
+        
+        function clearCurrentForm() {
+            document.getElementById('formIdentifier').value = '';
+            document.getElementById('studentName').value = '';
+            document.getElementById('fatherName').value = '';
+            document.getElementById('className').value = '';
+            document.getElementById('currentMonth').value = '';
+            document.getElementById('currentYear').value = '';
+            
+            generateTable(); // This will recreate cells and clear their content
+            localStorage.removeItem('lastActiveFormId');
+            alert('فرم فعلی پاک شد.');
+        }
+
+
+        function saveForm() {
+            const formData = getFormDataFromUI();
+            if (!formData.id) {
+                alert('شناسه فرم نمی‌تواند خالی باشد.');
+                // You might want to auto-generate one if it's critical
+                // formData.id = `form-${Date.now()}`; 
+                // document.getElementById('formIdentifier').value = formData.id;
+                // if still empty after this, then return.
+                return; 
+            }
+
+
+            const transaction = db.transaction(FORMS_STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(FORMS_STORE_NAME);
+            const request = store.put(formData);
+
+            request.onsuccess = () => {
+                alert(`فرم "${formData.id}" ذخیره شد.`);
+                localStorage.setItem('lastActiveFormId', formData.id);
+                populateSavedFormsDropdown(); // Refresh dropdown
+            };
+            request.onerror = (event) => {
+                alert('خطا در ذخیره سازی فرم.');
+                console.error('Save error:', event.target.error);
+            };
+        }
+
+        function loadForm(formId) {
+            if (!db) {
+                alert("پایگاه داده هنوز آماده نشده است.");
+                return;
+            }
+            const transaction = db.transaction(FORMS_STORE_NAME, 'readonly');
+            const store = transaction.objectStore(FORMS_STORE_NAME);
+            const request = store.get(formId);
+
+            request.onsuccess = () => {
+                if (request.result) {
+                    populateFormFromData(request.result);
+                    localStorage.setItem('lastActiveFormId', formId);
+                    document.getElementById('savedFormsDropdown').value = formId; // Ensure dropdown reflects loaded form
+                    alert(`فرم "${formId}" بارگذاری شد.`);
+                } else {
+                    alert(`فرم با شناسه "${formId}" یافت نشد.`);
+                }
+            };
+            request.onerror = (event) => {
+                alert('خطا در بارگذاری فرم.');
+                console.error('Load error:', event.target.error);
+            };
+        }
+        
+        function deleteSelectedSavedForm() {
+            const formIdToDelete = document.getElementById('savedFormsDropdown').value;
+            if (!formIdToDelete) {
+                alert('لطفاً یک فرم برای حذف انتخاب کنید.');
+                return;
+            }
+
+            if (!confirm(`آیا مطمئن هستید که می‌خواهید فرم "${formIdToDelete}" را حذف کنید؟ این عمل قابل بازگشت نیست.`)) {
+                return;
+            }
+
+            const transaction = db.transaction(FORMS_STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(FORMS_STORE_NAME);
+            const request = store.delete(formIdToDelete);
+
+            request.onsuccess = () => {
+                alert(`فرم "${formIdToDelete}" با موفقیت حذف شد.`);
+                // If the deleted form was the currently active one, clear the UI
+                if (document.getElementById('formIdentifier').value === formIdToDelete) {
+                    clearCurrentForm();
+                }
+                populateSavedFormsDropdown(); // Refresh the dropdown
+                if (localStorage.getItem('lastActiveFormId') === formIdToDelete) {
+                    localStorage.removeItem('lastActiveFormId');
+                }
+            };
+            request.onerror = (event) => {
+                alert('خطا در حذف فرم.');
+                console.error('Delete error:', event.target.error);
+            };
+        }
+
+
+        function populateSavedFormsDropdown() {
+            if (!db) return;
+            const dropdown = document.getElementById('savedFormsDropdown');
+            dropdown.innerHTML = '<option value="">فرم‌های ذخیره شده...</option>'; // Default option
+
+            const transaction = db.transaction(FORMS_STORE_NAME, 'readonly');
+            const store = transaction.objectStore(FORMS_STORE_NAME);
+            const request = store.getAllKeys(); // Or getAll() if you want to display more info
+
+            request.onsuccess = () => {
+                request.result.forEach(formId => {
+                    const option = document.createElement('option');
+                    option.value = formId;
+                    option.textContent = formId; // Display the form ID
+                    dropdown.appendChild(option);
+                });
+                const lastFormId = localStorage.getItem('lastActiveFormId');
+                if (lastFormId && request.result.includes(lastFormId)) {
+                     dropdown.value = lastFormId;
+                }
+            };
+            request.onerror = (event) => {
+                console.error('Error fetching form IDs:', event.target.error);
+            };
+        }
+
+    </script>
+</body>
+</html>
