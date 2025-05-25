@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-$db = new SQLite3('quran_hub2.db');
+$db = new SQLite3('quran_hub.db');
 
 $db->exec('CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -83,8 +83,8 @@ $db->exec('CREATE TABLE IF NOT EXISTS hifz_tracking (
 )');
 
 if (!$db->querySingle("SELECT COUNT(*) FROM users WHERE role='admin'")) {
-    $h1 = password_hash('admin123', PASSWORD_DEFAULT);
-    $db->exec("INSERT INTO users (username, password, role) VALUES ('admin', '$h1', 'admin')");
+    $pa1 = password_hash('admin123', PASSWORD_DEFAULT);
+    $db->exec("INSERT INTO users (username, password, role) VALUES ('admin', '$pa1', 'admin')");
 }
 
 $f1 = function($f2) {
@@ -127,233 +127,27 @@ $f11 = function($f12) {
     }
 };
 
-$f16 = function($f17, $f18, $f19 = null) {
+$f16 = function($s1, $a1) {
     global $db;
-    $f20 = "SELECT awm.*, wd.quran_text FROM ayah_word_mapping awm 
+    $st1 = "SELECT awm.*, wd.quran_text, wd.en_meaning, wd.ur_meaning FROM ayah_word_mapping awm 
             JOIN word_dictionary wd ON awm.word_id = wd.id 
             WHERE awm.surah = ? AND awm.ayah = ? 
             ORDER BY awm.word_position";
-    $f21 = $db->prepare($f20);
-    $f21->bindValue(1, $f17);
-    $f21->bindValue(2, $f18);
-    $f22 = $f21->execute();
+    $st2 = $db->prepare($st1);
+    $st2->bindValue(1, $s1);
+    $st2->bindValue(2, $a1);
+    $res1 = $st2->execute();
     
-    $f23 = [];
-    while ($f24 = $f22->fetchArray(SQLITE3_ASSOC)) {
-        $f23[] = $f24;
+    $words1 = [];
+    while ($row1 = $res1->fetchArray(SQLITE3_ASSOC)) {
+        $words1[] = $row1;
     }
-    return $f23;
+    return $words1;
 };
 
-$f25 = function($f26) {
-    global $db;
-    $f27 = $db->prepare("SELECT * FROM word_dictionary WHERE id = ?");
-    $f27->bindValue(1, $f26);
-    $f28 = $f27->execute();
-    return $f28->fetchArray(SQLITE3_ASSOC);
-};
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['action'])) {
-        switch ($_POST['action']) {
-            case 'login':
-                $f29 = $_POST['username'];
-                $f30 = $_POST['password'];
-                $f31 = $db->prepare("SELECT * FROM users WHERE username = ?");
-                $f31->bindValue(1, $f29);
-                $f32 = $f31->execute();
-                $f33 = $f32->fetchArray(SQLITE3_ASSOC);
-                
-                if ($f33 && password_verify($f30, $f33['password'])) {
-                    $_SESSION['user_id'] = $f33['id'];
-                    $_SESSION['username'] = $f33['username'];
-                    $_SESSION['role'] = $f33['role'];
-                    echo json_encode(['success' => true]);
-                } else {
-                    echo json_encode(['success' => false]);
-                }
-                exit;
-                
-            case 'register':
-                $f29 = $_POST['username'];
-                $f30 = password_hash($_POST['password'], PASSWORD_DEFAULT);
-                $f34 = $_POST['email'];
-                $f35 = $db->prepare("INSERT INTO users (username, password, email) VALUES (?, ?, ?)");
-                $f35->bindValue(1, $f29);
-                $f35->bindValue(2, $f30);
-                $f35->bindValue(3, $f34);
-                
-                if ($f35->execute()) {
-                    echo json_encode(['success' => true]);
-                } else {
-                    echo json_encode(['success' => false]);
-                }
-                exit;
-                
-            case 'upload_dictionary':
-                if (isset($_FILES['dict_file']) && $_SESSION['role'] === 'admin') {
-                    $f36 = $f1($_FILES['dict_file']);
-                    if ($f36) {
-                        $db->exec("DELETE FROM word_dictionary");
-                        $f6($f36);
-                        echo json_encode(['success' => true]);
-                    }
-                }
-                exit;
-                
-            case 'upload_mapping':
-                if (isset($_FILES['map_file']) && $_SESSION['role'] === 'admin') {
-                    $f37 = $f1($_FILES['map_file']);
-                    if ($f37) {
-                        $db->exec("DELETE FROM ayah_word_mapping");
-                        $f11($f37);
-                        echo json_encode(['success' => true]);
-                    }
-                }
-                exit;
-                
-            case 'get_word_meaning':
-                $f38 = $_POST['word_id'];
-                $f39 = $f25($f38);
-                echo json_encode($f39);
-                exit;
-                
-            case 'save_tafsir':
-                if (isset($_SESSION['user_id'])) {
-                    $f40 = $db->prepare("INSERT OR REPLACE INTO personal_tafsir (user_id, surah, ayah, tafsir_text) VALUES (?, ?, ?, ?)");
-                    $f40->bindValue(1, $_SESSION['user_id']);
-                    $f40->bindValue(2, $_POST['surah']);
-                    $f40->bindValue(3, $_POST['ayah']);
-                    $f40->bindValue(4, $_POST['tafsir']);
-                    echo json_encode(['success' => $f40->execute()]);
-                }
-                exit;
-                
-            case 'save_theme':
-                if (isset($_SESSION['user_id'])) {
-                    $f41 = $db->prepare("INSERT INTO thematic_links (user_id, theme_name, surah, ayah, notes) VALUES (?, ?, ?, ?, ?)");
-                    $f41->bindValue(1, $_SESSION['user_id']);
-                    $f41->bindValue(2, $_POST['theme']);
-                    $f41->bindValue(3, $_POST['surah']);
-                    $f41->bindValue(4, $_POST['ayah']);
-                    $f41->bindValue(5, $_POST['notes']);
-                    echo json_encode(['success' => $f41->execute()]);
-                }
-                exit;
-                
-            case 'save_root_note':
-                if (isset($_SESSION['user_id'])) {
-                    $f42 = $db->prepare("INSERT OR REPLACE INTO root_notes (user_id, word_id, notes) VALUES (?, ?, ?)");
-                    $f42->bindValue(1, $_SESSION['user_id']);
-                    $f42->bindValue(2, $_POST['word_id']);
-                    $f42->bindValue(3, $_POST['notes']);
-                    echo json_encode(['success' => $f42->execute()]);
-                }
-                exit;
-                
-            case 'log_recitation':
-                if (isset($_SESSION['user_id'])) {
-                    $f43 = $db->prepare("INSERT INTO recitation_logs (user_id, surah, ayah_start, ayah_end, duration_minutes, notes) VALUES (?, ?, ?, ?, ?, ?)");
-                    $f43->bindValue(1, $_SESSION['user_id']);
-                    $f43->bindValue(2, $_POST['surah']);
-                    $f43->bindValue(3, $_POST['ayah_start']);
-                    $f43->bindValue(4, $_POST['ayah_end']);
-                    $f43->bindValue(5, $_POST['duration']);
-                    $f43->bindValue(6, $_POST['notes']);
-                    echo json_encode(['success' => $f43->execute()]);
-                }
-                exit;
-                
-            case 'update_hifz':
-                if (isset($_SESSION['user_id'])) {
-                    $f44 = $db->prepare("INSERT OR REPLACE INTO hifz_tracking (user_id, surah, ayah, mastery_level, last_reviewed, review_count) 
-                                       VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, COALESCE((SELECT review_count FROM hifz_tracking WHERE user_id=? AND surah=? AND ayah=?), 0) + 1)");
-                    $f44->bindValue(1, $_SESSION['user_id']);
-                    $f44->bindValue(2, $_POST['surah']);
-                    $f44->bindValue(3, $_POST['ayah']);
-                    $f44->bindValue(4, $_POST['level']);
-                    $f44->bindValue(5, $_SESSION['user_id']);
-                    $f44->bindValue(6, $_POST['surah']);
-                    $f44->bindValue(7, $_POST['ayah']);
-                    echo json_encode(['success' => $f44->execute()]);
-                }
-                exit;
-                
-            case 'search':
-                $f45 = $_POST['query'];
-                $f46 = $_POST['type'];
-                $f47 = [];
-                
-                if ($f46 === 'arabic') {
-                    $f48 = $db->prepare("SELECT DISTINCT awm.surah, awm.ayah FROM ayah_word_mapping awm 
-                                        JOIN word_dictionary wd ON awm.word_id = wd.id 
-                                        WHERE wd.quran_text LIKE ? LIMIT 50");
-                    $f48->bindValue(1, "%$f45%");
-                } else {
-                    $f48 = $db->prepare("SELECT DISTINCT awm.surah, awm.ayah FROM ayah_word_mapping awm 
-                                        JOIN word_dictionary wd ON awm.word_id = wd.id 
-                                        WHERE wd.en_meaning LIKE ? OR wd.ur_meaning LIKE ? LIMIT 50");
-                    $f48->bindValue(1, "%$f45%");
-                    $f48->bindValue(2, "%$f45%");
-                }
-                
-                $f49 = $f48->execute();
-                while ($f50 = $f49->fetchArray(SQLITE3_ASSOC)) {
-                    $f47[] = $f50;
-                }
-                echo json_encode($f47);
-                exit;
-                
-            case 'logout':
-                session_destroy();
-                echo json_encode(['success' => true]);
-                exit;
-        }
-    }
-}
-
-if (isset($_GET['api'])) {
-    switch ($_GET['api']) {
-        case 'ayah_words':
-            $f17 = $_GET['surah'];
-            $f18 = $_GET['ayah'];
-            $f51 = $f16($f17, $f18);
-            echo json_encode($f51);
-            exit;
-            
-        case 'user_data':
-            if (isset($_SESSION['user_id'])) {
-                $f52 = [];
-                
-                $f53 = $db->prepare("SELECT * FROM personal_tafsir WHERE user_id = ? AND surah = ? AND ayah = ?");
-                $f53->bindValue(1, $_SESSION['user_id']);
-                $f53->bindValue(2, $_GET['surah']);
-                $f53->bindValue(3, $_GET['ayah']);
-                $f54 = $f53->execute();
-                $f52['tafsir'] = $f54->fetchArray(SQLITE3_ASSOC);
-                
-                $f55 = $db->prepare("SELECT * FROM thematic_links WHERE user_id = ? AND surah = ? AND ayah = ?");
-                $f55->bindValue(1, $_SESSION['user_id']);
-                $f55->bindValue(2, $_GET['surah']);
-                $f55->bindValue(3, $_GET['ayah']);
-                $f56 = $f55->execute();
-                $f52['themes'] = [];
-                while ($f57 = $f56->fetchArray(SQLITE3_ASSOC)) {
-                    $f52['themes'][] = $f57;
-                }
-                
-                $f58 = $db->prepare("SELECT * FROM hifz_tracking WHERE user_id = ? AND surah = ? AND ayah = ?");
-                $f58->bindValue(1, $_SESSION['user_id']);
-                $f58->bindValue(2, $_GET['surah']);
-                $f58->bindValue(3, $_GET['ayah']);
-                $f59 = $f58->execute();
-                $f52['hifz'] = $f59->fetchArray(SQLITE3_ASSOC);
-                
-                echo json_encode($f52);
-            }
-            exit;
-    }
-}
+$currentSurah = isset($_GET['s']) ? (int)$_GET['s'] : 1;
+$currentAyah = isset($_GET['a']) ? (int)$_GET['a'] : 1;
+$currentSection = isset($_GET['section']) ? $_GET['section'] : 'reader';
 
 $f60 = [
     1 => 'Al-Fatiha', 2 => 'Al-Baqarah', 3 => 'Ali Imran', 4 => 'An-Nisa', 5 => 'Al-Maidah',
@@ -395,6 +189,183 @@ $f61 = [
     101 => 11, 102 => 8, 103 => 3, 104 => 9, 105 => 5, 106 => 4, 107 => 7, 108 => 3, 109 => 6, 110 => 3,
     111 => 5, 112 => 4, 113 => 5, 114 => 6
 ];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['action'])) {
+        switch ($_POST['action']) {
+            case 'login':
+                $user1 = $_POST['username'];
+                $pass1 = $_POST['password'];
+                $stmt1 = $db->prepare("SELECT * FROM users WHERE username = ?");
+                $stmt1->bindValue(1, $user1);
+                $result1 = $stmt1->execute();
+                $userData = $result1->fetchArray(SQLITE3_ASSOC);
+                
+                if ($userData && password_verify($pass1, $userData['password'])) {
+                    $_SESSION['user_id'] = $userData['id'];
+                    $_SESSION['username'] = $userData['username'];
+                    $_SESSION['role'] = $userData['role'];
+                }
+                header('Location: ?section=reader');
+                exit;
+                
+            case 'register':
+                $user1 = $_POST['username'];
+                $pass1 = password_hash($_POST['password'], PASSWORD_DEFAULT);
+                $email1 = $_POST['email'];
+                $stmt2 = $db->prepare("INSERT INTO users (username, password, email) VALUES (?, ?, ?)");
+                $stmt2->bindValue(1, $user1);
+                $stmt2->bindValue(2, $pass1);
+                $stmt2->bindValue(3, $email1);
+                $stmt2->execute();
+                header('Location: ?section=reader');
+                exit;
+                
+            case 'logout':
+                session_destroy();
+                header('Location: ?');
+                exit;
+                
+            case 'save_tafsir':
+                if (isset($_SESSION['user_id'])) {
+                    $stmt3 = $db->prepare("INSERT OR REPLACE INTO personal_tafsir (user_id, surah, ayah, tafsir_text) VALUES (?, ?, ?, ?)");
+                    $stmt3->bindValue(1, $_SESSION['user_id']);
+                    $stmt3->bindValue(2, $_POST['surah']);
+                    $stmt3->bindValue(3, $_POST['ayah']);
+                    $stmt3->bindValue(4, $_POST['tafsir']);
+                    $stmt3->execute();
+                }
+                header("Location: ?section=reader&s={$_POST['surah']}&a={$_POST['ayah']}");
+                exit;
+                
+            case 'save_theme':
+                if (isset($_SESSION['user_id'])) {
+                    $stmt4 = $db->prepare("INSERT INTO thematic_links (user_id, theme_name, surah, ayah, notes) VALUES (?, ?, ?, ?, ?)");
+                    $stmt4->bindValue(1, $_SESSION['user_id']);
+                    $stmt4->bindValue(2, $_POST['theme']);
+                    $stmt4->bindValue(3, $_POST['surah']);
+                    $stmt4->bindValue(4, $_POST['ayah']);
+                    $stmt4->bindValue(5, $_POST['notes']);
+                    $stmt4->execute();
+                }
+                header("Location: ?section=reader&s={$_POST['surah']}&a={$_POST['ayah']}");
+                exit;
+                
+            case 'update_hifz':
+                if (isset($_SESSION['user_id'])) {
+                    $stmt5 = $db->prepare("INSERT OR REPLACE INTO hifz_tracking (user_id, surah, ayah, mastery_level, last_reviewed, review_count) 
+                                          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, COALESCE((SELECT review_count FROM hifz_tracking WHERE user_id=? AND surah=? AND ayah=?), 0) + 1)");
+                    $stmt5->bindValue(1, $_SESSION['user_id']);
+                    $stmt5->bindValue(2, $_POST['surah']);
+                    $stmt5->bindValue(3, $_POST['ayah']);
+                    $stmt5->bindValue(4, $_POST['level']);
+                    $stmt5->bindValue(5, $_SESSION['user_id']);
+                    $stmt5->bindValue(6, $_POST['surah']);
+                    $stmt5->bindValue(7, $_POST['ayah']);
+                    $stmt5->execute();
+                }
+                header("Location: ?section=reader&s={$_POST['surah']}&a={$_POST['ayah']}");
+                exit;
+                
+            case 'upload_dictionary':
+                if (isset($_FILES['dict_file']) && $_SESSION['role'] === 'admin') {
+                    $data1 = $f1($_FILES['dict_file']);
+                    if ($data1) {
+                        $db->exec("DELETE FROM word_dictionary");
+                        $f6($data1);
+                    }
+                }
+                header('Location: ?section=admin');
+                exit;
+                
+            case 'upload_mapping':
+                if (isset($_FILES['map_file']) && $_SESSION['role'] === 'admin') {
+                    $data2 = $f1($_FILES['map_file']);
+                    if ($data2) {
+                        $db->exec("DELETE FROM ayah_word_mapping");
+                        $f11($data2);
+                    }
+                }
+                header('Location: ?section=admin');
+                exit;
+                
+            case 'search':
+                $query1 = $_POST['query'];
+                $type1 = $_POST['type'];
+                
+                if ($type1 === 'arabic') {
+                    $stmt6 = $db->prepare("SELECT DISTINCT awm.surah, awm.ayah FROM ayah_word_mapping awm 
+                                          JOIN word_dictionary wd ON awm.word_id = wd.id 
+                                          WHERE wd.quran_text LIKE ? LIMIT 50");
+                    $stmt6->bindValue(1, "%$query1%");
+                } else {
+                    $stmt6 = $db->prepare("SELECT DISTINCT awm.surah, awm.ayah FROM ayah_word_mapping awm 
+                                          JOIN word_dictionary wd ON awm.word_id = wd.id 
+                                          WHERE wd.en_meaning LIKE ? OR wd.ur_meaning LIKE ? LIMIT 50");
+                    $stmt6->bindValue(1, "%$query1%");
+                    $stmt6->bindValue(2, "%$query1%");
+                }
+                
+                header("Location: ?section=search&q=" . urlencode($query1) . "&type=$type1");
+                exit;
+        }
+    }
+}
+
+$currentWords = $f16($currentSurah, $currentAyah);
+
+$userTafsir = null;
+$userThemes = [];
+$userHifz = null;
+
+if (isset($_SESSION['user_id'])) {
+    $stmt7 = $db->prepare("SELECT * FROM personal_tafsir WHERE user_id = ? AND surah = ? AND ayah = ?");
+    $stmt7->bindValue(1, $_SESSION['user_id']);
+    $stmt7->bindValue(2, $currentSurah);
+    $stmt7->bindValue(3, $currentAyah);
+    $result2 = $stmt7->execute();
+    $userTafsir = $result2->fetchArray(SQLITE3_ASSOC);
+    
+    $stmt8 = $db->prepare("SELECT * FROM thematic_links WHERE user_id = ? AND surah = ? AND ayah = ?");
+    $stmt8->bindValue(1, $_SESSION['user_id']);
+    $stmt8->bindValue(2, $currentSurah);
+    $stmt8->bindValue(3, $currentAyah);
+    $result3 = $stmt8->execute();
+    while ($theme1 = $result3->fetchArray(SQLITE3_ASSOC)) {
+        $userThemes[] = $theme1;
+    }
+    
+    $stmt9 = $db->prepare("SELECT * FROM hifz_tracking WHERE user_id = ? AND surah = ? AND ayah = ?");
+    $stmt9->bindValue(1, $_SESSION['user_id']);
+    $stmt9->bindValue(2, $currentSurah);
+    $stmt9->bindValue(3, $currentAyah);
+    $result4 = $stmt9->execute();
+    $userHifz = $result4->fetchArray(SQLITE3_ASSOC);
+}
+
+$searchResults = [];
+if ($currentSection === 'search' && isset($_GET['q'])) {
+    $query1 = $_GET['q'];
+    $type1 = $_GET['type'] ?? 'arabic';
+    
+    if ($type1 === 'arabic') {
+        $stmt10 = $db->prepare("SELECT DISTINCT awm.surah, awm.ayah FROM ayah_word_mapping awm 
+                               JOIN word_dictionary wd ON awm.word_id = wd.id 
+                               WHERE wd.quran_text LIKE ? LIMIT 50");
+        $stmt10->bindValue(1, "%$query1%");
+    } else {
+        $stmt10 = $db->prepare("SELECT DISTINCT awm.surah, awm.ayah FROM ayah_word_mapping awm 
+                               JOIN word_dictionary wd ON awm.word_id = wd.id 
+                               WHERE wd.en_meaning LIKE ? OR wd.ur_meaning LIKE ? LIMIT 50");
+        $stmt10->bindValue(1, "%$query1%");
+        $stmt10->bindValue(2, "%$query1%");
+    }
+    
+    $result5 = $stmt10->execute();
+    while ($row2 = $result5->fetchArray(SQLITE3_ASSOC)) {
+        $searchResults[] = $row2;
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -403,846 +374,977 @@ $f61 = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quran Study Hub - Advanced Islamic Study Platform</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    animation: {
-                        'fade-in': 'fadeIn 0.5s ease-in-out',
-                        'slide-up': 'slideUp 0.3s ease-out',
-                        'pulse-slow': 'pulse 3s infinite',
-                    },
-                    fontFamily: {
-                        'arabic': ['Amiri', 'Arabic Typesetting', 'serif'],
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .word-hover { transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1); }
-        .word-hover:hover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; transform: scale(1.05); box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        .glass-effect { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.2); }
-        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .mastery-1 { background: linear-gradient(45deg, #ff9a9e, #fecfef); }
-        .mastery-2 { background: linear-gradient(45deg, #a18cd1, #fbc2eb); }
-        .mastery-3 { background: linear-gradient(45deg, #fad0c4, #ffd1ff); }
-        .mastery-4 { background: linear-gradient(45deg, #a8edea, #fed6e3); }
-        .mastery-5 { background: linear-gradient(45deg, #d299c2, #fef9d7); }
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+            min-height: 100vh;
+        }
+        
+        .arabic { font-family: 'Amiri', serif; }
+        .gradient-bg { background: var(--primary-gradient); }
+        .glass { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); }
+        
+        .word-span {
+            display: inline-block;
+            margin: 0 4px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .word-span:hover {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            margin-bottom: 8px;
+        }
+        
+        .word-span:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: rgba(0,0,0,0.9);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #6366f1;
+            color: #6366f1;
+        }
+        
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+            border: 1px solid #f1f5f9;
+        }
+        
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .nav-link {
+            padding: 12px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #374151;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background: #e0e7ff;
+            color: #6366f1;
+        }
+        
+        .mastery-1 { background: linear-gradient(45deg, #fee2e2, #fecaca); }
+        .mastery-2 { background: linear-gradient(45deg, #ddd6fe, #e0e7ff); }
+        .mastery-3 { background: linear-gradient(45deg, #fef3c7, #fed7aa); }
+        .mastery-4 { background: linear-gradient(45deg, #d1fae5, #bbf7d0); }
+        .mastery-5 { background: linear-gradient(45deg, #cffafe, #a7f3d0); }
+        
+        .animate-fade-in { animation: fadeIn 0.6s ease-out; }
+        .animate-slide-up { animation: slideUp 0.4s ease-out; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .grid {
+            display: grid;
+            gap: 24px;
+        }
+        
+        .grid-cols-1 { grid-template-columns: 1fr; }
+        .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+        
+        @media (max-width: 768px) {
+            .grid-cols-2, .grid-cols-3 { grid-template-columns: 1fr; }
+            .container { padding: 0 16px; }
+        }
+        
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .space-y-4 > * + * { margin-top: 16px; }
+        .space-y-6 > * + * { margin-top: 24px; }
+        .space-x-4 > * + * { margin-left: 16px; }
+        .mb-4 { margin-bottom: 16px; }
+        .mb-6 { margin-bottom: 24px; }
+        .mt-4 { margin-top: 16px; }
+        .mt-6 { margin-top: 24px; }
+        .text-center { text-align: center; }
+        .text-2xl { font-size: 24px; }
+        .text-3xl { font-size: 30px; }
+        .text-4xl { font-size: 36px; }
+        .text-lg { font-size: 18px; }
+        .text-sm { font-size: 14px; }
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 600; }
+        .text-gray-600 { color: #4b5563; }
+        .text-gray-800 { color: #1f2937; }
+        .text-blue-600 { color: #2563eb; }
+        .text-green-600 { color: #16a34a; }
+        .text-red-600 { color: #dc2626; }
+        .text-white { color: white; }
+        .hidden { display: none; }
+        .block { display: block; }
+        .w-full { width: 100%; }
+        .h-20 { height: 80px; }
+        .rounded-lg { border-radius: 8px; }
+        .rounded-xl { border-radius: 12px; }
+        .shadow-lg { box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
+        .shadow-xl { box-shadow: 0 20px 25px rgba(0,0,0,0.1); }
+        .p-4 { padding: 16px; }
+        .p-6 { padding: 24px; }
+        .p-8 { padding: 32px; }
+        .py-2 { padding-top: 8px; padding-bottom: 8px; }
+        .py-3 { padding-top: 12px; padding-bottom: 12px; }
+        .px-4 { padding-left: 16px; padding-right: 16px; }
+        .px-6 { padding-left: 24px; padding-right: 24px; }
     </style>
 </head>
-<body class="h-full bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900">
+<body class="animate-fade-in">
 
 <?php if (!isset($_SESSION['user_id'])): ?>
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-        <div class="text-center">
-            <div class="mx-auto h-20 w-20 flex items-center justify-center rounded-full gradient-bg shadow-2xl">
+<div class="flex items-center justify-center min-h-screen">
+    <div class="glass-card w-full max-w-md">
+        <div class="text-center mb-6">
+            <div class="w-20 h-20 gradient-bg rounded-xl flex items-center justify-center mx-auto mb-4">
                 <i class="fas fa-quran text-3xl text-white"></i>
             </div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-                Quran Study Hub
-            </h2>
-            <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">
-                Advanced Islamic Study Platform
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Quran Study Hub</h1>
+            <p class="text-gray-600">Advanced Islamic Study Platform</p>
+        </div>
+
+        <?php if (isset($_GET['register'])): ?>
+        <form method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="register">
+            <input type="text" name="username" placeholder="Username" class="form-input" required>
+            <input type="email" name="email" placeholder="Email" class="form-input" required>
+            <input type="password" name="password" placeholder="Password" class="form-input" required>
+            <button type="submit" class="btn btn-primary w-full">
+                <i class="fas fa-user-plus"></i>Register
+            </button>
+            <p class="text-center text-sm">
+                <a href="?" class="text-blue-600 hover:underline">Already have an account? Sign in</a>
             </p>
-        </div>
-        
-        <div class="glass-effect rounded-2xl shadow-2xl p-8" id="authContainer">
-            <div id="loginForm" class="space-y-6">
-                <div>
-                    <label class="sr-only">Username</label>
-                    <input id="loginUsername" type="text" required class="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Username">
-                </div>
-                <div>
-                    <label class="sr-only">Password</label>
-                    <input id="loginPassword" type="password" required class="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Password">
-                </div>
-                <div>
-                    <button onclick="f62()" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white gradient-bg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300">
-                        <i class="fas fa-sign-in-alt mr-2"></i>
-                        Sign In
-                    </button>
-                </div>
-                <div class="text-center">
-                    <button onclick="f63()" class="text-indigo-600 hover:text-indigo-500 text-sm">
-                        Need an account? Register here
-                    </button>
-                </div>
-            </div>
-            
-            <div id="registerForm" class="space-y-6 hidden">
-                <div>
-                    <input id="regUsername" type="text" required class="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Username">
-                </div>
-                <div>
-                    <input id="regEmail" type="email" required class="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Email">
-                </div>
-                <div>
-                    <input id="regPassword" type="password" required class="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Password">
-                </div>
-                <div>
-                    <button onclick="f64()" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white gradient-bg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300">
-                        <i class="fas fa-user-plus mr-2"></i>
-                        Register
-                    </button>
-                </div>
-                <div class="text-center">
-                    <button onclick="f65()" class="text-indigo-600 hover:text-indigo-500 text-sm">
-                        Already have an account? Sign in
-                    </button>
-                </div>
-            </div>
-        </div>
+        </form>
+        <?php else: ?>
+        <form method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="login">
+            <input type="text" name="username" placeholder="Username" class="form-input" required>
+            <input type="password" name="password" placeholder="Password" class="form-input" required>
+            <button type="submit" class="btn btn-primary w-full">
+                <i class="fas fa-sign-in-alt"></i>Sign In
+            </button>
+            <p class="text-center text-sm">
+                <a href="?register=1" class="text-blue-600 hover:underline">Need an account? Register here</a>
+            </p>
+        </form>
+        <?php endif; ?>
     </div>
 </div>
-
-<script>
-function f62() {
-    const f66 = document.getElementById('loginUsername').value;
-    const f67 = document.getElementById('loginPassword').value;
-    
-    fetch('', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `action=login&username=${f66}&password=${f67}`
-    })
-    .then(f68 => f68.json())
-    .then(f69 => {
-        if (f69.success) {
-            location.reload();
-        } else {
-            alert('Invalid credentials');
-        }
-    });
-}
-
-function f64() {
-    const f66 = document.getElementById('regUsername').value;
-    const f70 = document.getElementById('regEmail').value;
-    const f67 = document.getElementById('regPassword').value;
-    
-    fetch('', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `action=register&username=${f66}&email=${f70}&password=${f67}`
-    })
-    .then(f68 => f68.json())
-    .then(f69 => {
-        if (f69.success) {
-            alert('Registration successful! Please login.');
-            f65();
-        } else {
-            alert('Registration failed');
-        }
-    });
-}
-
-function f63() {
-    document.getElementById('loginForm').classList.add('hidden');
-    document.getElementById('registerForm').classList.remove('hidden');
-}
-
-function f65() {
-    document.getElementById('registerForm').classList.add('hidden');
-    document.getElementById('loginForm').classList.remove('hidden');
-}
-</script>
 
 <?php else: ?>
 
-<div class="min-h-screen">
-    <nav class="glass-effect shadow-lg sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center space-x-4">
-                    <div class="flex-shrink-0 flex items-center">
-                        <i class="fas fa-quran text-2xl text-indigo-600 mr-2"></i>
-                        <span class="text-xl font-bold text-gray-900 dark:text-white">Quran Study Hub</span>
-                    </div>
-                    <div class="hidden md:flex space-x-1">
-                        <button onclick="f71('reader')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-indigo-100 dark:hover:bg-indigo-900">
-                            <i class="fas fa-book-open mr-1"></i>Reader
-                        </button>
-                        <button onclick="f71('search')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-indigo-100 dark:hover:bg-indigo-900">
-                            <i class="fas fa-search mr-1"></i>Search
-                        </button>
-                        <button onclick="f71('study')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-indigo-100 dark:hover:bg-indigo-900">
-                            <i class="fas fa-graduation-cap mr-1"></i>Study
-                        </button>
-                        <button onclick="f71('hifz')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-indigo-100 dark:hover:bg-indigo-900">
-                            <i class="fas fa-memory mr-1"></i>Hifz
-                        </button>
-                        <?php if ($_SESSION['role'] === 'admin'): ?>
-                        <button onclick="f71('admin')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-red-100 dark:hover:bg-red-900 text-red-600">
-                            <i class="fas fa-cog mr-1"></i>Admin
-                        </button>
-                        <?php endif; ?>
+<nav class="glass shadow-lg sticky top-0 z-50">
+    <div class="container">
+        <div class="flex justify-between items-center py-4">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center">
+                    <i class="fas fa-quran text-2xl text-blue-600 mr-3"></i>
+                    <span class="text-xl font-bold text-gray-800">Quran Study Hub</span>
+                </div>
+                <div class="hidden md:flex space-x-2">
+                    <a href="?section=reader" class="nav-link <?= $currentSection === 'reader' ? 'active' : '' ?>">
+                        <i class="fas fa-book-open"></i>Reader
+                    </a>
+                    <a href="?section=search" class="nav-link <?= $currentSection === 'search' ? 'active' : '' ?>">
+                        <i class="fas fa-search"></i>Search
+                    </a>
+                    <a href="?section=study" class="nav-link <?= $currentSection === 'study' ? 'active' : '' ?>">
+                        <i class="fas fa-graduation-cap"></i>Study
+                    </a>
+                    <a href="?section=hifz" class="nav-link <?= $currentSection === 'hifz' ? 'active' : '' ?>">
+                        <i class="fas fa-memory"></i>Hifz
+                    </a>
+                    <?php if ($_SESSION['role'] === 'admin'): ?>
+                    <a href="?section=admin" class="nav-link <?= $currentSection === 'admin' ? 'active' : '' ?>" style="color: #dc2626;">
+                        <i class="fas fa-cog"></i>Admin
+                    </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-600 hidden sm:block">
+                    Welcome, <?= htmlspecialchars($_SESSION['username']) ?>
+                </span>
+                <form method="POST" style="display: inline;">
+                    <input type="hidden" name="action" value="logout">
+                    <button type="submit" class="text-red-600 hover:text-red-700">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-6">
+
+<?php if ($currentSection === 'reader'): ?>
+<div class="space-y-6">
+    <div class="glass-card">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+            <div class="flex items-center space-x-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">Surah</label>
+                    <form method="GET" onchange="this.submit()">
+                        <input type="hidden" name="section" value="reader">
+                        <input type="hidden" name="a" value="1">
+                        <select name="s" class="form-select">
+                            <?php foreach ($f60 as $num => $name): ?>
+                            <option value="<?= $num ?>" <?= $currentSurah == $num ? 'selected' : '' ?>>
+                                <?= $num ?>. <?= $name ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </form>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">Ayah</label>
+                    <form method="GET" onchange="this.submit()">
+                        <input type="hidden" name="section" value="reader">
+                        <input type="hidden" name="s" value="<?= $currentSurah ?>">
+                        <select name="a" class="form-select">
+                            <?php for ($i = 1; $i <= $f61[$currentSurah]; $i++): ?>
+                            <option value="<?= $i ?>" <?= $currentAyah == $i ? 'selected' : '' ?>>
+                                <?= $i ?>
+                            </option>
+                            <?php endfor; ?>
+                        </select>
+                    </form>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <?php 
+                $prevS = $currentSurah;
+                $prevA = $currentAyah - 1;
+                if ($prevA < 1 && $currentSurah > 1) {
+                    $prevS = $currentSurah - 1;
+                    $prevA = $f61[$prevS];
+                }
+                
+                $nextS = $currentSurah;
+                $nextA = $currentAyah + 1;
+                if ($nextA > $f61[$currentSurah] && $currentSurah < 114) {
+                    $nextS = $currentSurah + 1;
+                    $nextA = 1;
+                }
+                ?>
+                <?php if ($prevA >= 1 || $prevS != $currentSurah): ?>
+                <a href="?section=reader&s=<?= $prevS ?>&a=<?= $prevA ?>" class="btn btn-secondary">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                <?php endif; ?>
+                <?php if ($nextA <= $f61[$currentSurah] || $nextS != $currentSurah): ?>
+                <a href="?section=reader&s=<?= $nextS ?>&a=<?= $nextA ?>" class="btn btn-secondary">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3">
+        <div class="lg:col-span-2">
+            <div class="glass-card">
+                <div class="text-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">
+                        <?= $f60[$currentSurah] ?>
+                    </h2>
+                    <p class="text-lg text-gray-600">Ayah <?= $currentAyah ?></p>
+                </div>
+                
+                <div class="p-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl mb-6">
+                    <div class="arabic text-4xl leading-loose text-center text-gray-800" style="line-height: 2.5;">
+                        <?php foreach ($currentWords as $word): ?>
+                        <span class="word-span">
+                            <?= htmlspecialchars($word['quran_text']) ?>
+                            <div class="tooltip">
+                                <div class="arabic text-lg mb-2"><?= htmlspecialchars($word['quran_text']) ?></div>
+                                <div class="text-blue-300 text-sm mb-1">
+                                    <?= htmlspecialchars($word['en_meaning'] ?: 'No English meaning') ?>
+                                </div>
+                                <div class="text-green-300 text-sm">
+                                    <?= htmlspecialchars($word['ur_meaning'] ?: 'No Urdu meaning') ?>
+                                </div>
+                            </div>
+                        </span>
+                        <?php endforeach; ?>
                     </div>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-sm text-gray-600 dark:text-gray-300 hidden sm:block">
-                        Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?>
-                    </span>
-                    <button onclick="f72()" class="text-red-600 hover:text-red-700 transition-colors duration-200">
-                        <i class="fas fa-sign-out-alt"></i>
+                
+                <div class="flex justify-center space-x-4">
+                    <button class="btn btn-primary" onclick="alert('Audio feature coming soon')">
+                        <i class="fas fa-play"></i>Play Audio
+                    </button>
+                    <button class="btn btn-secondary" onclick="toggleMeanings()">
+                        <i class="fas fa-language"></i>Toggle Meanings
                     </button>
                 </div>
             </div>
         </div>
-    </nav>
 
-    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div id="readerSection" class="section-content">
-            <div class="glass-effect rounded-2xl shadow-2xl p-6 mb-6">
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-                    <div class="flex items-center space-x-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Surah</label>
-                            <select id="surahSelect" onchange="f73()" class="form-select rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <?php foreach ($f60 as $f74 => $f75): ?>
-                                <option value="<?php echo $f74; ?>"><?php echo $f74 . '. ' . $f75; ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ayah</label>
-                            <select id="ayahSelect" onchange="f76()" class="form-select rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="1">1</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <button onclick="f77()" class="btn-primary px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <button onclick="f78()" class="btn-primary px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
-                </div>
+        <div class="space-y-6">
+            <div class="glass-card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-sticky-note mr-2 text-yellow-500"></i>Personal Tafsir
+                </h3>
+                <form method="POST">
+                    <input type="hidden" name="action" value="save_tafsir">
+                    <input type="hidden" name="surah" value="<?= $currentSurah ?>">
+                    <input type="hidden" name="ayah" value="<?= $currentAyah ?>">
+                    <textarea name="tafsir" rows="4" class="form-textarea mb-4" placeholder="Write your personal reflections..."><?= htmlspecialchars($userTafsir['tafsir_text'] ?? '') ?></textarea>
+                    <button type="submit" class="btn btn-primary w-full">
+                        <i class="fas fa-save"></i>Save Tafsir
+                    </button>
+                </form>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2">
-                    <div class="glass-effect rounded-2xl shadow-2xl p-8">
-                        <div class="text-center mb-6">
-                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                                <span id="currentSurahName">Al-Fatiha</span>
-                            </h2>
-                            <p class="text-lg text-gray-600 dark:text-gray-300">
-                                Ayah <span id="currentAyahNum">1</span>
-                            </p>
-                        </div>
-                        
-                        <div id="ayahDisplay" class="text-center p-8 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 rounded-xl mb-6">
-                            <div id="arabicText" class="font-arabic text-3xl md:text-4xl leading-loose text-gray-800 dark:text-gray-200 mb-4" style="line-height: 2.5;">
-                            </div>
-                            <div id="meaningDisplay" class="text-lg text-gray-600 dark:text-gray-400 italic mt-4 hidden">
-                            </div>
-                        </div>
-                        
-                        <div class="flex justify-center space-x-4 mb-6">
-                            <button onclick="f79()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                                <i class="fas fa-language mr-2"></i>Show Meanings
-                            </button>
-                            <button onclick="f80()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
-                                <i class="fas fa-play mr-2"></i>Audio
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <div class="glass-effect rounded-2xl shadow-xl p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                            <i class="fas fa-sticky-note mr-2 text-yellow-500"></i>Personal Tafsir
-                        </h3>
-                        <textarea id="tafsirText" rows="4" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 mb-3" placeholder="Write your personal reflections..."></textarea>
-                        <button onclick="f81()" class="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors duration-200">
-                            Save Tafsir
-                        </button>
-                    </div>
-
-                    <div class="glass-effect rounded-2xl shadow-xl p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                            <i class="fas fa-tags mr-2 text-purple-500"></i>Thematic Links
-                        </h3>
-                        <input id="themeInput" type="text" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 mb-3" placeholder="Theme name">
-                        <textarea id="themeNotes" rows="3" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 mb-3" placeholder="Theme notes..."></textarea>
-                        <button onclick="f82()" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200">
-                            Add Theme
-                        </button>
-                        <div id="themesList" class="mt-4 space-y-2"></div>
-                    </div>
-
-                    <div class="glass-effect rounded-2xl shadow-xl p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                            <i class="fas fa-brain mr-2 text-green-500"></i>Hifz Status
-                        </h3>
-                        <div id="hifzStatus" class="mb-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-600 dark:text-gray-400">Mastery Level:</span>
-                                <select id="hifzLevel" class="form-select text-sm rounded">
-                                    <option value="1">1 - Learning</option>
-                                    <option value="2">2 - Practicing</option>
-                                    <option value="3">3 - Memorized</option>
-                                    <option value="4">4 - Reviewing</option>
-                                    <option value="5">5 - Mastered</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button onclick="f83()" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
-                            Update Hifz
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="searchSection" class="section-content hidden">
-            <div class="glass-effect rounded-2xl shadow-2xl p-6">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                    <i class="fas fa-search mr-3 text-indigo-600"></i>Advanced Search
-                </h2>
+            <div class="glass-card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-tags mr-2 text-purple-500"></i>Thematic Links
+                </h3>
+                <form method="POST" class="mb-4">
+                    <input type="hidden" name="action" value="save_theme">
+                    <input type="hidden" name="surah" value="<?= $currentSurah ?>">
+                    <input type="hidden" name="ayah" value="<?= $currentAyah ?>">
+                    <input type="text" name="theme" placeholder="Theme name" class="form-input mb-3" required>
+                    <textarea name="notes" rows="3" class="form-textarea mb-3" placeholder="Theme notes..."></textarea>
+                    <button type="submit" class="btn btn-primary w-full">
+                        <i class="fas fa-plus"></i>Add Theme
+                    </button>
+                </form>
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div class="md:col-span-2">
-                        <input id="searchQuery" type="text" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Search in Quran...">
+                <div class="space-y-2">
+                    <?php foreach ($userThemes as $theme): ?>
+                    <div class="p-3 bg-purple-100 rounded-lg">
+                        <div class="font-semibold text-purple-800"><?= htmlspecialchars($theme['theme_name']) ?></div>
+                        <div class="text-sm text-purple-600"><?= htmlspecialchars($theme['notes']) ?></div>
                     </div>
-                    <div class="flex space-x-2">
-                        <select id="searchType" class="form-select rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="arabic">Arabic Text</option>
-                            <option value="translation">Translation</option>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-brain mr-2 text-green-500"></i>Hifz Status
+                </h3>
+                <form method="POST">
+                    <input type="hidden" name="action" value="update_hifz">
+                    <input type="hidden" name="surah" value="<?= $currentSurah ?>">
+                    <input type="hidden" name="ayah" value="<?= $currentAyah ?>">
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-600 mb-2">Mastery Level</label>
+                        <select name="level" class="form-select">
+                            <option value="1" <?= ($userHifz['mastery_level'] ?? 1) == 1 ? 'selected' : '' ?>>1 - Learning</option>
+                            <option value="2" <?= ($userHifz['mastery_level'] ?? 1) == 2 ? 'selected' : '' ?>>2 - Practicing</option>
+                            <option value="3" <?= ($userHifz['mastery_level'] ?? 1) == 3 ? 'selected' : '' ?>>3 - Memorized</option>
+                            <option value="4" <?= ($userHifz['mastery_level'] ?? 1) == 4 ? 'selected' : '' ?>>4 - Reviewing</option>
+                            <option value="5" <?= ($userHifz['mastery_level'] ?? 1) == 5 ? 'selected' : '' ?>>5 - Mastered</option>
                         </select>
-                        <button onclick="f84()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200">
-                            Search
-                        </button>
                     </div>
-                </div>
-                
-                <div id="searchResults" class="space-y-4"></div>
+                    <button type="submit" class="btn btn-primary w-full">
+                        <i class="fas fa-save"></i>Update Hifz
+                    </button>
+                </form>
             </div>
         </div>
-
-        <div id="studySection" class="section-content hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="glass-effect rounded-2xl shadow-2xl p-6">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">
-                        <i class="fas fa-clock mr-3 text-blue-600"></i>Recitation Log
-                    </h3>
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Surah</label>
-                                <select id="reciteSurah" class="form-select w-full rounded-lg border-gray-300 shadow-sm">
-                                    <?php foreach ($f60 as $f74 => $f75): ?>
-                                    <option value="<?php echo $f74; ?>"><?php echo $f74 . '. ' . $f75; ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Duration (min)</label>
-                                <input id="reciteDuration" type="number" class="form-input w-full rounded-lg border-gray-300 shadow-sm" placeholder="Minutes">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">From Ayah</label>
-                                <input id="reciteStart" type="number" min="1" value="1" class="form-input w-full rounded-lg border-gray-300 shadow-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To Ayah</label>
-                                <input id="reciteEnd" type="number" min="1" value="1" class="form-input w-full rounded-lg border-gray-300 shadow-sm">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notes</label>
-                            <textarea id="reciteNotes" rows="3" class="form-textarea w-full rounded-lg border-gray-300 shadow-sm" placeholder="Any notes or reflections..."></textarea>
-                        </div>
-                        <button onclick="f85()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                            Log Recitation
-                        </button>
-                    </div>
-                </div>
-
-                <div class="glass-effect rounded-2xl shadow-2xl p-6">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">
-                        <i class="fas fa-chart-line mr-3 text-green-600"></i>Study Statistics
-                    </h3>
-                    <div class="space-y-6" id="studyStats">
-                        <div class="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900 dark:to-indigo-900 rounded-xl">
-                            <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">0</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">Total Recitations</div>
-                        </div>
-                        <div class="text-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900 dark:to-emerald-900 rounded-xl">
-                            <div class="text-2xl font-bold text-green-600 dark:text-green-400">0</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">Ayahs Memorized</div>
-                        </div>
-                        <div class="text-center p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900 dark:to-pink-900 rounded-xl">
-                            <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">0</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">Personal Notes</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="hifzSection" class="section-content hidden">
-            <div class="glass-effect rounded-2xl shadow-2xl p-6">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                    <i class="fas fa-memory mr-3 text-green-600"></i>Hifz Tracking Dashboard
-                </h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                    <div class="text-center p-6 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900 dark:to-green-900 rounded-xl">
-                        <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400" id="totalMemorized">0</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">Ayahs Memorized</div>
-                    </div>
-                    <div class="text-center p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900 dark:to-indigo-900 rounded-xl">
-                        <div class="text-3xl font-bold text-blue-600 dark:text-blue-400" id="reviewsDue">0</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">Reviews Due</div>
-                    </div>
-                    <div class="text-center p-6 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900 dark:to-orange-900 rounded-xl">
-                        <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400" id="progressPercent">0%</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">Overall Progress</div>
-                    </div>
-                    <div class="text-center p-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900 dark:to-pink-900 rounded-xl">
-                        <div class="text-3xl font-bold text-purple-600 dark:text-purple-400" id="currentStreak">0</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">Day Streak</div>
-                    </div>
-                </div>
-
-                <div id="hifzProgress" class="space-y-4"></div>
-            </div>
-        </div>
-
-        <?php if ($_SESSION['role'] === 'admin'): ?>
-        <div id="adminSection" class="section-content hidden">
-            <div class="glass-effect rounded-2xl shadow-2xl p-6">
-                <h2 class="text-2xl font-bold text-red-600 mb-6">
-                    <i class="fas fa-cog mr-3"></i>Admin Panel
-                </h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="p-6 bg-red-50 dark:bg-red-900 rounded-xl">
-                        <h3 class="text-lg font-semibold text-red-800 dark:text-red-200 mb-4">
-                            <i class="fas fa-book mr-2"></i>Word Dictionary Upload
-                        </h3>
-                        <p class="text-sm text-red-600 dark:text-red-300 mb-4">
-                            Upload CSV with: quran_text, ur_meaning, en_meaning
-                        </p>
-                        <input type="file" id="dictFile" accept=".csv" class="mb-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
-                        <button onclick="f86()" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
-                            Upload Dictionary
-                        </button>
-                    </div>
-                    
-                    <div class="p-6 bg-blue-50 dark:bg-blue-900 rounded-xl">
-                        <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-4">
-                            <i class="fas fa-map mr-2"></i>Word Mapping Upload
-                        </h3>
-                        <p class="text-sm text-blue-600 dark:text-blue-300 mb-4">
-                            Upload CSV with: word_id, surah, ayah, word_position
-                        </p>
-                        <input type="file" id="mapFile" accept=".csv" class="mb-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                        <button onclick="f87()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                            Upload Mapping
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
-    </main>
-    
-    <div id="wordTooltip" class="fixed z-50 p-4 bg-gray-900 text-white rounded-lg shadow-2xl max-w-sm hidden transform transition-all duration-200">
-        <div class="font-arabic text-lg mb-2" id="tooltipArabic"></div>
-        <div class="text-sm text-blue-300 mb-1" id="tooltipEnglish"></div>
-        <div class="text-sm text-green-300" id="tooltipUrdu"></div>
     </div>
 </div>
 
-<script>
-let f88 = 1;
-let f89 = 1;
-let f90 = <?php echo json_encode($f60); ?>;
-let f91 = <?php echo json_encode($f61); ?>;
-
-function f71(f92) {
-    document.querySelectorAll('.section-content').forEach(f93 => f93.classList.add('hidden'));
-    document.getElementById(f92 + 'Section').classList.remove('hidden');
+<?php elseif ($currentSection === 'search'): ?>
+<div class="glass-card">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+        <i class="fas fa-search mr-3 text-blue-600"></i>Advanced Search
+    </h2>
     
-    document.querySelectorAll('.nav-btn').forEach(f94 => f94.classList.remove('bg-indigo-100', 'dark:bg-indigo-900'));
-    event.target.classList.add('bg-indigo-100', 'dark:bg-indigo-900');
-}
-
-function f72() {
-    fetch('', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'action=logout'
-    }).then(() => location.reload());
-}
-
-function f73() {
-    f88 = parseInt(document.getElementById('surahSelect').value);
-    f89 = 1;
-    f95();
-    f76();
-}
-
-function f95() {
-    const f96 = document.getElementById('ayahSelect');
-    f96.innerHTML = '';
-    for (let f97 = 1; f97 <= f91[f88]; f97++) {
-        f96.innerHTML += `<option value="${f97}">${f97}</option>`;
-    }
-    f96.value = f89;
-}
-
-function f76() {
-    f89 = parseInt(document.getElementById('ayahSelect').value);
-    f98();
-    f99();
-}
-
-function f98() {
-    document.getElementById('currentSurahName').textContent = f90[f88];
-    document.getElementById('currentAyahNum').textContent = f89;
+    <form method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <input type="hidden" name="action" value="search">
+        <div class="md:col-span-2">
+            <input type="text" name="query" value="<?= htmlspecialchars($_GET['q'] ?? '') ?>" class="form-input" placeholder="Search in Quran..." required>
+        </div>
+        <div class="flex space-x-2">
+            <select name="type" class="form-select">
+                <option value="arabic" <?= ($_GET['type'] ?? 'arabic') === 'arabic' ? 'selected' : '' ?>>Arabic Text</option>
+                <option value="translation" <?= ($_GET['type'] ?? 'arabic') === 'translation' ? 'selected' : '' ?>>Translation</option>
+            </select>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i>Search
+            </button>
+        </div>
+    </form>
     
-    fetch(`?api=ayah_words&surah=${f88}&ayah=${f89}`)
-        .then(f100 => f100.json())
-        .then(f101 => {
-            const f102 = document.getElementById('arabicText');
-            f102.innerHTML = '';
-            
-            f101.forEach(f103 => {
-                const f104 = document.createElement('span');
-                f104.textContent = f103.quran_text + ' ';
-                f104.className = 'word-hover cursor-pointer mx-1 px-2 py-1';
-                f104.setAttribute('data-surah', f103.surah);
-                f104.setAttribute('data-ayah', f103.ayah);
-                f104.setAttribute('data-pos', f103.word_position);
-                f104.setAttribute('data-word-id', f103.word_id);
-                
-                f104.addEventListener('mouseenter', f105);
-                f104.addEventListener('mouseleave', f106);
-                f104.addEventListener('mousemove', f107);
-                
-                f102.appendChild(f104);
-            });
-        });
-}
-
-function f105(f108) {
-    const f109 = f108.target.getAttribute('data-word-id');
-    
-    fetch('', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `action=get_word_meaning&word_id=${f109}`
-    })
-    .then(f100 => f100.json())
-    .then(f110 => {
-        if (f110) {
-            document.getElementById('tooltipArabic').textContent = f110.quran_text;
-            document.getElementById('tooltipEnglish').textContent = f110.en_meaning || 'No English meaning';
-            document.getElementById('tooltipUrdu').textContent = f110.ur_meaning || 'No Urdu meaning';
-            document.getElementById('wordTooltip').classList.remove('hidden');
-        }
-    });
-}
-
-function f106() {
-    document.getElementById('wordTooltip').classList.add('hidden');
-}
-
-function f107(f108) {
-    const f111 = document.getElementById('wordTooltip');
-    f111.style.left = (f108.pageX + 10) + 'px';
-    f111.style.top = (f108.pageY - 10) + 'px';
-}
-
-function f99() {
-    fetch(`?api=user_data&surah=${f88}&ayah=${f89}`)
-        .then(f100 => f100.json())
-        .then(f112 => {
-            document.getElementById('tafsirText').value = f112.tafsir ? f112.tafsir.tafsir_text : '';
-            
-            const f113 = document.getElementById('themesList');
-            f113.innerHTML = '';
-            if (f112.themes) {
-                f112.themes.forEach(f114 => {
-                    f113.innerHTML += `<div class="p-2 bg-purple-100 dark:bg-purple-800 rounded text-sm">
-                        <strong>${f114.theme_name}</strong><br>
-                        <span class="text-gray-600 dark:text-gray-300">${f114.notes}</span>
-                    </div>`;
-                });
-            }
-            
-            if (f112.hifz) {
-                document.getElementById('hifzLevel').value = f112.hifz.mastery_level;
-            }
-        });
-}
-
-function f77() {
-    if (f89 > 1) {
-        f89--;
-    } else if (f88 > 1) {
-        f88--;
-        f89 = f91[f88];
-    }
-    f115();
-}
-
-function f78() {
-    if (f89 < f91[f88]) {
-        f89++;
-    } else if (f88 < 114) {
-        f88++;
-        f89 = 1;
-    }
-    f115();
-}
-
-function f115() {
-    document.getElementById('surahSelect').value = f88;
-    f95();
-    f76();
-}
-
-function f79() {
-    const f116 = document.getElementById('meaningDisplay');
-    f116.classList.toggle('hidden');
-}
-
-function f80() {
-    alert('Audio feature will be implemented with audio API integration');
-}
-
-function f81() {
-    const f117 = document.getElementById('tafsirText').value;
-    
-    fetch('', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `action=save_tafsir&surah=${f88}&ayah=${f89}&tafsir=${encodeURIComponent(f117)}`
-    })
-    .then(f100 => f100.json())
-    .then(f118 => {
-        if (f118.success) {
-            f119('Tafsir saved successfully!', 'success');
-        }
-    });
-}
-
-function f82() {
-    const f120 = document.getElementById('themeInput').value;
-    const f121 = document.getElementById('themeNotes').value;
-    
-    if (!f120) return;
-    
-    fetch('', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `action=save_theme&surah=${f88}&ayah=${f89}&theme=${encodeURIComponent(f120)}&notes=${encodeURIComponent(f121)}`
-    })
-    .then(f100 => f100.json())
-    .then(f118 => {
-        if (f118.success) {
-            f119('Theme saved successfully!', 'success');
-            document.getElementById('themeInput').value = '';
-            document.getElementById('themeNotes').value = '';
-            f99();
-        }
-    });
-}
-
-function f83() {
-    const f122 = document.getElementById('hifzLevel').value;
-    
-    fetch('', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `action=update_hifz&surah=${f88}&ayah=${f89}&level=${f122}`
-    })
-    .then(f100 => f100.json())
-    .then(f118 => {
-        if (f118.success) {
-            f119('Hifz status updated!', 'success');
-            f123();
-        }
-    });
-}
-
-function f84() {
-    const f124 = document.getElementById('searchQuery').value;
-    const f125 = document.getElementById('searchType').value;
-    
-    if (!f124) return;
-    
-    fetch('', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `action=search&query=${encodeURIComponent(f124)}&type=${f125}`
-    })
-    .then(f100 => f100.json())
-    .then(f126 => {
-        const f127 = document.getElementById('searchResults');
-        f127.innerHTML = '';
+    <div class="space-y-4">
+        <?php if (empty($searchResults) && isset($_GET['q'])): ?>
+        <div class="text-center text-gray-500 py-8">No results found for "<?= htmlspecialchars($_GET['q']) ?>"</div>
+        <?php endif; ?>
         
-        if (f126.length === 0) {
-            f127.innerHTML = '<div class="text-center text-gray-500 py-8">No results found</div>';
-            return;
-        }
-        
-        f126.forEach(f128 => {
-            f127.innerHTML += `<div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900 transition-colors duration-200" 
-                onclick="f129(${f128.surah}, ${f128.ayah})">
+        <?php foreach ($searchResults as $result): ?>
+        <div class="card hover:shadow-lg transition-shadow duration-300">
+            <a href="?section=reader&s=<?= $result['surah'] ?>&a=<?= $result['ayah'] ?>" class="block">
                 <div class="flex justify-between items-center">
-                    <span class="font-medium">${f90[f128.surah]} ${f128.surah}:${f128.ayah}</span>
-                    <i class="fas fa-arrow-right text-indigo-600"></i>
+                    <span class="font-semibold text-gray-800">
+                        <?= $f60[$result['surah']] ?> <?= $result['surah'] ?>:<?= $result['ayah'] ?>
+                    </span>
+                    <i class="fas fa-arrow-right text-blue-600"></i>
                 </div>
-            </div>`;
-        });
-    });
-}
+            </a>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</div>
 
-function f129(f130, f131) {
-    f88 = f130;
-    f89 = f131;
-    f71('reader');
-    f115();
-}
+<?php elseif ($currentSection === 'study'): ?>
+<div class="grid grid-cols-1 lg:grid-cols-2">
+    <div class="glass-card">
+        <h3 class="text-xl font-bold text-gray-800 mb-6">
+            <i class="fas fa-clock mr-3 text-blue-600"></i>Recitation Log
+        </h3>
+        <form method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="log_recitation">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">Surah</label>
+                    <select name="surah" class="form-select">
+                        <?php foreach ($f60 as $num => $name): ?>
+                        <option value="<?= $num ?>"><?= $num ?>. <?= $name ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">Duration (min)</label>
+                    <input type="number" name="duration" class="form-input" placeholder="Minutes" required>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">From Ayah</label>
+                    <input type="number" name="ayah_start" min="1" value="1" class="form-input" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">To Ayah</label>
+                    <input type="number" name="ayah_end" min="1" value="1" class="form-input" required>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600 mb-2">Notes</label>
+                <textarea name="notes" rows="3" class="form-textarea" placeholder="Any notes or reflections..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-full">
+                <i class="fas fa-plus"></i>Log Recitation
+            </button>
+        </form>
+    </div>
 
-function f85() {
-    const f132 = document.getElementById('reciteSurah').value;
-    const f133 = document.getElementById('reciteStart').value;
-    const f134 = document.getElementById('reciteEnd').value;
-    const f135 = document.getElementById('reciteDuration').value;
-    const f136 = document.getElementById('reciteNotes').value;
+    <div class="glass-card">
+        <h3 class="text-xl font-bold text-gray-800 mb-6">
+            <i class="fas fa-chart-line mr-3 text-green-600"></i>Study Statistics
+        </h3>
+        <div class="space-y-6">
+            <?php
+            $totalRecitations = $db->querySingle("SELECT COUNT(*) FROM recitation_logs WHERE user_id = " . $_SESSION['user_id']);
+            $totalAyahs = $db->querySingle("SELECT COUNT(*) FROM hifz_tracking WHERE user_id = " . $_SESSION['user_id'] . " AND mastery_level >= 3");
+            $totalNotes = $db->querySingle("SELECT COUNT(*) FROM personal_tafsir WHERE user_id = " . $_SESSION['user_id']);
+            ?>
+            <div class="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
+                <div class="text-2xl font-bold text-blue-600"><?= $totalRecitations ?></div>
+                <div class="text-sm text-gray-600">Total Recitations</div>
+            </div>
+            <div class="text-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
+                <div class="text-2xl font-bold text-green-600"><?= $totalAyahs ?></div>
+                <div class="text-sm text-gray-600">Ayahs Memorized</div>
+            </div>
+            <div class="text-center p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
+                <div class="text-2xl font-bold text-purple-600"><?= $totalNotes ?></div>
+                <div class="text-sm text-gray-600">Personal Notes</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php elseif ($currentSection === 'hifz'): ?>
+<div class="glass-card">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+        <i class="fas fa-memory mr-3 text-green-600"></i>Hifz Tracking Dashboard
+    </h2>
     
-    fetch('', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `action=log_recitation&surah=${f132}&ayah_start=${f133}&ayah_end=${f134}&duration=${f135}&notes=${encodeURIComponent(f136)}`
-    })
-    .then(f100 => f100.json())
-    .then(f118 => {
-        if (f118.success) {
-            f119('Recitation logged successfully!', 'success');
-            document.getElementById('reciteDuration').value = '';
-            document.getElementById('reciteNotes').value = '';
-            f137();
-        }
-    });
-}
-
-function f123() {
-    fetch(`?api=hifz_progress`)
-        .then(f100 => f100.json())
-        .then(f138 => {
-            const f139 = document.getElementById('hifzProgress');
-            f139.innerHTML = '';
-            
-            f138.forEach(f140 => {
-                const f141 = `mastery-${f140.mastery_level}`;
-                f139.innerHTML += `<div class="p-4 ${f141} rounded-lg shadow">
-                    <div class="flex justify-between items-center">
-                        <span class="font-medium">${f90[f140.surah]} ${f140.surah}:${f140.ayah}</span>
-                        <span class="text-sm opacity-75">Level ${f140.mastery_level}</span>
-                    </div>
-                    <div class="text-sm opacity-75 mt-1">
-                        Reviewed ${f140.review_count} times
-                    </div>
-                </div>`;
-            });
-        });
-}
-
-function f137() {
-    fetch(`?api=study_stats`)
-        .then(f100 => f100.json())
-        .then(f142 => {
-            if (f142.recitations) document.querySelector('#studyStats div:nth-child(1) .text-2xl').textContent = f142.recitations;
-            if (f142.memorized) document.querySelector('#studyStats div:nth-child(2) .text-2xl').textContent = f142.memorized;
-            if (f142.notes) document.querySelector('#studyStats div:nth-child(3) .text-2xl').textContent = f142.notes;
-        });
-}
-
-function f86() {
-    const f143 = document.getElementById('dictFile').files[0];
-    if (!f143) return;
+    <?php
+    $hifzStats = $db->prepare("SELECT 
+        COUNT(*) as total_memorized,
+        COUNT(CASE WHEN mastery_level >= 3 THEN 1 END) as memorized_ayahs,
+        COUNT(CASE WHEN last_reviewed < date('now', '-7 days') THEN 1 END) as reviews_due
+        FROM hifz_tracking WHERE user_id = ?");
+    $hifzStats->bindValue(1, $_SESSION['user_id']);
+    $statsResult = $hifzStats->execute();
+    $stats = $statsResult->fetchArray(SQLITE3_ASSOC);
+    ?>
     
-    const f144 = new FormData();
-    f144.append('action', 'upload_dictionary');
-    f144.append('dict_file', f143);
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="text-center p-6 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl">
+            <div class="text-3xl font-bold text-emerald-600"><?= $stats['memorized_ayahs'] ?></div>
+            <div class="text-sm text-gray-600">Ayahs Memorized</div>
+        </div>
+        <div class="text-center p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
+            <div class="text-3xl font-bold text-blue-600"><?= $stats['reviews_due'] ?></div>
+            <div class="text-sm text-gray-600">Reviews Due</div>
+        </div>
+        <div class="text-center p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl">
+            <div class="text-3xl font-bold text-yellow-600"><?= round(($stats['memorized_ayahs']/6236)*100, 1) ?>%</div>
+            <div class="text-sm text-gray-600">Overall Progress</div>
+        </div>
+        <div class="text-center p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
+            <div class="text-3xl font-bold text-purple-600">0</div>
+            <div class="text-sm text-gray-600">Day Streak</div>
+        </div>
+    </div>
+
+    <?php
+    $hifzProgress = $db->prepare("SELECT ht.*, 0 as surah_name FROM hifz_tracking ht WHERE user_id = ? ORDER BY surah, ayah LIMIT 50");
+    $hifzProgress->bindValue(1, $_SESSION['user_id']);
+    $progressResult = $hifzProgress->execute();
+    ?>
     
-    fetch('', {
-        method: 'POST',
-        body: f144
-    })
-    .then(f100 => f100.json())
-    .then(f118 => {
-        if (f118.success) {
-            f119('Dictionary uploaded successfully!', 'success');
+    <div class="space-y-4">
+        <?php while ($progress = $progressResult->fetchArray(SQLITE3_ASSOC)): ?>
+        <div class="p-4 mastery-<?= $progress['mastery_level'] ?> rounded-lg">
+            <div class="flex justify-between items-center">
+                <span class="font-semibold">
+                    <?= $f60[$progress['surah']] ?> <?= $progress['surah'] ?>:<?= $progress['ayah'] ?>
+                </span>
+                <span class="text-sm opacity-75">Level <?= $progress['mastery_level'] ?></span>
+            </div>
+            <div class="text-sm opacity-75 mt-1">
+                Reviewed <?= $progress['review_count'] ?> times
+            </div>
+        </div>
+        <?php endwhile; ?>
+    </div>
+</div>
+
+<?php elseif ($currentSection === 'admin' && $_SESSION['role'] === 'admin'): ?>
+<div class="glass-card">
+    <h2 class="text-2xl font-bold text-red-600 mb-6">
+        <i class="fas fa-cog mr-3"></i>Admin Panel
+    </h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="p-6 bg-red-50 rounded-xl">
+            <h3 class="text-lg font-semibold text-red-800 mb-4">
+                <i class="fas fa-book mr-2"></i>Word Dictionary Upload
+            </h3>
+            <p class="text-sm text-red-600 mb-4">
+                Upload CSV with: quran_text, ur_meaning, en_meaning
+            </p>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="upload_dictionary">
+                <input type="file" name="dict_file" accept=".csv" class="form-input mb-4" required>
+                <button type="submit" class="btn btn-primary w-full">
+                    <i class="fas fa-upload"></i>Upload Dictionary
+                </button>
+            </form>
+        </div>
+        
+        <div class="p-6 bg-blue-50 rounded-xl">
+            <h3 class="text-lg font-semibold text-blue-800 mb-4">
+                <i class="fas fa-map mr-2"></i>Word Mapping Upload
+            </h3>
+            <p class="text-sm text-blue-600 mb-4">
+                Upload CSV with: word_id, surah, ayah, word_position
+            </p>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="upload_mapping">
+                <input type="file" name="map_file" accept=".csv" class="form-input mb-4" required>
+                <button type="submit" class="btn btn-primary w-full">
+                    <i class="fas fa-upload"></i>Upload Mapping
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="mt-8 p-6 bg-gray-50 rounded-xl">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-database mr-2"></i>Database Status
+        </h3>
+        <div class="grid grid-cols-2 gap-4">
+            <?php
+            $dictCount = $db->querySingle("SELECT COUNT(*) FROM word_dictionary");
+            $mappingCount = $db->querySingle("SELECT COUNT(*) FROM ayah_word_mapping");
+            $userCount = $db->querySingle("SELECT COUNT(*) FROM users");
+            ?>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-blue-600"><?= $dictCount ?></div>
+                <div class="text-sm text-gray-600">Dictionary Words</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-600"><?= $mappingCount ?></div>
+                <div class="text-sm text-gray-600">Word Mappings</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-purple-600"><?= $userCount ?></div>
+                <div class="text-sm text-gray-600">Total Users</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-orange-600">
+                    <?= $db->querySingle("SELECT COUNT(DISTINCT surah) FROM ayah_word_mapping") ?>
+                </div>
+                <div class="text-sm text-gray-600">Surahs Available</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php endif; ?>
+
+</main>
+
+<script>
+function toggleMeanings() {
+    const tooltips = document.querySelectorAll('.tooltip');
+    tooltips.forEach(tooltip => {
+        if (tooltip.style.opacity === '1') {
+            tooltip.style.opacity = '0';
+            tooltip.style.visibility = 'hidden';
         } else {
-            f119('Upload failed!', 'error');
+            tooltip.style.opacity = '1';
+            tooltip.style.visibility = 'visible';
         }
     });
-}
-
-function f87() {
-    const f145 = document.getElementById('mapFile').files[0];
-    if (!f145) return;
-    
-    const f146 = new FormData();
-    f146.append('action', 'upload_mapping');
-    f146.append('map_file', f145);
-    
-    fetch('', {
-        method: 'POST',
-        body: f146
-    })
-    .then(f100 => f100.json())
-    .then(f118 => {
-        if (f118.success) {
-            f119('Mapping uploaded successfully!', 'success');
-        } else {
-            f119('Upload failed!', 'error');
-        }
-    });
-}
-
-function f119(f147, f148) {
-    const f149 = document.createElement('div');
-    f149.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white ${f148 === 'success' ? 'bg-green-500' : 'bg-red-500'} animate-slide-up`;
-    f149.textContent = f147;
-    document.body.appendChild(f149);
-    
-    setTimeout(() => {
-        f149.remove();
-    }, 3000);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    f98();
-    f99();
-    f137();
-    f123();
+    const wordSpans = document.querySelectorAll('.word-span');
+    
+    wordSpans.forEach(span => {
+        span.addEventListener('click', function() {
+            const tooltip = this.querySelector('.tooltip');
+            if (tooltip) {
+                tooltip.style.opacity = tooltip.style.opacity === '1' ? '0' : '1';
+                tooltip.style.visibility = tooltip.style.visibility === 'visible' ? 'hidden' : 'visible';
+            }
+        });
+    });
+
+    const forms = document.querySelectorAll('form[method="GET"]');
+    forms.forEach(form => {
+        form.addEventListener('change', function() {
+            this.submit();
+        });
+    });
+
+    const flashMessages = document.querySelectorAll('.flash-message');
+    flashMessages.forEach(message => {
+        setTimeout(() => {
+            message.style.opacity = '0';
+            setTimeout(() => message.remove(), 300);
+        }, 3000);
+    });
+
+    if (window.location.hash) {
+        const target = document.querySelector(window.location.hash);
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const mobileMenu = document.getElementById('mobile-menu');
+    
+    if (mobileMenuToggle && mobileMenu) {
+        mobileMenuToggle.addEventListener('click', function() {
+            mobileMenu.classList.toggle('hidden');
+        });
+    }
+
+    const saveButtons = document.querySelectorAll('button[type="submit"]');
+    saveButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+            this.disabled = true;
+        });
+    });
+
+    const searchForm = document.querySelector('form[action*="search"]');
+    if (searchForm) {
+        const searchInput = searchForm.querySelector('input[name="query"]');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchForm.submit();
+                }
+            });
+        }
+    }
+
+    const tooltipElements = document.querySelectorAll('[data-tooltip]');
+    tooltipElements.forEach(element => {
+        element.addEventListener('mouseenter', function() {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'absolute z-50 px-3 py-2 text-sm text-white bg-black rounded shadow-lg';
+            tooltip.textContent = this.getAttribute('data-tooltip');
+            tooltip.style.top = (this.offsetTop - 40) + 'px';
+            tooltip.style.left = this.offsetLeft + 'px';
+            document.body.appendChild(tooltip);
+            this.tooltipElement = tooltip;
+        });
+
+        element.addEventListener('mouseleave', function() {
+            if (this.tooltipElement) {
+                this.tooltipElement.remove();
+                this.tooltipElement = null;
+            }
+        });
+    });
+
+    window.addEventListener('beforeunload', function(e) {
+        const unsavedForms = document.querySelectorAll('form[data-changed="true"]');
+        if (unsavedForms.length > 0) {
+            e.preventDefault();
+            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        }
+    });
+
+    const formInputs = document.querySelectorAll('input, textarea, select');
+    formInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const form = this.closest('form');
+            if (form) {
+                form.setAttribute('data-changed', 'true');
+            }
+        });
+    });
+
+    const submitForms = document.querySelectorAll('form');
+    submitForms.forEach(form => {
+        form.addEventListener('submit', function() {
+            this.removeAttribute('data-changed');
+        });
+    });
+
+    const progressBars = document.querySelectorAll('.progress-bar');
+    progressBars.forEach(bar => {
+        const width = bar.getAttribute('data-width');
+        if (width) {
+            setTimeout(() => {
+                bar.style.width = width + '%';
+            }, 100);
+        }
+    });
+
+    const animatedCounters = document.querySelectorAll('.animate-counter');
+    animatedCounters.forEach(counter => {
+        const target = parseInt(counter.textContent);
+        let current = 0;
+        const increment = target / 100;
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+            }
+            counter.textContent = Math.floor(current);
+        }, 20);
+    });
 });
 
-window.addEventListener('load', function() {
-    document.body.classList.add('animate-fade-in');
-});
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white animate-slide-up ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+function confirmDelete(message) {
+    return confirm(message || 'Are you sure you want to delete this item?');
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification('Copied to clipboard!');
+    }).catch(() => {
+        showNotification('Failed to copy', 'error');
+    });
+}
+
+function shareAyah(surah, ayah) {
+    const url = `${window.location.origin}?section=reader&s=${surah}&a=${ayah}`;
+    if (navigator.share) {
+        navigator.share({
+            title: `Quran ${surah}:${ayah}`,
+            url: url
+        });
+    } else {
+        copyToClipboard(url);
+    }
+}
+
+function printAyah() {
+    window.print();
+}
+
+function exportData() {
+    showNotification('Export feature coming soon');
+}
+
+function importData() {
+    showNotification('Import feature coming soon');
+}
+
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+function changeTheme(theme) {
+    document.body.className = `theme-${theme}`;
+    localStorage.setItem('theme', theme);
+}
+
+function loadUserPreferences() {
+    const theme = localStorage.getItem('theme');
+    if (theme) {
+        changeTheme(theme);
+    }
+    
+    const fontSize = localStorage.getItem('fontSize');
+    if (fontSize) {
+        document.documentElement.style.fontSize = fontSize + 'px';
+    }
+}
+
+function saveFontSize(size) {
+    document.documentElement.style.fontSize = size + 'px';
+    localStorage.setItem('fontSize', size);
+}
+
+loadUserPreferences();
 </script>
 
 <?php endif; ?>
