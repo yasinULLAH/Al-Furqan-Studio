@@ -282,9 +282,9 @@ chmod 666 quran4.db
 - 📊 **Real-time Statistics** | حقیقی وقت کی شماریات: Live progress tracking | زندہ پیش قدمی کا ٹریکنگ
 
 
-## 🌟 Screenshots | اسکرین شاٹس
+## 🌟   App Video
 
-*Coming Soon - Application interface screenshots will be added* | *جلد آرہا ہے - ایپلیکیشن انٹرفیس کے اسکرین شاٹس شامل کیے جائیں گے*
+<video src="Quran-Study-App in php index9new.php file.mp4" style="width: 100%; height: auto; min-height: 400px;" controls></video>
 
 ## 🤝 Contributing | شراکت
 
