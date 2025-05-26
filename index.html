@@ -579,6 +579,81 @@
             background-color: var(--color-accent);
             box-shadow: 0 0 8px var(--color-accent);
          }
+
+
+                 /* Loading Indicator Enhancements */
+        #loading-overlay {
+            display: none; /* Hidden by default, shown by JS */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); /* Darker overlay */
+            color: white;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading-content {
+            background-color: var(--color-bg-secondary, #1a2b3c); /* Use theme color or fallback */
+            padding: 30px 40px;
+            border-radius: var(--border-radius, 8px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 90%;
+        }
+        body.theme-serene .loading-content { background-color: var(--color-bg-secondary); color: var(--color-text-primary);}
+        body.theme-manuscript .loading-content { background-color: var(--color-bg-secondary); color: var(--color-text-primary);}
+        body.theme-holo .loading-content { background-color: #1a2b3c; color: #e0f7fa; }
+
+
+        #loading-message-primary {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        #loading-message-secondary {
+            font-size: 1rem;
+            margin-bottom: 20px;
+            min-height: 1.6em; /* Prevent layout shift */
+        }
+
+        #loading-progress-bar-container {
+            width: 100%;
+            background-color: var(--color-border, #a5d6a7); /* Theme border or fallback */
+            border-radius: var(--border-radius, 8px);
+            overflow: hidden;
+            height: 20px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        body.theme-holo #loading-progress-bar-container { background-color: #26a69a; }
+
+
+        #loading-progress-bar {
+            height: 100%;
+            background-color: var(--color-accent, #4caf50); /* Theme accent or fallback */
+            width: 0%; /* Initial width */
+            transition: width 0.3s ease-out;
+            border-radius: var(--border-radius, 8px) 0 0 var(--border-radius, 8px); /* Maintain rounded left corners */
+        }
+         body.theme-holo #loading-progress-bar { background-color: var(--color-accent); }
+
+
+        #loading-percentage {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        #loading-first-time-notice {
+            font-size: 0.85em;
+            margin-top: 15px;
+            opacity: 0.8;
+        }
     </style>
     <!-- Optional: Include fonts if not available locally -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap">
@@ -591,7 +666,19 @@
 </head>
 <body dir="ltr"> <!-- Default direction, will be set dynamically if needed -->
 
-    <div id="loading-overlay">Loading Quran data... Please wait.</div>
+        <div id="loading-overlay">
+        <div class="loading-content">
+            <div id="loading-message-primary">Loading Quran data...</div>
+            <div id="loading-message-secondary">Initializing...</div>
+            <div id="loading-progress-bar-container">
+                <div id="loading-progress-bar" style="width: 0%;"></div>
+            </div>
+            <div id="loading-percentage">0%</div>
+            <div id="loading-first-time-notice" style="font-size: 0.9em; margin-top: 10px;">
+                (This intensive loading typically occurs only on the first visit or after an app update. Subsequent loads will be much faster.)
+            </div>
+        </div>
+    </div>
 
     <header>
         <h1>Nur Al-Quran Studio Offline</h1>
@@ -899,6 +986,8 @@
         const STORE_WORD_TRANSLATIONS = 'word_translations'; // Keyed by word_id
         const STORE_WORD_METADATA = 'word_metadata';         // Keyed by word_id, indexed by location
 
+        let totalProgressUnits = 0;
+        let completedProgressUnits = 0;
         // Data file names
         const WORD_TRANSLATION_FILE = 'data5 new.AM'; // Contains word_id, ur_meaning, en_meaning
         const WORD_METADATA_FILE = 'word2.AM';       // Contains word_id, surah, ayah, word_postion
@@ -1130,24 +1219,89 @@
 
 
         // --- Data Loading and Parsing ---
-        async function loadQuranData() {
-            showLoading("Loading Quran & Word Data...");
+                async function loadQuranData() {
+            // Reset progress counters
+            completedProgressUnits = 0;
+            totalProgressUnits = 0;
+
+            // Define weights for different loading stages
+            const WEIGHT_CHECK_SETTINGS = 1;
+            const WEIGHT_FETCH_FILE = 2;
+            const WEIGHT_PARSE_QURAN_FILE = 8; // Per full Quran text file
+            const WEIGHT_PARSE_WORD_FILE = 12; // Per word data file (translations or metadata)
+            const WEIGHT_DB_TRANSACTION_SETUP = 2;
+            const WEIGHT_DB_TRANSACTION_ITEM = 0.01; // Small weight per item stored
+            const WEIGHT_DB_TRANSACTION_COMPLETE = 5;
+
+
             try {
                 const settingsLoadedQuran = await getData(STORE_SETTINGS, 'quranDataLoaded').catch(() => null);
                 const settingsLoadedWordTranslations = await getData(STORE_SETTINGS, 'wordTranslationsLoaded').catch(() => null);
                 const settingsLoadedWordMetadata = await getData(STORE_SETTINGS, 'wordMetadataLoaded').catch(() => null);
+                const lastLoadedVersionEntry = await getData(STORE_SETTINGS, 'lastLoadedDBVersion').catch(() => null);
+                const lastLoadedVersion = lastLoadedVersionEntry ? lastLoadedVersionEntry.value : 0;
 
-                const currentDBVersionForCheck = 7;
-                const shouldLoadQuran = !(settingsLoadedQuran && settingsLoadedQuran.value === true && DB_VERSION >= 2);
-                const shouldLoadWordTranslations = !(settingsLoadedWordTranslations && settingsLoadedWordTranslations.value === true && DB_VERSION >= currentDBVersionForCheck);
-                const shouldLoadWordMetadata = !(settingsLoadedWordMetadata && settingsLoadedWordMetadata.value === true && DB_VERSION >= currentDBVersionForCheck);
+                const currentDBVersionForCheck = DB_VERSION; // Use the global DB_VERSION
+                const needsUpdateDueToVersion = DB_VERSION > lastLoadedVersion;
+
+                // Determine if data needs to be reloaded/updated
+                const shouldLoadQuran = !(settingsLoadedQuran && settingsLoadedQuran.value === true && !needsUpdateDueToVersion && DB_VERSION >= 2);
+                const shouldLoadWordTranslations = !(settingsLoadedWordTranslations && settingsLoadedWordTranslations.value === true && !needsUpdateDueToVersion && DB_VERSION >= currentDBVersionForCheck);
+                const shouldLoadWordMetadata = !(settingsLoadedWordMetadata && settingsLoadedWordMetadata.value === true && !needsUpdateDueToVersion && DB_VERSION >= currentDBVersionForCheck);
+
+                // Calculate totalProgressUnits based on what *will* be loaded
+                totalProgressUnits += WEIGHT_CHECK_SETTINGS;
+
+                if (shouldLoadQuran) {
+                    totalProgressUnits += Object.keys(TRANSLATION_CONFIG).length * (WEIGHT_FETCH_FILE + WEIGHT_PARSE_QURAN_FILE);
+                    // Estimate items for DB transaction progress (approx 6236 ayahs)
+                    totalProgressUnits += 6236 * WEIGHT_DB_TRANSACTION_ITEM;
+                }
+                if (shouldLoadWordTranslations) {
+                    totalProgressUnits += WEIGHT_FETCH_FILE + WEIGHT_PARSE_WORD_FILE;
+                     // Estimate items for word translations (e.g., 80k words) - adjust if you have a count
+                    totalProgressUnits += 80000 * WEIGHT_DB_TRANSACTION_ITEM;
+                }
+                if (shouldLoadWordMetadata) {
+                    totalProgressUnits += WEIGHT_FETCH_FILE + WEIGHT_PARSE_WORD_FILE;
+                    // Estimate items for word metadata (e.g., 80k words)
+                    totalProgressUnits += 80000 * WEIGHT_DB_TRANSACTION_ITEM;
+                }
+
+                if (shouldLoadQuran || shouldLoadWordTranslations || shouldLoadWordMetadata) {
+                    totalProgressUnits += WEIGHT_DB_TRANSACTION_SETUP + WEIGHT_DB_TRANSACTION_COMPLETE;
+                }
+                
+                // If totalProgressUnits is effectively just for checking settings, it means nothing else to load
+                if (totalProgressUnits <= WEIGHT_CHECK_SETTINGS && !shouldLoadQuran && !shouldLoadWordTranslations && !shouldLoadWordMetadata) {
+                    console.log("All necessary Quran, word translation, and word metadata already loaded and up-to-date.");
+                    quranDataLoaded = true;
+                    await populateSurahAyahSelects();
+                    await loadAyah(currentSurah, currentAyah);
+                    // No showLoading/hideLoading here if we skip intensive loading
+                    return;
+                }
+
+                let primaryLoadingMessage = "Setting up Quran Studio for the first time...";
+                if (lastLoadedVersion > 0) { // Not the very first time
+                    if (needsUpdateDueToVersion) {
+                        primaryLoadingMessage = "Updating Quran Studio data for a new version...";
+                    } else {
+                        // This case should ideally be caught by the early return above,
+                        // but as a fallback if logic leads here.
+                        primaryLoadingMessage = "Verifying Quran Studio data...";
+                    }
+                }
+                showLoading(primaryLoadingMessage, "Checking existing data...", 0);
+                updateLoadingProgress(WEIGHT_CHECK_SETTINGS, "Checked local data status.");
 
                 if (!shouldLoadQuran && !shouldLoadWordTranslations && !shouldLoadWordMetadata) {
                     console.log("All necessary Quran, word translation, and word metadata already loaded.");
                     quranDataLoaded = true;
                     await populateSurahAyahSelects();
                     await loadAyah(currentSurah, currentAyah);
-                    hideLoading();
+                    updateLoadingProgress(totalProgressUnits - completedProgressUnits, "Data verified. Launching Studio..."); // Complete progress
+                    setTimeout(hideLoading, 500); // Brief pause before hiding
                     return;
                 }
 
@@ -1166,9 +1320,12 @@
                     for (const key in TRANSLATION_CONFIG) {
                         const config = TRANSLATION_CONFIG[key];
                         try {
+                            updateLoadingProgress(0, `Fetching ${config.label} text (${config.file.substring(0,15)})...`);
                             const response = await fetch(config.file);
+                            updateLoadingProgress(WEIGHT_FETCH_FILE, `Processing ${config.label} (${config.file.substring(0,15)})...`);
                             if (!response.ok) {
                                 console.warn(`HTTP error! status: ${response.status} for ${config.file}. Skipping.`);
+                                updateLoadingProgress(WEIGHT_PARSE_QURAN_FILE, `Skipped ${config.label} due to error.`);
                                 continue;
                             }
                             const text = await response.text();
@@ -1197,8 +1354,10 @@
                                 }
                                 entry[key] = translationPart;
                             }
+                            updateLoadingProgress(WEIGHT_PARSE_QURAN_FILE, `Processed ${config.label} data.`);
                         } catch (fetchError) {
                              console.error(`Error fetching/parsing ${config.file}:`, fetchError);
+                             updateLoadingProgress(WEIGHT_PARSE_QURAN_FILE, `Error with ${config.label}.`);
                         }
                     }
                     console.log(`Parsed ${allQuranDataMap.size} unique full ayahs.`);
@@ -1208,9 +1367,12 @@
                 if (shouldLoadWordTranslations) {
                     console.log(`Fetching word translations from ${WORD_TRANSLATION_FILE}...`);
                     try {
+                        updateLoadingProgress(0, `Fetching word translations (${WORD_TRANSLATION_FILE.substring(0,15)})...`);
                         const response = await fetch(WORD_TRANSLATION_FILE);
+                        updateLoadingProgress(WEIGHT_FETCH_FILE, `Processing word translations (${WORD_TRANSLATION_FILE.substring(0,15)})...`);
                         if (!response.ok) {
                             console.warn(`Failed to fetch ${WORD_TRANSLATION_FILE}: ${response.status}`);
+                            updateLoadingProgress(WEIGHT_PARSE_WORD_FILE, `Skipped word translations due to error.`);
                         } else {
                             const csvText = await response.text();
                             const lines = csvText.split('\n').filter(line => line.trim() !== '');
@@ -1219,7 +1381,6 @@
                                 const wordIdIndex = headers.indexOf('word_id');
                                 const urMeaningIndex = headers.indexOf('ur_meaning');
                                 const enMeaningIndex = headers.indexOf('en_meaning');
-                                // const quranTextIndex = headers.indexOf('quran_text'); // Not strictly needed for ID-based lookup
 
                                 if (wordIdIndex === -1) {
                                     console.error(`'word_id' header not found in ${WORD_TRANSLATION_FILE}. Cannot process word translations.`);
@@ -1241,9 +1402,11 @@
                                     console.log(`Parsed ${wordTranslationEntries.length} word translation entries from ${WORD_TRANSLATION_FILE}.`);
                                 }
                             }
+                             updateLoadingProgress(WEIGHT_PARSE_WORD_FILE, `Processed ${wordTranslationEntries.length} word translations.`);
                         }
                     } catch (fetchError) {
                         console.error(`Error fetching/parsing ${WORD_TRANSLATION_FILE}:`, fetchError);
+                        updateLoadingProgress(WEIGHT_PARSE_WORD_FILE, `Error with word translations.`);
                     }
                 }
 
@@ -1251,9 +1414,12 @@
                 if (shouldLoadWordMetadata) {
                     console.log(`Fetching word metadata from ${WORD_METADATA_FILE}...`);
                     try {
+                        updateLoadingProgress(0, `Fetching word metadata (${WORD_METADATA_FILE.substring(0,15)})...`);
                         const response = await fetch(WORD_METADATA_FILE);
+                        updateLoadingProgress(WEIGHT_FETCH_FILE, `Processing word metadata (${WORD_METADATA_FILE.substring(0,15)})...`);
                         if (!response.ok) {
                             console.warn(`Failed to fetch ${WORD_METADATA_FILE}: ${response.status}`);
+                             updateLoadingProgress(WEIGHT_PARSE_WORD_FILE, `Skipped word metadata due to error.`);
                         } else {
                             const csvText = await response.text();
                             const lines = csvText.split('\n').filter(line => line.trim() !== '');
@@ -1262,10 +1428,10 @@
                                 const wordIdIndex = headers.indexOf('word_id');
                                 const surahIndex = headers.indexOf('surah');
                                 const ayahIndex = headers.indexOf('ayah');
-                                const positionIndex = headers.indexOf('word_postion'); // Your CSV uses 'word_postion'
+                                const positionIndex = headers.indexOf('word_postion');
 
                                 if (wordIdIndex === -1 || surahIndex === -1 || ayahIndex === -1 || positionIndex === -1) {
-                                    console.error(`One or more required headers (word_id, surah, ayah, word_postion) not found in ${WORD_METADATA_FILE}.`);
+                                    console.error(`One or more required headers not found in ${WORD_METADATA_FILE}.`);
                                 } else {
                                     for (let i = 1; i < lines.length; i++) {
                                         const values = lines[i].split(',');
@@ -1282,61 +1448,115 @@
                                     console.log(`Parsed ${wordMetadataEntries.length} word metadata entries from ${WORD_METADATA_FILE}.`);
                                 }
                             }
+                            updateLoadingProgress(WEIGHT_PARSE_WORD_FILE, `Processed ${wordMetadataEntries.length} word metadata entries.`);
                         }
                     } catch (fetchError) {
                          console.error(`Error fetching/parsing ${WORD_METADATA_FILE}:`, fetchError);
+                         updateLoadingProgress(WEIGHT_PARSE_WORD_FILE, `Error with word metadata.`);
                     }
                 }
 
                 // --- Transaction to Store Data ---
                 if (storesToAccessInTransaction.length > 1 && (shouldLoadQuran || shouldLoadWordTranslations || shouldLoadWordMetadata)) {
+                    updateLoadingProgress(WEIGHT_DB_TRANSACTION_SETUP, "Preparing to save data to local database...");
                     const transaction = db.transaction(storesToAccessInTransaction, 'readwrite');
+                    
                     transaction.oncomplete = async () => {
                         console.log("Data loading/storing transaction complete.");
                         if (shouldLoadQuran) await putData(STORE_SETTINGS, { name: 'quranDataLoaded', value: true }).catch(console.error);
                         if (shouldLoadWordTranslations) await putData(STORE_SETTINGS, { name: 'wordTranslationsLoaded', value: true }).catch(console.error);
                         if (shouldLoadWordMetadata) await putData(STORE_SETTINGS, { name: 'wordMetadataLoaded', value: true }).catch(console.error);
+                        await putData(STORE_SETTINGS, { name: 'lastLoadedDBVersion', value: DB_VERSION }).catch(console.error);
 
+                        updateLoadingProgress(WEIGHT_DB_TRANSACTION_COMPLETE, "All data saved locally!");
+                        
+                        // Ensure progress reaches 100% if there are minor rounding/estimation issues
+                        const finalRemaining = totalProgressUnits - completedProgressUnits;
+                        if (finalRemaining > 0) updateLoadingProgress(finalRemaining, "Finalizing setup...");
+                        
                         quranDataLoaded = true;
                         await populateSurahAyahSelects();
                         await loadAyah(currentSurah, currentAyah);
-                        hideLoading();
+                        setTimeout(hideLoading, 500); // Give a moment for user to see "complete"
                     };
                     transaction.onerror = (event) => {
                         console.error("Transaction failed during initial data load:", event.target.error);
-                        hideLoading();
-                        alert("Failed to store initial data: " + event.target.error.message);
+                        updateLoadingProgress(WEIGHT_DB_TRANSACTION_COMPLETE, "Error saving data. Please try refreshing.");
+                        // Do not hide loading immediately on error, let user see message
+                        // setTimeout(hideLoading, 3000);
+                        alert("Failed to store initial data: " + event.target.error.message + "\nPlease clear website data (cache and site data for this page) and refresh.");
                     };
 
                     if (shouldLoadQuran && allQuranDataMap.size > 0) {
+                        updateLoadingProgress(0, `Saving ${allQuranDataMap.size} Ayahs to database...`);
                         const quranStore = transaction.objectStore(STORE_QURAN);
-                        for (const entry of allQuranDataMap.values()) quranStore.put(entry);
+                        if (needsUpdateDueToVersion || !(settingsLoadedQuran && settingsLoadedQuran.value === true)) { // Clear only if new load or version update
+                           await new Promise(resolve => quranStore.clear().onsuccess = resolve); // Clear before repopulating
+                        }
+                        let count = 0;
+                        for (const entry of allQuranDataMap.values()) {
+                             quranStore.put(entry);
+                             count++;
+                             if (count % 500 === 0) updateLoadingProgress(500 * WEIGHT_DB_TRANSACTION_ITEM, `Saved ${count} Ayahs...`);
+                        }
+                        updateLoadingProgress((allQuranDataMap.size % 500) * WEIGHT_DB_TRANSACTION_ITEM, `Finished saving Ayahs.`);
                     }
                     if (shouldLoadWordTranslations && wordTranslationEntries.length > 0) {
+                        updateLoadingProgress(0, `Saving ${wordTranslationEntries.length} word translations...`);
                         const store = transaction.objectStore(STORE_WORD_TRANSLATIONS);
-                        store.clear();
-                        for (const entry of wordTranslationEntries) store.put(entry);
+                        if (needsUpdateDueToVersion || !(settingsLoadedWordTranslations && settingsLoadedWordTranslations.value === true)) {
+                            await new Promise(resolve => store.clear().onsuccess = resolve);
+                        }
+                        let count = 0;
+                        for (const entry of wordTranslationEntries) {
+                             store.put(entry);
+                             count++;
+                             if (count % 2000 === 0) updateLoadingProgress(2000 * WEIGHT_DB_TRANSACTION_ITEM, `Saved ${count} word translations...`);
+                        }
+                        updateLoadingProgress((wordTranslationEntries.length % 2000) * WEIGHT_DB_TRANSACTION_ITEM, `Finished saving word translations.`);
                     }
                     if (shouldLoadWordMetadata && wordMetadataEntries.length > 0) {
+                         updateLoadingProgress(0, `Saving ${wordMetadataEntries.length} word metadata entries...`);
                         const store = transaction.objectStore(STORE_WORD_METADATA);
-                        store.clear();
-                        for (const entry of wordMetadataEntries) store.put(entry);
+                        if (needsUpdateDueToVersion || !(settingsLoadedWordMetadata && settingsLoadedWordMetadata.value === true)) {
+                            await new Promise(resolve => store.clear().onsuccess = resolve);
+                        }
+                        let count = 0;
+                        for (const entry of wordMetadataEntries) {
+                             store.put(entry);
+                             count++;
+                             if (count % 2000 === 0) updateLoadingProgress(2000 * WEIGHT_DB_TRANSACTION_ITEM, `Saved ${count} word metadata entries...`);
+                        }
+                        updateLoadingProgress((wordMetadataEntries.length % 2000) * WEIGHT_DB_TRANSACTION_ITEM, `Finished saving word metadata.`);
                     }
                 } else {
                      console.log("No new data needed to be fetched and stored. Initializing UI.");
                      quranDataLoaded = true;
                      await populateSurahAyahSelects();
                      await loadAyah(currentSurah, currentAyah);
-                     hideLoading();
+                     // Ensure progress is marked as complete if we reached here.
+                     const remainingUnits = totalProgressUnits - completedProgressUnits;
+                     if (remainingUnits > 0) updateLoadingProgress(remainingUnits, "Data verification complete.");
+                     setTimeout(hideLoading, 500);
                 }
 
             } catch (error) {
                 console.error("Error in loadQuranData:", error);
-                hideLoading();
-                alert("Failed to load application data: " + error.message);
+                // Make sure loading screen is shown with error if it wasn't already
+                if (document.getElementById('loading-overlay').style.display === 'none') {
+                     showLoading("Application Error", "An error occurred during initialization.", 100);
+                } else {
+                     updateLoadingProgress(0, "Critical error during setup.");
+                }
+                document.getElementById('loading-message-secondary').textContent = `Error: ${error.message}. Please try refreshing.`;
+                document.getElementById('loading-message-secondary').style.color = 'var(--color-error, red)';
+                // Do not hide loading immediately on critical error
+                // setTimeout(hideLoading, 5000); // Or keep it shown
+                alert("Failed to load application data: " + error.message + "\nIf the problem persists, try clearing website data for this page and then refresh.");
             }
+            // The `finally` block is removed as hideLoading is now called conditionally
+            // within the try or on transaction.oncomplete.
         }
-
         // --- UI Rendering and Navigation ---
 
         function populateSurahAyahSelects() {
@@ -1616,11 +1836,69 @@
              }
         }
 
-        function showLoading(message = 'Loading...') {
+                function showLoading(primaryMessage, secondaryMessage = "Initializing...", initialPercentage = 0) {
             const loadingOverlay = document.getElementById('loading-overlay');
-            loadingOverlay.textContent = message;
+            const primaryMsgEl = document.getElementById('loading-message-primary');
+            const secondaryMsgEl = document.getElementById('loading-message-secondary');
+            const progressBarEl = document.getElementById('loading-progress-bar');
+            const percentageEl = document.getElementById('loading-percentage');
+            const firstTimeNoticeEl = document.getElementById('loading-first-time-notice');
+
+            if (primaryMsgEl) primaryMsgEl.textContent = primaryMessage;
+            if (secondaryMsgEl) secondaryMsgEl.textContent = secondaryMessage;
+            if (progressBarEl) progressBarEl.style.width = `${initialPercentage}%`;
+            if (percentageEl) percentageEl.textContent = `${initialPercentage}%`;
+            
+            // Update loading content colors based on current theme
+            const currentTheme = document.body.className.includes('theme-manuscript') ? 'manuscript' :
+                                 document.body.className.includes('theme-holo') ? 'holo' : 'serene';
+            const loadingContent = loadingOverlay.querySelector('.loading-content');
+            if (loadingContent) {
+                if (currentTheme === 'holo') {
+                    loadingContent.style.backgroundColor = 'var(--color-bg-secondary)'; // From holo theme
+                    loadingContent.style.color = 'var(--color-text-primary)'; // From holo theme
+                    if(document.getElementById('loading-progress-bar-container')) document.getElementById('loading-progress-bar-container').style.backgroundColor = '#26a69a';
+                    if(progressBarEl) progressBarEl.style.backgroundColor = 'var(--color-accent)'; // From holo theme
+                } else if (currentTheme === 'manuscript') {
+                    loadingContent.style.backgroundColor = 'var(--color-bg-secondary)'; // From manuscript theme
+                    loadingContent.style.color = 'var(--color-text-primary)'; // From manuscript theme
+                     if(document.getElementById('loading-progress-bar-container')) document.getElementById('loading-progress-bar-container').style.backgroundColor = 'var(--color-border)';
+                    if(progressBarEl) progressBarEl.style.backgroundColor = 'var(--color-accent)';
+                } else { // Serene (default)
+                    loadingContent.style.backgroundColor = 'var(--color-bg-secondary)';
+                    loadingContent.style.color = 'var(--color-text-primary)';
+                    if(document.getElementById('loading-progress-bar-container')) document.getElementById('loading-progress-bar-container').style.backgroundColor = 'var(--color-border)';
+                    if(progressBarEl) progressBarEl.style.backgroundColor = 'var(--color-accent)';
+                }
+            }
+
+
             loadingOverlay.style.display = 'flex';
             document.body.setAttribute('aria-busy', 'true');
+        }
+
+        function updateLoadingProgress(unitsIncrement, secondaryMessage) {
+            if (totalProgressUnits === 0) return; // Avoid division by zero if not set
+
+            completedProgressUnits += unitsIncrement;
+            const percentage = Math.min(100, Math.round((completedProgressUnits / totalProgressUnits) * 100));
+
+            const secondaryMsgEl = document.getElementById('loading-message-secondary');
+            const progressBarEl = document.getElementById('loading-progress-bar');
+            const percentageEl = document.getElementById('loading-percentage');
+
+            if (secondaryMsgEl) secondaryMsgEl.textContent = secondaryMessage;
+            if (progressBarEl) progressBarEl.style.width = `${percentage}%`;
+            if (percentageEl) percentageEl.textContent = `${percentage}%`;
+            // console.log(`Progress: ${percentage}% - ${secondaryMessage}`); // For debugging
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-overlay').style.display = 'none';
+            document.body.setAttribute('aria-busy', 'false');
+            // Reset progress for next time it might be shown (though typically one-time)
+            completedProgressUnits = 0;
+            totalProgressUnits = 0; // Reset this as well
         }
         function hideLoading() {
             document.getElementById('loading-overlay').style.display = 'none';
@@ -2958,4 +3236,789 @@
             }
         }
 
+
+
+
+
+
+///////////// Games
+
+// === GAME LOGIC AND UI - PASTE THIS AT THE END OF YOUR EXISTING <script> TAG ===
+// === Make sure this is *inside* the main <script> tag, before its closing 
+
+function setupGameModal() {
+const gameModalHTML = `
+    <div id="quranGameModal" class="modal game-modal" role="dialog" aria-modal="true" aria-labelledby="gameModalTitle" style="display: none;">
+        <div class="modal-content game-modal-content">
+            <span class="close-button game-close-button" aria-label="Close Game">×</span>
+            <h2 id="gameModalTitle">Quranic Games</h2>
+            <div class="game-selection-area">
+                <p>Choose a game to play:</p>
+                <button id="startGameWordWhiz" class="game-select-btn">Word Whiz (Vocabulary)</button>
+                <button id="startGameAyahJumble" class="game-select-btn">Ayah Jumble (Order)</button>
+            </div>
+            <div id="gamePlayArea" class="game-play-area" style="display: none;">
+                <!-- Game content will be loaded here -->
+            </div>
+                <div id="gameScoreArea" class="game-score-area" style="display: none;">
+                    <p>Score: <span id="gameCurrentScore">0</span></p>
+                    <p>High Score: <span id="gameHighScore">0</span> (for this session)</p>
+                </div>
+                <div class="game-controls">
+                     <button id="quitGameButton" style="display:none; background-color: var(--color-error); margin-top:15px;">Quit Current Game</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', gameModalHTML);
+
+    // Add CSS for the game modal and elements
+    const gameModalCSS = `
+        .game-modal .modal-content {
+            max-width: 90%;
+            width: 700px; /* Adjust as needed */
+            max-height: 90vh;
+            overflow-y: auto;
+            background-color: var(--color-bg-primary); /* Use theme colors */
+            color: var(--color-text-primary);
+        }
+        .game-modal-content h2 {
+            text-align: center;
+            color: var(--color-text-secondary);
+            margin-bottom: 20px;
+        }
+        .game-selection-area {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .game-select-btn {
+            margin: 10px;
+            padding: 12px 20px;
+            font-size: 1.1rem;
+        }
+        .game-play-area {
+            padding: 20px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            background-color: var(--color-bg-secondary);
+            min-height: fit-content;
+            text-align: center;
+        }
+        .game-question-arabic {
+            font-family: var(--font-arabic);
+            font-size: 2rem;
+            margin-bottom: 20px;
+            direction: rtl;
+        }
+        .game-options-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 auto;
+            max-width: 400px; /* Or adjust based on content */
+        }
+        .game-options-list li button {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 12px;
+            background-color: var(--color-accent);
+            border: 1px solid var(--color-accent-dark);
+            color: white;
+            font-family: var(--font-general); /* Or specific language font */
+        }
+        .game-options-list li button:hover {
+            background-color: var(--color-accent-dark);
+        }
+        .game-options-list li button.correct {
+            background-color: var(--color-success) !important;
+        }
+        .game-options-list li button.incorrect {
+            background-color: var(--color-error) !important;
+        }
+        .game-feedback {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        .game-score-area {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid var(--color-border);
+        }
+        .game-controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        /* Ayah Jumble Specific */
+        .jumble-word-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            min-height: 50px; /* So it doesn't collapse */
+            padding: 10px;
+            border: 1px dashed var(--color-border);
+            border-radius: var(--border-radius);
+        }
+        .jumble-word {
+            font-family: var(--font-arabic);
+            font-size: 1.8rem;
+            padding: 8px 12px;
+            background-color: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            cursor: grab;
+            user-select: none; /* Prevent text selection during drag */
+            direction: rtl;
+        }
+        .jumble-word.dragging {
+            opacity: 0.5;
+            background-color: var(--color-highlight);
+        }
+        .jumble-target-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end; /* RTL friendly start */
+            gap: 5px; /* Small gap for visual separation */
+            padding: 10px;
+            border: 2px solid var(--color-accent);
+            border-radius: var(--border-radius);
+            min-height: 70px;
+            background-color: var(--color-bg-secondary);
+            direction: rtl; /* Important for correct ordering display */
+        }
+        .jumble-target-area .jumble-word {
+             cursor: default; /* No longer grabbable once placed */
+        }
+        #jumbleSubmitAnswer { margin-top: 15px; }
+        .game-modal.fullscreen {
+            padding: 0;
+        }
+        .game-modal.fullscreen .modal-content {
+            width: 100%;
+            max-width: 100%;
+            height: 100vh;
+            max-height: 100vh;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .game-modal.fullscreen .game-play-area {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+    `;
+    const styleSheet = document.createElement("style");
+    styleSheet.type = "text/css";
+    styleSheet.innerText = gameModalCSS;
+    document.head.appendChild(styleSheet);
+
+    // Event Listeners for Modal
+    const gameModal = document.getElementById('quranGameModal');
+    const closeButton = gameModal.querySelector('.game-close-button');
+    const startGameWordWhizBtn = document.getElementById('startGameWordWhiz');
+    const startGameAyahJumbleBtn = document.getElementById('startGameAyahJumble');
+    const quitGameButton = document.getElementById('quitGameButton');
+
+
+    closeButton.addEventListener('click', () => {
+        gameModal.style.display = 'none';
+        resetGameUI(); // Ensure game state is reset when closing
+    });
+    window.addEventListener('click', (event) => {
+        if (event.target === gameModal) {
+            gameModal.style.display = 'none';
+            resetGameUI();
+        }
+    });
+     window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && gameModal.style.display === 'flex') {
+            gameModal.style.display = 'none';
+            resetGameUI();
+        }
+    });
+
+    startGameWordWhizBtn.addEventListener('click', () => startWordWhizGame());
+    startGameAyahJumbleBtn.addEventListener('click', () => startAyahJumbleGame());
+    quitGameButton.addEventListener('click', () => {
+        activeGame = null;
+        resetGameUI();
+    });
+
+
+    // Add a button to the main UI to open the game modal
+    const sidebarNav = document.querySelector('.sidebar nav ul');
+    if (sidebarNav) {
+        const gameLi = document.createElement('li');
+        const gameLink = document.createElement('a');
+        gameLink.href = "#games";
+        gameLink.textContent = "Quranic Games";
+        gameLink.id = "openGamesModalBtn";
+        gameLi.appendChild(gameLink);
+        sidebarNav.appendChild(gameLi);
+
+        gameLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Ensure other sections are not "active" visually if needed
+            document.querySelectorAll('.nav-link.active').forEach(l => l.classList.remove('active'));
+            gameLink.classList.add('active'); // Visually activate game link
+            gameModal.style.display = 'flex';
+            gameModal.classList.add('fullscreen'); // Make it fullscreen
+            resetGameUI(); // Show selection screen first
+        });
+    }
+}
+
+let activeGame = null; // To track which game is running
+let gameScore = 0;
+let gameHighScore = 0; // Session high score
+let wordWhizQuestions = [];
+let currentWordWhizQuestionIndex = 0;
+let ayahJumbleQuestion = null;
+
+function resetGameUI() {
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    const gameSelectionArea = document.getElementById('game-selection-area');
+    const gameScoreArea = document.getElementById('gameScoreArea');
+    const quitGameButton = document.getElementById('quitGameButton');
+    const gameModalTitle = document.getElementById('gameModalTitle');
+
+    if (gamePlayArea) {
+        gamePlayArea.style.display = 'none';
+        gamePlayArea.innerHTML = '';
+    } else {
+        console.error("resetGameUI: gamePlayArea not found");
+    }
+
+    if (gameSelectionArea) {
+        gameSelectionArea.style.display = 'block';
+    } else {
+        console.error("resetGameUI: gameSelectionArea not found");
+    }
+
+    if (gameScoreArea) {
+        gameScoreArea.style.display = 'none';
+    } else {
+        console.error("resetGameUI: gameScoreArea not found");
+    }
+
+    if (quitGameButton) {
+        quitGameButton.style.display = 'none';
+    } else {
+        console.error("resetGameUI: quitGameButton not found");
+    }
+
+    if (gameModalTitle) {
+        gameModalTitle.textContent = "Quranic Games";
+    } else {
+        console.error("resetGameUI: gameModalTitle not found");
+    }
+}
+
+function showGamePlayUI(gameTitle) {
+    const gameSelectionArea = document.getElementById('game-selection-area');
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    const gameScoreArea = document.getElementById('gameScoreArea');
+    const quitGameButton = document.getElementById('quitGameButton');
+    const gameModalTitle = document.getElementById('gameModalTitle');
+
+    if (gameSelectionArea) {
+        gameSelectionArea.style.display = 'none';
+    } else {
+        console.error("showGamePlayUI: gameSelectionArea not found");
+    }
+
+    if (gamePlayArea) {
+        gamePlayArea.style.display = 'block';
+    } else {
+        console.error("showGamePlayUI: gamePlayArea not found");
+    }
+
+    if (gameScoreArea) {
+        gameScoreArea.style.display = 'block';
+        updateScoreDisplay(); // Call this only if gameScoreArea exists
+    } else {
+        console.error("showGamePlayUI: gameScoreArea not found");
+    }
+
+    if (quitGameButton) {
+        quitGameButton.style.display = 'block';
+    } else {
+        console.error("showGamePlayUI: quitGameButton not found");
+    }
+
+    if (gameModalTitle) {
+        gameModalTitle.textContent = gameTitle;
+    } else {
+        console.error("showGamePlayUI: gameModalTitle not found");
+    }
+}
+
+// Also, ensure updateScoreDisplay has checks:
+function updateScoreDisplay() {
+    const gameCurrentScoreEl = document.getElementById('gameCurrentScore');
+    const gameHighScoreEl = document.getElementById('gameHighScore');
+
+    if (gameCurrentScoreEl) {
+        gameCurrentScoreEl.textContent = gameScore;
+    } else {
+        console.error("updateScoreDisplay: gameCurrentScore element not found");
+    }
+
+    if (gameHighScoreEl) {
+        gameHighScoreEl.textContent = gameHighScore;
+    } else {
+        console.error("updateScoreDisplay: gameHighScore element not found");
+    }
+}
+
+function updateScoreDisplay() {
+    document.getElementById('gameCurrentScore').textContent = gameScore;
+    document.getElementById('gameHighScore').textContent = gameHighScore;
+}
+
+// --- WORD WHIZ GAME ---
+async function startWordWhizGame() {
+    activeGame = 'wordWhiz';
+    gameScore = 0;
+    updateScoreDisplay();
+    showGamePlayUI("Word Whiz Challenge");
+    document.getElementById('gamePlayArea').innerHTML = '<p>Loading questions...</p>';
+
+    try {
+        // Fetch a pool of words. For simplicity, let's fetch some random words.
+        // In a real scenario, you might want to fetch words from recently viewed ayahs or specific surahs.
+        const allWordMetadata = await getAllData(STORE_WORD_METADATA);
+        const allWordTranslations = await getAllData(STORE_WORD_TRANSLATIONS);
+
+        if (allWordMetadata.length < 10 || allWordTranslations.length < 10) {
+            document.getElementById('gamePlayArea').innerHTML = '<p>Not enough word data to start the game. Please load Quran data first.</p>';
+            return;
+        }
+
+        // Create a map for quick translation lookup by word_id
+        const translationMap = new Map();
+        allWordTranslations.forEach(wt => translationMap.set(wt.word_id, wt));
+
+        wordWhizQuestions = [];
+        const selectedWordIds = new Set(); // To avoid duplicate questions with same word_id
+
+        for (let i = 0; i < 10; i++) { // Generate 10 questions
+            let attempt = 0;
+            let randomMetaEntry, quranAyah, wordText, translationEntry;
+
+            // Find a word that has a translation and its corresponding Quran text
+            while(attempt < 50) { // Try to find a valid word
+                randomMetaEntry = allWordMetadata[Math.floor(Math.random() * allWordMetadata.length)];
+                if (selectedWordIds.has(randomMetaEntry.word_id)) {
+                    attempt++;
+                    continue;
+                }
+
+                translationEntry = translationMap.get(randomMetaEntry.word_id);
+                if (!translationEntry || (!translationEntry.en_meaning && !translationEntry.ur_meaning && !translationEntry.bn_meaning)) { // Check if any translation exists
+                     attempt++;
+                     continue;
+                }
+
+                quranAyah = await getData(STORE_QURAN, [randomMetaEntry.surah, randomMetaEntry.ayah]);
+                if (!quranAyah) {
+                     attempt++;
+                     continue;
+                }
+
+                const wordsInAyah = quranAyah.arabic.split(/\s+/);
+                if (randomMetaEntry.word_position < wordsInAyah.length) {
+                    wordText = wordsInAyah[randomMetaEntry.word_position];
+                    if(wordText && wordText.trim() !== "") break; // Found a valid word
+                }
+                attempt++;
+            }
+
+            if (!wordText) continue; // Skip if no valid word found after attempts
+
+            selectedWordIds.add(randomMetaEntry.word_id);
+
+            const selectedTranslationLang = document.getElementById('translation-select').value; // urdu, english, Bangali
+            let correctAnswerText;
+            let fontPreference;
+
+            if (selectedTranslationLang === 'urdu' && translationEntry.ur_meaning) {
+                correctAnswerText = translationEntry.ur_meaning;
+                fontPreference = 'var(--font-urdu)';
+            } else if (selectedTranslationLang === 'english' && translationEntry.en_meaning) {
+                correctAnswerText = translationEntry.en_meaning;
+                fontPreference = 'var(--font-english)';
+            } else if (selectedTranslationLang === 'Bangali' && translationEntry.bn_meaning) { // Assuming you add bn_meaning to data5
+                correctAnswerText = translationEntry.bn_meaning || (translationMap.get(randomMetaEntry.word_id).en_meaning || "No Bengali Translation"); // Fallback
+                fontPreference = 'var(--font-Bangali)';
+            } else { // Fallback to English or whatever is available
+                correctAnswerText = translationEntry.en_meaning || translationEntry.ur_meaning || "Meaning N/A";
+                fontPreference = 'var(--font-english)';
+            }
+
+            if (correctAnswerText === "Meaning N/A" || correctAnswerText.trim() === "") continue; // Skip if no good answer
+
+            const options = [correctAnswerText];
+            // Get 3 distractor options
+            let distractorCount = 0;
+            while (distractorCount < 3 && options.length < allWordTranslations.length) {
+                const randomDistractorTrans = allWordTranslations[Math.floor(Math.random() * allWordTranslations.length)];
+                let distractorText;
+                 if (selectedTranslationLang === 'urdu' && randomDistractorTrans.ur_meaning) {
+                    distractorText = randomDistractorTrans.ur_meaning;
+                } else if (selectedTranslationLang === 'english' && randomDistractorTrans.en_meaning) {
+                    distractorText = randomDistractorTrans.en_meaning;
+                } else if (selectedTranslationLang === 'Bangali' && randomDistractorTrans.bn_meaning) {
+                    distractorText = randomDistractorTrans.bn_meaning || randomDistractorTrans.en_meaning;
+                } else {
+                    distractorText = randomDistractorTrans.en_meaning || randomDistractorTrans.ur_meaning;
+                }
+
+                if (distractorText && distractorText.trim() !== "" && !options.includes(distractorText) && distractorText !== correctAnswerText) {
+                    options.push(distractorText);
+                    distractorCount++;
+                }
+            }
+            shuffleArray(options); // Randomize options order
+
+            wordWhizQuestions.push({
+                word_id: randomMetaEntry.word_id,
+                arabicWord: wordText,
+                options: options,
+                correctAnswer: correctAnswerText,
+                fontPreference: fontPreference,
+                translationLangDir: selectedTranslationLang === 'urdu' ? 'rtl' : 'ltr'
+            });
+        }
+
+        if (wordWhizQuestions.length === 0) {
+             document.getElementById('gamePlayArea').innerHTML = '<p>Could not generate questions. Try again or check data.</p>';
+             return;
+        }
+        currentWordWhizQuestionIndex = 0;
+        displayWordWhizQuestion();
+
+    } catch (error) {
+        console.error("Error starting WordWhiz game:", error);
+        document.getElementById('gamePlayArea').innerHTML = `<p>Error loading game: ${error.message}</p>`;
+    }
+}
+
+function displayWordWhizQuestion() {
+    if (currentWordWhizQuestionIndex >= wordWhizQuestions.length) {
+        endWordWhizGame();
+        return;
+    }
+    const q = wordWhizQuestions[currentWordWhizQuestionIndex];
+    let optionsHTML = '<ul class="game-options-list">';
+    q.options.forEach(option => {
+        optionsHTML += `<li><button data-answer="${option}" style="font-family: ${q.fontPreference}; direction: ${q.translationLangDir}; text-align: ${q.translationLangDir === 'rtl' ? 'right' : 'left'};">${option}</button></li>`;
+    });
+    optionsHTML += '</ul>';
+
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    gamePlayArea.innerHTML = `
+        <p>What is the meaning of this word?</p>
+        <div class="game-question-arabic">${q.arabicWord}</div>
+        ${optionsHTML}
+        <div class="game-feedback" id="wordWhizFeedback"></div>
+        <button id="nextWordWhizQuestion" style="display:none; margin-top: 10px;">Next Question</button>
+    `;
+
+    gamePlayArea.querySelectorAll('.game-options-list button').forEach(button => {
+        button.addEventListener('click', handleWordWhizAnswer);
+    });
+    document.getElementById('nextWordWhizQuestion').addEventListener('click', () => {
+        currentWordWhizQuestionIndex++;
+        displayWordWhizQuestion();
+    });
+}
+
+function handleWordWhizAnswer(event) {
+    const selectedButton = event.target;
+    const selectedAnswer = selectedButton.dataset.answer;
+    const q = wordWhizQuestions[currentWordWhizQuestionIndex];
+    const feedbackEl = document.getElementById('wordWhizFeedback');
+    const nextButton = document.getElementById('nextWordWhizQuestion');
+
+    document.querySelectorAll('.game-options-list button').forEach(btn => {
+        btn.disabled = true; // Disable all options
+        if (btn.dataset.answer === q.correctAnswer) {
+            btn.classList.add('correct');
+        }
+    });
+
+    if (selectedAnswer === q.correctAnswer) {
+        feedbackEl.textContent = "Correct!";
+        feedbackEl.style.color = 'var(--color-success)';
+        gameScore += 10;
+        if (gameScore > gameHighScore) gameHighScore = gameScore;
+        updateScoreDisplay();
+    } else {
+        feedbackEl.textContent = `Incorrect. The correct answer is: ${q.correctAnswer}`;
+        feedbackEl.style.color = 'var(--color-error)';
+        selectedButton.classList.add('incorrect'); // Mark the specific wrong choice
+    }
+    nextButton.style.display = 'inline-block';
+}
+
+function endWordWhizGame() {
+    document.getElementById('gamePlayArea').innerHTML = `
+        <h3>Game Over!</h3>
+        <p>Your final score: ${gameScore}</p>
+        <button id="playWordWhizAgain">Play Again</button>
+    `;
+    document.getElementById('playWordWhizAgain').addEventListener('click', startWordWhizGame);
+    activeGame = null;
+}
+
+// --- AYAH JUMBLE GAME ---
+let jumbledWords = [];
+let correctOrderWords = [];
+let draggedItem = null;
+
+async function startAyahJumbleGame() {
+    activeGame = 'ayahJumble';
+    gameScore = 0; // Reset score for this game type
+    updateScoreDisplay();
+    showGamePlayUI("Ayah Jumble Challenge");
+    document.getElementById('gamePlayArea').innerHTML = '<p>Loading Ayah...</p>';
+
+    try {
+        let randomAyahData, words;
+        let attempts = 0;
+        const MAX_ATTEMPTS = 20;
+        const MIN_WORDS = 4;
+        const MAX_WORDS = 10; // Keep ayahs relatively short for jumbling
+
+        while(attempts < MAX_ATTEMPTS) {
+            const randomSurah = Math.floor(Math.random() * 114) + 1;
+            const randomAyahNum = Math.floor(Math.random() * surahAyahCounts[randomSurah]) + 1;
+            randomAyahData = await getData(STORE_QURAN, [randomSurah, randomAyahNum]);
+
+            if (randomAyahData && randomAyahData.arabic) {
+                words = randomAyahData.arabic.trim().split(/\s+/).filter(w => w.length > 0);
+                if (words.length >= MIN_WORDS && words.length <= MAX_WORDS) {
+                    break; // Found a suitable Ayah
+                }
+            }
+            attempts++;
+        }
+
+        if (!words || words.length < MIN_WORDS) {
+            document.getElementById('gamePlayArea').innerHTML = '<p>Could not find a suitable Ayah for the game. Please try again.</p>';
+            return;
+        }
+
+        correctOrderWords = [...words]; // Store the correct order
+        jumbledWords = shuffleArray([...words]); // Shuffle a copy for display
+
+        ayahJumbleQuestion = {
+            originalAyah: randomAyahData.arabic,
+            words: words,
+            surah: randomAyahData.surah,
+            ayah: randomAyahData.ayah
+        };
+
+        displayAyahJumbleQuestion();
+
+    } catch (error) {
+        console.error("Error starting AyahJumble game:", error);
+        document.getElementById('gamePlayArea').innerHTML = `<p>Error loading game: ${error.message}</p>`;
+    }
+}
+
+function displayAyahJumbleQuestion() {
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    let jumbledWordsHTML = '';
+    jumbledWords.forEach((word, index) => {
+        jumbledWordsHTML += `<div class="jumble-word" draggable="true" data-index="${index}">${word}</div>`;
+    });
+
+    gamePlayArea.innerHTML = `
+        <p>Arrange the words to form the correct Ayah:</p>
+        <div id="jumbleSourceContainer" class="jumble-word-container">
+            ${jumbledWordsHTML}
+        </div>
+        <p style="margin-top: 20px;">Your arrangement:</p>
+        <div id="jumbleTargetContainer" class="jumble-target-area">
+            <!-- Dropped words will appear here -->
+        </div>
+        <button id="jumbleSubmitAnswer">Check Answer</button>
+        <button id="jumbleResetArrangement" style="margin-left:10px;">Reset</button>
+        <div class="game-feedback" id="ayahJumbleFeedback"></div>
+        <button id="nextAyahJumbleQuestion" style="display:none; margin-top: 10px;">Next Ayah</button>
+    `;
+
+    addJumbleDragDropListeners();
+    document.getElementById('jumbleSubmitAnswer').addEventListener('click', handleAyahJumbleSubmit);
+    document.getElementById('jumbleResetArrangement').addEventListener('click', resetJumbleArrangement);
+    document.getElementById('nextAyahJumbleQuestion').addEventListener('click', startAyahJumbleGame); // Get a new Ayah
+}
+
+function addJumbleDragDropListeners() {
+    const sourceContainer = document.getElementById('jumbleSourceContainer');
+    const targetContainer = document.getElementById('jumbleTargetContainer');
+    const draggables = document.querySelectorAll('#jumbleSourceContainer .jumble-word, #jumbleTargetContainer .jumble-word');
+
+    draggables.forEach(draggable => {
+        draggable.addEventListener('dragstart', (e) => {
+            draggedItem = draggable;
+            setTimeout(() => draggable.classList.add('dragging'), 0);
+            // e.dataTransfer.setData('text/plain', draggable.textContent); // Optional, not strictly needed for this logic
+        });
+
+        draggable.addEventListener('dragend', () => {
+            if (draggedItem) draggedItem.classList.remove('dragging');
+            draggedItem = null;
+        });
+    });
+
+    [sourceContainer, targetContainer].forEach(container => {
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Allow drop
+            const afterElement = getDragAfterElement(container, e.clientY, e.clientX, container === targetContainer);
+            if (draggedItem && draggedItem.parentNode !== container) { // Only add if moving to a new container
+                // Visual cue for dropping, not strictly necessary for functionality
+            }
+        });
+
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (draggedItem) {
+                const afterElement = getDragAfterElement(container, e.clientY, e.clientX, container === targetContainer);
+                if (afterElement == null) {
+                    container.appendChild(draggedItem);
+                } else {
+                    container.insertBefore(draggedItem, afterElement);
+                }
+                draggedItem.classList.remove('dragging'); // Ensure dragging class is removed
+                draggedItem = null;
+            }
+        });
+    });
+}
+
+function getDragAfterElement(container, y, x, isTargetArea) {
+    const draggableElements = [...container.querySelectorAll('.jumble-word:not(.dragging)')];
+
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        // For RTL target area, we compare X positions differently.
+        // We want to insert *before* an element if our X is to its right (larger X in LTR terms for RTL).
+        // For LTR source area, or if not caring about precise horizontal placement, Y is primary.
+        const offsetY = y - box.top - box.height / 2;
+        let offsetX;
+        if (isTargetArea && document.body.dir === 'rtl') { // If main page is RTL
+            offsetX = box.left + box.width / 2 - x; // Target is to the left of cursor (dragged item right of target)
+        } else if (isTargetArea) { // Target area is LTR or main page is LTR
+             offsetX = x - box.left - box.width / 2; // Target is to the right of cursor
+        } else { // Source area, Y is primary
+            offsetX = 0; // effectively ignore X for source, only care about Y
+        }
+
+
+        // Prioritize Y offset, then X if relevant for target area
+        if (offsetY < 0 && offsetY > closest.offsetY) { // Above and closer
+            return { offsetY: offsetY, offsetX: offsetX, element: child };
+        } else if (isTargetArea && offsetY >= -10 && offsetY <= 10 && offsetX < 0 && offsetX > closest.offsetX) { // Roughly same line, and cursor is to the left of child (meaning child should be after)
+            return { offsetY: offsetY, offsetX: offsetX, element: child };
+        } else {
+            return closest;
+        }
+    }, { offsetY: Number.NEGATIVE_INFINITY, offsetX: Number.NEGATIVE_INFINITY }).element;
+}
+
+
+function resetJumbleArrangement() {
+    // Move all words from target back to source
+    const targetContainer = document.getElementById('jumbleTargetContainer');
+    const sourceContainer = document.getElementById('jumbleSourceContainer');
+    [...targetContainer.children].forEach(child => sourceContainer.appendChild(child));
+
+    // Re-sort words in source container based on their original jumbled order data-index
+    const wordsInSource = [...sourceContainer.children];
+    wordsInSource.sort((a,b) => parseInt(a.dataset.index) - parseInt(b.dataset.index));
+    wordsInSource.forEach(word => sourceContainer.appendChild(word)); // Re-append in sorted order
+
+    document.getElementById('ayahJumbleFeedback').textContent = '';
+    document.getElementById('jumbleSubmitAnswer').disabled = false;
+}
+
+
+function handleAyahJumbleSubmit() {
+    const targetContainer = document.getElementById('jumbleTargetContainer');
+    const userAnswerWords = [...targetContainer.children].map(el => el.textContent.trim());
+    const feedbackEl = document.getElementById('ayahJumbleFeedback');
+    const nextButton = document.getElementById('nextAyahJumbleQuestion');
+    const submitButton = document.getElementById('jumbleSubmitAnswer');
+
+
+    if (userAnswerWords.join(' ') === correctOrderWords.join(' ')) {
+        feedbackEl.textContent = "Correct! Masha'Allah!";
+        feedbackEl.style.color = 'var(--color-success)';
+        gameScore += 20; // Jumble might be harder
+        if (gameScore > gameHighScore) gameHighScore = gameScore;
+        updateScoreDisplay();
+        nextButton.style.display = 'inline-block';
+        submitButton.disabled = true;
+         // Highlight target words green
+        [...targetContainer.children].forEach(child => child.style.backgroundColor = 'var(--color-success)');
+
+
+    } else {
+        feedbackEl.textContent = `Not quite. Try again or reset. The correct Ayah is: ${ayahJumbleQuestion.originalAyah}`;
+        feedbackEl.style.color = 'var(--color-error)';
+        // Optionally show correct order or give hints, for now just this.
+        nextButton.style.display = 'none'; // Don't show next if wrong, encourage retry
+         // Highlight target words red
+        [...targetContainer.children].forEach(child => child.style.backgroundColor = 'var(--color-error)');
+        setTimeout(() => { // Reset color after a bit
+            [...targetContainer.children].forEach(child => child.style.backgroundColor = '');
+        }, 2000);
+    }
+}
+
+
+// Helper function
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+
+
+// setTimeout(setupGameModal, 0); // Slight delay to ensure main UI is set up
+
+// Modify your main DOMContentLoaded listener
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await openDB();
+        await loadThemePreference();
+        setupEventListeners(); // Your existing listeners
+        await loadQuranData();
+        displayThemesList();
+        setupTafsirDocxButton(); // Your existing function for docx
+        setTimeout(setupGameModal, 200);
+        //setupGameModal(); // ***** ADD THIS LINE HERE *****
+
+    } catch (error) {
+        console.error("App initialization failed:", error);
+        // Your existing error handling for app init
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+            document.getElementById('loading-message-primary').textContent = "Initialization Error";
+            document.getElementById('loading-message-secondary').textContent = `Critical error: ${error.message}. Please refresh or clear site data.`;
+        } else {
+            alert("Failed to initialize: " + error.message + "\nPlease clear website data and refresh. Check console for details.");
+        }
+    }
+});
 </script>
