@@ -115,3 +115,228 @@ A powerful, offline-first Quranic study environment with advanced annotation, me
 🚀 آج ہی استعمال کریں اور اپنے قرآنی مطالعہ کے تجربے کو تبدیل کریں!
 
 \#NurAlQuran \#QuranStudy \#IslamicApp \#DigitalQuran \#قرآن_مجید \#مطالعہ_قرآن \#اسلامی_ایپ \#ڈیجیٹل_قرآن
+
+
+
+
+____________________ Quran APP PHP Project _____________________________
+
+# 📖 Al-Furqan Studio | الفرقان اسٹوڈیو
+
+## 🌟 Overview | جائزہ
+
+Al-Furqan Studio is a comprehensive offline Quran study application built as a single PHP file with SQLite database. It provides a complete Islamic study environment with multi-language support, user roles, and advanced features for Quran learning and research. | الفرقان اسٹوڈیو ایک جامع آف لائن قرآنی مطالعہ کی ایپلیکیشن ہے جو ایک ہی PHP فائل میں SQLite ڈیٹابیس کے ساتھ بنائی گئی ہے۔ یہ کثیر زبان کی سپورٹ، صارفین کے کردار، اور قرآن کی تعلیم و تحقیق کے لیے جدید خصوصیات کے ساتھ مکمل اسلامی مطالعاتی ماحول فراہم کرتی ہے۔
+
+## ✨ Key Features | اہم خصوصیات
+
+### 📚 Core Features | بنیادی خصوصیات
+
+- 🕌 **Quran Viewer** | قرآن ویور: Complete Quran with Arabic text and translations | عربی متن اور تراجم کے ساتھ مکمل قرآن
+- 🌍 **Multi-Language Support** | کثیر زبان کی سپورٹ: Urdu, English, Bengali | اردو، انگریزی، بنگالی
+- 🔍 **Advanced Search** | پیشرفتہ تلاش: Smart Arabic search with diacritic normalization | ذیلی حروف کی معیار بندی کے ساتھ ہوشمند عربی تلاش
+- 🔤 **Word-by-Word Analysis** | کلمہ بکلمہ تجزیہ: Detailed word meanings and analysis | تفصیلی کلمات کے معانی اور تجزیہ
+
+
+### 👥 User Management | صارف کا انتظام
+
+- 🌐 **Public Access** | عوامی رسائی: Read-only Quran access | صرف پڑھنے کے لیے قرآن کی رسائی
+- 👤 **Registered Users** | رجسٹرڈ صارفین: Personal features and contributions | ذاتی خصوصیات اور شراکت
+- 👨‍🏫 **Ulama Role** | علماء کا کردار: Scholarly contributions and content review | علمی شراکت اور مواد کا جائزہ
+- ⚙️ **Admin Panel** | ایڈمن پینل: Complete system management | مکمل سسٹم کا انتظام
+
+
+### 📝 Personal Study Tools | ذاتی مطالعاتی ٹولز
+
+- 📒 **Personal Tafsir** | ذاتی تفسیر: Create and manage personal interpretations | ذاتی تشریحات بنائیں اور منظم کریں
+- 🏷️ **Thematic Linker** | موضوعاتی رابط: Connect related ayahs by themes | موضوعات کے ذریعے متعلقہ آیات کو جوڑیں
+- 🔖 **Bookmarks** | بک مارکس: Save important ayahs with notes | اہم آیات کو نوٹس کے ساتھ محفوظ کریں
+- 🎵 **Recitation Log** | تلاوت لاگ: Track daily recitation progress | روزانہ تلاوت کی پیش قدمی کو ٹریک کریں
+
+
+### 🧠 Memorization Features | حفظ کی خصوصیات
+
+- 🏆 **Hifz Hub** | حفظ ہب: Track memorization progress | حفظ کی پیش قدمی کو ٹریک کریں
+- 📊 **Progress Tracking** | پیش قدمی کا تعین: Visual progress indicators | بصری پیش قدمی کے اشارے
+- 📈 **Statistics Dashboard** | شماریاتی ڈیش بورڈ: Detailed memorization analytics | تفصیلی حفظ کی تجزیات
+
+
+### 🎮 Educational Games | تعلیمی کھیل
+
+- 🧩 **Word Whiz** | ورڈ وِز: Arabic-English word matching game | عربی-انگریزی کلمات کا میچنگ کھیل
+- 🔀 **Ayah Jumble** | آیت جمبل: Arrange Arabic words in correct order | عربی الفاظ کو صحیح ترتیب میں رکھیں
+- 🧠 **Memory Challenge** | میموری چیلنج: Test Quran knowledge | قرآنی علم کا امتحان
+
+
+### 🌳 Advanced Study Tools | جدید مطالعاتی ٹولز
+
+- 🌿 **Root Word Analyzer** | جڑی کلمات کا تجزیہ کار: Arabic root analysis | عربی جڑ کا تجزیہ
+- 🤝 **Community Contributions** | کمیونٹی شراکت: Collaborative knowledge building | باہمی علمی تعمیر
+- 📥 **Data Export/Import** | ڈیٹا ایکسپورٹ/امپورٹ: Backup personal data | ذاتی ڈیٹا کا بیک اپ
+
+
+## 🚀 Installation | تنصیب
+
+### Prerequisites | پیشگی ضروریات
+
+- 🐘 PHP 7.4+ | PHP 7.4+
+- 🗄️ SQLite3 extension | SQLite3 ایکسٹینشن
+- 🌐 Web server (Apache/Nginx) | ویب سرور (Apache/Nginx)
+
+
+### Quick Setup | فوری سیٹ اپ
+
+1. 📥 **Download files** | فائلیں ڈاؤن لوڈ کریں:
+
+```bash
+git clone https://github.com/yasinULLAH/Al-Furqan-Studio.git
+```
+
+2. 📂 **Place in web directory** | ویب ڈائرکٹری میں رکھیں:
+    - Copy `index9new.php` and `quran4.db` to your web server directory | `index9new.php` اور `quran4.db` کو اپنے ویب سرور ڈائرکٹری میں کاپی کریں
+3. 🔑 **Set permissions** | اختیارات مقرر کریں:
+
+```bash
+chmod 644 index9new.php
+chmod 666 quran4.db
+```
+
+4. 🌐 **Access application** | ایپلیکیشن تک رسائی:
+    - Navigate to `http://yourserver/index9new.php` | `http://yourserver/index9new.php` پر جائیں
+5. 🔐 **Default admin login** | پیشگی ایڈمن لاگ ان:
+    - Username: `admin` | صارف نام: `admin`
+    - Password: `admin` | پاس ورڈ: `admin`
+
+## 💾 Database Structure | ڈیٹابیس کی ساخت
+
+### 📊 Core Tables | بنیادی جدولیں
+
+- 📖 **ayahs**: Quran verses with translations | تراجم کے ساتھ قرآنی آیات
+- 🔤 **words**: Word-by-word meanings | کلمہ بکلمہ معانی
+- 📍 **word_meta**: Word position metadata | کلمات کی پوزیشن میٹا ڈیٹا
+- 👥 **users**: User accounts and roles | صارف اکاؤنٹس اور کردار
+
+
+### 📚 Content Tables | مواد کے جدولیں
+
+- 📝 **tafsir**: User interpretations | صارف کی تفسیریں
+- 🏷️ **themes**: Thematic connections | موضوعاتی روابط
+- 🔖 **bookmarks**: Saved ayahs | محفوظ کردہ آیات
+- 🌳 **root_analysis**: Root word studies | جڑی کلمات کے مطالعات
+
+
+### 📈 Activity Tables | سرگرمی کے جدولیں
+
+- 🎵 **recitation_log**: Daily recitation tracking | روزانہ تلاوت کا ٹریکنگ
+- 🧠 **hifz_progress**: Memorization progress | حفظ کی پیش قدمی
+- 🤝 **contributions**: Community submissions | کمیونٹی کی جمعیں
+
+
+## 🎯 Usage Guide | استعمال کی رہنمائی
+
+### 🌐 For Public Users | عوامی صارفین کے لیے
+
+- 📖 Browse complete Quran with translations | تراجم کے ساتھ مکمل قرآن کا مطالعہ
+- 🔍 Search verses in multiple languages | متعدد زبانوں میں آیات تلاش کریں
+- 🎮 Play educational games | تعلیمی کھیل کھیلیں
+- 👀 View community contributions | کمیونٹی کی شراکت دیکھیں
+
+
+### 👤 For Registered Users | رجسٹرڈ صارفین کے لیے
+
+- ✍️ Create personal tafsir and themes | ذاتی تفسیر اور موضوعات بنائیں
+- 📊 Track memorization and recitation | حفظ اور تلاوت کا ٹریک رکھیں
+- 🔖 Bookmark important verses | اہم آیات کو بک مارک کریں
+- 💡 Contribute to community knowledge | کمیونٹی کے علم میں حصہ ڈالیں
+
+
+### 👨‍🏫 For Ulama | علماء کے لیے
+
+- ✅ Review and approve user contributions | صارف کی شراکت کا جائزہ اور منظوری
+- 📚 Add scholarly content | علمی مواد شامل کریں
+- 🌳 Contribute root word analyses | جڑی کلمات کے تجزیے میں حصہ ڈالیں
+
+
+### ⚙️ For Administrators | منتظمین کے لیے
+
+- 👥 Manage user accounts and roles | صارف اکاؤنٹس اور کرداروں کا انتظام
+- 📊 Monitor platform statistics | پلیٹ فارم کی شماریات کی نگرانی
+- 🗄️ Load new language data | نئی زبان کا ڈیٹا لوڈ کریں
+- 🔧 Configure system settings | سسٹم کی سیٹنگز کنفیگر کریں
+
+
+## 🛠️ Technical Features | تکنیکی خصوصیات
+
+### 🏗️ Architecture | فن تعمیر
+
+- 📄 **Single File Application** | ایک فائل ایپلیکیشن: Complete app in one PHP file | ایک PHP فائل میں مکمل ایپ
+- 🗄️ **SQLite Database** | SQLite ڈیٹابیس: Lightweight, serverless database | ہلکا، سرور رہت ڈیٹابیس
+- 📱 **Responsive Design** | جوابی ڈیزائن: Mobile-friendly interface | موبائل دوست انٹرفیس
+- 🌐 **No External Dependencies** | بیرونی انحصارات نہیں: Self-contained application | خود مکتفی ایپلیکیشن
+
+
+### 🔧 Advanced Features | جدید خصوصیات
+
+- 🔤 **Arabic Text Processing** | عربی متن پروسیسنگ: Diacritic normalization | ذیلی حروف کی معیار بندی
+- 🎨 **Dynamic UI Elements** | متحرک UI عناصر: JavaScript-powered interactions | JavaScript سے چلنے والی تعاملات
+- 🔒 **Role-based Access Control** | کردار پر مبنی رسائی کنٹرول: Secure user management | محفوظ صارف کا انتظام
+- 📊 **Real-time Statistics** | حقیقی وقت کی شماریات: Live progress tracking | زندہ پیش قدمی کا ٹریکنگ
+
+
+## 🌟 Screenshots | اسکرین شاٹس
+
+*Coming Soon - Application interface screenshots will be added* | *جلد آرہا ہے - ایپلیکیشن انٹرفیس کے اسکرین شاٹس شامل کیے جائیں گے*
+
+## 🤝 Contributing | شراکت
+
+We welcome contributions from the community! | ہم کمیونٹی سے شراکت کا خیرمقدم کرتے ہیں!
+
+### 🚀 How to Contribute | شراکت کیسے کریں
+
+1. 🍴 Fork the repository | ریپازٹری کو فورک کریں
+2. 🌿 Create a feature branch | فیچر برانچ بنائیں
+3. ✨ Make your changes | اپنی تبدیلیاں کریں
+4. 📝 Submit a pull request | پل ریکوسٹ جمع کریں
+
+### 🐛 Bug Reports | بگ رپورٹس
+
+- Use GitHub issues for bug reports | بگ رپورٹس کے لیے GitHub issues استعمال کریں
+- Include detailed reproduction steps | تفصیلی دوبارہ پیدا کرنے کے مراحل شامل کریں
+
+
+## 📄 License | لائسنس
+
+**Free for Commercial and Personal Use** | **تجارتی اور ذاتی استعمال کے لیے مفت**
+
+This project is released under MIT License, making it free for both commercial and personal use. You can: | یہ پروجیکٹ MIT لائسنس کے تحت جاری کیا گیا ہے، جو اسے تجارتی اور ذاتی دونوں استعمال کے لیے مفت بناتا ہے۔ آپ کر سکتے ہیں:
+
+- ✅ Use commercially | تجارتی استعمال
+- ✅ Modify and distribute | تبدیل اور تقسیم کریں
+- ✅ Private use | نجی استعمال
+- ✅ Include in larger projects | بڑے پروجیکٹس میں شامل کریں
+
+
+## 🙏 Acknowledgments | تسلیم
+
+- 📖 Quran text and translations from authentic sources | مستند ذرائع سے قرآنی متن اور تراجم
+- 🌍 Multi-language support for global accessibility | عالمی رسائی کے لیے کثیر زبان کی سپورٹ
+- 👥 Community feedback and contributions | کمیونٹی کی رائے اور شراکت
+- 🤲 Islamic scholars for guidance and validation | رہنمائی اور تصدیق کے لیے اسلامی علماء
+
+
+## 📞 Support | سپورٹ
+
+- 📧 **Email**: Create GitHub issue | GitHub issue بنائیں
+- 💬 **Discussion**: Use GitHub Discussions | GitHub Discussions استعمال کریں
+- 📚 **Documentation**: Refer to this README | اس README کا حوالہ دیں
+
+---
+
+<div align="center">
+
+### 🌙 Made with ❤️ for the Muslim Ummah | مسلم امہ کے لیے ❤️ کے ساتھ بنایا گیا
+
+**"And We have certainly made the Qur'an easy for remembrance, so is there any who will remember?"** | **"اور ہم نے قرآن کو یاد کرنے کے لیے آسان بنا دیا ہے، تو کیا کوئی ہے جو نصیحت حاصل کرے؟"**
+
+*- Quran 54:17 | قرآن ۵۴:۱۷*
+
+</div>
