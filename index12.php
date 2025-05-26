@@ -1843,3 +1843,1137 @@ initDB();
 // Handle the request
 handleRequest();
 ?>
+<!-- <?php
+
+// --- Complete Surah Data Array ---
+// Place this array near the bottom of your single PHP file,
+// before the populate function.
+$all_surahs_data = [
+    [
+        'id' => 1,
+        'name_ar' => 'الفاتحة',
+        'name_en' => 'Al-Fatiha',
+        'name_ur' => 'الفاتحة',
+        'name_bn' => 'সূরা আল-ফাতিহা',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 7
+    ],
+    [
+        'id' => 2,
+        'name_ar' => 'البقرة',
+        'name_en' => 'Al-Baqara',
+        'name_ur' => 'البقرة',
+        'name_bn' => 'সূরা আল-বাকারা',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 286
+    ],
+    [
+        'id' => 3,
+        'name_ar' => 'آل عمران',
+        'name_en' => 'Al-Imran',
+        'name_ur' => 'آل عمران',
+        'name_bn' => 'সূরা আলে ইমরান',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 200
+    ],
+    [
+        'id' => 4,
+        'name_ar' => 'النساء',
+        'name_en' => 'An-Nisa',
+        'name_ur' => 'النساء',
+        'name_bn' => 'সূরা আন-নিসা',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 176
+    ],
+    [
+        'id' => 5,
+        'name_ar' => 'المائدة',
+        'name_en' => 'Al-Maidah',
+        'name_ur' => 'المائدة',
+        'name_bn' => 'সূরা আল-মায়িদah',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 120
+    ],
+    [
+        'id' => 6,
+        'name_ar' => 'الأنعام',
+        'name_en' => 'Al-An\'am',
+        'name_ur' => 'الأنعام',
+        'name_bn' => 'সূরা আল-আন\'আম',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 165
+    ],
+    [
+        'id' => 7,
+        'name_ar' => 'الأعراف',
+        'name_en' => 'Al-A\'raf',
+        'name_ur' => 'الأعراف',
+        'name_bn' => 'সূরা আল-আ\'রাফ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 206
+    ],
+    [
+        'id' => 8,
+        'name_ar' => 'الأنفال',
+        'name_en' => 'Al-Anfal',
+        'name_ur' => 'الأنفال',
+        'name_bn' => 'সূরা আল-আনফাল',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 75
+    ],
+    [
+        'id' => 9,
+        'name_ar' => 'التوبة',
+        'name_en' => 'At-Tawbah',
+        'name_ur' => 'التوبة',
+        'name_bn' => 'সূরা আত-তাওবাহ',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 129
+    ],
+    [
+        'id' => 10,
+        'name_ar' => 'يونس',
+        'name_en' => 'Yunus',
+        'name_ur' => 'یونس',
+        'name_bn' => 'সূরা ইউনুস',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 109
+    ],
+    [
+        'id' => 11,
+        'name_ar' => 'هود',
+        'name_en' => 'Hud',
+        'name_ur' => 'ھود',
+        'name_bn' => 'সূরা হুদ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 123
+    ],
+    [
+        'id' => 12,
+        'name_ar' => 'يوسف',
+        'name_en' => 'Yusuf',
+        'name_ur' => 'یوسف',
+        'name_bn' => 'সূরা ইউসুফ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 111
+    ],
+    [
+        'id' => 13,
+        'name_ar' => 'الرعد',
+        'name_en' => 'Ar-Ra\'d',
+        'name_ur' => 'الرعد',
+        'name_bn' => 'সূরা আর-রা\'দ',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 43
+    ],
+    [
+        'id' => 14,
+        'name_ar' => 'ابراهيم',
+        'name_en' => 'Ibrahim',
+        'name_ur' => 'ابراہیم',
+        'name_bn' => 'সূরা ইবরাহীম',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 52
+    ],
+    [
+        'id' => 15,
+        'name_ar' => 'الحجر',
+        'name_en' => 'Al-Hijr',
+        'name_ur' => 'الحجر',
+        'name_bn' => 'সূরা আল-হিজর',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 99
+    ],
+    [
+        'id' => 16,
+        'name_ar' => 'النحل',
+        'name_en' => 'An-Nahl',
+        'name_ur' => 'النحل',
+        'name_bn' => 'সূরা আন-নাহল',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 128
+    ],
+    [
+        'id' => 17,
+        'name_ar' => 'الإسراء',
+        'name_en' => 'Al-Isra',
+        'name_ur' => 'الإسراء',
+        'name_bn' => 'সূরা আল-ইসরা',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 111
+    ],
+    [
+        'id' => 18,
+        'name_ar' => 'الكهف',
+        'name_en' => 'Al-Kahf',
+        'name_ur' => 'الكهف',
+        'name_bn' => 'সূরা আল-কাহফ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 110
+    ],
+    [
+        'id' => 19,
+        'name_ar' => 'مريم',
+        'name_en' => 'Maryam',
+        'name_ur' => 'مریم',
+        'name_bn' => 'সূরা মারইয়াম',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 98
+    ],
+    [
+        'id' => 20,
+        'name_ar' => 'طه',
+        'name_en' => 'Ta-Ha',
+        'name_ur' => 'طه',
+        'name_bn' => 'সূরা ত্বাহা',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 135
+    ],
+    [
+        'id' => 21,
+        'name_ar' => 'الأنبياء',
+        'name_en' => 'Al-Anbiya',
+        'name_ur' => 'الأنبیاء',
+        'name_bn' => 'সূরা আল-আম্বিয়া',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 112
+    ],
+    [
+        'id' => 22,
+        'name_ar' => 'الحج',
+        'name_en' => 'Al-Hajj',
+        'name_ur' => 'الحج',
+        'name_bn' => 'সূরা আল-হাজ্জ',
+        'revelation_place' => 'Medina', // Note: Some sources say mixed Mecca/Medina, but predominantly Medina
+        'ayah_count' => 78
+    ],
+    [
+        'id' => 23,
+        'name_ar' => 'المؤمنون',
+        'name_en' => 'Al-Mu\'minun',
+        'name_ur' => 'المؤمنون',
+        'name_bn' => 'সূরা আল-মুমিনুন',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 118
+    ],
+    [
+        'id' => 24,
+        'name_ar' => 'النور',
+        'name_en' => 'An-Nur',
+        'name_ur' => 'النور',
+        'name_bn' => 'সূরা আন-নূর',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 64
+    ],
+    [
+        'id' => 25,
+        'name_ar' => 'الفرقان',
+        'name_en' => 'Al-Furqan',
+        'name_ur' => 'الفرقان',
+        'name_bn' => 'সূরা আল-ফুরকান',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 77
+    ],
+    [
+        'id' => 26,
+        'name_ar' => 'الشعراء',
+        'name_en' => 'Ash-Shu\'ara',
+        'name_ur' => 'الشعراء',
+        'name_bn' => 'সূরা আশ-শুআরা',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 227
+    ],
+    [
+        'id' => 27,
+        'name_ar' => 'النمل',
+        'name_en' => 'An-Naml',
+        'name_ur' => 'النمل',
+        'name_bn' => 'সূরা আন-নামল',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 93
+    ],
+    [
+        'id' => 28,
+        'name_ar' => 'القصص',
+        'name_en' => 'Al-Qasas',
+        'name_ur' => 'القصص',
+        'name_bn' => 'সূরা আল-কাসাস',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 88
+    ],
+    [
+        'id' => 29,
+        'name_ar' => 'العنكبوت',
+        'name_en' => 'Al-Ankabut',
+        'name_ur' => 'العنکبوت',
+        'name_bn' => 'সূরা আল-আনকাবূত',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 69
+    ],
+    [
+        'id' => 30,
+        'name_ar' => 'الروم',
+        'name_en' => 'Ar-Rum',
+        'name_ur' => 'الروم',
+        'name_bn' => 'সূরা আর-রূম',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 60
+    ],
+    [
+        'id' => 31,
+        'name_ar' => 'لقمان',
+        'name_en' => 'Luqman',
+        'name_ur' => 'لقمان',
+        'name_bn' => 'সূরা লুকমান',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 34
+    ],
+    [
+        'id' => 32,
+        'name_ar' => 'السجدة',
+        'name_en' => 'As-Sajda',
+        'name_ur' => 'السجدة',
+        'name_bn' => 'সূরা আস-সাজদাহ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 30
+    ],
+    [
+        'id' => 33,
+        'name_ar' => 'الأحزاب',
+        'name_en' => 'Al-Ahzab',
+        'name_ur' => 'الأحزاب',
+        'name_bn' => 'সূরা আল-আহযাব',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 73
+    ],
+    [
+        'id' => 34,
+        'name_ar' => 'سبأ',
+        'name_en' => 'Saba',
+        'name_ur' => 'سبأ',
+        'name_bn' => 'সূরা সাবা',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 54
+    ],
+    [
+        'id' => 35,
+        'name_ar' => 'فاطر',
+        'name_en' => 'Fatir',
+        'name_ur' => 'فاطر',
+        'name_bn' => 'সূরা ফাতির',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 45
+    ],
+    [
+        'id' => 36,
+        'name_ar' => 'يس',
+        'name_en' => 'Ya-Sin',
+        'name_ur' => 'یس',
+        'name_bn' => 'সূরা ইয়াসীন',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 83
+    ],
+    [
+        'id' => 37,
+        'name_ar' => 'الصافات',
+        'name_en' => 'As-Saffat',
+        'name_ur' => 'الصافات',
+        'name_bn' => 'সূরা আস-সাফফাত',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 182
+    ],
+    [
+        'id' => 38,
+        'name_ar' => 'ص',
+        'name_en' => 'Sad',
+        'name_ur' => 'ص',
+        'name_bn' => 'সূরা ছোয়اد',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 88
+    ],
+    [
+        'id' => 39,
+        'name_ar' => 'الزمر',
+        'name_en' => 'Az-Zumar',
+        'name_ur' => 'الزمر',
+        'name_bn' => 'সূরা আয-যুমার',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 75
+    ],
+    [
+        'id' => 40,
+        'name_ar' => 'غافر',
+        'name_en' => 'Ghafir',
+        'name_ur' => 'غافر',
+        'name_bn' => 'সূরা গাফির',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 85
+    ],
+    [
+        'id' => 41,
+        'name_ar' => 'فصلت',
+        'name_en' => 'Fussilat',
+        'name_ur' => 'فصلت',
+        'name_bn' => 'সূরা ফুছছিলাত',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 54
+    ],
+    [
+        'id' => 42,
+        'name_ar' => 'الشورى',
+        'name_en' => 'Ash-Shura',
+        'name_ur' => 'الشورٰی',
+        'name_bn' => 'সূরা আশ-শূরা',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 53
+    ],
+    [
+        'id' => 43,
+        'name_ar' => 'الزخرف',
+        'name_en' => 'Az-Zukhruf',
+        'name_ur' => 'الزخرف',
+        'name_bn' => 'সূরা আয-যুখরুফ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 89
+    ],
+    [
+        'id' => 44,
+        'name_ar' => 'الدخان',
+        'name_en' => 'Ad-Dukhan',
+        'name_ur' => 'الدخان',
+        'name_bn' => 'সূরা আদ-দুخان',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 59
+    ],
+    [
+        'id' => 45,
+        'name_ar' => 'الجاثية',
+        'name_en' => 'Al-Jathiya',
+        'name_ur' => 'الجاثیة',
+        'name_bn' => 'সূরা আল-জাসিয়াহ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 37
+    ],
+    [
+        'id' => 46,
+        'name_ar' => 'الأحقاف',
+        'name_en' => 'Al-Ahqaf',
+        'name_ur' => 'الأحقاف',
+        'name_bn' => 'সূরা আল-আহকাফ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 35
+    ],
+    [
+        'id' => 47,
+        'name_ar' => 'محمد',
+        'name_en' => 'Muhammad',
+        'name_ur' => 'محمد',
+        'name_bn' => 'সূরা মুহাম্মাদ',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 38
+    ],
+    [
+        'id' => 48,
+        'name_ar' => 'الفتح',
+        'name_en' => 'Al-Fath',
+        'name_ur' => 'الفتح',
+        'name_bn' => 'সূরা আল-ফাতহ',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 29
+    ],
+    [
+        'id' => 49,
+        'name_ar' => 'الحجرات',
+        'name_en' => 'Al-Hujurat',
+        'name_ur' => 'الحجرات',
+        'name_bn' => 'সূরা আল-হুজুরাত',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 18
+    ],
+    [
+        'id' => 50,
+        'name_ar' => 'ق',
+        'name_en' => 'Qaf',
+        'name_ur' => 'ق',
+        'name_bn' => 'সূরা কাফ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 45
+    ],
+    [
+        'id' => 51,
+        'name_ar' => 'الذاريات',
+        'name_en' => 'Adh-Dhariyat',
+        'name_ur' => 'الذاریات',
+        'name_bn' => 'সূরা আয-যারিয়াত',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 60
+    ],
+    [
+        'id' => 52,
+        'name_ar' => 'الطور',
+        'name_en' => 'At-Tur',
+        'name_ur' => 'الطور',
+        'name_bn' => 'সূরা আত-তূর',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 49
+    ],
+    [
+        'id' => 53,
+        'name_ar' => 'النجم',
+        'name_en' => 'An-Najm',
+        'name_ur' => 'النجم',
+        'name_bn' => 'সূরা আন-নাজম',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 62
+    ],
+    [
+        'id' => 54,
+        'name_ar' => 'القمر',
+        'name_en' => 'Al-Qamar',
+        'name_ur' => 'القمر',
+        'name_bn' => 'সূরা আল-কামার',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 55
+    ],
+    [
+        'id' => 55,
+        'name_ar' => 'الرحمن',
+        'name_en' => 'Ar-Rahman',
+        'name_ur' => 'الرحمن',
+        'name_bn' => 'সূরা আর-রাحমান',
+        'revelation_place' => 'Medina', // Note: Some sources say Mecca, but predominantly Medina
+        'ayah_count' => 78
+    ],
+    [
+        'id' => 56,
+        'name_ar' => 'الواقعة',
+        'name_en' => 'Al-Waqi\'a',
+        'name_ur' => 'الواقعة',
+        'name_bn' => 'সূরা আল-ওয়াকিআ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 96
+    ],
+    [
+        'id' => 57,
+        'name_ar' => 'الحديد',
+        'name_en' => 'Al-Hadid',
+        'name_ur' => 'الحدید',
+        'name_bn' => 'সূরা আল-হাদীদ',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 29
+    ],
+    [
+        'id' => 58,
+        'name_ar' => 'المجادلة',
+        'name_en' => 'Al-Mujadila',
+        'name_ur' => 'المجادلة',
+        'name_bn' => 'সূরা আল-মুজাদালাহ',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 22
+    ],
+    [
+        'id' => 59,
+        'name_ar' => 'الحشر',
+        'name_en' => 'Al-Hashr',
+        'name_ur' => 'الحشر',
+        'name_bn' => 'সূরা আল-হাশর',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 24
+    ],
+    [
+        'id' => 60,
+        'name_ar' => 'الممتحنة',
+        'name_en' => 'Al-Mumtahana',
+        'name_ur' => 'الممتحنة',
+        'name_bn' => 'সূরা আল-মুমতাহিনاه',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 13
+    ],
+    [
+        'id' => 61,
+        'name_ar' => 'الصف',
+        'name_en' => 'As-Saff',
+        'name_ur' => 'الصف',
+        'name_bn' => 'সূরা আস-সাফ',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 14
+    ],
+    [
+        'id' => 62,
+        'name_ar' => 'الجمعة',
+        'name_en' => 'Al-Jumu\'a',
+        'name_ur' => 'الجمعة',
+        'name_bn' => 'সূরা আল-জুমুআ',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 11
+    ],
+    [
+        'id' => 63,
+        'name_ar' => 'المنافقون',
+        'name_en' => 'Al-Munafiqun',
+        'name_ur' => 'المنافقون',
+        'name_bn' => 'সূরা আল-মুনাফিকুন',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 11
+    ],
+    [
+        'id' => 64,
+        'name_ar' => 'التغابن',
+        'name_en' => 'At-Taghabun',
+        'name_ur' => 'التغابن',
+        'name_bn' => 'সূরা আত-তাগাবুন',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 18
+    ],
+    [
+        'id' => 65,
+        'name_ar' => 'الطلاق',
+        'name_en' => 'At-Talaq',
+        'name_ur' => 'الطلاق',
+        'name_bn' => 'সূরা আত-তালাক',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 12
+    ],
+    [
+        'id' => 66,
+        'name_ar' => 'التحريم',
+        'name_en' => 'At-Tahrim',
+        'name_ur' => 'التحریم',
+        'name_bn' => 'সূরা আত-তাহরীম',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 12
+    ],
+    [
+        'id' => 67,
+        'name_ar' => 'الملك',
+        'name_en' => 'Al-Mulk',
+        'name_ur' => 'الملك',
+        'name_bn' => 'সূরা আল-মুলক',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 30
+    ],
+    [
+        'id' => 68,
+        'name_ar' => 'القلم',
+        'name_en' => 'Al-Qalam',
+        'name_ur' => 'القلم',
+        'name_bn' => 'সূরা আল-কলম',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 52
+    ],
+    [
+        'id' => 69,
+        'name_ar' => 'الحاقة',
+        'name_en' => 'Al-Haaqqa',
+        'name_ur' => 'الحاقة',
+        'name_bn' => 'সূরা আল-হাক্কাহ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 52
+    ],
+    [
+        'id' => 70,
+        'name_ar' => 'المعارج',
+        'name_en' => 'Al-Ma\'arij',
+        'name_ur' => 'المعارج',
+        'name_bn' => 'সূরা আল-মাআরিজ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 44
+    ],
+    [
+        'id' => 71,
+        'name_ar' => 'نوح',
+        'name_en' => 'Nuh',
+        'name_ur' => 'نوح',
+        'name_bn' => 'সূরা নূহ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 28
+    ],
+    [
+        'id' => 72,
+        'name_ar' => 'الجن',
+        'name_en' => 'Al-Jinn',
+        'name_ur' => 'الجن',
+        'name_bn' => 'সূরা আল-জ্বিন',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 28
+    ],
+    [
+        'id' => 73,
+        'name_ar' => 'المزمل',
+        'name_en' => 'Al-Muzzammil',
+        'name_ur' => 'المزمل',
+        'name_bn' => 'সূরা আল-মুযযাম্মিল',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 20
+    ],
+    [
+        'id' => 74,
+        'name_ar' => 'المدثر',
+        'name_en' => 'Al-Muddathir',
+        'name_ur' => 'المدثر',
+        'name_bn' => 'সূরা আল-মুদ্দাসসির',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 56
+    ],
+    [
+        'id' => 75,
+        'name_ar' => 'القيامة',
+        'name_en' => 'Al-Qiyama',
+        'name_ur' => 'القیامة',
+        'name_bn' => 'সূরা আল-ক্বিয়ামাহ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 40
+    ],
+    [
+        'id' => 76,
+        'name_ar' => 'الانسان',
+        'name_en' => 'Al-Insan',
+        'name_ur' => 'الانسان',
+        'name_bn' => 'সূরা আল-ইনসান',
+        'revelation_place' => 'Medina', // Note: Some sources say Mecca, but predominantly Medina
+        'ayah_count' => 31
+    ],
+    [
+        'id' => 77,
+        'name_ar' => 'المرسلات',
+        'name_en' => 'Al-Mursalat',
+        'name_ur' => 'المرسلات',
+        'name_bn' => 'সূরা আল-মুরসালাত',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 50
+    ],
+    [
+        'id' => 78,
+        'name_ar' => 'النبأ',
+        'name_en' => 'An-Naba',
+        'name_ur' => 'النبإ',
+        'name_bn' => 'সূরা আন-নাবা',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 40
+    ],
+    [
+        'id' => 79,
+        'name_ar' => 'النازعات',
+        'name_en' => 'An-Nazi\'at',
+        'name_ur' => 'النازعات',
+        'name_bn' => 'সূরা আন-নাযিআত',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 46
+    ],
+    [
+        'id' => 80,
+        'name_ar' => 'عبس',
+        'name_en' => '\'Abasa',
+        'name_ur' => 'عبس',
+        'name_bn' => 'সূরা আবাসা',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 42
+    ],
+    [
+        'id' => 81,
+        'name_ar' => 'التكوير',
+        'name_en' => 'At-Takwir',
+        'name_ur' => 'التکویر',
+        'name_bn' => 'সূরা আত-তাকভীর',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 29
+    ],
+    [
+        'id' => 82,
+        'name_ar' => 'الإنفطار',
+        'name_en' => 'Al-Infitar',
+        'name_ur' => 'الإنفطار',
+        'name_bn' => 'সূরা আল-ইনফিতার',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 19
+    ],
+    [
+        'id' => 83,
+        'name_ar' => 'المطففين',
+        'name_en' => 'Al-Mutaffifin',
+        'name_ur' => 'المطففین',
+        'name_bn' => 'সূরা আল-মুতাফ্‌‌ফিفīn',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 36
+    ],
+    [
+        'id' => 84,
+        'name_ar' => 'الإنشقاق',
+        'name_en' => 'Al-Inshiqaq',
+        'name_ur' => 'الإنشقاق',
+        'name_bn' => 'সূরা আল-ইনশিকাক',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 25
+    ],
+    [
+        'id' => 85,
+        'name_ar' => 'البروج',
+        'name_en' => 'Al-Buruj',
+        'name_ur' => 'البروج',
+        'name_bn' => 'সূরা আল-বুরূজ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 22
+    ],
+    [
+        'id' => 86,
+        'name_ar' => 'الطارق',
+        'name_en' => 'At-Tariq',
+        'name_ur' => 'الطارق',
+        'name_bn' => 'সূরা আত-তারিক',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 17
+    ],
+    [
+        'id' => 87,
+        'name_ar' => 'الأعلى',
+        'name_en' => 'Al-A\'la',
+        'name_ur' => 'الأعلى',
+        'name_bn' => 'সূরা আল-আ\'লা',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 19
+    ],
+    [
+        'id' => 88,
+        'name_ar' => 'الغاشية',
+        'name_en' => 'Al-Ghashiya',
+        'name_ur' => 'الغاشیة',
+        'name_bn' => 'সূরা আল-গাশিয়াহ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 26
+    ],
+    [
+        'id' => 89,
+        'name_ar' => 'الفجر',
+        'name_en' => 'Al-Fajr',
+        'name_ur' => 'الفجر',
+        'name_bn' => 'সূরা আল-ফাজর',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 30
+    ],
+    [
+        'id' => 90,
+        'name_ar' => 'البلد',
+        'name_en' => 'Al-Balad',
+        'name_ur' => 'البلد',
+        'name_bn' => 'সূরা আল-বালাদ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 20
+    ],
+    [
+        'id' => 91,
+        'name_ar' => 'الشمس',
+        'name_en' => 'Ash-Shams',
+        'name_ur' => 'الشمس',
+        'name_bn' => 'সূরা আশ-شams',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 15
+    ],
+    [
+        'id' => 92,
+        'name_ar' => 'الليل',
+        'name_en' => 'Al-Layl',
+        'name_ur' => 'اللیل',
+        'name_bn' => 'সূরা আল-লায়ল',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 21
+    ],
+    [
+        'id' => 93,
+        'name_ar' => 'الضحى',
+        'name_en' => 'Ad-Duha',
+        'name_ur' => 'الضحٰی',
+        'name_bn' => 'সূরা আদ-দুহা',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 11
+    ],
+    [
+        'id' => 94,
+        'name_ar' => 'الشرح', // or Al-Inshirah
+        'name_en' => 'Ash-Sharh',
+        'name_ur' => 'الشرح',
+        'name_bn' => 'সূরা আল-ইনশিরাহ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 8
+    ],
+    [
+        'id' => 95,
+        'name_ar' => 'التين',
+        'name_en' => 'At-Tin',
+        'name_ur' => 'التین',
+        'name_bn' => 'সূরা আত-তীন',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 8
+    ],
+    [
+        'id' => 96,
+        'name_ar' => 'العلق',
+        'name_en' => 'Al-\'Alaq',
+        'name_ur' => 'العلق',
+        'name_bn' => 'সূরা আল-আলাক',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 19
+    ],
+    [
+        'id' => 97,
+        'name_ar' => 'القدر',
+        'name_en' => 'Al-Qadr',
+        'name_ur' => 'القدر',
+        'name_bn' => 'সূরা আল-কদর',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 5
+    ],
+    [
+        'id' => 98,
+        'name_ar' => 'البينة',
+        'name_en' => 'Al-Bayyina',
+        'name_ur' => 'البیّنة',
+        'name_bn' => 'সূরা আল-বাইয়্যিনاه',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 8
+    ],
+    [
+        'id' => 99,
+        'name_ar' => 'الزلزلة',
+        'name_en' => 'Az-Zalzala',
+        'name_ur' => 'الزلزلة',
+        'name_bn' => 'সূরা আয-যালযালাহ',
+        'revelation_place' => 'Medina', // Note: Some sources say Mecca, but predominantly Medina
+        'ayah_count' => 8
+    ],
+    [
+        'id' => 100,
+        'name_ar' => 'العاديات',
+        'name_en' => 'Al-\'Adiyat',
+        'name_ur' => 'العادیات',
+        'name_bn' => 'সূরা আল-আদিয়াত',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 11
+    ],
+    [
+        'id' => 101,
+        'name_ar' => 'القارعة',
+        'name_en' => 'Al-Qari\'a',
+        'name_ur' => 'القارعة',
+        'name_bn' => 'সূরা আল-ক্বারিআহ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 11
+    ],
+    [
+        'id' => 102,
+        'name_ar' => 'التكاثر',
+        'name_en' => 'At-Takathur',
+        'name_ur' => 'التکاثر',
+        'name_bn' => 'সূরা আত-তাকাছুর',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 8
+    ],
+    [
+        'id' => 103,
+        'name_ar' => 'العصر',
+        'name_en' => 'Al-\'Asr',
+        'name_ur' => 'العصر',
+        'name_bn' => 'সূরা আল-আস্বর',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 3
+    ],
+    [
+        'id' => 104,
+        'name_ar' => 'الهمزة',
+        'name_en' => 'Al-Humaza',
+        'name_ur' => 'الهمزة',
+        'name_bn' => 'সূরা আল-হুমাযাহ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 9
+    ],
+    [
+        'id' => 105,
+        'name_ar' => 'الفيل',
+        'name_en' => 'Al-Fil',
+        'name_ur' => 'الفیل',
+        'name_bn' => 'সূরা আল-ফীল',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 5
+    ],
+    [
+        'id' => 106,
+        'name_ar' => 'قريش',
+        'name_en' => 'Quraysh',
+        'name_ur' => 'قریش',
+        'name_bn' => 'সূরা কুরাইশ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 4
+    ],
+    [
+        'id' => 107,
+        'name_ar' => 'الماعون',
+        'name_en' => 'Al-Ma\'un',
+        'name_ur' => 'الماعون',
+        'name_bn' => 'সূরা আল-মাউন',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 7
+    ],
+    [
+        'id' => 108,
+        'name_ar' => 'الكوثر',
+        'name_en' => 'Al-Kawthar',
+        'name_ur' => 'الکوثر',
+        'name_bn' => 'সূরা আল-কাউসার',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 3
+    ],
+    [
+        'id' => 109,
+        'name_ar' => 'الكافرون',
+        'name_en' => 'Al-Kafirun',
+        'name_ur' => 'الکافرون',
+        'name_bn' => 'সূরা আল-কাফিরুন',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 6
+    ],
+    [
+        'id' => 110,
+        'name_ar' => 'النصر',
+        'name_en' => 'An-Nasr',
+        'name_ur' => 'النصر',
+        'name_bn' => 'সূরা আন-নাসর',
+        'revelation_place' => 'Medina',
+        'ayah_count' => 3
+    ],
+    [
+        'id' => 111,
+        'name_ar' => 'المسد', // or Al-Lahab
+        'name_en' => 'Al-Masad',
+        'name_ur' => 'المسد',
+        'name_bn' => 'সূরা আল-মাসাদ',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 5
+    ],
+    [
+        'id' => 112,
+        'name_ar' => 'الإخلاص',
+        'name_en' => 'Al-Ikhlas',
+        'name_ur' => 'الإخلاص',
+        'name_bn' => 'সূরা আল-ইখলাস',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 4
+    ],
+    [
+        'id' => 113,
+        'name_ar' => 'الفلق',
+        'name_en' => 'Al-Falaq',
+        'name_ur' => 'الفلق',
+        'name_bn' => 'সূরা আল-ফালাক',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 5
+    ],
+    [
+        'id' => 114,
+        'name_ar' => 'الناس',
+        'name_en' => 'An-Nas',
+        'name_ur' => 'الناس',
+        'name_bn' => 'সূরা আন-নাস',
+        'revelation_place' => 'Mecca',
+        'ayah_count' => 6
+    ]
+];
+
+
+/**
+ * Populates the 'surahs' table with the complete list of 114 surahs
+ * only if the table exists and currently has less than 110 rows.
+ * This function assumes DB_NAME is defined and a getDB() function exists
+ * elsewhere in the script to provide an SQLite3 connection.
+ */
+function populateSurahsTableIfIncomplete() {
+    global $all_surahs_data; // Access the global surah data array
+
+    // Check if the database file exists before attempting to connect
+    if (!file_exists(DB_NAME)) {
+        // Database file does not exist, population is not possible yet.
+        // This means initDB() hasn't run or failed.
+        // It's likely initDB() already contains surah population logic for first creation.
+        error_log("populateSurahsTableIfIncomplete: Database file " . DB_NAME . " not found. Skipping population.");
+        return;
+    }
+
+    $db = null;
+    try {
+        $db = getDB(); // Use your existing getDB function
+
+        // Check if the surahs table exists
+        $tableCheck = $db->querySingle("SELECT name FROM sqlite_master WHERE type='table' AND name='surahs'");
+        if (!$tableCheck) {
+             error_log("populateSurahsTableIfIncomplete: 'surahs' table does not exist. Skipping population.");
+             // The table doesn't exist, can't insert data.
+             $db->close();
+             return;
+        }
+
+        // Check the row count in the surahs table
+        $count = $db->querySingle("SELECT COUNT(*) FROM surahs");
+
+        if ($count < 110) {
+             error_log("populateSurahsTableIfIncomplete: 'surahs' table has " . $count . " rows (< 110). Attempting to populate...");
+
+             $db->exec('BEGIN TRANSACTION;'); // Start transaction
+
+             // Use INSERT OR IGNORE to add only rows that don't already exist based on 'id'
+             $stmt = $db->prepare("INSERT OR IGNORE INTO surahs (id, name_ar, name_en, name_ur, name_bn, revelation_place, ayah_count)
+                                 VALUES (:id, :name_ar, :name_en, :name_ur, :name_bn, :revelation_place, :ayah_count)");
+
+             foreach ($all_surahs_data as $surah) {
+                 $stmt->bindValue(':id', $surah['id'], SQLITE3_INTEGER);
+                 $stmt->bindValue(':name_ar', $surah['name_ar'], SQLITE3_TEXT);
+                 $stmt->bindValue(':name_en', $surah['name_en'], SQLITE3_TEXT);
+                 $stmt->bindValue(':name_ur', $surah['name_ur'], SQLITE3_TEXT);
+                 $stmt->bindValue(':name_bn', $surah['name_bn'], SQLITE3_TEXT);
+                 $stmt->bindValue(':revelation_place', $surah['revelation_place'], SQLITE3_TEXT);
+                 $stmt->bindValue(':ayah_count', $surah['ayah_count'], SQLITE3_INTEGER);
+
+                 if (!$stmt->execute()) {
+                      // Log individual insert errors but continue the loop
+                      error_log("populateSurahsTableIfIncomplete: Failed to insert surah " . $surah['id'] . ": " . $db->lastErrorMsg());
+                 }
+             }
+
+             $db->exec('COMMIT;'); // Commit transaction
+             $stmt->finalize();
+
+             // Re-check count after population attempt
+             $final_count = $db->querySingle("SELECT COUNT(*) FROM surahs");
+             error_log("populateSurahsTableIfIncomplete: Population attempt finished. Final surahs count: " . $final_count);
+
+             // Optional: Display a message if population was attempted
+             if ($final_count > $count) {
+                 // Assuming you have a displayMessage function elsewhere
+                 // displayMessage('success', 'Surah data updated. Total surahs: ' . $final_count);
+             } else {
+                 // displayMessage('info', 'Surah data check complete. No missing surahs found.');
+             }
+
+
+        } else {
+             error_log("populateSurahsTableIfIncomplete: 'surahs' table already has enough data (" . $count . " rows). Skipping population.");
+        }
+
+    } catch (Exception $e) {
+        error_log("populateSurahsTableIfIncomplete: Database error - " . $e->getMessage());
+        // Attempt rollback in case an error occurred after transaction started
+        if ($db && $db->inTransaction()) {
+             $db->exec('ROLLBACK;');
+        }
+         // Optional: Display error message
+         // displayMessage('danger', 'A database error occurred during surah data population.');
+    } finally {
+        if ($db) {
+            $db->close(); // Always close the connection
+        }
+    }
+}
+
+// --- Call the function ---
+// Add this line at the very end of your single PHP file,
+// after handleRequest() and any other top-level calls.
+populateSurahsTableIfIncomplete();
+
+?> -->
