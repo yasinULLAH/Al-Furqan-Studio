@@ -234,7 +234,7 @@ function renderHeader() {
         <style>
             body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
             .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-            header { background-color: #2c3e50; color: white; padding: 15px 0; margin-bottom: 20px; }
+            header { background-color: #2c3e50; color: white; padding: 15px 0; margin-bottom: 20px; min-height: 70px;}
             nav { display: flex; justify-content: space-between; align-items: center; }
             .nav-links a { color: white; text-decoration: none; margin: 0 10px; }
             .auth-links a { color: white; text-decoration: none; margin: 0 10px; }
@@ -256,9 +256,28 @@ function renderHeader() {
             .gap-4 { gap: 1rem; }
             .quran-text { font-size: 24px; text-align: right; direction: rtl; }
             .translation { font-size: 16px; margin-top: 10px; }
-            .word-meaning { cursor: pointer; position: relative; }
+            .word-meaning {
+                    cursor: pointer;
+                    position: relative;
+                    background: #a9ef97;
+                    border-radius: 19px;
+                    padding: 12px;
+                }
             .word-meaning:hover { background-color: #f0f0f0; }
-            .word-tooltip { display: none; position: absolute; background: white; border: 1px solid #ddd; padding: 5px; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+            .word-tooltip { display: none; position: absolute; background: white; border: 1px solid #ddd; padding: 5px; z-index: 100;width: max-content; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+            nav > h1 {
+    position: absolute;
+    top: 69px;
+    left: 6px;
+    color: chocolate;
+    background: #2c3e50;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 13px;
+    padding: 10px;
+}
+    *, select, input{
+    font-family: calibri !important;
+    }
         </style>
     </head>
     <body>
@@ -279,7 +298,7 @@ function renderHeader() {
         if (hasRole('user') || hasRole('ulama') || hasRole('admin')) {
             echo '<a href="?page=contributions">My Contributions</a>';
         }
-        if (hasRole('ulama') {
+        if (hasRole('ulama')) {
             echo '<a href="?page=ulama">Ulama Dashboard</a>';
         }
         if (hasRole('admin')) {
@@ -711,7 +730,7 @@ function handleQuranViewer() {
 function handleTafsir() {
     $db = getDB();
     
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($_POST['action'] === 'add_tafsir' && isLoggedIn()) {
             $ayah_id = intval($_POST['ayah_id']);
             $content = sanitizeInput($_POST['content']);
@@ -1020,7 +1039,7 @@ function handleHifz() {
                 </div>
                 <div class="form-group">
                     <label for="progress">Progress (%)</label>
-                    <input type="range" id="progress" name="progress" min="0" max="100" value="0" oninput="document.getElementById('progressValue').innerText = this.value + '%'">
+                    <input type="range" id="progress" name="progress" min="0" max="100" value="0" oninput="document.getElementById(\'progressValue\').innerText = this.value + '%'">
                     <span id="progressValue">0%</span>
                 </div>
                 <button type="submit" class="btn">Add Hifz</button>
@@ -1085,8 +1104,8 @@ function handleRecitation() {
     }
     
     $db = getDB();
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) {
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($_POST['action'] === 'add_recitation') {
             $surah_id = intval($_POST['surah_id']);
             $ayah_from = intval($_POST['ayah_from']);
