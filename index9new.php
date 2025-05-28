@@ -4,6 +4,10 @@ session_start();
 $db = new SQLite3('quran4.db');
 
 $db->exec("
+CREATE TABLE IF NOT EXISTS quran_word_text (
+    word_id INTEGER PRIMARY KEY,
+    quran_text TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
@@ -233,7 +237,148 @@ header('Location: ' . $redirect_url);
 
     exit;
 }
+if ($a == 'load_quran_words' && role('admin')) {
+    $f = $_FILES['quran_words_file']['tmp_name'];
+    if ($f) {
+        $lines = file($f, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($lines === false) {
+             echo "Error: Could not read the uploaded file.";
+             // Redirect with error
+             // header('Location: ' . $_SERVER['PHP_SELF'] . '?page=admin&tab=data&error=' . urlencode('Could not read uploaded file.')); exit;
+             exit;
+        }
+        if (empty($lines)) {
+             echo "Error: Uploaded file is empty.";
+              // Redirect with error
+              // header('Location: ' . $_SERVER['PHP_SELF'] . '?page=admin&tab=data&error=' . urlencode('Uploaded file is empty.')); exit;
+             exit;
+        }
 
+        $header_line = array_shift($lines); // Read and remove the header line
+
+        // --- FIX: Explicitly remove UTF-8 BOM if present ---
+        // BOM for UTF-8 is EF BB BF
+        if (substr($header_line, 0, 3) === "\xef\xbb\xbf") {
+            $header_line = substr($header_line, 3);
+        }
+        // --- End FIX ---
+
+        // We are not strictly validating the header columns by name anymore,
+        // just removing the first line assuming it's the header.
+        // You could add a check here if the *content* of the header line
+        // matches expected values if needed, but the request is to ignore it.
+
+        // --- FIX: Set busy timeout to handle database locks ---
+        // This tells SQLite to wait up to 5000 milliseconds (5 seconds) if the database is busy
+        $db->busyTimeout(5000);
+        // --- End FIX ---
+
+
+        $db->exec('BEGIN TRANSACTION'); // Start transaction for performance
+
+        $stmt = $db->prepare("INSERT OR REPLACE INTO quran_word_text (word_id, quran_text) VALUES (:word_id, :quran_text)");
+        if ($stmt === false) {
+             $db->exec('ROLLBACK'); // Rollback transaction
+             echo "Error preparing statement: " . $db->lastErrorMsg();
+             // Redirect with error
+             // header('Location: ' . $_SERVER['PHP_SELF'] . '?page=admin&tab=data&error=' . urlencode('Database error preparing statement.')); exit;
+             exit;
+        }
+
+        $processed_count = 0;
+        $skipped_lines = [];
+        $line_num = 1; // Start line number after header
+
+        foreach ($lines as $line) {
+            $line_num++;
+            $trimmed_line = trim($line);
+
+            // Skip empty lines (already filtered by FILE_SKIP_EMPTY_LINES, but safety check)
+            if ($trimmed_line === '') {
+                 continue;
+            }
+
+            // --- FIX: Use explode and handle potential extra commas ---
+            $parts = explode(',', $trimmed_line, 2); // Split only on the first comma
+
+            // Check if we got at least 2 parts (word_id and the rest as quran_text)
+            if (count($parts) >= 2) {
+                $wid = intval(trim($parts[0])); // Trim word_id part just in case of spaces
+                $text = trim($parts[1]);       // Everything after the first comma
+
+                if ($wid > 0 && $text !== '') {
+                    $stmt->bindValue(':word_id', $wid, SQLITE3_INTEGER);
+                    $stmt->bindValue(':quran_text', $text, SQLITE3_TEXT);
+                    $execute_result = $stmt->execute(); // execute() returns bool for INSERT/UPDATE/DELETE
+
+                    if ($execute_result === false) {
+                         // Log the specific error and line, but continue processing if possible
+                         error_log("Database error executing INSERT for word_id $wid (Line $line_num): " . $db->lastErrorMsg() . " on line: " . htmlspecialchars($line));
+                         $skipped_lines[] = "Line $line_num (DB Error): " . htmlspecialchars($line);
+                    } else {
+                         // Success - execute() returns bool for INSERT
+                          $processed_count++;
+                    }
+                    // No need for clearBindings()
+                } else {
+                     // Log or report lines with invalid data format (word_id <= 0 or empty text)
+                     error_log("Skipping line with invalid data (Line $line_num): Invalid word_id ($wid) or empty text. Line: " . htmlspecialchars($line));
+                     $skipped_lines[] = "Line $line_num (Invalid Data): " . htmlspecialchars($line);
+                }
+            } else {
+                 // Log or report lines that didn't contain a comma or had only a word_id without text
+                 error_log("Skipping malformed CSV line (Line $line_num): Expected 'word_id,quran_text'. Line: " . htmlspecialchars($line));
+                 $skipped_lines[] = "Line $line_num (Malformed): " . htmlspecialchars($line);
+            }
+             // --- End FIX ---
+        } // end foreach
+
+        $stmt->close();
+
+        $db->exec('COMMIT TRANSACTION'); // Commit transaction
+
+         // Optional: Provide feedback on skipped lines. This would require storing messages
+         // and redirecting with a parameter or displaying them on the page *before* redirecting.
+         // if (!empty($skipped_lines)) {
+         //     // Store $skipped_lines in $_SESSION or pass via GET params (carefully due to length)
+         //     $_SESSION['import_skipped_lines'] = $skipped_lines;
+         // }
+         // $_SESSION['import_processed_count'] = $processed_count;
+
+
+    } else {
+         // Handle case where file upload failed (e.g., file size, permissions)
+         echo "Error: No file uploaded or file upload failed. Check PHP file upload limits and file permissions.";
+         // Redirect with error
+         // header('Location: ' . $_SERVER['PHP_SELF'] . '?page=admin&tab=data&error=' . urlencode('File upload failed.')); exit;
+         exit;
+    }
+
+    // Redirect back to the admin page, data tab
+    // Important: Do not have any echo/print statements before header() *except* for errors that exit.
+    $redirect_url = $_SERVER['PHP_SELF'];
+    // Preserve relevant GET parameters for the admin page
+    $params = ['page=admin', 'tab=data']; // Default redirect target
+
+    if(!empty($_GET)) {
+         $allowed_get_params_to_preserve = ['page', 'tab']; // Only preserve 'page' and 'tab' from GET
+         foreach($_GET as $k => $v) {
+             if(in_array($k, $allowed_get_params_to_preserve)) {
+                 // Overwrite defaults if present in GET
+                 $params[$k] = urlencode($k) . '=' . urlencode($v);
+             }
+         }
+    }
+     // Ensure page=admin and tab=data are the final state
+    $params['page'] = 'page=admin';
+    $params['tab'] = 'tab=data';
+
+
+    $query_string = implode('&', array_unique($params));
+
+    header('Location: ' . $redirect_url . ($query_string ? '?' . $query_string : ''));
+    exit;
+}
 if ($a == 'load_word_meta' && role('admin')) {
     $f = $_FILES['meta_file']['tmp_name'];
     if ($f) {
@@ -1352,6 +1497,69 @@ if(count($word_meanings) > 0):
     <?php endif; ?>
 
     <?php if($page == 'games'): ?>
+    <?php
+    // Fetch data for games dynamically from the database
+
+    // Word Whiz: Get random word entries with meanings and their actual Arabic text
+    // Join word_meta (wm), words (w), and quran_word_text (q)
+    $word_entries_query = $db->query("
+        SELECT wm.word_id, w.ur_meaning, w.en_meaning, q.quran_text
+        FROM word_meta wm
+        JOIN words w ON wm.word_id = w.word_id
+        JOIN quran_word_text q ON wm.word_id = q.word_id -- Join with the new table
+        WHERE (w.ur_meaning IS NOT NULL AND w.ur_meaning != '') OR (w.en_meaning IS NOT NULL AND w.en_meaning != '')
+        AND q.quran_text IS NOT NULL AND q.quran_text != '' -- Ensure Arabic text exists
+        GROUP BY wm.word_id -- Group by word_id to get unique word entries across the Quran
+        ORDER BY RANDOM() LIMIT 300 -- Fetch a pool of up to 300 unique words
+    ");
+
+    $word_list_for_games = [];
+    while ($row = $word_entries_query->fetchArray(SQLITE3_ASSOC)) {
+        $word_list_for_games[] = $row;
+    }
+
+    // Ayah Jumble & Memory: Fetch a separate pool of random full ayahs for these games
+     $ayahs_query = $db->query("SELECT surah, ayah, arabic FROM ayahs WHERE language = 'ur' AND arabic IS NOT NULL AND arabic != '' AND LENGTH(arabic) BETWEEN 30 AND 250 ORDER BY RANDOM() LIMIT 100"); // Fetch a pool of 100 ayahs of medium length
+    $quran_ayahs_for_jumble_memory = [];
+    while ($a = $ayahs_query->fetchArray(SQLITE3_ASSOC)) {
+        $quran_ayahs_for_jumble_memory[] = $a;
+    }
+
+
+    // Fetch Surah names (for Memory game display) - This list is hardcoded as it's static
+    $surahNames = [
+        1 => 'Al-Fatiha', 2 => 'Al-Baqarah', 3 => 'Aal-E-Imran', 4 => 'An-Nisa', 5 => 'Al-Maidah',
+        6 => 'Al-Anam', 7 => 'Al-Araf', 8 => 'Al-Anfal', 9 => 'At-Tawbah', 10 => 'Yunus',
+        11 => 'Hud', 12 => 'Yusuf', 13 => 'Ar-Rad', 14 => 'Ibrahim', 15 => 'Al-Hijr',
+        16 => 'An-Nahl', 17 => 'Al-Isra', 18 => 'Al-Kahf', 19 => 'Maryam', 20 => 'Ta-Ha',
+        21 => 'Al-Anbiya', 22 => 'Al-Hajj', 23 => 'Al-Muminun', 24 => 'An-Nur', 25 => 'Al-Furqan',
+        26 => 'Ash-Shuara', 27 => 'An-Naml', 28 => 'Al-Qasas', 29 => 'Al-Ankabut', 30 => 'Ar-Rum',
+        31 => 'Luqman', 32 => 'As-Sajdah', 33 => 'Al-Ahzab', 34 => 'Saba', 35 => 'Fatir',
+        36 => 'Ya-Sin', 37 => 'As-Saffat', 38 => 'Sad', 39 => 'Az-Zumar', 40 => 'Ghafir',
+        41 => 'Fussilat', 42 => 'Ash-Shura', 43 => 'Az-Zukhruf', 44 => 'Ad-Dukhan', 45 => 'Al-Jathiyah',
+        46 => 'Al-Ahqaf', 47 => 'Muhammad', 48 => 'Al-Fath', 49 => 'Al-Hujurat', 50 => 'Qaf',
+        51 => 'Adh-Dhariyat', 52 => 'At-Tur', 53 => 'An-Najm', 54 => 'Al-Qamar', 55 => 'Ar-Rahman',
+        56 => 'Al-Waqiah', 57 => 'Al-Hadid', 58 => 'Al-Mujadila', 59 => 'Al-Hashr', 60 => 'Al-Mumtahanah',
+        61 => 'As-Saff', 62 => 'Al-Jumuah', 63 => 'Al-Munafiqun', 64 => 'At-Taghabun', 65 => 'At-Talaq',
+        66 => 'At-Tahrim', 67 => 'Al-Mulk', 68 => 'Al-Qalam', 69 => 'Al-Haqqah', 70 => 'Al-Maarij',
+        71 => 'Nuh', 72 => 'Al-Jinn', 73 => 'Al-Muzzammil', 74 => 'Al-Muddaththir', 75 => 'Al-Qiyamah',
+        76 => 'Al-Insan', 77 => 'Al-Mursalat', 78 => 'An-Naba', 79 => 'An-Naziat', 80 => 'Abasa',
+        81 => 'At-Takwir', 82 => 'Al-Infitar', 83 => 'Al-Mutaffifin', 84 => 'Al-Inshiqaq', 85 => 'Al-Buruj',
+        86 => 'At-Tariq', 87 => 'Al-Ala', 88 => 'Al-Ghashiyah', 89 => 'Al-Fajr', 90 => 'Al-Balad',
+        91 => 'Ash-Shams', 92 => 'Al-Layl', 93 => 'Ad-Duha', 94 => 'Ash-Sharh', 95 => 'At-Tin',
+        96 => 'Al-Alaq', 97 => 'Al-Qadr', 98 => 'Al-Bayyinah', 99 => 'Az-Zalzalah', 100 => 'Al-Adiyat',
+        101 => 'Al-Qariah', 102 => 'At-Takathur', 103 => 'Al-Asr', 104 => 'Al-Humazah', 105 => 'Al-Fil',
+        106 => 'Quraysh', 107 => 'Al-Maun', 108 => 'Al-Kawthar', 109 => 'Al-Kafirun', 110 => 'An-Nasr',
+        111 => 'Al-Masad', 112 => 'Al-Ikhlas', 113 => 'Al-Falaq', 114 => 'An-Nas'
+    ];
+    ?>
+    <!-- Embed fetched data in hidden divs as JSON strings -->
+    <div id="quran-word-data" data-json='<?= htmlspecialchars(json_encode($word_list_for_games), ENT_QUOTES, 'UTF-8') ?>'></div>
+    <div id="quran-ayahs-data" data-json='<?= htmlspecialchars(json_encode($quran_ayahs_for_jumble_memory), ENT_QUOTES, 'UTF-8') ?>'></div>
+    <div id="surah-names-data" data-json='<?= htmlspecialchars(json_encode($surahNames), ENT_QUOTES, 'UTF-8') ?>'></div>
+
+
+    <!-- Rest of the HTML for the games page starts here -->
     <div class="tabs">
         <div class="tab active" onclick="showGame('whiz')">🧩 Word Whiz</div>
         <div class="tab" onclick="showGame('jumble')">🔀 Ayah Jumble</div>
@@ -1566,7 +1774,18 @@ if(count($word_meanings) > 0):
     
     <div id="data" class="card">
         <h2>📊 Quran Data Management</h2>
-        
+        <div class="card" style="margin:0">
+                <h3>📖 Load Quran Arabic Words</h3>
+                <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="load_quran_words">
+                    <div class="form-group">
+                        <label>Quran Words File (CSV):</label>
+                        <input type="file" name="quran_words_file" accept=".csv" required>
+                        <small>Format: word\_id,quran\_text</small>
+                    </div>
+                    <button type="submit" class="btn">📥 Load Quran Words</button>
+                </form>
+            </div>
         <div class="grid">
             <div class="card" style="margin:0">
                 <h3>📖 Load Ayah Data</h3>
@@ -1812,27 +2031,123 @@ if(count($word_meanings) > 0):
     </div>
 
 <script>
+// Global variables for scores and theme ayahs
+let whizScore = 0;
+let jumbleScore = 0;
+let memoryScore = 0;
+let selectedAyahs = []; // For themes page
+
+// Global variables to hold loaded data from hidden divs
+let quranWordDataWithArabic = [];
+let quranAyahsForJumbleMemory = [];
+let surahNames = {};
+
+// --- Function to load data from hidden divs ---
+function loadGameData() {
+    const wordDataEl = document.getElementById('quran-word-data');
+    const ayahsDataEl = document.getElementById('quran-ayahs-data');
+    const surahNamesEl = document.getElementById('surah-names-data');
+
+    if (wordDataEl && wordDataEl.dataset.json) {
+        try {
+            quranWordDataWithArabic = JSON.parse(wordDataEl.dataset.json);
+            console.log('Parsed word entries with Arabic text for Word Whiz:', quranWordDataWithArabic.length);
+        } catch (e) {
+            console.error('Error parsing quran-word-data:', e);
+            document.getElementById('whiz-game').innerHTML = '<div class="notification error">Error loading word data for games.</div>';
+        }
+    } else {
+         console.warn('No quran-word-data element or data found.');
+         document.getElementById('whiz-game').innerHTML = '<div class="notification warning">No word data found for games. Please load data from Admin > Data Management.</div>';
+    }
+
+     if (ayahsDataEl && ayahsDataEl.dataset.json) {
+        try {
+            quranAyahsForJumbleMemory = JSON.parse(ayahsDataEl.dataset.json);
+             console.log('Parsed ayahs for Jumble/Memory:', quranAyahsForJumbleMemory.length);
+        } catch (e) {
+            console.error('Error parsing quran-ayahs-data:', e);
+             document.getElementById('jumble-game').innerHTML = '<div class="notification error">Error loading ayah data for Jumble/Memory.</div>';
+             document.getElementById('memory-game').innerHTML = '<div class="notification error">Error loading ayah data for Jumble/Memory.</div>';
+        }
+    } else {
+         console.warn('No quran-ayahs-data element or data found.');
+         document.getElementById('jumble-game').innerHTML = '<div class="notification warning">No ayah data found for Jumble/Memory. Please load data from Admin > Data Management.</div>';
+         document.getElementById('memory-game').innerHTML = '<div class="notification warning">No ayah data found for Jumble/Memory. Please load data from Admin > Data Management.</div>';
+    }
+
+     if (surahNamesEl && surahNamesEl.dataset.json) {
+        try {
+             surahNames = JSON.parse(surahNamesEl.dataset.json);
+             console.log('Parsed surah names.');
+        } catch (e) {
+            console.error('Error parsing surah-names-data:', e);
+             // This error is less critical, just log it
+        }
+    } else {
+         console.warn('No surah-names-data element or data found.');
+    }
+}
+
+
+// --- Helper function (Still needed for Jumble/Memory if you revert to parsing full text) ---
+// If you are using quran_word_text for Jumble/Memory words directly, this might not be needed.
+// Based on the previous plan, Jumble/Memory still use the full ayah text split. So keep this if needed.
+/*
+function getArabicWordByPosition(fullText, position) {
+    if (!fullText || position < 1) return null;
+    // Split by one or more spaces, filter empty strings
+    const words = fullText.split(/\s+/).filter(word => word.trim() !== '');
+    // position is 1-based, array index is 0-based
+    if (position > 0 && position <= words.length) {
+        return words[position - 1];
+    }
+    return null; // Position out of bounds
+}
+*/
+
+
+// --- General Tab/Section Display Functions ---
 function showGame(g) {
     document.querySelectorAll('.game-area').forEach(el => el.classList.add('hidden'));
     document.getElementById(g).classList.remove('hidden');
-    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-    event.target.classList.add('active');
+    document.querySelectorAll('.tabs .tab').forEach(el => el.classList.remove('active'));
+    // Find the correct tab based on game id and activate it
+    let gameIdMap = {'whiz': 'Word Whiz', 'jumble': 'Ayah Jumble', 'memory': 'Memory Challenge'};
+    document.querySelectorAll('.tabs .tab').forEach(el => {
+        if (el.textContent.includes(gameIdMap[g])) {
+            el.classList.add('active');
+        }
+    });
+    // If starting a game section, try to load data
+     loadGameData();
 }
 
 function showAdmin(s) {
     document.querySelectorAll('#data, #users, #content, #stats').forEach(el => el.classList.add('hidden'));
     document.getElementById(s).classList.remove('hidden');
-    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-    event.target.classList.add('active');
+    document.querySelectorAll('.tabs .tab').forEach(el => el.classList.remove('active'));
+     let adminIdMap = {'data': 'Data Management', 'users': 'User Management', 'content': 'Content Management', 'stats': 'Statistics'};
+      document.querySelectorAll('.tabs .tab').forEach(el => {
+        if (el.textContent.includes(adminIdMap[s])) {
+            el.classList.add('active');
+        }
+    });
 }
 
 function showReview(s) {
     document.querySelectorAll('#tafsir-review, #themes-review, #roots-review').forEach(el => el.classList.add('hidden'));
     document.getElementById(s + '-review').classList.remove('hidden');
-    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-    event.target.classList.add('active');
+    document.querySelectorAll('.tabs .tab').forEach(el => el.classList.remove('active'));
+     let reviewIdMap = {'tafsir': 'Tafsir', 'themes': 'Themes', 'roots': 'Roots'};
+     document.querySelectorAll('.tabs .tab').forEach(el => {
+        if (el.textContent.includes(reviewIdMap[s])) {
+            el.classList.add('active');
+        }
+    });
 }
 
+// --- Viewer Page Functions ---
 function showBookmarkForm(s, a) {
     // Check if form already exists
     let form = document.getElementById(`bookmark-form-${s}-${a}`);
@@ -1840,7 +2155,7 @@ function showBookmarkForm(s, a) {
         form.classList.remove('hidden');
         return;
     }
-    
+
     // Create form on the fly
     const ayahDiv = document.getElementById(`ayah-${s}-${a}`);
     if (ayahDiv) {
@@ -1860,6 +2175,7 @@ function showBookmarkForm(s, a) {
             </div>
         `;
         ayahDiv.insertAdjacentHTML('beforeend', formHtml);
+        ayahDiv.querySelector('textarea[name="note"]').focus(); // Focus the textarea
     }
 }
 
@@ -1870,7 +2186,7 @@ function hideBookmarkForm(s, a) {
     }
 }
 
-
+// --- Themes Page Functions ---
 function filterThemes(role) {
     const items = document.querySelectorAll('.theme-item');
     items.forEach(item => {
@@ -1882,235 +2198,585 @@ function filterThemes(role) {
     });
 }
 
+// --- Community Page Functions ---
 function filterContributions(type) {
     const items = document.querySelectorAll('.contrib-item');
     items.forEach(item => {
-        if(type === 'all' || item.dataset.type === type) {
-            item.style.display = 'block';
-        } else {
-            item.style.display = 'none';
-        }
+        // Hide all first, then show based on filter
+        item.style.display = 'none';
     });
+     document.querySelectorAll(`.contrib-item[data-type="${type}"]`).forEach(item => {
+          item.style.display = 'block';
+     });
+     if (type === 'all') {
+         document.querySelectorAll('.contrib-item').forEach(item => item.style.display = 'block');
+     }
 }
 
 function filterByRole(role) {
     const items = document.querySelectorAll('.contrib-item');
     items.forEach(item => {
-        if(role === 'all' || item.dataset.role === role) {
-            item.style.display = 'block';
-        } else {
-            item.style.display = 'none';
-        }
+        // Hide all first, then show based on filter
+        item.style.display = 'none';
     });
+     document.querySelectorAll(`.contrib-item[data-role="${role}"]`).forEach(item => {
+          item.style.display = 'block';
+     });
+     if (role === 'all') {
+         document.querySelectorAll('.contrib-item').forEach(item => item.style.display = 'block');
+     }
 }
 
-let whizScore = 0;
-let jumbleScore = 0;
-let memoryScore = 0;
 
+// --- Games Page Functions ---
+
+// --- Word Whiz Game ---
+// --- Word Whiz Game ---
 function startWhiz() {
-    whizScore = 0;
+    whizScore = 0; // Reset score per round for Word Whiz
     document.getElementById('whiz-score').textContent = whizScore;
-    const pairs = [
-        {ar: 'الله', en: 'Allah'},
-        {ar: 'محمد', en: 'Muhammad'},
-        {ar: 'القرآن', en: 'Quran'},
-        {ar: 'الصلاة', en: 'Prayer'},
-        {ar: 'الزكاة', en: 'Charity'},
-        {ar: 'الصوم', en: 'Fasting'},
-        {ar: 'الحج', en: 'Pilgrimage'},
-        {ar: 'الإيمان', en: 'Faith'},
-        {ar: 'الجنة', en: 'Paradise'},
-        {ar: 'النار', en: 'Hell'}
-    ];
-    
-    let selected = pairs.slice(0, 5);
-    let shuffled = selected.map(p => p.en).sort(() => Math.random() - 0.5);
-    
+    document.getElementById('whiz-result').innerHTML = ''; // Clear previous result message
+
+    if (!quranWordDataWithArabic || quranWordDataWithArabic.length < 5) {
+        document.getElementById('whiz-game').innerHTML = '<div class="notification warning">Not enough word data with Arabic text loaded for this game. Please load data from Admin > Data Management.</div><button onclick="startWhiz()" class="btn">🔄 New Round</button>'; // Re-enable button just in case
+        console.error("Not enough data for Word Whiz:", quranWordDataWithArabic ? quranWordDataWithArabic.length : 0);
+        return;
+    }
+
+    // Select 5 random unique word entries from the pool that have AT LEAST ONE meaning
+    let selectedWordEntries = [];
+    let availableIndices = Array.from(Array(quranWordDataWithArabic.length).keys());
+
+    // Filter available indices to only include entries with AT LEAST one meaning and Arabic text
+    availableIndices = availableIndices.filter(index => {
+        const entry = quranWordDataWithArabic[index];
+        return entry.quran_text && (entry.ur_meaning || entry.en_meaning);
+    });
+
+     if (availableIndices.length < 5) {
+         document.getElementById('whiz-game').innerHTML = '<div class="notification warning">Could not find 5 unique word entries with Arabic text and at least one meaning. Please load more data.</div><button onclick="startWhiz()" class="btn">🔄 New Round</button>'; // Re-enable button
+          console.warn("Failed to find enough suitable word entries:", availableIndices.length);
+         return;
+     }
+
+
+    // Shuffle available indices and take the first 5
+    availableIndices.sort(() => Math.random() - 0.5);
+
+    for(let i = 0; i < 5; i++) {
+        const dataIndex = availableIndices[i]; // Take from the shuffled array
+        selectedWordEntries.push(quranWordDataWithArabic[dataIndex]);
+    }
+
+    let matchPairs = [];
+    let allMeanings = []; // This will hold the meanings to be displayed in the dropdown
+
+    selectedWordEntries.forEach(entry => {
+        let targetMeaning = null;
+        let chosenLang = null;
+
+        // --- FIX: Randomly choose English or Urdu meaning if both exist ---
+        if (entry.en_meaning && entry.ur_meaning) {
+            if (Math.random() < 0.5) { // 50% chance
+                targetMeaning = entry.en_meaning;
+                chosenLang = 'en';
+            } else {
+                targetMeaning = entry.ur_meaning;
+                chosenLang = 'ur';
+            }
+        } else if (entry.en_meaning) {
+            targetMeaning = entry.en_meaning;
+            chosenLang = 'en';
+        } else if (entry.ur_meaning) {
+            targetMeaning = entry.ur_meaning;
+            chosenLang = 'ur';
+        }
+        // --- End FIX ---
+
+
+        if (targetMeaning) {
+             matchPairs.push({
+                 arabic: entry.quran_text,
+                 meaning: targetMeaning,
+                 wordId: entry.word_id, // Keep word_id for reference if needed
+                 lang: chosenLang // Store which language was chosen for this pair
+             });
+             allMeanings.push(targetMeaning);
+        }
+    });
+
+    // Ensure we actually got 5 valid pairs (might be fewer if some entries lacked meanings after filter)
+     if (matchPairs.length < 5) {
+          console.warn(`Created only ${matchPairs.length} valid pairs from selected entries, trying again.`);
+          startWhiz(); // Try again if not enough valid pairs were created
+          return;
+     }
+
+
+    let shuffledMeanings = [...allMeanings].sort(() => Math.random() - 0.5);
+
     let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin:2rem 0">';
-    selected.forEach((pair, i) => {
-        html += `<div style="text-align:center;padding:1rem;border:2px solid #ddd;border-radius:8px">
-            <div style="font-size:1.8rem;margin-bottom:1rem;font-family:serif">${pair.ar}</div>
-            <select onchange="checkWhizAnswer(${i}, this.value)" style="width:100%">
+    matchPairs.forEach((pair, index) => { // Add index back to identify the match pair div
+        // Escape quotes and double quotes for HTML attributes
+        const escapedMeaning = pair.meaning.replace(/"/g, '"').replace(/'/g, '\'');
+
+        html += `<div class="whiz-match-pair" data-pair-index="${index}" style="text-align:center;padding:1rem;border:2px solid #ddd;border-radius:8px">
+            <div class="whiz-arabic-word" style="font-size:1.8rem;margin-bottom:1rem;font-family:serif;direction:rtl;text-align:right;"
+                 title="Word ID: ${pair.wordId}">
+                ${pair.arabic}
+            </div>
+            <select onchange="checkWhizAnswer(this)" data-correct-meaning="${escapedMeaning}" style="width:100%">
                 <option value="">Select meaning</option>
-                ${shuffled.map((m, j) => `<option value="${j}">${m}</option>`).join('')}
+                ${shuffledMeanings.map((m) => {
+                     // Escape meanings for option values as well
+                    const escapedOptionMeaning = m.replace(/"/g, '"').replace(/'/g, '\'');
+                    return `<option value="${escapedOptionMeaning}">${m}</option>`;
+                }).join('')}
             </select>
         </div>`;
     });
     html += '</div><button onclick="startWhiz()" class="btn">🔄 New Round</button>';
     document.getElementById('whiz-game').innerHTML = html;
-    
-    window.whizAnswers = selected.map(p => p.en);
-    window.whizShuffled = shuffled;
 }
 
-function checkWhizAnswer(wordIndex, selectedIndex) {
-    if (selectedIndex !== '') {
-        const correct = whizShuffled[selectedIndex] === whizAnswers[wordIndex];
+function checkWhizAnswer(selectElement) {
+    const selectedMeaning = selectElement.value;
+    const correctMeaning = selectElement.dataset.correctMeaning; // This is the escaped meaning
+
+    if (selectedMeaning !== '') {
+        // Need to unescape selectedMeaning from the <option> value before comparing
+        const unescapedSelectedMeaning = selectedMeaning.replace(/"/g, '"').replace(/'/g, "'");
+         const unescapedCorrectMeaning = correctMeaning.replace(/"/g, '"').replace(/'/g, "'");
+
+        const correct = unescapedSelectedMeaning === unescapedCorrectMeaning;
+
         if (correct) {
-            whizScore += 10;
-            document.getElementById('whiz-score').textContent = whizScore;
-            event.target.style.background = '#28a745';
-            event.target.style.color = 'white';
+            selectElement.style.background = '#d4edda'; // Light green
+            selectElement.style.borderColor = '#c3e6cb';
+            selectElement.style.color = '#155724';
         } else {
-            event.target.style.background = '#dc3545';
-            event.target.style.color = 'white';
+            selectElement.style.background = '#f8d7da'; // Light red
+            selectElement.style.borderColor = '#f5c6cb';
+            selectElement.style.color = '#721c24';
+             // --- FIX: Correctly target the Arabic word div for logging ---
+             const parentDiv = selectElement.closest('.whiz-match-pair'); // Find the parent container
+             const arabicWordDiv = parentDiv ? parentDiv.querySelector('.whiz-arabic-word') : null; // Find the Arabic word div inside it
+
+             if (arabicWordDiv) {
+                 console.log(`Incorrect match for "${arabicWordDiv.textContent.trim()}". Correct meaning is "${unescapedCorrectMeaning}"`);
+             } else {
+                  console.log(`Incorrect match. Correct meaning is "${unescapedCorrectMeaning}". Could not find Arabic word element.`);
+             }
+             // --- End FIX ---
         }
-        event.target.disabled = true;
+        selectElement.disabled = true; // Disable the select element after selection
+
+        // Check if all select elements are answered (disabled)
+        const allSelects = document.querySelectorAll('#whiz-game select');
+        let allAnswered = true;
+        allSelects.forEach(s => {
+            if (!s.disabled) {
+                 allAnswered = false;
+            }
+        });
+
+        // If all are answered, check if all are correct and update score
+        if (allAnswered) {
+            let allCorrect = true;
+            allSelects.forEach(s => {
+                 // Compare unescaped values here too
+                 const s_selected = s.value.replace(/"/g, '"').replace(/'/g, "'");
+                 const s_correct = s.dataset.correctMeaning.replace(/"/g, '"').replace(/'/g, "'");
+                 if (s_selected !== s_correct) {
+                     allCorrect = false;
+                 }
+            });
+
+            if (allCorrect) {
+                 whizScore += 50; // Grant points for completing the round correctly
+                 document.getElementById('whiz-score').textContent = whizScore;
+                 document.getElementById('whiz-result').innerHTML = '<div class="notification btn-success">Round Complete! All matches are correct!</div>';
+            } else {
+                 document.getElementById('whiz-result').innerHTML = '<div class="notification btn-danger">Round Complete! Some matches were incorrect. Try again!</div>';
+            }
+        }
     }
 }
 
+// --- Ayah Jumble Game ---
+let jumbleCorrect = [];
+let jumbleSelected = [];
+
 function startJumble() {
-    jumbleScore = 0;
+    // jumbleScore = 0; // Don't reset score here, score per round is added on check
     document.getElementById('jumble-score').textContent = jumbleScore;
-    const ayahs = [
-        'بسم الله الرحمن الرحيم',
-        'الحمد لله رب العالمين',
-        'الرحمن الرحيم',
-        'مالك يوم الدين',
-        'إياك نعبد وإياك نستعين'
-    ];
-    
-    const selected = ayahs[Math.floor(Math.random() * ayahs.length)];
-    const words = selected.split(' ');
-    let shuffled = [...words].sort(() => Math.random() - 0.5);
-    
+    document.getElementById('jumble-result').innerHTML = ''; // Clear previous result message
+
+    if (!quranAyahsForJumbleMemory || quranAyahsForJumbleMemory.length === 0) {
+        document.getElementById('jumble-game').innerHTML = '<div class="notification warning">No ayah data loaded to start the game. Please load data from Admin > Data Management.</div><button onclick="startJumble()" class="btn">➡️ New Ayah</button>'; // Re-enable button
+         console.error("No data for Ayah Jumble");
+        return;
+    }
+
+    // Select one random ayah object
+    const selectedAyah = quranAyahsForJumbleMemory[Math.floor(Math.random() * quranAyahsForJumbleMemory.length)];
+    const ayahArabicText = selectedAyah.arabic;
+
+    // Simple split by space for words, filtering out empty strings and punctuation if necessary (basic filter)
+    // Using a regex that preserves some common attached particles like و, ف, ب, ل, ك etc. might be better,
+    // but a simple space split aligns with the word_meta table's likely structure. Stick to space split.
+    const words = ayahArabicText.split(/\s+/).filter(word => word.trim() !== '');
+    if (words.length < 3 || words.length > 15) { // Ensure ayah has enough words, but not too many
+         console.warn(`Selected ayah (S${selectedAyah.surah}:A${selectedAyah.ayah}) has ${words.length} words, picking another.`);
+         startJumble(); // Try again
+         return;
+    }
+
+    let shuffledWords = [...words].sort(() => Math.random() - 0.5);
+     // Ensure shuffled is different from correct (simple check)
+     let attempts = 0;
+     while (shuffledWords.join(' ') === words.join(' ') && words.length > 1 && attempts < 10) {
+          shuffledWords.sort(() => Math.random() - 0.5); // Re-shuffle
+          attempts++;
+     }
+     if (shuffledWords.join(' ') === words.join(' ') && words.length > 1) {
+        shuffledWords.reverse(); // Last resort simple shuffle
+     }
+
+
+    // Store the correct order globally for checking
+    jumbleCorrect = words;
+    jumbleSelected = []; // Reset selected words for the new round
+
     let html = '<div style="margin:2rem 0">';
-    html += '<div style="margin-bottom:2rem;min-height:4rem;border:2px dashed #ddd;padding:1rem;border-radius:8px;background:#f8f9fa" id="answer-area">Arrange words here in correct order</div>';
-    html += '<div style="text-align:center">';
-    shuffled.forEach((word, i) => {
-        html += `<span class="word" onclick="selectJumbleWord(${i}, '${word}')" id="word-${i}">${word}</span>`;
+     html += `<div style="font-size:1.2rem;margin-bottom:1rem;text-align:center;color:#555">Surah ${selectedAyah.surah}, Ayah ${selectedAyah.ayah}</div>`; // Show reference
+    html += '<div style="margin-bottom:2rem;min-height:4rem;border:2px dashed #ddd;padding:1rem;border-radius:8px;background:#f8f9fa;direction:rtl;text-align:right;user-select: none;" id="answer-area">Arrange words here in correct order</div>';
+    html += '<div style="text-align:center;direction:rtl;user-select: none;">'; // Arabic text direction for words, prevent accidental text selection
+    shuffledWords.forEach((word, i) => {
+        // Use a data attribute to store the original text, escape single quotes for onclick
+        const escapedWord = word.replace(/'/g, "\\'").replace(/"/g, '"');
+        html += `<span class="word" onclick="selectJumbleWord(this)" data-word-text="${escapedWord}" data-original-order="${i}">${word}</span>`;
     });
     html += '</div>';
-    html += '<div style="margin-top:2rem">';
+    html += '<div style="margin-top:2rem;text-align:center">';
     html += '<button onclick="checkJumble()" class="btn">✅ Check Answer</button>';
     html += '<button onclick="resetJumble()" class="btn btn-danger" style="margin-left:1rem">🔄 Reset</button>';
     html += '<button onclick="startJumble()" class="btn" style="margin-left:1rem">➡️ New Ayah</button>';
     html += '</div></div>';
     document.getElementById('jumble-game').innerHTML = html;
-    
-    window.jumbleSelected = [];
-    window.jumbleCorrect = words;
 }
 
-function selectJumbleWord(index, word) {
-    const wordEl = document.getElementById(`word-${index}`);
-    if (wordEl.classList.contains('selected')) return;
-    
-    wordEl.classList.add('selected');
-    jumbleSelected.push(word);
-    
+function selectJumbleWord(wordElement) {
+    // Check if the element has already been selected or is disabled
+    if (wordElement.classList.contains('selected') || wordElement.classList.contains('disabled')) return;
+
+    wordElement.classList.add('selected');
+     const wordText = wordElement.dataset.wordText || wordElement.textContent.trim(); // Use data attribute or text
+    jumbleSelected.push(wordText.replace(/\\'/g, "'").replace(/"/g, '"')); // Unescape for internal array
+
     const answerArea = document.getElementById('answer-area');
-    answerArea.innerHTML = jumbleSelected.join(' ') || 'Arrange words here in correct order';
+     answerArea.innerHTML = jumbleSelected.map(w => `<span style="display:inline-block; margin: 0 0.2rem;">${w}</span>`).join('') || 'Arrange words here in correct order';
 }
 
 function checkJumble() {
+     // Compare the joined strings
     const correct = jumbleSelected.join(' ') === jumbleCorrect.join(' ');
     const answerArea = document.getElementById('answer-area');
-    
+    const wordSpans = document.querySelectorAll('#jumble-game .word');
+
+
     if (correct) {
-        jumbleScore += 20;
+        jumbleScore += 50; // Grant points for correct arrangement
         document.getElementById('jumble-score').textContent = jumbleScore;
-        answerArea.style.background = '#d4edda';
+        answerArea.style.background = '#d4edda'; // Light green
         answerArea.style.borderColor = '#c3e6cb';
-        answerArea.innerHTML = '✅ Correct! ' + jumbleSelected.join(' ');
+         answerArea.style.color = '#155724';
+         answerArea.innerHTML = '✅ Correct! ' + jumbleCorrect.join(' '); // Show the correct order
+
+         // Mark all selected words as correct
+         wordSpans.forEach(w => {
+             if (w.classList.contains('selected')) {
+                 w.classList.remove('selected');
+                 w.classList.add('correct');
+             }
+              w.onclick = null; // Disable clicks
+         });
+
+         document.getElementById('jumble-result').innerHTML = '<div class="notification btn-success">Correct Arrangement!</div>';
+
+
     } else {
-        answerArea.style.background = '#f8d7da';
+        answerArea.style.background = '#f8d7da'; // Light red
         answerArea.style.borderColor = '#f5c6cb';
-        answerArea.innerHTML = '❌ Incorrect. Correct order: ' + jumbleCorrect.join(' ');
+        answerArea.style.color = '#721c24';
+        answerArea.innerHTML = '❌ Incorrect. Correct order: ' + jumbleCorrect.join(' '); // Show the correct order
+
+         // Mark selected words as incorrect and disable them
+         wordSpans.forEach(w => {
+             if (w.classList.contains('selected')) {
+                 w.classList.remove('selected');
+                 w.classList.add('incorrect');
+                 w.onclick = null; // Disable clicks
+             }
+         });
+          document.getElementById('jumble-result').innerHTML = '<div class="notification btn-danger">Incorrect Arrangement. Reset or try a New Ayah!</div>';
     }
+
+     // Disable check button until next round
+     document.querySelector('#jumble-game .btn').disabled = true;
 }
 
 function resetJumble() {
     jumbleSelected = [];
-    document.querySelectorAll('.word').forEach(w => w.classList.remove('selected'));
+     document.getElementById('jumble-result').innerHTML = ''; // Clear result message
+    document.querySelectorAll('#jumble-game .word').forEach(w => {
+        w.classList.remove('selected', 'correct', 'incorrect', 'disabled');
+        // Re-enable click handlers
+        // Need to re-fetch the original word text from data attribute
+        // Ensure click handler is re-added correctly
+        w.onclick = function() { selectJumbleWord(this); };
+    });
     document.getElementById('answer-area').innerHTML = 'Arrange words here in correct order';
     document.getElementById('answer-area').style.background = '#f8f9fa';
     document.getElementById('answer-area').style.borderColor = '#ddd';
+     document.getElementById('answer-area').style.color = ''; // Reset color
+
+     // Re-enable check button
+     document.querySelector('#jumble-game .btn').disabled = false;
 }
 
+
+// --- Memory Challenge Game ---
+// This game is about identifying the Surah and Ayah number for a random Arabic ayah
 function startMemory() {
-    memoryScore = 0;
+    // memoryScore = 0; // Don't reset score here, score per round is added on check
     document.getElementById('memory-score').textContent = memoryScore;
-    
-    const questions = [
-        {q: 'Which Surah is known as the "Heart of the Quran"?', a: ['Ya-Sin (36)', 'Al-Fatiha (1)', 'Al-Baqarah (2)', 'Al-Ikhlas (112)'], c: 0},
-        {q: 'How many Ayahs are in Surah Al-Fatiha?', a: ['5', '6', '7', '8'], c: 2},
-        {q: 'Which is the longest Surah in the Quran?', a: ['Al-Baqarah', 'Aal-E-Imran', 'An-Nisa', 'Al-Maidah'], c: 0},
-        {q: 'Which Surah does not begin with Bismillah?', a: ['Al-Fatiha', 'At-Tawbah', 'Al-Ikhlas', 'An-Nas'], c: 1},
-        {q: 'How many times is the word "Allah" mentioned in the Quran approximately?', a: ['1000', '1500', '2000', '2700'], c: 3}
-    ];
-    
-    const q = questions[Math.floor(Math.random() * questions.length)];
-    
-    let html = '<div style="margin:2rem 0;text-align:center">';
-    html += `<h3 style="margin-bottom:2rem">${q.q}</h3>`;
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;max-width:600px;margin:0 auto">';
-    q.a.forEach((answer, i) => {
-        html += `<button class="btn" style="padding:1rem" onclick="checkMemoryAnswer(${i}, ${q.c})">${answer}</button>`;
-    });
-    html += '</div>';
-    html += '<button onclick="startMemory()" class="btn" style="margin-top:2rem">➡️ Next Question</button>';
-    html += '</div>';
-    
-    document.getElementById('memory-game').innerHTML = html;
-}
+    document.getElementById('memory-result').innerHTML = ''; // Clear previous result message
 
-function checkMemoryAnswer(selected, correct) {
-    const buttons = document.querySelectorAll('#memory-game button');
-    buttons.forEach((btn, i) => {
-        if (i === correct) {
-            btn.style.background = '#28a745';
-            btn.classList.add('correct');
-        } else if (i === selected && i !== correct) {
-            btn.style.background = '#dc3545';
-            btn.classList.add('incorrect');
-        }
-        if (i < buttons.length - 1) btn.disabled = true;
-    });
-    
-    if (selected === correct) {
-        memoryScore += 10;
-        document.getElementById('memory-score').textContent = memoryScore;
+
+     if (!quranAyahsForJumbleMemory || quranAyahsForJumbleMemory.length < 4) { // Need at least 4 unique ayahs for choices
+        document.getElementById('memory-game').innerHTML = '<div class="notification warning">Not enough ayah data loaded for this game. Please load data from Admin > Data Management.</div><button onclick="startMemory()" class="btn">➡️ Next Question</button>'; // Re-enable button
+         console.error("No data for Memory Challenge");
+        return;
     }
+
+    // Select one random ayah to be the question
+     const questionAyahIndex = Math.floor(Math.random() * quranAyahsForJumbleMemory.length);
+    const questionAyah = quranAyahsForJumbleMemory[questionAyahIndex];
+
+    // Generate answer options (including the correct one and 3 incorrect ones)
+    let answerOptions = [{
+        text: `Surah ${questionAyah.surah}, Ayah ${questionAyah.ayah}`,
+        isCorrect: true,
+        ayahRef: `${questionAyah.surah}:${questionAyah.ayah}`
+    }];
+
+    // Select 3 random unique incorrect ayahs for options
+    let incorrectAyahsIndices = [];
+    let availableIndices = Array.from(Array(quranAyahsForJumbleMemory.length).keys()).filter(i => i !== questionAyahIndex); // Exclude the question ayah index
+
+     // Shuffle available indices and take the first 3 (or fewer if less than 3 available)
+     availableIndices.sort(() => Math.random() - 0.5);
+
+    for(let i = 0; i < 3 && availableIndices.length > 0; i++) {
+         const dataIndex = availableIndices[i]; // Take from the shuffled array
+         const incorrectAyah = quranAyahsForJumbleMemory[dataIndex];
+         answerOptions.push({
+             text: `Surah ${incorrectAyah.surah}, Ayah ${incorrectAyah.ayah}`,
+             isCorrect: false,
+             ayahRef: `${incorrectAyah.surah}:${incorrectAyah.ayah}`
+         });
+    }
+
+    // Shuffle the answer options
+    answerOptions.sort(() => Math.random() - 0.5);
+
+    let html = '<div style="margin:2rem 0;text-align:center">';
+    html += `<h3 style="margin-bottom:1rem">Identify the Surah and Ayah number for this verse:</h3>`;
+    html += `<div class="arabic" style="font-size:1.8rem;margin-bottom:2rem;direction:rtl;text-align:right;max-width:800px;margin:0 auto 2rem auto;">${questionAyah.arabic}</div>`;
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;max-width:600px;margin:0 auto">';
+
+    answerOptions.forEach((option) => {
+        // Store isCorrect state in a data attribute on the button
+        html += `<button class="btn" style="padding:1rem;" data-is-correct="${option.isCorrect}">${option.text}</button>`;
+    });
+
+    html += '</div>';
+     html += '<button onclick="startMemory()" class="btn" style="margin-top:2rem">➡️ Next Question</button>'; // Next button always visible
+    html += '</div>';
+
+    document.getElementById('memory-game').innerHTML = html;
+
+    // Add click listeners to the answer buttons AFTER they are added to the DOM
+    document.querySelectorAll('#memory-game .grid button').forEach(button => {
+        button.addEventListener('click', function() {
+            checkMemoryAnswer(this);
+        });
+    });
+}
+
+function checkMemoryAnswer(clickedButton) {
+    const isCorrect = clickedButton.dataset.isCorrect === 'true'; // Read boolean from data attribute
+    const buttons = document.querySelectorAll('#memory-game .grid button'); // Select only the answer buttons
+
+    // Disable all answer buttons
+    buttons.forEach(btn => {
+       btn.disabled = true;
+    });
+
+    if (isCorrect) {
+        memoryScore += 15; // Grant points for correct answer
+        document.getElementById('memory-score').textContent = memoryScore;
+        clickedButton.style.background = '#28a745'; // Green
+        clickedButton.style.color = 'white';
+        clickedButton.classList.add('correct');
+        document.getElementById('memory-result').innerHTML = '<div class="notification btn-success">Correct!</div>';
+    } else {
+        clickedButton.style.background = '#dc3545'; // Red
+        clickedButton.style.color = 'white';
+        clickedButton.classList.add('incorrect');
+        document.getElementById('memory-result').innerHTML = '<div class="notification btn-danger">Incorrect.</div>';
+
+        // Highlight the correct answer
+        buttons.forEach(btn => {
+             if (btn.dataset.isCorrect === 'true') {
+                 btn.style.background = '#d4edda'; // Light green for the correct one
+                 btn.style.borderColor = '#c3e6cb';
+                 btn.style.color = '#155724';
+             }
+        });
+    }
+     // The "Next Question" button is separate and not affected by disabling answer buttons
 }
 
 
+// --- Shared Functions (used by multiple pages) ---
+
+// Keep the Surah/Ayah dropdown logic for Tafsir/Hifz/Viewer pages
 document.addEventListener('DOMContentLoaded', function() {
+    // Load game data when the page loads (in case the 'games' page is the landing page)
+    loadGameData(); // Call the data loading function here
+
+
     const s = document.querySelectorAll('select[name="surah"]');
     s.forEach(function(surahSelect) {
         surahSelect.addEventListener('change', function() {
             const ayahSelect = this.closest('form').querySelector('select[name="ayah"]');
-            const surahValue = this.value;
-            
-            if (ayahSelect && surahValue) {
-                const ayahCounts = {1:7,2:286,3:200,4:176,5:120,6:165,7:206,8:75,9:129,10:109,11:123,12:111,13:43,14:52,15:99,16:128,17:111,18:110,19:98,20:135,21:112,22:78,23:118,24:64,25:77,26:227,27:93,28:88,29:69,30:60,31:34,32:30,33:73,34:54,35:45,36:83,37:182,38:88,39:75,40:85,41:54,42:53,43:89,44:59,45:37,46:35,47:38,48:29,49:18,50:45,51:60,52:49,53:62,54:55,55:78,56:96,57:29,58:22,59:24,60:13,61:14,62:11,63:11,64:18,65:12,66:12,67:30,68:52,69:52,70:44,71:28,72:28,73:20,74:56,75:40,76:31,77:50,78:40,79:46,80:42,81:29,82:19,83:36,84:25,85:22,86:17,87:19,88:26,89:30,90:20,91:15,92:21,93:11,94:8,95:8,96:19,97:5,98:8,99:8,100:11,101:11,102:8,103:3,104:9,105:5,106:4,107:7,108:3,109:6,110:3,111:5,112:4,113:5,114:6};
-                
-                const maxAyahs = ayahCounts[parseInt(surahValue)] || 300;
-                
+            const surahValue = parseInt(this.value); // Parse to integer
+
+            if (ayahSelect && !isNaN(surahValue) && surahValue > 0 && surahValue <= 114) {
+                // Use the getMaxAyahs function to get the count
+                const maxAyahs = getMaxAyahs(surahValue);
+
                 ayahSelect.innerHTML = '<option value="">Select Ayah</option>';
                 for (let i = 1; i <= maxAyahs; i++) {
                     ayahSelect.innerHTML += `<option value="${i}">Ayah ${i}</option>`;
                 }
+                 // If there was a specific ayah selected in $_GET/$_POST, try to select it
+                 // This requires passing GET/POST values into JS somehow, which is not done globally yet.
+                 // For now, just populating the options based on surah is sufficient.
+                 // You could add data attributes to the select on page load to store initial GET/POST values.
+            } else if (ayahSelect) {
+                 ayahSelect.innerHTML = '<option value="">Select Surah first</option>';
             }
         });
+         // Trigger change on load if a surah is already selected (e.g., on Tafsir page reload)
+         // Added check to ensure it's a valid number before triggering
+         if (surahSelect.value && !isNaN(parseInt(surahSelect.value))) {
+              surahSelect.dispatchEvent(new Event('change'));
+         }
     });
+
+     // Initial setup for filters on Community page if it's the active page
+     // Note: Need to check if these elements exist before adding listeners or calling functions
+     const communityFilterType = document.querySelector('#contributions .filter-bar select:nth-of-type(1)');
+     const communityFilterRole = document.querySelector('#contributions .filter-bar select:nth-of-type(2)');
+
+     if(communityFilterType) {
+        communityFilterType.addEventListener('change', function() {
+            filterContributions(this.value);
+        });
+         // Trigger initial filter if needed, or just let the initial load handle it
+         // filterContributions(communityFilterType.value); // Or 'all' - uncomment if needed
+     }
+      if(communityFilterRole) {
+        communityFilterRole.addEventListener('change', function() {
+            filterByRole(this.value);
+        });
+         // filterByRole(communityFilterRole.value); // Or 'all' - uncomment if needed
+     }
+
+     // Ensure initial tab is shown on Games, Admin, Review pages if applicable
+      const gamesTabs = document.querySelectorAll('.game-area');
+      if(gamesTabs.length > 0) {
+           // Find the active tab element first
+           // Assuming the tab links within the page's tab bar are used for initial state
+           const pageTabs = document.querySelectorAll('.tabs .tab');
+           const activePageTabEl = document.querySelector('.tabs .tab.active');
+
+           if (activePageTabEl) {
+               // Get the target div id from the onclick attribute (e.g., showGame('whiz') -> 'whiz')
+               const onclickAttr = activePageTabEl.getAttribute('onclick');
+               const match = onclickAttr ? onclickAttr.match(/showGame\('([^']+)'\)/) : null;
+               if (match && match[1]) {
+                   showGame(match[1]); // Call showGame to activate the tab and load data
+               } else {
+                    showGame('whiz'); // Default if onclick is unexpected
+               }
+           } else {
+               showGame('whiz'); // Default if no active tab
+           }
+      }
+
+      const adminSections = document.querySelectorAll('#data, #users, #content, #stats');
+       if(adminSections.length > 0) {
+            const pageTabs = document.querySelectorAll('.tabs .tab');
+            const activePageTabEl = document.querySelector('.tabs .tab.active');
+            if (activePageTabEl) {
+                 const onclickAttr = activePageTabEl.getAttribute('onclick');
+                 const match = onclickAttr ? onclickAttr.match(/showAdmin\('([^']+)'\)/) : null;
+                 if (match && match[1]) {
+                    showAdmin(match[1]);
+                } else {
+                    showAdmin('data'); // Default
+                }
+            } else {
+                showAdmin('data'); // Default
+            }
+       }
+
+       const reviewSections = document.querySelectorAll('#tafsir-review, #themes-review, #roots-review');
+        if(reviewSections.length > 0) {
+            const pageTabs = document.querySelectorAll('.tabs .tab');
+            const activePageTabEl = document.querySelector('.tabs .tab.active');
+            if (activePageTabEl) {
+                 const onclickAttr = activePageTabEl.getAttribute('onclick');
+                 const match = onclickAttr ? onclickAttr.match(/showReview\('([^']+)'\)/) : null;
+                 if (match && match[1]) {
+                    showReview(match[1]);
+                } else {
+                    showReview('tafsir'); // Default
+                }
+            } else {
+                showReview('tafsir'); // Default
+            }
+       }
 });
 
 
-
+// Keep the getMaxAyahs function as is (used by surah/ayah dropdowns)
 function getMaxAyahs(surah) {
     const ayahCounts = {1:7,2:286,3:200,4:176,5:120,6:165,7:206,8:75,9:129,10:109,11:123,12:111,13:43,14:52,15:99,16:128,17:111,18:110,19:98,20:135,21:112,22:78,23:118,24:64,25:77,26:227,27:93,28:88,29:69,30:60,31:34,32:30,33:73,34:54,35:45,36:83,37:182,38:88,39:75,40:85,41:54,42:53,43:89,44:59,45:37,46:35,47:38,48:29,49:18,50:45,51:60,52:49,53:62,54:55,55:78,56:96,57:29,58:22,59:24,60:13,61:14,62:11,63:11,64:18,65:12,66:12,67:30,68:52,69:52,70:44,71:28,72:28,73:20,74:56,75:40,76:31,77:50,78:40,79:46,80:42,81:29,82:19,83:36,84:25,85:22,86:17,87:19,88:26,89:30,90:20,91:15,92:21,93:11,94:8,95:8,96:19,97:5,98:8,99:8,100:11,101:11,102:8,103:3,104:9,105:5,106:4,107:7,108:3,109:6,110:3,111:5,112:4,113:5,114:6};
-    return ayahCounts[surah] || 300;
+    return ayahCounts[surah] || 300; // Fallback
 }
 
-// For theme ayah selection
-let selectedAyahs = [];
+// Keep the theme ayah selection logic as is
+// selectedAyahs is declared at the top of the script block
 
 function addAyahToTheme() {
     const surah = document.getElementById('theme-surah').value;
     const ayah = document.getElementById('theme-ayah').value;
-    
+
     if (surah && ayah) {
         const ayahRef = `${surah}:${ayah}`;
         if (!selectedAyahs.includes(ayahRef)) {
@@ -2124,7 +2790,8 @@ function addAyahToTheme() {
 
 function updateSelectedAyahs() {
     const container = document.getElementById('selected-ayahs');
-    container.innerHTML = selectedAyahs.map(ayah => 
+    // Use a data attribute or a class to distinguish these word-like spans
+    container.innerHTML = selectedAyahs.map(ayah =>
         `<span class="word" onclick="removeAyah('${ayah}')">${ayah} ❌</span>`
     ).join('');
     document.getElementById('ayahs-input').value = selectedAyahs.join(',');
@@ -2135,8 +2802,81 @@ function removeAyah(ayah) {
     updateSelectedAyahs();
 }
 
+// Add placeholder functions for admin/review actions (needs PHP backend implementation)
+function deleteUser(userId) {
+     if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+         // Send a POST request to the server
+         const form = document.createElement('form');
+         form.method = 'post';
+         form.action = ''; // Submit to the current page
 
+         const actionInput = document.createElement('input');
+         actionInput.type = 'hidden';
+         actionInput.name = 'action';
+         actionInput.value = 'delete_user'; // You need to add this action in your PHP
+         form.appendChild(actionInput);
+
+         const idInput = document.createElement('input');
+         idInput.type = 'hidden';
+         idInput.name = 'user_id';
+         idInput.value = userId;
+         form.appendChild(idInput);
+
+         document.body.appendChild(form); // Append form to body to submit
+         form.submit(); // Submit the form
+     }
+}
+
+function rejectContent(table, contentId) {
+     if (confirm(`Are you sure you want to reject this content (ID ${contentId})? This will permanently remove it.`)) {
+         // Send a POST request to the server
+         const form = document.createElement('form');
+         form.method = 'post';
+         form.action = ''; // Submit to the current page
+
+         const actionInput = document.createElement('input');
+         actionInput.type = 'hidden';
+         actionInput.name = 'action';
+         actionInput.value = 'reject_content'; // You need to add this action in your PHP
+         form.appendChild(actionInput);
+
+          const tableInput = document.createElement('input');
+         tableInput.type = 'hidden';
+         tableInput.name = 'table';
+         tableInput.value = table;
+         form.appendChild(tableInput);
+
+         const idInput = document.createElement('input');
+         idInput.type = 'hidden';
+         idInput.name = 'content_id';
+         idInput.value = contentId;
+         form.appendChild(idInput);
+
+         document.body.appendChild(form); // Append form to body to submit
+         form.submit(); // Submit the form
+     }
+}
 
 </script>
 </body>
 </html>
+
+<script>
+const fontUrl = "https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap";
+
+const link = document.createElement("link");
+link.rel = "stylesheet";
+link.href = fontUrl;
+document.head.appendChild(link);
+
+const style = document.createElement("style");
+style.innerHTML = `
+  * {
+    font-family: Calibri, 'Noto Nastaliq Urdu', "Jameel Noori Nastaleeq" !important;
+  }
+  input, textarea, select, button {
+    font-family: Calibri, 'Noto Nastaliq Urdu', "Jameel Noori Nastaleeq" !important;
+  }
+`;
+document.head.appendChild(style);
+</script>
