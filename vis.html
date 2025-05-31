@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vis.js Node Popups</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vis-network@latest/dist/vis-network.min.js"></script>
+    <style type="text/css">
+        #mynetwork {
+            width: 800px;
+            height: 600px;
+            border: 1px solid lightgray;
+        }
+        /* Style for the custom popup window */
+        .custom-popup {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            max-width: 300px; /* Limit width */
+            word-wrap: break-word; /* Ensure long words wrap */
+        }
+    </style>
+</head>
+<body>
+
+<div id="mynetwork"></div>
+<div id="nodeDetailsPopup" class="custom-popup"></div>
+
+<script type="text/javascript">
+    // create an array with nodes
+    var nodes = new vis.DataSet([
+        { id: 1, label: "Node 1", details: "This is a detailed description for Node 1." },
+        { id: 2, label: "Node 2", details: "More information about Node 2, perhaps some data points or a brief history." },
+        { id: 3, label: "Node 3", details: "Details specific to Node 3. Could be a link: <a href='https://example.com' target='_blank'>Example Link</a>" },
+        { id: 4, label: "Node 4", details: "Node 4 has some long content to demonstrate wrapping. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat." },
+        { id: 5, label: "Node 5", details: "Another set of details for Node 5." },
+        { id: 6, label: "Node 6", details: "Final details for Node 6, could include images or other HTML elements." },
+    ]);
+
+    // create an array with edges
+    var edges = new vis.DataSet([
+        { from: 1, to: 3, dashes: true },
+        { from: 1, to: 2, dashes: [5, 5] },
+        { from: 2, to: 4, dashes: [5, 5, 3, 3] },
+        { from: 2, to: 5, dashes: [2, 2, 10, 10] },
+        { from: 2, to: 6, dashes: false },
+    ]);
+
+    // create a network
+    var container = document.getElementById("mynetwork");
+    var data = {
+        nodes: nodes,
+        edges: edges,
+    };
+    var options = {
+        // You can add interaction options if needed, though not strictly required for click popups
+        // interaction: {
+        //     hover: true,
+        //     tooltipDelay: 300
+        // }
+    };
+    var network = new vis.Network(container, data, options);
+
+    // Get the custom popup element
+    var nodeDetailsPopup = document.getElementById("nodeDetailsPopup");
+
+    // Variable to keep track of the currently opened node's ID
+    var activeNodeId = null;
+
+    // Function to position the popup
+    function positionPopup(nodeId) {
+        if (nodeId === null) {
+            nodeDetailsPopup.style.display = 'none';
+            return;
+        }
+
+        var nodePosition = network.getPositions([nodeId])[nodeId];
+        // Convert canvas coordinates to DOM coordinates
+        var domPosition = network.canvasToDOM(nodePosition);
+
+        // Get the node data to populate the popup
+        var clickedNode = nodes.get(nodeId);
+
+        nodeDetailsPopup.innerHTML = "<h3>" + clickedNode.label + "</h3>" +
+                                     "<p>" + (clickedNode.details || "No details available for this node.") + "</p>";
+
+        // Position the popup next to the node
+        nodeDetailsPopup.style.left = (domPosition.x + 15) + 'px'; // Offset slightly from the node's center
+        nodeDetailsPopup.style.top = (domPosition.y + 15) + 'px';
+        nodeDetailsPopup.style.display = 'block';
+    }
+
+
+    // Add a click event listener to the network
+    network.on("click", function (params) {
+        // Hide the custom popup first
+        nodeDetailsPopup.style.display = 'none';
+        activeNodeId = null; // Reset active node
+
+        if (params.nodes.length > 0) {
+            // A node was clicked
+            var clickedNodeId = params.nodes[0];
+            activeNodeId = clickedNodeId; // Set the active node
+
+            // Position and display the popup
+            positionPopup(clickedNodeId);
+        }
+    });
+
+    // Event listener for when a node is being dragged
+    network.on("dragging", function (params) {
+        // Only update the popup position if a node is currently active (i.e., its popup is open)
+        // and if the active node is one of the nodes being dragged.
+        if (activeNodeId !== null && params.nodes.includes(activeNodeId)) {
+            positionPopup(activeNodeId);
+        }
+    });
+
+    // Event listener for when dragging ends (optional, you might want to keep popup open or close it)
+    network.on("dragEnd", function (params) {
+        // If the popup was open for a dragged node, ensure its position is finalized
+        if (activeNodeId !== null && params.nodes.includes(activeNodeId)) {
+            positionPopup(activeNodeId);
+        }
+    });
+
+
+    // Add a global click listener to hide the popup if the user clicks outside the network or popup
+    document.addEventListener('click', function(event) {
+        // Check if the click occurred outside the network container AND outside the popup itself
+        if (!container.contains(event.target) && !nodeDetailsPopup.contains(event.target)) {
+            nodeDetailsPopup.style.display = 'none';
+            activeNodeId = null; // No active node when popup is closed
+        }
+    });
+
+</script>
+
+</body>
+</html>

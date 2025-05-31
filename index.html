@@ -6,7 +6,7 @@
     <title>Nur Al-Quran Studio Offline - By Yasin Ullah</title>
     <meta name="author" content="Yasin Ullah, Pakistani">
     <meta name="description" content="An offline-first, client-side Quranic study environment with personal Tafsir, thematic linking, root analysis, Hifz tracking, and advanced search.">
-
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vis-network@latest/dist/vis-network.min.js"></script>
     <style>
         /* General Styles & Reset */
         :root {
@@ -654,6 +654,134 @@
             margin-top: 15px;
             opacity: 0.8;
         }
+
+                /* Root Analyzer View Switcher & Graph */
+        .view-switcher label { /* General label styling */
+            display: inline-block;
+            margin-bottom: 0; /* Override default label margin */
+        }
+        .view-switcher div > label { /* Specific label for radio option */
+            margin-left: 3px;
+        }
+        .root-view-content {
+            display: none; /* Hide by default */
+        }
+        .root-view-content.active-view {
+            display: block; /* Show active view */
+        }
+        #root-network-graph-container {
+            margin-top: 20px;
+        }
+        /* Root Analyzer View Switcher & Graph */
+        .view-switcher label { /* General label styling */
+            display: inline-block;
+            margin-bottom: 0; /* Override default label margin */
+        }
+        .view-switcher div > label { /* Specific label for radio option */
+            margin-left: 3px;
+        }
+        .root-view-content {
+            display: none; /* Hide by default */
+        }
+        .root-view-content.active-view {
+            display: block; /* Show active view */
+        }
+        #root-network-graph-container {
+            margin-top: 20px;
+        }
+        /* Style for the custom popup window for root graph */
+       .custom-popup#root-node-popup {
+                position: absolute;
+                background-color: var(--color-bg-secondary);
+                border: 1px solid var(--color-border);
+                padding: 15px;
+                box-shadow: 0 8px 36px black;
+                display: none;
+                border-radius: var(--border-radius);
+                word-wrap: break-word;
+                font-size: 1.1rem !important;
+            }
+        .custom-popup#root-node-popup h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: var(--color-accent-dark);
+            font-family: var(--font-arabic);
+            font-size: 1.5rem;
+        }
+        .custom-popup#root-node-popup p {
+            margin: 0;
+            line-height: 2; /* Increased for Arabic readability */
+            font-size: 1.3rem; /* Increased for Arabic readability */
+        }
+        /* In your main <style> block */
+#root-graph-placeholder {
+    /* display: none !important; /* Default, JS will override with 'block !important' if needed */
+    text-align: center;
+    margin: 20px 0;
+}
+        /* Fullscreen Graph Styles */
+        body.graph-fullscreen-active {
+            overflow: hidden; /* Prevent scrolling of the body */
+        }
+        #root-network-graph-container.fullscreen-graph {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw; /* Full viewport width */
+            height: 100vh; /* Full viewport height */
+            z-index: 1500; /* Ensure it's above other content, but below popups if needed */
+            background-color: var(--color-bg-primary); /* Use a theme background */
+            padding: 0; /* Remove padding for fullscreen */
+            margin: 0; /* Remove margin */
+            display: flex; /* To help center the graph div if it's not 100% */
+            flex-direction: column; /* For close button */
+            align-items: stretch;
+            justify-content: stretch;
+        }
+        #root-network-graph-container.fullscreen-graph #root-network-graph {
+            flex-grow: 1; /* Make the graph div take available space */
+            border: none; /* Remove border in fullscreen */
+            width: 100%;
+            height: 100%; /* Ensure vis.js has height */
+        }
+        .graph-fullscreen-close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1501; /* Above the graph container */
+            padding: 8px 15px;
+            font-size: 1.2rem;
+            background-color: var(--color-error); /* Or another distinct color */
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+        }
+        #root-network-graph-container.fullscreen-graph #root-graph-pagination-controls {
+            position: absolute; /* Position pagination within fullscreen */
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(var(--color-bg-secondary-rgb, 200, 230, 201), 0.9); /* Theme aware with opacity */
+            padding: 5px 10px;
+            border-radius: var(--border-radius);
+            z-index: 1501;
+        }
+        /* Add RGB version of bg-secondary for themes if not present */
+        :root { --color-bg-secondary-rgb: 200, 230, 201; } /* Serene */
+        body.theme-manuscript { --color-bg-secondary-rgb: 255, 248, 220; } /* Manuscript */
+        body.theme-holo { --color-bg-secondary-rgb: 26, 43, 60; } /* Holo */
+        div#root-node-popup {
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            font-family: var(--font-arabic) !important;
+            direction: rtl !important;
+            text-align: right !important;
+            z-index: 2147483647 !important;
+            }
+
     </style>
     <!-- Optional: Include fonts if not available locally -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap">
@@ -801,9 +929,9 @@
                 </div>
             </section>
 
-            <section id="roots" class="section" role="region" aria-labelledby="roots-heading">
+                         <section id="roots" class="section" role="region" aria-labelledby="roots-heading">
                 <h2 id="roots-heading">Root Word Analyzer & Concordance</h2>
-                <p>Input an Arabic root word to find occurrences in the Quran (simplified string search).</p>
+                <p>Input an Arabic root word to find occurrences in the Quran.</p>
 
                 <div class="root-analyzer-form mb-20">
                     <div class="flex-group mb-10">
@@ -817,12 +945,42 @@
                      <p id="root-status" aria-live="polite"></p>
                 </div>
 
+                <!-- View Switcher -->
+                <div class="view-switcher mb-10 flex-group" style="justify-content: flex-start;">
+                    <label style="margin-bottom:0;">View Mode: </label>
+                    <div>
+                        <input type="radio" id="root-view-list" name="root-view-mode" value="list" checked>
+                        <label for="root-view-list" style="margin-right: 10px; font-weight:normal;">List</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="root-view-tree" name="root-view-mode" value="tree">
+                        <label for="root-view-tree" style="font-weight:normal;">Tree Graph</label>
+                    </div>
+                </div>
+
                 <div class="root-results">
                     <h3>Occurrences Found for: <span id="analyzed-root-term">N/A</span></h3>
-                    <ul id="root-occurrences-list">
-                        <!-- Occurrences populated by JS -->
+
+                    <!-- List View Container -->
+                    <ul id="root-occurrences-list" class="root-view-content active-view">
                         <li>Enter a root word and click "Analyze Root".</li>
                     </ul>
+
+                    <!-- Tree View Container -->
+                    <div id="root-network-graph-container" class="root-view-content" style="display: none;">
+                        <p id="root-graph-placeholder" class="text-center" style="display:none; margin: 20px 0;">Graph will appear here after analysis.</p>
+                        <div id="root-network-graph" style="width: 100%; height: 500px; border: 1px solid var(--color-border);"></div>
+                        <!-- Pagination Controls for Graph -->
+                        <div id="root-graph-pagination-controls" class="flex-group mt-10" style="justify-content: center; display: none;">
+                            <button id="prev-root-graph-page-btn" disabled>« Previous</button>
+                            <span id="root-graph-page-info" style="margin: 0 15px; font-weight: normal;">Page 1 of 1</span>
+                            <button id="next-root-graph-page-btn" disabled>Next »</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Custom Popup for Vis.js Graph Nodes -->
+                 <div id="root-node-popup" class="custom-popup" style="font-family: var(--font-arabic); direction: rtl; text-align: right;">
+                    <!-- Popup content will be injected here by JavaScript -->
                 </div>
             </section>
 
@@ -974,6 +1132,14 @@
         let db;
 
         // Object Store Names
+        let rootNetwork = null; // To hold the vis.js network instance
+        let rootNodePopupEl = null; // To hold the popup DOM element
+        let activeRootNodeIdForPopup = null; // Track which node's popup is open
+        let allRootOccurrencesCache = []; // To store all occurrences for the current analyzed root
+        let currentRootGraphPage = 1;
+        const rootGraphItemsPerPage = 20; // Number of occurrence nodes per page
+
+
         const STORE_QURAN = 'quran';
         const STORE_TAFSIR = 'tafsir';
         const STORE_THEMES = 'themes';
@@ -2258,87 +2424,136 @@
          }
 
 
-        // --- Root Word Analyzer Functions --- (Simplified: String Search)
-         async function analyzeRoot() {
+                async function analyzeRoot() {
              if (!db) return;
              const rootInput = document.getElementById('root-input');
              const rootTerm = rootInput.value.trim();
              const analyzedRootTermElement = document.getElementById('analyzed-root-term');
+
+             const currentViewMode = document.querySelector('input[name="root-view-mode"]:checked').value; // Get current view mode at the start
              const occurrencesListElement = document.getElementById('root-occurrences-list');
+             const graphContainer = document.getElementById('root-network-graph');
+             const graphPlaceholder = document.getElementById('root-graph-placeholder');
+             const paginationControls = document.getElementById('root-graph-pagination-controls');
 
              analyzedRootTermElement.textContent = rootTerm || 'N/A';
-             occurrencesListElement.innerHTML = ''; // Clear previous results
+             allRootOccurrencesCache = [];
+             currentRootGraphPage = 1;
+
+             // Clear all previous results regardless of current view, as we are re-analyzing
+             occurrencesListElement.innerHTML = '';
+             graphContainer.innerHTML = '';
+             if (rootNetwork) {
+                rootNetwork.destroy();
+                rootNetwork = null;
+             }
+             graphPlaceholder.style.display = 'none';
+             paginationControls.style.display = 'none';
+
 
              if (!rootTerm) {
                  setStatusMessage('root-status', 'Please enter an Arabic root word.', true);
+                 if (currentViewMode === 'list') occurrencesListElement.innerHTML = '<li>Please enter an Arabic root word.</li>';
+                 else { graphPlaceholder.textContent = 'Please enter an Arabic root word.'; graphPlaceholder.style.display = 'block'; }
                  return;
              }
              if (rootTerm.length < 2) {
                  setStatusMessage('root-status', 'Root term should be at least 2 characters.', true);
+                 if (currentViewMode === 'list') occurrencesListElement.innerHTML = '<li>Root term too short.</li>';
+                 else { graphPlaceholder.textContent = 'Root term too short.'; graphPlaceholder.style.display = 'block'; }
                  return;
              }
 
              showLoading(`Analyzing root "${rootTerm}"...`);
              try {
                  const allAyahs = await getAllData(STORE_QURAN);
-                 const foundOccurrences = [];
+                 const foundOccurrences = []; // Temp array for this analysis run
 
-                 // Perform a simple string search in Arabic text
-                 // This is a simplified approach, not a true morphological analysis
-                 const searchRegex = new RegExp(rootTerm, 'g'); // 'g' for global search
-
+                 // --- YOUR EXISTING WORD MATCHING LOGIC to populate 'foundOccurrences' ---
                  allAyahs.forEach(ayahData => {
-                     // Split words and check each word individually
                      const words = ayahData.arabic.split(/\s+/);
                      words.forEach(word => {
-                         wordan = word.replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").replace(/ؤ|و/g, "(و|ؤ)").replace(/ك|ک/g, "(ك|ک)").replace(/آ|ا|أ|إ/g, "(آ|ا|أ|إ)").replace(/ى|ی|ي/g, "(ى|ی|ي)").replace(/ہ|ھ|ة|ۃ|ه/g, "(ہ|ھ|ة|ۃ|ه)").replace(/ے/g, "(ے|ی)").replace(/م/g, "(مٰ|م)");
-                        wordan2 = word.replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"")
+                         let wordanClean = word.replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"");
+                         let wordanNormalized = wordanClean
+                            .replace(/ؤ|و/g, "(و|ؤ)")
+                            .replace(/ك|ک/g, "(ك|ک)")
+                            .replace(/آ|ا|أ|إ/g, "(آ|ا|أ|إ)")
+                            .replace(/ى|ی|ي/g, "(ى|ی|ي)")
+                            .replace(/ہ|ھ|ة|ۃ|ه/g, "(ہ|ھ|ة|ۃ|ه)")
+                            .replace(/ے/g, "(ے|ی)")
+                            .replace(/م/g, "(مٰ|م)");
 
-                         
+                         let rootTermPatternPart = rootTerm.replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"")
+                            .replace(/ؤ|و/g, "(و|ؤ)")
+                            .replace(/ك|ک/g, "(ك|ک)")
+                            .replace(/آ|ا|أ|إ/g, "(آ|ا|أ|إ)")
+                            .replace(/ى|ی|ي/g, "(ى|ی|ي)")
+                            .replace(/ہ|ھ|ة|ۃ|ه/g, "(ہ|ھ|ة|ۃ|ه)")
+                            .replace(/ے/g, "(ے|ی)")
+                            .replace(/م/g, "(مٰ|م)");
 
-                         rootTerma1 = rootTerm.replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").replace(/ؤ|و/g, "(و|ؤ)").replace(/ك|ک/g, "(ك|ک)").replace(/آ|ا|أ|إ/g, "(آ|ا|أ|إ)").replace(/ى|ی|ي/g, "(ى|ی|ي)").replace(/ہ|ھ|ة|ۃ|ه/g, "(ہ|ھ|ة|ۃ|ه)").replace(/ے/g, "(ے|ی)").replace(/م/g, "(مٰ|م)").replaceAll(" ",".{0,1}").replaceAll("-",".{0,1}").replaceAll("-",".{0,1}");
-                         
-                         rootTerma = rootTerm.replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g,"").replace(/ؤ|و/g, "(و|ؤ)").replace(/ك|ک/g, "(ك|ک)").replace(/آ|ا|أ|إ/g, "(آ|ا|أ|إ)").replace(/ى|ی|ي/g, "(ى|ی|ي)").replace(/ہ|ھ|ة|ۃ|ه/g, "(ہ|ھ|ة|ۃ|ه)").replace(/ے/g, "(ے|ی)").replace(/م/g, "(مٰ|م)").replaceAll(" ","").replaceAll("-","").replaceAll("-","");
-                        
-                         //console.log(wordan.match(/rootTerma/)!=undefined);
-                         rootTerma1 = new RegExp(rootTerma1)
-                         //console.log(rootTerma1 +"\n"+ wordan2)
-                         if (wordan2.match(rootTerma1)!=undefined || wordan.includes(rootTerma)) {
+                         let flexibleRootPatternStr = rootTermPatternPart
+                            .replace(/ /g, ".{0,1}")
+                            .replace(/-/g, ".{0,1}")
+                            .replace(/۔/g, ".{0,1}");
+                         let flexibleRegex = new RegExp(flexibleRootPatternStr);
+                         let strictRootPatternStr = rootTermPatternPart.replace(/[ \-۔]/g, "");
+
+                         if (flexibleRegex.test(wordanClean) || wordanClean.includes(strictRootPatternStr)) {
                              foundOccurrences.push({
                                  surah: ayahData.surah,
                                  ayah: ayahData.ayah,
-                                 word: word, // The specific word found
-                                 context: ayahData.arabic // Full ayah context
+                                 word: word,
+                                 context: ayahData.arabic
                              });
                          }
                      });
                  });
+                 // --- END OF WORD MATCHING LOGIC ---
 
-                 if (foundOccurrences.length === 0) {
-                     occurrencesListElement.innerHTML = '<li>No occurrences found.</li>';
+                 allRootOccurrencesCache = [...foundOccurrences]; // Update the global cache
+
+                 if (allRootOccurrencesCache.length === 0) {
                      setStatusMessage('root-status', `No occurrences found for "${rootTerm}".`, false);
+                     if (currentViewMode === 'list') {
+                         occurrencesListElement.innerHTML = '<li>No occurrences found.</li>';
+                     } else {
+                         graphPlaceholder.textContent = 'No occurrences found to display in graph.';
+                         graphPlaceholder.style.display = 'block';
+                     }
                  } else {
-                     setStatusMessage('root-status', `Found ${foundOccurrences.length} occurrences for "${rootTerm}".`, false);
-                     foundOccurrences.forEach(occ => {
-                         const li = document.createElement('li');
-                         li.innerHTML = `
-                             <strong>Surah ${occ.surah}:${occ.ayah}</strong> - Word: <span lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.word}</span>
-                             <div class="result-context" lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.context}</div>
-                         `;
-                         occurrencesListElement.appendChild(li);
-                     });
+                     setStatusMessage('root-status', `Found ${allRootOccurrencesCache.length} occurrences for "${rootTerm}".`, false);
+                     // Now, based on the currentViewMode determined at the START of this function, display the results.
+                     if (currentViewMode === 'list') {
+                         occurrencesListElement.innerHTML = ''; // Clear any "graph active" message
+                         allRootOccurrencesCache.forEach(occ => {
+                             const li = document.createElement('li');
+                             li.innerHTML = `
+                                 <strong>Surah ${occ.surah}:${occ.ayah}</strong> - Word: <span lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.word}</span>
+                                 <div class="result-context" lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.context}</div>
+                             `;
+                             occurrencesListElement.appendChild(li);
+                         });
+                     } else if (currentViewMode === 'tree') {
+                         // If tree view is active, the list area should just show a placeholder
+                         occurrencesListElement.innerHTML = '<li>Graph view active. Results may be paginated below.</li>';
+                         graphPlaceholder.style.display = 'none';
+                         updateRootGraphView(); // This will render the first page of the graph
+                         paginationControls.style.display = (allRootOccurrencesCache.length > rootGraphItemsPerPage) ? 'flex' : 'none';
+                     }
                  }
 
              } catch (error) {
                  console.error("Error analyzing root:", error);
                  setStatusMessage('root-status', 'Failed to analyze root.', true);
-                 occurrencesListElement.innerHTML = `<li>Error analyzing root: ${error.message}</li>`;
+                 if (currentViewMode === 'list') occurrencesListElement.innerHTML = `<li>Error analyzing root: ${error.message}</li>`;
+                 else { graphPlaceholder.textContent = `Error analyzing root: ${error.message}`; graphPlaceholder.style.display = 'block';}
              } finally {
                  hideLoading();
              }
         }
 
-        async function saveRootNotes() {
+        async function saveRootNotes() { // This function remains largely the same
              if (!db) return;
              const rootInput = document.getElementById('root-input');
              const descriptionInput = document.getElementById('root-description');
@@ -2367,6 +2582,313 @@
                  hideLoading();
              }
         }
+                        function updateRootGraphView() {
+            const graphContainerWrapper = document.getElementById('root-network-graph-container');
+            const graphContainer = document.getElementById('root-network-graph');
+            const graphPlaceholder = document.getElementById('root-graph-placeholder');
+            const paginationControls = document.getElementById('root-graph-pagination-controls');
+            const analyzedRootTermElement = document.getElementById('analyzed-root-term');
+            const rootTermForRender = analyzedRootTermElement ? analyzedRootTermElement.textContent : 'N/A'; // Defensive read
+
+            // Ensure the graph container's wrapper is visible if this function is called
+            // (though view switcher should primarily handle this)
+            if (graphContainerWrapper && !graphContainerWrapper.classList.contains('active-view')) {
+                // This situation implies updateRootGraphView was called when its view wasn't active.
+                // Forcing it visible here might be a workaround but indicates a logic flow issue elsewhere.
+                console.warn("updateRootGraphView called while graph view wrapper was not active. Forcing visible.");
+                document.querySelectorAll('.root-view-content').forEach(el => {
+                    el.classList.remove('active-view');
+                    el.style.display = 'none';
+                });
+                graphContainerWrapper.classList.add('active-view');
+                graphContainerWrapper.style.display = 'block';
+            }
+
+
+            if (rootTermForRender === 'N/A' || rootTermForRender.trim() === '') {
+                if (graphContainer) graphContainer.innerHTML = '';
+                if (rootNetwork) { rootNetwork.destroy(); rootNetwork = null; }
+                if (graphPlaceholder) {
+                    graphPlaceholder.textContent = 'Please analyze a root term first.';
+                    graphPlaceholder.style.display = 'block';
+                }
+                if (paginationControls) paginationControls.style.display = 'none';
+                console.log("updateRootGraphView: No root term analyzed.");
+                return;
+            }
+
+            if (allRootOccurrencesCache.length === 0) {
+                if (graphContainer) graphContainer.innerHTML = '';
+                if (rootNetwork) { rootNetwork.destroy(); rootNetwork = null; }
+                if (graphPlaceholder) {
+                    graphPlaceholder.textContent = `No occurrences found for "${rootTermForRender}" to display in graph.`;
+                    graphPlaceholder.style.display = 'block';
+                }
+                if (paginationControls) paginationControls.style.display = 'none';
+                console.log("updateRootGraphView: allRootOccurrencesCache is empty.");
+                return;
+            }
+
+            if (graphPlaceholder) graphPlaceholder.style.display = 'none';
+
+            const startIndex = (currentRootGraphPage - 1) * rootGraphItemsPerPage;
+            const endIndex = startIndex + rootGraphItemsPerPage;
+            const occurrencesForPage = allRootOccurrencesCache.slice(startIndex, endIndex);
+
+            console.log(`updateRootGraphView: Rendering page ${currentRootGraphPage} for root "${rootTermForRender}" with ${occurrencesForPage.length} items (from index ${startIndex} to ${endIndex-1}).`);
+
+            // Call renderRootTreeGraph, which handles its own container checks and clearing.
+            renderRootTreeGraph(rootTermForRender, occurrencesForPage);
+
+            // Update pagination controls UI
+            const totalPages = Math.ceil(allRootOccurrencesCache.length / rootGraphItemsPerPage);
+            const pageInfoEl = document.getElementById('root-graph-page-info');
+            const prevButton = document.getElementById('prev-root-graph-page-btn');
+            const nextButton = document.getElementById('next-root-graph-page-btn');
+
+            if (pageInfoEl) pageInfoEl.textContent = `Page ${currentRootGraphPage} of ${totalPages}`;
+            if (prevButton) prevButton.disabled = (currentRootGraphPage === 1);
+            if (nextButton) nextButton.disabled = (currentRootGraphPage >= totalPages);
+
+            if (paginationControls) {
+                if (totalPages > 1) {
+                    paginationControls.style.display = 'flex';
+                } else {
+                    paginationControls.style.display = 'none';
+                }
+            }
+            console.log(`Pagination updated: Page ${currentRootGraphPage}/${totalPages}. Prev disabled: ${prevButton ? prevButton.disabled : 'N/A'}, Next disabled: ${nextButton ? nextButton.disabled : 'N/A'}`);
+        }
+        
+
+        function renderRootTreeGraph(rootTerm, occurrences) {
+    if (typeof vis === 'undefined') {
+        console.error("vis.js library is not loaded!");
+        const errContainer = document.getElementById('root-network-graph');
+        if (errContainer) errContainer.innerHTML = '<p style="color:red; text-align:center; padding:20px;">Error: Visualization library not loaded.</p>';
+        return;
+    }
+
+    const container = document.getElementById('root-network-graph');
+    if (!container) {
+        console.error("Graph container #root-network-graph not found!");
+        return;
+    }
+    container.innerHTML = ''; // Clear previous graph or placeholder
+
+    if (rootNetwork) {
+        rootNetwork.destroy();
+        rootNetwork = null;
+    }
+
+    // Hide popup if it was open from a previous graph
+    if (rootNodePopupEl) rootNodePopupEl.style.display = 'none';
+    activeRootNodeIdForPopup = null;
+
+    if (occurrences.length === 0 && rootTerm !== 'N/A' && rootTerm.trim() !== '') {
+        container.innerHTML = `<p class="text-center" style="padding:20px;">No occurrences for "${rootTerm}" on this page.</p>`;
+        return;
+    } else if (rootTerm === 'N/A' || rootTerm.trim() === '') {
+        container.innerHTML = `<p class="text-center" style="padding:20px;">Please analyze a root term.</p>`;
+        return;
+    }
+
+    // Get resolved CSS variable values
+    const arabicFontFamily = getCssVar('--font-arabic');
+    const textPrimaryColor = getCssVar('--color-text-primary');
+    const textSecondaryColor = getCssVar('--color-text-secondary');
+    const bgSecondaryColor = getCssVar('--color-bg-secondary');
+    const highlightBgColor = getCssVar('--color-highlight');
+    const accentColorVar = getCssVar('--color-accent');
+    const accentDarkColor = getCssVar('--color-accent-dark');
+    const shadowColor = getCssVar('--color-shadow');
+
+    const visNodes = new vis.DataSet();
+    const visEdges = new vis.DataSet();
+
+    const centralRootNodeId = 'ROOT_TERM_ID';
+    visNodes.add({
+        id: centralRootNodeId,
+        label: rootTerm,
+        font: { size: 22, face: arabicFontFamily, color: '#ffffff', strokeWidth: 0 },
+        color: { background: accentDarkColor, border: accentColorVar, highlight: { background: accentColorVar, border: accentDarkColor } },
+        shape: 'ellipse', size: 35, margin: {top:15, right:15, bottom:15, left:15},
+        fixed: false, 
+        isCentralRoot: true // Custom property
+    });
+
+    occurrences.forEach((occ, index) => {
+        const pageSpecificIndex = ((currentRootGraphPage - 1) * rootGraphItemsPerPage) + index;
+        const nodeId = `occ_${occ.surah}_${occ.ayah}_${pageSpecificIndex}_${occ.word.replace(/[^a-zA-Z0-9א-آء-ي]/g, '')}`;
+        visNodes.add({
+            id: nodeId, 
+            label: `${occ.word} (S${occ.surah}:A${occ.ayah})`,
+            details_context: occ.context, // CRITICAL: For popup content
+            details_surah: occ.surah,
+            details_ayah: occ.ayah,
+            details_word: occ.word,
+            font: { face: arabicFontFamily, size: 16, color: textPrimaryColor, multi: true },
+            color: { background: bgSecondaryColor, border: accentColorVar, highlight: { background: highlightBgColor, border: accentDarkColor } },
+            margin: {top:8, right:8, bottom:8, left:8}, widthConstraint: { maximum: 300 }, heightConstraint: { minimum: 40 },
+            shape: 'box', 
+            isCentralRoot: false // Custom property
+        });
+        visEdges.add({
+            from: centralRootNodeId, to: nodeId, arrows: 'to',
+            length: 180 + (occurrences.length > 10 ? occurrences.length * 2.5 : 0),
+            color: { color: textSecondaryColor, highlight: accentDarkColor, hover: accentColorVar }
+        });
+    });
+    
+    const data = { nodes: visNodes, edges: visEdges };
+    const options = {
+        layout: { hierarchical: false },
+        interaction: { dragNodes: true, dragView: true, hover: true, tooltipDelay: 200, navigationButtons: true, keyboard: true },
+        physics: {
+            enabled: true, barnesHut: { gravitationalConstant: -12000, centralGravity: 0.2, springLength: 180, springConstant: 0.025, damping: 0.08, avoidOverlap: 0.1 },
+            solver: 'barnesHut', stabilization: { enabled: true, iterations: 800, fit: true, updateInterval: 30 }
+        },
+        nodes: { borderWidth: 1.5, shadow: { enabled: true, size: 7, x:4, y:4, color: shadowColor } },
+        edges: {
+            smooth: { enabled: true, type: "continuous", roundness: 0.5 },
+            arrows: { to: { enabled: true, scaleFactor: 0.9, type: 'arrow' } },
+            width: 1.8
+        }
+    };
+
+    try {
+        rootNetwork = new vis.Network(container, data, options);
+    } catch (e) {
+        console.error("Error initializing Vis.js Network:", e);
+        container.innerHTML = `<p style="color:red;text-align:center;padding:20px;">Error creating graph. Check console.</p>`;
+        return;
+    }
+    
+
+    // CLICK HANDLER FOR POPUP
+    rootNetwork.on("click", function (params) {
+        // console.log("Network click params:", params); // For debugging
+        activeRootNodeIdForPopup = null; 
+        if (rootNodePopupEl) rootNodePopupEl.style.display = 'none';
+
+        if (params.nodes.length > 0) {
+            const clickedNodeId = params.nodes[0];
+            // console.log("Clicked node ID:", clickedNodeId); // For debugging
+            activeRootNodeIdForPopup = clickedNodeId; 
+            positionRootNodePopupElement(clickedNodeId); 
+        } else {
+            // Click was not on a node, ensure popup is hidden (already done above)
+            // console.log("Clicked on canvas, not a node.");
+        }
+    });
+
+    const updatePopupOnMoveOrZoom = () => {
+        if (activeRootNodeIdForPopup !== null && rootNodePopupEl && rootNodePopupEl.style.display === 'block') {
+            positionRootNodePopupElement(activeRootNodeIdForPopup);
+        }
+    };
+    rootNetwork.on("dragging", updatePopupOnMoveOrZoom);
+    rootNetwork.on("zoom", updatePopupOnMoveOrZoom);
+    rootNetwork.on("dragEnd", function(params) {
+         if (activeRootNodeIdForPopup !== null && params.nodes && params.nodes.includes(activeRootNodeIdForPopup)) {
+             positionRootNodePopupElement(activeRootNodeIdForPopup);
+         }
+    });
+}
+
+        
+        function positionRootNodePopupElement(nodeId) {
+                if (!rootNetwork || !rootNodePopupEl) {
+                    console.warn("positionRootNodePopupElement: rootNetwork or rootNodePopupEl not available.");
+                    if (rootNodePopupEl) rootNodePopupEl.style.display = 'none';
+                    return;
+                }
+
+                if (nodeId === null) { // Call this to hide the popup
+                    rootNodePopupEl.style.display = 'none';
+                    activeRootNodeIdForPopup = null; // Reset active node ID
+                    return;
+                }
+
+                const visNodesDataSet = rootNetwork.body.data.nodes; // Access the DataSet
+                const clickedNodeData = visNodesDataSet.get(nodeId);
+
+                if (!clickedNodeData) {
+                    console.warn("Node data not found for ID:", nodeId, "in vis.DataSet. Hiding popup.");
+                    rootNodePopupEl.style.display = 'none';
+                    activeRootNodeIdForPopup = null;
+                    return;
+                }
+
+                // --- CONTENT POPULATION ---
+                let popupHTML = "";
+                const arabicFont = getCssVar('--font-arabic');
+                const accentDarkColor = getCssVar('--color-accent-dark');
+                const textPrimaryColor = getCssVar('--color-text-primary'); // For general text if needed
+                const generalFontSize = '1.1rem';
+                const arabicContextFontSize = '1.6rem';
+                const generalLineHeight = '1.8';
+                const arabicContextLineHeight = '2';
+
+
+                if (clickedNodeData.isCentralRoot) {
+                    const rootDescriptionText = document.getElementById('root-description').value; // Get live value
+                    popupHTML = `
+                        <h4 style="font-family: ${arabicFont}; font-size: 1.5rem; color: ${accentDarkColor}; margin-top:0; margin-bottom:10px;">Root: ${clickedNodeData.label}</h4>
+                        <p style="margin:0; line-height: ${generalLineHeight}; font-size: ${generalFontSize}; color: ${textPrimaryColor};">
+                            ${rootDescriptionText.trim() !== "" ? rootDescriptionText.replace(/\n/g, '<br>') : "No description available for this root."}
+                        </p>`;
+                } else { // This is for the occurrence nodes (Ayah context)
+                    const wordDisplay = clickedNodeData.details_word || clickedNodeData.label.split(' (S')[0];
+                    popupHTML = `
+                        <h4 style="font-family: ${arabicFont}; font-size: 1.5rem; color: ${accentDarkColor}; margin-top:0; margin-bottom:10px;">
+                            ${wordDisplay} (S${clickedNodeData.details_surah || '?'}:A${clickedNodeData.details_ayah || '?'})
+                        </h4>
+                        <p style="margin:0; line-height: ${arabicContextLineHeight}; font-size: ${arabicContextFontSize}; font-family: ${arabicFont}; direction: rtl; text-align: right; color: ${textPrimaryColor};">
+                            ${clickedNodeData.details_context || "Full Ayah context not available."}
+                        </p>`;
+                }
+                rootNodePopupEl.innerHTML = popupHTML;
+                // --- END CONTENT POPULATION ---
+
+                // --- POSITIONING ---
+                try {
+                    const nodePosition = rootNetwork.getPositions([nodeId])[nodeId];
+                    if (!nodePosition) {
+                        rootNodePopupEl.style.display = 'none'; return;
+                    }
+                    const domPosition = rootNetwork.canvasToDOM(nodePosition);
+                    
+                    rootNodePopupEl.style.display = 'block'; // Make it visible to measure
+
+                    let popupLeft = domPosition.x + 25;
+                    let popupTop = domPosition.y - (rootNodePopupEl.offsetHeight / 2);
+
+                    const popupRect = rootNodePopupEl.getBoundingClientRect();
+                    const vw = window.innerWidth;
+                    const vh = window.innerHeight;
+
+                    if (popupLeft + popupRect.width > vw - 15) {
+                        popupLeft = domPosition.x - popupRect.width - 25;
+                    }
+                    if (popupLeft < 15) {
+                        popupLeft = 15;
+                    }
+                    if (popupTop + popupRect.height > vh - 15) {
+                        popupTop = vh - popupRect.height - 15;
+                    }
+                    if (popupTop < 15) {
+                        popupTop = 15;
+                    }
+
+                    rootNodePopupEl.style.left = popupLeft + 'px';
+                    rootNodePopupEl.style.top = popupTop + 'px';
+
+                } catch (e) {
+                    console.warn("Could not get node position for popup:", e);
+                    if (rootNodePopupEl) rootNodePopupEl.style.display = 'none';
+                }
+         }
 
 
         // --- Recitation Log Functions ---
@@ -2815,7 +3337,10 @@
                  hideLoading();
              }
         }
-
+                // Helper function to get computed CSS variable value
+       function getCssVar(varName) {
+            return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        }
         async function importData(file) {
              if (!db || !file || !confirm("Importing will overwrite existing data. Continue?")) return;
              showLoading("Importing data...");
@@ -2969,6 +3494,194 @@
                 }
             });
             setupTafsirDocxButton();
+                            // Inside setupEventListeners function:
+        document.querySelectorAll('input[name="root-view-mode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const newViewMode = this.value;
+                const rootContents = document.querySelectorAll('.root-view-content');
+                rootContents.forEach(el => {
+                    el.classList.remove('active-view');
+                    el.style.display = 'none'; // Explicitly hide all first
+                });
+
+                document.getElementById('root-graph-placeholder').style.display = 'none';
+                const paginationControls = document.getElementById('root-graph-pagination-controls');
+                const occurrencesListElement = document.getElementById('root-occurrences-list');
+                const graphContainerWrapper = document.getElementById('root-network-graph-container'); // The wrapper
+                const graphContainer = document.getElementById('root-network-graph'); // The vis.js target
+                const analyzedRootTerm = document.getElementById('analyzed-root-term').textContent;
+
+                if (newViewMode === 'list') {
+                    occurrencesListElement.classList.add('active-view');
+                    occurrencesListElement.style.display = 'block'; // Explicitly show
+                    paginationControls.style.display = 'none';
+
+                    if (analyzedRootTerm !== 'N/A' && allRootOccurrencesCache.length > 0) {
+                        occurrencesListElement.innerHTML = '';
+                        allRootOccurrencesCache.forEach(occ => {
+                            const li = document.createElement('li');
+                            li.innerHTML = `
+                                <strong>Surah ${occ.surah}:${occ.ayah}</strong> - Word: <span lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.word}</span>
+                                <div class="result-context" lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.context}</div>
+                            `;
+                            occurrencesListElement.appendChild(li);
+                        });
+                    } else if (analyzedRootTerm === 'N/A') {
+                        occurrencesListElement.innerHTML = '<li>Enter a root word and click "Analyze Root".</li>';
+                    } else {
+                        occurrencesListElement.innerHTML = '<li>No occurrences found or error in analysis.</li>';
+                    }
+
+                } else if (newViewMode === 'tree') {
+                    graphContainerWrapper.classList.add('active-view');
+                    graphContainerWrapper.style.display = 'block'; // CRITICAL: Make wrapper visible BEFORE graph update
+                    occurrencesListElement.innerHTML = '<li>Graph view active. Results may be paginated below if applicable.</li>';
+
+                    if (analyzedRootTerm !== 'N/A' && allRootOccurrencesCache.length > 0) {
+                        updateRootGraphView(); // Now this will find a visible container
+                        paginationControls.style.display = (allRootOccurrencesCache.length > rootGraphItemsPerPage) ? 'flex' : 'none';
+                    } else if (analyzedRootTerm !== 'N/A' && allRootOccurrencesCache.length === 0 && graphContainer.children.length === 0) {
+                        analyzeRoot(); // analyzeRoot itself will handle calling updateRootGraphView
+                    } else if (analyzedRootTerm === 'N/A') {
+                        graphContainer.innerHTML = '';
+                        document.getElementById('root-graph-placeholder').style.display = 'block';
+                        document.getElementById('root-graph-placeholder').textContent = 'Enter a root and click "Analyze Root" to see the graph.';
+                        paginationControls.style.display = 'none';
+                    }
+                }
+            });
+        });
+
+        // New functions for pagination
+        function goToPrevRootGraphPage() {
+            if (currentRootGraphPage > 1) {
+                currentRootGraphPage--;
+                updateRootGraphView();
+            }
+        }
+
+        function goToNextRootGraphPage() {
+            const totalPages = Math.ceil(allRootOccurrencesCache.length / rootGraphItemsPerPage);
+            if (currentRootGraphPage < totalPages) {
+                currentRootGraphPage++;
+                updateRootGraphView();
+            }
+        }
+
+        // Add event listeners for pagination buttons
+        document.getElementById('prev-root-graph-page-btn').addEventListener('click', goToPrevRootGraphPage);
+        document.getElementById('next-root-graph-page-btn').addEventListener('click', goToNextRootGraphPage);
+
+                // Inside setupEventListeners function:
+        // (after your existing event listeners)
+
+        let graphCloseButton = null; // Keep a reference to the close button
+
+        document.querySelectorAll('input[name="root-view-mode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const newViewMode = this.value;
+                const rootSection = document.getElementById('roots');
+                const graphContainerWrapper = document.getElementById('root-network-graph-container');
+                const occurrencesListElement = document.getElementById('root-occurrences-list');
+                const mainContent = document.querySelector('.main-content'); // For restoring scroll
+                const header = document.querySelector('header'); // To hide/show
+                const sidebar = document.querySelector('.sidebar'); // To hide/show
+
+
+                // Hide existing graph close button if any
+                if (graphCloseButton && graphCloseButton.parentNode) {
+                    graphCloseButton.parentNode.removeChild(graphCloseButton);
+                    graphCloseButton = null;
+                }
+                // Hide node popup if open
+                if (rootNodePopupEl) rootNodePopupEl.style.display = 'none';
+                activeRootNodeIdForPopup = null;
+
+                if (newViewMode === 'tree') {
+                    // Enter Fullscreen Graph Mode
+                    document.body.classList.add('graph-fullscreen-active');
+                    graphContainerWrapper.classList.add('fullscreen-graph');
+                    if(header) header.style.display = 'none';
+                    if(sidebar) sidebar.style.display = 'none';
+                    mainContent.style.overflowY = 'hidden'; // Prevent main content from scrolling
+
+                    // Hide list view, show graph view wrapper
+                    occurrencesListElement.classList.remove('active-view');
+                    occurrencesListElement.style.display = 'none';
+                    graphContainerWrapper.classList.add('active-view');
+                    graphContainerWrapper.style.display = 'flex'; // Changed to flex for alignment
+
+                    // Add close button for fullscreen
+                    graphCloseButton = document.createElement('button');
+                    graphCloseButton.textContent = 'Close Graph (Esc)';
+                    graphCloseButton.classList.add('graph-fullscreen-close-btn');
+                    graphCloseButton.onclick = () => {
+                        document.getElementById('root-view-list').click(); // Simulate click on list view radio
+                    };
+                    graphContainerWrapper.appendChild(graphCloseButton);
+
+                    // Ensure graph renders/re-renders
+                    // If allRootOccurrencesCache has data, update/render the graph
+                    if (allRootOccurrencesCache.length > 0 || document.getElementById('analyzed-root-term').textContent !== 'N/A') {
+                         updateRootGraphView(); // This should call renderRootTreeGraph
+                    } else {
+                        document.getElementById('root-network-graph').innerHTML = ''; // Clear
+                        document.getElementById('root-graph-placeholder').textContent = 'Analyze a root to see the graph.';
+                        document.getElementById('root-graph-placeholder').style.display = 'block';
+                    }
+                     // Ensure pagination controls are visible if needed
+                    const paginationControls = document.getElementById('root-graph-pagination-controls');
+                     if (paginationControls) {
+                        paginationControls.style.display = (allRootOccurrencesCache.length > rootGraphItemsPerPage) ? 'flex' : 'none';
+                     }
+
+
+                } else { // newViewMode === 'list'
+                    // Exit Fullscreen Graph Mode
+                    document.body.classList.remove('graph-fullscreen-active');
+                    graphContainerWrapper.classList.remove('fullscreen-graph');
+                    if(header) header.style.display = ''; // Or 'flex' depending on its default
+                    if(sidebar) sidebar.style.display = '';
+                    mainContent.style.overflowY = 'auto';
+
+
+                    // Show list view, hide graph view wrapper
+                    graphContainerWrapper.classList.remove('active-view');
+                    graphContainerWrapper.style.display = 'none';
+                    occurrencesListElement.classList.add('active-view');
+                    occurrencesListElement.style.display = 'block';
+                    document.getElementById('root-graph-pagination-controls').style.display = 'none';
+
+
+                    // Populate list view (your existing logic for this)
+                    const analyzedRootTermText = document.getElementById('analyzed-root-term').textContent;
+                    if (analyzedRootTermText !== 'N/A' && allRootOccurrencesCache.length > 0) {
+                        occurrencesListElement.innerHTML = ''; // Clear previous
+                        allRootOccurrencesCache.forEach(occ => {
+                            const li = document.createElement('li');
+                            li.innerHTML = `<strong>Surah ${occ.surah}:${occ.ayah}</strong> - Word: <span lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.word}</span><div class="result-context" lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.context}</div>`;
+                            occurrencesListElement.appendChild(li);
+                        });
+                    } else if (analyzedRootTermText === 'N/A' || analyzedRootTermText.trim() === '') {
+                        occurrencesListElement.innerHTML = '<li>Enter a root word and click "Analyze Root".</li>';
+                    } else {
+                        occurrencesListElement.innerHTML = '<li>No occurrences found or error in analysis.</li>';
+                    }
+                }
+            });
+        });
+
+        // Add Escape key listener for fullscreen graph
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && document.body.classList.contains('graph-fullscreen-active')) {
+                if (graphCloseButton) {
+                    graphCloseButton.click(); // Trigger the close button's logic
+                }
+            }
+        });
+
+        // ... (rest of your setupEventListeners, including pagination for graph)
+
         }
 
         // --- App Initialization ---
@@ -2985,6 +3698,10 @@
                 console.error("App initialization failed:", error);
                 hideLoading();
                 alert("Failed to initialize: " + error.message + "\nPlease clear website data and refresh. Check console for details.");
+            }
+            rootNodePopupEl = document.getElementById('root-node-popup');
+            if (!rootNodePopupEl) {
+                console.error("CRITICAL: Popup element #root-node-popup not found in the DOM!");
             }
         });
     </script>
@@ -3331,7 +4048,7 @@ const gameModalHTML = `
             background-color: var(--color-accent-dark);
         }
         .game-options-list li button.correct {
-            background-color: var(--color-success) !important;
+            background-color: #1050c5 !important;
         }
         .game-options-list li button.incorrect {
             background-color: var(--color-error) !important;
@@ -3381,7 +4098,7 @@ const gameModalHTML = `
         .jumble-target-area {
             display: flex;
             flex-wrap: wrap;
-            justify-content: flex-end; /* RTL friendly start */
+            justify-content: flex-start; /* RTL friendly start */
             gap: 5px; /* Small gap for visual separation */
             padding: 10px;
             border: 2px solid var(--color-accent);
@@ -3722,7 +4439,7 @@ function displayWordWhizQuestion() {
 
     const gamePlayArea = document.getElementById('gamePlayArea');
     gamePlayArea.innerHTML = `
-        <p>What is the meaning of this word?</p>
+        <p>What is the meaning of this word(in Quran)?</p>
         <div class="game-question-arabic">${q.arabicWord}</div>
         ${optionsHTML}
         <div class="game-feedback" id="wordWhizFeedback"></div>
@@ -3835,18 +4552,27 @@ async function startAyahJumbleGame() {
 function displayAyahJumbleQuestion() {
     const gamePlayArea = document.getElementById('gamePlayArea');
     let jumbledWordsHTML = '';
+    // jumbledWords is already shuffled and contains the words for the source container
     jumbledWords.forEach((word, index) => {
-        jumbledWordsHTML += `<div class="jumble-word" draggable="true" data-index="${index}">${word}</div>`;
+        // We need a unique identifier for each original word if not already present.
+        // The index in the *original* `correctOrderWords` array is a good candidate.
+        // Let's assume jumbledWords items are just strings. We need to find their original index.
+        // This part is tricky if jumbledWords doesn't preserve original identity/index.
+        // For simplicity, let's assume `jumbledWords` was created from `correctOrderWords`
+        // and we can map them back or ensure `data-index` refers to original shuffled position.
+        // The current `jumbledWords.forEach((word, index)` uses the shuffled index.
+        // Let's use data-word attribute to store the word itself for re-sorting later if needed.
+        jumbledWordsHTML += `<div class="jumble-word" draggable="true" data-index="${index}" data-word="${word}">${word}</div>`;
     });
 
     gamePlayArea.innerHTML = `
-        <p>Arrange the words to form the correct Ayah:</p>
+        <p>Arrange the words to form the correct Ayah (Drag or Click):</p>
         <div id="jumbleSourceContainer" class="jumble-word-container">
             ${jumbledWordsHTML}
         </div>
         <p style="margin-top: 20px;">Your arrangement:</p>
         <div id="jumbleTargetContainer" class="jumble-target-area">
-            <!-- Dropped words will appear here -->
+            <!-- Dropped/Clicked words will appear here -->
         </div>
         <button id="jumbleSubmitAnswer">Check Answer</button>
         <button id="jumbleResetArrangement" style="margin-left:10px;">Reset</button>
@@ -3854,99 +4580,204 @@ function displayAyahJumbleQuestion() {
         <button id="nextAyahJumbleQuestion" style="display:none; margin-top: 10px;">Next Ayah</button>
     `;
 
-    addJumbleDragDropListeners();
+    addJumbleDragDropListeners(); // Sets up drag/drop
+    
+    // Add click listener using event delegation on a common parent
+    const jumbleArea = gamePlayArea; // Or a more specific parent of both containers
+    jumbleArea.removeEventListener('click', handleJumbleWordClick); // Remove old if any
+    jumbleArea.addEventListener('click', handleJumbleWordClick);
+
+
     document.getElementById('jumbleSubmitAnswer').addEventListener('click', handleAyahJumbleSubmit);
     document.getElementById('jumbleResetArrangement').addEventListener('click', resetJumbleArrangement);
-    document.getElementById('nextAyahJumbleQuestion').addEventListener('click', startAyahJumbleGame); // Get a new Ayah
+    document.getElementById('nextAyahJumbleQuestion').addEventListener('click', () => startAyahJumbleGame());
 }
 
+// Ensure draggedItem is declared in a scope accessible by these functions
+// let draggedItem = null; // (already declared globally in your original script)
+
+// Your addJumbleDragDropListeners function structure:
 function addJumbleDragDropListeners() {
     const sourceContainer = document.getElementById('jumbleSourceContainer');
     const targetContainer = document.getElementById('jumbleTargetContainer');
-    const draggables = document.querySelectorAll('#jumbleSourceContainer .jumble-word, #jumbleTargetContainer .jumble-word');
-
-    draggables.forEach(draggable => {
-        draggable.addEventListener('dragstart', (e) => {
-            draggedItem = draggable;
-            setTimeout(() => draggable.classList.add('dragging'), 0);
-            // e.dataTransfer.setData('text/plain', draggable.textContent); // Optional, not strictly needed for this logic
+    
+    // It's better to use event delegation for draggables if words are frequently added/removed
+    // from these containers. However, if addJumbleDragDropListeners is called reliably
+    // *after* the HTML for words is (re)generated, direct listeners are okay.
+    // For simplicity, let's assume direct listeners are being re-added correctly when needed.
+    
+    const attachListenersToWords = (containerSelector) => {
+        document.querySelectorAll(`${containerSelector} .jumble-word`).forEach(draggable => {
+            // To prevent multiple listeners if this function is called multiple times on same elements,
+            // you'd ideally remove old ones or use a flag.
+            // For this example, assuming fresh elements or controlled calls.
+            draggable.removeEventListener('dragstart', dragStartHandler); // Example of removing first
+            draggable.addEventListener('dragstart', dragStartHandler);
+            
+            draggable.removeEventListener('dragend', dragEndHandler);
+            draggable.addEventListener('dragend', dragEndHandler);
         });
+    };
 
-        draggable.addEventListener('dragend', () => {
-            if (draggedItem) draggedItem.classList.remove('dragging');
-            draggedItem = null;
-        });
-    });
+    const dragStartHandler = (e) => {
+        draggedItem = e.target;
+        setTimeout(() => draggedItem.classList.add('dragging'), 0);
+    };
+    const dragEndHandler = () => {
+        if (draggedItem) {
+            draggedItem.classList.remove('dragging');
+        }
+        draggedItem = null;
+    };
+
+    attachListenersToWords('#jumbleSourceContainer');
+    attachListenersToWords('#jumbleTargetContainer'); // If you want to drag within target too
 
     [sourceContainer, targetContainer].forEach(container => {
-        container.addEventListener('dragover', (e) => {
-            e.preventDefault(); // Allow drop
-            const afterElement = getDragAfterElement(container, e.clientY, e.clientX, container === targetContainer);
-            if (draggedItem && draggedItem.parentNode !== container) { // Only add if moving to a new container
-                // Visual cue for dropping, not strictly necessary for functionality
-            }
-        });
+        // Remove old listeners before adding new ones to prevent duplicates
+        container.removeEventListener('dragover', dragOverHandler);
+        container.addEventListener('dragover', dragOverHandler);
 
-        container.addEventListener('drop', (e) => {
-            e.preventDefault();
-            if (draggedItem) {
-                const afterElement = getDragAfterElement(container, e.clientY, e.clientX, container === targetContainer);
-                if (afterElement == null) {
-                    container.appendChild(draggedItem);
-                } else {
-                    container.insertBefore(draggedItem, afterElement);
-                }
-                draggedItem.classList.remove('dragging'); // Ensure dragging class is removed
-                draggedItem = null;
-            }
-        });
+        container.removeEventListener('drop', dropHandler);
+        container.addEventListener('drop', dropHandler);
     });
 }
 
-function getDragAfterElement(container, y, x, isTargetArea) {
-    const draggableElements = [...container.querySelectorAll('.jumble-word:not(.dragging)')];
+const dragOverHandler = (e) => {
+    e.preventDefault(); // Allow drop
+};
 
-    return draggableElements.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        // For RTL target area, we compare X positions differently.
-        // We want to insert *before* an element if our X is to its right (larger X in LTR terms for RTL).
-        // For LTR source area, or if not caring about precise horizontal placement, Y is primary.
-        const offsetY = y - box.top - box.height / 2;
-        let offsetX;
-        if (isTargetArea && document.body.dir === 'rtl') { // If main page is RTL
-            offsetX = box.left + box.width / 2 - x; // Target is to the left of cursor (dragged item right of target)
-        } else if (isTargetArea) { // Target area is LTR or main page is LTR
-             offsetX = x - box.left - box.width / 2; // Target is to the right of cursor
-        } else { // Source area, Y is primary
-            offsetX = 0; // effectively ignore X for source, only care about Y
-        }
-
-
-        // Prioritize Y offset, then X if relevant for target area
-        if (offsetY < 0 && offsetY > closest.offsetY) { // Above and closer
-            return { offsetY: offsetY, offsetX: offsetX, element: child };
-        } else if (isTargetArea && offsetY >= -10 && offsetY <= 10 && offsetX < 0 && offsetX > closest.offsetX) { // Roughly same line, and cursor is to the left of child (meaning child should be after)
-            return { offsetY: offsetY, offsetX: offsetX, element: child };
+const dropHandler = (e) => {
+    e.preventDefault();
+    const targetDropContainer = e.target.closest('.jumble-word-container, .jumble-target-area');
+    if (draggedItem && targetDropContainer) { // Ensure draggedItem exists and drop is on a valid container
+        const afterElement = getDragAfterElement(targetDropContainer, e.clientY, e.clientX);
+        if (afterElement == null) {
+            targetDropContainer.appendChild(draggedItem);
         } else {
-            return closest;
+            targetDropContainer.insertBefore(draggedItem, afterElement);
         }
-    }, { offsetY: Number.NEGATIVE_INFINITY, offsetX: Number.NEGATIVE_INFINITY }).element;
+        // draggedItem's 'dragging' class is removed in dragEndHandler
+        // No need to nullify draggedItem here, dragEndHandler does it.
+
+        // If word moved to target, it might become non-draggable from source perspective
+        // If word moved to source, it should be draggable again.
+        // This logic can get complex; click-to-move simplifies some of this.
+        // For now, draggability is just on the element itself.
+        const feedbackEl = document.getElementById('ayahJumbleFeedback');
+        const submitButton = document.getElementById('jumbleSubmitAnswer');
+        if (feedbackEl) feedbackEl.textContent = '';
+        if (submitButton) submitButton.disabled = false;
+
+    }
 }
+
+
+
+function handleJumbleWordClick(event) {
+    const clickedWord = event.target.closest('.jumble-word');
+    if (!clickedWord) return;
+
+    const sourceContainer = document.getElementById('jumbleSourceContainer');
+    const targetContainer = document.getElementById('jumbleTargetContainer');
+    const feedbackEl = document.getElementById('ayahJumbleFeedback');
+    const submitButton = document.getElementById('jumbleSubmitAnswer');
+
+
+    if (clickedWord.parentNode === sourceContainer) {
+        // Move from source to target
+        targetContainer.appendChild(clickedWord);
+    } else if (clickedWord.parentNode === targetContainer) {
+        // Move from target back to source
+        sourceContainer.appendChild(clickedWord); // Temporarily append
+        
+        // Re-sort words in source container based on their original data-index
+        const wordsInSource = [...sourceContainer.children];
+        wordsInSource.sort((a, b) => parseInt(a.dataset.index) - parseInt(b.dataset.index));
+        wordsInSource.forEach(word => sourceContainer.appendChild(word)); // Re-append in sorted order
+    }
+    
+    // Clear feedback and enable submit if it was disabled
+    if (feedbackEl) feedbackEl.textContent = '';
+    if (submitButton) submitButton.disabled = false;
+
+    // Words in target should not be draggable if moved by click,
+    // but if we allow dragging within target, this needs to be rethought.
+    // For now, click just moves it. Drag listeners handle draggability.
+}
+
+
+// Replace your existing getDragAfterElement function with this one:
+// Replace your existing getDragAfterElement function with this one:
+function getDragAfterElement(container, y, x) {
+    const draggableElements = [...container.querySelectorAll('.jumble-word:not(.dragging)')];
+    const containerDir = getComputedStyle(container).direction;
+
+    for (const child of draggableElements) {
+        const box = child.getBoundingClientRect();
+        const childMidY = box.top + box.height / 2;
+        const childMidX = box.left + box.width / 2; // Horizontal midpoint of the child element
+
+        // Check if the drop point y is roughly on the same line as the child
+        if (Math.abs(y - childMidY) < box.height) { // Is drop y-coordinate within the vertical span of the child?
+            if (containerDir === 'rtl') {
+                // For RTL:
+                // If cursor's x-coordinate is to the RIGHT of the child's midpoint (larger x value),
+                // it means the dragged item should come BEFORE this child in the visual flow (further to the right).
+                if (x > childMidX) { // << REVERSED THIS COMPARISON for RTL
+                    // console.log(`RTL (Reversed Logic): Drop X (${x.toFixed(0)}) is Right of Child "${child.textContent}" MidX (${childMidX.toFixed(0)}). Insert before.`);
+                    return child;
+                }
+            } else { // LTR
+                // For LTR:
+                // If cursor's x-coordinate is to the LEFT of the child's midpoint (smaller x value),
+                // it means the dragged item should come BEFORE this child in the visual flow.
+                if (x < childMidX) {
+                    // console.log(`LTR: Drop X (${x.toFixed(0)}) is Left of Child "${child.textContent}" MidX (${childMidX.toFixed(0)}). Insert before.`);
+                    return child;
+                }
+            }
+        } else if (y < childMidY) {
+            // If drop point is clearly on a line above the current child's line,
+            // then this child is the correct one to insert before.
+            // console.log(`Drop Y (${y.toFixed(0)}) is Above Child "${child.textContent}" MidY (${childMidY.toFixed(0)}). Insert before.`);
+            return child;
+        }
+        // If drop point y is below the child's line, or on the same line but to the "logical end" side of it,
+        // continue to check the next child.
+    }
+
+    // console.log("No specific element to insert before. Appending.");
+    return null; // If no element is found to insert before, append to the end of the container.
+}
+
+
+
 
 
 function resetJumbleArrangement() {
-    // Move all words from target back to source
     const targetContainer = document.getElementById('jumbleTargetContainer');
     const sourceContainer = document.getElementById('jumbleSourceContainer');
+    
+    // Move all words from target back to source
     [...targetContainer.children].forEach(child => sourceContainer.appendChild(child));
 
-    // Re-sort words in source container based on their original jumbled order data-index
+    // Re-sort ALL words now in source container based on their initial `data-index` from the shuffle
     const wordsInSource = [...sourceContainer.children];
-    wordsInSource.sort((a,b) => parseInt(a.dataset.index) - parseInt(b.dataset.index));
+    wordsInSource.sort((a, b) => parseInt(a.dataset.index) - parseInt(b.dataset.index));
     wordsInSource.forEach(word => sourceContainer.appendChild(word)); // Re-append in sorted order
 
-    document.getElementById('ayahJumbleFeedback').textContent = '';
-    document.getElementById('jumbleSubmitAnswer').disabled = false;
+    if (document.getElementById('ayahJumbleFeedback')) {
+        document.getElementById('ayahJumbleFeedback').textContent = '';
+    }
+    const submitButton = document.getElementById('jumbleSubmitAnswer');
+    if (submitButton) {
+        submitButton.disabled = false;
+    }
+    const nextButton = document.getElementById('nextAyahJumbleQuestion');
+    if (nextButton) {
+        nextButton.style.display = 'none';
+    }
 }
 
 
