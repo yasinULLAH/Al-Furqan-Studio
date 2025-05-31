@@ -4187,6 +4187,7 @@ const gameModalHTML = `
             resetGameUI(); // Show selection screen first
         });
     }
+    addFlashcardSuiteButtonToModal();
 }
 
 let activeGame = null; // To track which game is running
@@ -4852,4 +4853,439 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 });
+
+
+
+
+// === FULLY DYNAMIC FLASHCARD & MEMORY MATCH GAME SUITE ===
+// === PASTE THIS ENTIRE BLOCK AT THE END OF YOUR MAIN SCRIPT ===
+
+// --- Shared Global Game Variables (ensure not re-declared if already global) ---
+// let activeGame = null;
+// let gameScore = 0;
+// let gameHighScore = 0; // Assumed to be managed globally by your main game script
+
+// --- Flashcard Game Specific Variables ---
+let flashcardQuestions = [];
+let currentFlashcardIndex = 0;
+let flashcardShowAnswer = false;
+
+// --- Memory Match Game Specific Variables ---
+let memoryMatchCardsArray = []; // Renamed to avoid conflict if 'memoryMatchCards' is used elsewhere
+let memoryFirstCardFlipped = null; // Renamed
+let memorySecondCardFlipped = null; // Renamed
+let memoryLockBoardActive = false; // Renamed
+let memoryPairsFoundCount = 0; // Renamed
+let memoryAttemptCount = 0; // Renamed
+let memoryWordPairsForGame = []; // Renamed
+
+// --- CSS Injection Functions ---
+function injectFlashcardGameCSS_Suite() {
+    const cssId = "flashcardGameStylesSuite"; // Unique ID
+    if (document.getElementById(cssId)) return;
+    const styles = `
+        .flashcard-game-area { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 10px; }
+        .flashcard-container { perspective: 1000px; width: 90%; max-width: 320px; min-height: 180px; height: auto; aspect-ratio: 3 / 2; margin: 15px auto; cursor: pointer; }
+        .flashcard { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s; border: 1px solid var(--color-border); border-radius: var(--border-radius); }
+        .flashcard.is-flipped { transform: rotateY(180deg); }
+        .flashcard-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px; text-align: center; border-radius: var(--border-radius); background-color: var(--color-bg-secondary); color: var(--color-text-primary); overflow-wrap: break-word; word-break: break-word; }
+        .flashcard-front { font-family: var(--font-arabic); font-size: clamp(1.8rem, 6vw, 2.8rem); direction: rtl; }
+        .flashcard-back { transform: rotateY(180deg); font-size: clamp(1rem, 4vw, 1.4rem); }
+        .flashcard-controls { margin-top: 15px; text-align: center; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .flashcard-controls button { min-width: 100px; }
+    `;
+    const styleSheet = document.createElement("style");
+    styleSheet.id = cssId;
+    styleSheet.type = "text/css";
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+}
+
+function injectMemoryMatchGameCSS_Suite() {
+    const cssId = "memoryMatchGameStylesSuite"; // Unique ID
+    if (document.getElementById(cssId)) return;
+    const styles = `
+        .memory-match-info { text-align: center; margin-bottom: 10px; font-size: 1.1rem; }
+        .memory-match-attempts { font-weight: bold; color: var(--color-text-secondary); }
+        .memory-match-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; padding: 10px; max-width: 500px; margin: 15px auto; }
+        .memory-card { aspect-ratio: 1 / 1; background-color: var(--color-accent); border: 1px solid var(--color-accent-dark); border-radius: var(--border-radius); display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 1rem; color: white; user-select: none; transform-style: preserve-3d; transition: transform 0.3s, background-color 0.3s; }
+        .memory-card .card-content { display: none; text-align: center; overflow-wrap: break-word; word-break: break-word; padding: 5px; }
+        .memory-card.arabic-text .card-content { font-family: var(--font-arabic); direction: rtl; font-size: clamp(1.1rem, 3.5vw, 1.6rem); }
+        .memory-card.meaning-text .card-content { font-size: clamp(0.7rem, 2.5vw, 1rem); }
+        .memory-card.is-flipped .card-content { display: block; }
+        .memory-card.is-flipped { background-color: var(--color-bg-secondary); color: var(--color-text-primary); }
+        .memory-card.is-matched { background-color: var(--color-success) !important; color: white !important; cursor: default; opacity: 0.8; }
+        .memory-card.is-matched .card-content { display: block; }
+    `;
+    const styleSheet = document.createElement("style");
+    styleSheet.id = cssId;
+    styleSheet.type = "text/css";
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+}
+
+// --- Flashcard Game Logic ---
+async function startFlashcardGame_Suite() {
+    activeGame = 'flashcards_suite'; // Unique game ID
+    // gameScore = 0; // Reset if managing score per game
+    // updateScoreDisplay(); // Your global function
+    showGamePlayUI("Flashcard Frenzy"); // Your global function
+    injectFlashcardGameCSS_Suite();
+
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    if (!gamePlayArea) { console.error("Flashcard: gamePlayArea not found!"); return; }
+    gamePlayArea.innerHTML = '<p style="text-align:center; padding:20px;">Loading flashcards...</p>';
+
+    try {
+        // Data fetching (same as before, ensure robustness)
+        const allWordMetadata = await getAllData(STORE_WORD_METADATA);
+        const allWordTranslations = await getAllData(STORE_WORD_TRANSLATIONS);
+
+        if (!allWordMetadata || allWordMetadata.length < 3 || !allWordTranslations || allWordTranslations.length < 3) {
+            gamePlayArea.innerHTML = '<p style="text-align:center; padding:20px; color:var(--color-error);">Not enough word data for flashcards.</p>';
+            return;
+        }
+
+        const translationMap = new Map(allWordTranslations.map(wt => [wt.word_id, wt]));
+        flashcardQuestions = [];
+        const selectedWordIds = new Set();
+        const maxCards = 10;
+
+        for (let i = 0; i < maxCards * 2 && flashcardQuestions.length < maxCards; i++) {
+            let attempt = 0;
+            let randomMetaEntry, quranAyah, wordText, translationEntry;
+            while (attempt < 20) {
+                randomMetaEntry = allWordMetadata[Math.floor(Math.random() * allWordMetadata.length)];
+                if (selectedWordIds.has(randomMetaEntry.word_id)) { attempt++; continue; }
+                translationEntry = translationMap.get(randomMetaEntry.word_id);
+                if (!translationEntry || (!translationEntry.en_meaning && !translationEntry.ur_meaning && !translationEntry.bn_meaning)) { attempt++; continue; }
+                quranAyah = await getData(STORE_QURAN, [randomMetaEntry.surah, randomMetaEntry.ayah]);
+                if (!quranAyah || !quranAyah.arabic) { attempt++; continue; }
+                const wordsInAyah = quranAyah.arabic.split(/\s+/);
+                if (randomMetaEntry.word_position < wordsInAyah.length) {
+                    wordText = wordsInAyah[randomMetaEntry.word_position];
+                    if (wordText && wordText.trim() !== "") break;
+                }
+                attempt++;
+            }
+            if (!wordText) continue;
+            selectedWordIds.add(randomMetaEntry.word_id);
+
+            const selectedTranslationKey = document.getElementById('translation-select').value;
+            let meaningText, meaningLangDir = 'ltr', meaningFont = 'var(--font-english)';
+            if (selectedTranslationKey === 'urdu' && translationEntry.ur_meaning) {
+                meaningText = translationEntry.ur_meaning; meaningLangDir = 'rtl'; meaningFont = 'var(--font-urdu)';
+            } else if (selectedTranslationKey === 'english' && translationEntry.en_meaning) {
+                meaningText = translationEntry.en_meaning;
+            } else if (selectedTranslationKey === 'Bangali' && translationEntry.bn_meaning) {
+                meaningText = translationEntry.bn_meaning; meaningFont = 'var(--font-Bangali)';
+            } else {
+                meaningText = translationEntry.en_meaning || translationEntry.ur_meaning || translationEntry.bn_meaning;
+                if (translationEntry.en_meaning) {} 
+                else if (translationEntry.ur_meaning) { meaningLangDir = 'rtl'; meaningFont = 'var(--font-urdu)';}
+                else if (translationEntry.bn_meaning) { meaningFont = 'var(--font-Bangali)';}
+            }
+            if (!meaningText || meaningText.trim() === "" || meaningText.trim().toLowerCase() === "n/a") {
+                selectedWordIds.delete(randomMetaEntry.word_id); continue;
+            }
+            flashcardQuestions.push({ arabicWord: wordText, meaning: meaningText, meaningLangDir, meaningFont });
+        }
+        
+        if (flashcardQuestions.length === 0) {
+             gamePlayArea.innerHTML = '<p style="text-align:center; padding:20px; color:var(--color-error);">Could not generate any flashcards.</p>';
+             return;
+        }
+        currentFlashcardIndex = 0;
+        displayFlashcard_Suite();
+    } catch (error) {
+        console.error("Error starting Flashcard game (Suite):", error);
+        gamePlayArea.innerHTML = `<p style="text-align:center; padding:20px; color:var(--color-error);">Error loading game: ${error.message}.</p>`;
+    }
+}
+
+function displayFlashcard_Suite() {
+    if (currentFlashcardIndex >= flashcardQuestions.length) {
+        endFlashcardGame_Suite();
+        return;
+    }
+    flashcardShowAnswer = false;
+    const cardData = flashcardQuestions[currentFlashcardIndex];
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    gamePlayArea.innerHTML = '';
+
+    const gameAreaWrapper = document.createElement('div'); // Wrapper for content
+    gameAreaWrapper.className = 'flashcard-game-area';
+
+    const container = document.createElement('div');
+    container.className = 'flashcard-container';
+    const card = document.createElement('div');
+    card.className = 'flashcard';
+    const frontFace = document.createElement('div');
+    frontFace.className = 'flashcard-face flashcard-front';
+    frontFace.textContent = cardData.arabicWord;
+    const backFace = document.createElement('div');
+    backFace.className = 'flashcard-face flashcard-back';
+    backFace.textContent = cardData.meaning;
+    backFace.style.fontFamily = cardData.meaningFont;
+    backFace.style.direction = cardData.meaningLangDir;
+    backFace.style.textAlign = cardData.meaningLangDir === 'rtl' ? 'right' : 'left';
+    card.append(frontFace, backFace);
+    container.appendChild(card);
+    gameAreaWrapper.appendChild(container);
+
+    const controlsDiv = document.createElement('div');
+    controlsDiv.className = 'flashcard-controls';
+    const flipButton = document.createElement('button');
+    flipButton.textContent = 'Flip Card';
+    const gotItButton = document.createElement('button');
+    gotItButton.textContent = 'Got it!';
+    gotItButton.style.display = 'none';
+    const notYetButton = document.createElement('button');
+    notYetButton.textContent = 'Not Yet';
+    notYetButton.style.display = 'none';
+    controlsDiv.append(flipButton, gotItButton, notYetButton);
+    gameAreaWrapper.appendChild(controlsDiv);
+    gamePlayArea.appendChild(gameAreaWrapper);
+
+    container.addEventListener('click', () => toggleFlashcardFlip_Suite(card, gotItButton, notYetButton, flipButton));
+    flipButton.addEventListener('click', () => toggleFlashcardFlip_Suite(card, gotItButton, notYetButton, flipButton));
+    gotItButton.addEventListener('click', () => handleFlashcardResponse_Suite(true));
+    notYetButton.addEventListener('click', () => handleFlashcardResponse_Suite(false));
+}
+
+function toggleFlashcardFlip_Suite(cardEl, gotItBtn, notYetBtn, flipBtn) {
+    cardEl.classList.toggle('is-flipped');
+    flashcardShowAnswer = cardEl.classList.contains('is-flipped');
+    gotItBtn.style.display = flashcardShowAnswer ? 'inline-block' : 'none';
+    notYetBtn.style.display = flashcardShowAnswer ? 'inline-block' : 'none';
+    flipBtn.textContent = flashcardShowAnswer ? 'Show Question' : 'Flip Card';
+}
+
+function handleFlashcardResponse_Suite(knewIt) {
+    if (knewIt) {
+        // gameScore += 5; // If scoring
+    } else {
+        const currentCardData = flashcardQuestions[currentFlashcardIndex]; // Get before incrementing
+        flashcardQuestions.push(currentCardData); // Re-add to end
+    }
+    // updateScoreDisplay();
+    currentFlashcardIndex++;
+    displayFlashcard_Suite();
+}
+
+function endFlashcardGame_Suite() {
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    if (!gamePlayArea) return;
+
+    const originalFlashcardSet = flashcardQuestions.slice(0, currentFlashcardIndex);
+    const uniqueWordsForMemory = [];
+    const seenArabicWords = new Set();
+    for (const card of originalFlashcardSet) {
+        if (!seenArabicWords.has(card.arabicWord) && uniqueWordsForMemory.length < 6) { // Max 6 pairs for memory game
+            uniqueWordsForMemory.push(card);
+            seenArabicWords.add(card.arabicWord);
+        }
+        if (uniqueWordsForMemory.length >= 6) break;
+    }
+    
+    const canPlayMemory = uniqueWordsForMemory.length >= 2;
+    let memoryBtnHTML = canPlayMemory ? `<button id="startMemoryMatchGameBtn_Suite">Test Your Memory!</button>` : `<p style="font-size:0.9em; margin-top:10px;">(Not enough unique cards seen for a memory game.)</p>`;
+
+    gamePlayArea.innerHTML = `
+        <div style="text-align:center; padding: 20px;">
+            <h3>Flashcard Session Over!</h3>
+            <p style="font-size:0.9em;">(Cards marked "Not Yet" are re-added to the end for more practice in the next flashcard round.)</p>
+            <div style="margin-top: 20px; display:flex; flex-direction:column; align-items:center; gap:10px;">
+                <button id="playFlashcardsAgain_Suite">Practice Flashcards Again</button>
+                ${memoryBtnHTML}
+            </div>
+        </div>
+    `;
+
+    const playAgainFCBtn = document.getElementById('playFlashcardsAgain_Suite');
+    if (playAgainFCBtn) playAgainFCBtn.addEventListener('click', startFlashcardGame_Suite);
+
+    if (canPlayMemory) {
+        const startMemoryBtn = document.getElementById('startMemoryMatchGameBtn_Suite');
+        if (startMemoryBtn) startMemoryBtn.addEventListener('click', () => startMemoryMatchGame_Suite(uniqueWordsForMemory));
+    }
+    activeGame = null;
+}
+
+
+// --- Memory Match Game Logic ---
+async function startMemoryMatchGame_Suite(wordDataForGame) {
+    activeGame = 'memoryMatch_suite';
+    showGamePlayUI("Memory Match Challenge");
+    injectMemoryMatchGameCSS_Suite();
+
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    if (!gamePlayArea) { console.error("Memory Match: gamePlayArea not found!"); return; }
+    gamePlayArea.innerHTML = '<p style="text-align:center; padding:20px;">Setting up the memory board...</p>';
+
+    memoryWordPairsForGame = [...wordDataForGame];
+    memoryMatchCardsArray = [];
+    memoryPairsFoundCount = 0;
+    memoryAttemptCount = 0;
+    memoryLockBoardActive = false;
+    memoryFirstCardFlipped = null;
+    memorySecondCardFlipped = null;
+
+
+    memoryWordPairsForGame.forEach((pair, index) => {
+        memoryMatchCardsArray.push({ id: `arabic-${index}`, type: 'arabic', content: pair.arabicWord, pairId: index, isFlipped: false, isMatched: false });
+        memoryMatchCardsArray.push({ id: `meaning-${index}`, type: 'meaning', content: pair.meaning, pairId: index, font: pair.meaningFont, dir: pair.meaningLangDir, isFlipped: false, isMatched: false });
+    });
+
+    shuffleArray(memoryMatchCardsArray); // Your global shuffle function
+    renderMemoryBoard_Suite();
+    updateMemoryGameInfo_Suite();
+}
+
+function renderMemoryBoard_Suite() {
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    gamePlayArea.innerHTML = '';
+
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'memory-match-info';
+    infoDiv.innerHTML = `Pairs Found: <span id="memoryPairsFoundEl_Suite">0</span>/${memoryWordPairsForGame.length} | Attempts: <span id="memoryAttemptsEl_Suite" class="memory-match-attempts">0</span>`;
+    gamePlayArea.appendChild(infoDiv);
+
+    const grid = document.createElement('div');
+    grid.className = 'memory-match-grid';
+    const numCards = memoryMatchCardsArray.length;
+    let columns = (numCards <= 6) ? 3 : (numCards <= 8) ? 4 : (numCards <= 12) ? 4 : 4;
+    grid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+
+    memoryMatchCardsArray.forEach(cardData => {
+        const cardElement = document.createElement('div');
+        cardElement.className = 'memory-card';
+        cardElement.dataset.id = cardData.id;
+        const contentSpan = document.createElement('span');
+        contentSpan.className = 'card-content';
+        contentSpan.textContent = cardData.content;
+        if (cardData.type === 'arabic') cardElement.classList.add('arabic-text');
+        else {
+            cardElement.classList.add('meaning-text');
+            contentSpan.style.fontFamily = cardData.font;
+            contentSpan.style.direction = cardData.dir;
+            contentSpan.style.textAlign = cardData.dir === 'rtl' ? 'right' : 'left';
+        }
+        cardElement.appendChild(contentSpan);
+        if (cardData.isFlipped) cardElement.classList.add('is-flipped');
+        if (cardData.isMatched) cardElement.classList.add('is-matched', 'is-flipped');
+        cardElement.addEventListener('click', () => handleMemoryCardClick_Suite(cardElement, cardData));
+        grid.appendChild(cardElement);
+    });
+    gamePlayArea.appendChild(grid);
+}
+
+function handleMemoryCardClick_Suite(cardEl, cardData) {
+    if (memoryLockBoardActive || cardData.isFlipped || cardData.isMatched) return;
+    cardData.isFlipped = true;
+    cardEl.classList.add('is-flipped');
+
+    if (!memoryFirstCardFlipped) {
+        memoryFirstCardFlipped = cardData;
+        return;
+    }
+    memorySecondCardFlipped = cardData;
+    memoryLockBoardActive = true;
+    memoryAttemptCount++;
+    updateMemoryGameInfo_Suite();
+    checkForMemoryMatch_Suite();
+}
+
+function checkForMemoryMatch_Suite() {
+    const isMatch = memoryFirstCardFlipped.pairId === memorySecondCardFlipped.pairId;
+    if (isMatch) {
+        memoryFirstCardFlipped.isMatched = true;
+        memorySecondCardFlipped.isMatched = true;
+        memoryPairsFoundCount++;
+        updateMemoryGameInfo_Suite();
+        document.querySelector(`.memory-card[data-id="${memoryFirstCardFlipped.id}"]`)?.classList.add('is-matched');
+        document.querySelector(`.memory-card[data-id="${memorySecondCardFlipped.id}"]`)?.classList.add('is-matched');
+        resetMemoryTurn_Suite();
+        if (memoryPairsFoundCount === memoryWordPairsForGame.length) {
+            setTimeout(endMemoryMatchGame_Suite, 600);
+        }
+    } else {
+        setTimeout(() => {
+            if(memoryFirstCardFlipped) memoryFirstCardFlipped.isFlipped = false; // Check if nullified by rapid clicks
+            if(memorySecondCardFlipped) memorySecondCardFlipped.isFlipped = false;
+            document.querySelector(`.memory-card[data-id="${memoryFirstCardFlipped?.id}"]`)?.classList.remove('is-flipped');
+            document.querySelector(`.memory-card[data-id="${memorySecondCardFlipped?.id}"]`)?.classList.remove('is-flipped');
+            resetMemoryTurn_Suite();
+        }, 1200);
+    }
+}
+
+function resetMemoryTurn_Suite() {
+    memoryFirstCardFlipped = null;
+    memorySecondCardFlipped = null;
+    memoryLockBoardActive = false;
+}
+
+function updateMemoryGameInfo_Suite() {
+    const pairsEl = document.getElementById('memoryPairsFoundEl_Suite');
+    const attemptsEl = document.getElementById('memoryAttemptsEl_Suite');
+    if (pairsEl) pairsEl.textContent = memoryPairsFoundCount;
+    if (attemptsEl) attemptsEl.textContent = memoryAttemptCount;
+}
+
+function endMemoryMatchGame_Suite() {
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    if (!gamePlayArea) return;
+    gamePlayArea.innerHTML = `
+        <div style="text-align:center; padding: 20px;">
+            <h3>Memory Game Cleared!</h3>
+            <p>You found all ${memoryPairsFoundCount} pairs in ${memoryAttemptCount} attempts!</p>
+            <div style="margin-top:15px; display:flex; justify-content:center; gap:10px;">
+                <button id="playMemoryMatchAgainBtn_Suite">Play Memory Again</button>
+                <button id="backToGameSelectionBtn_Suite">Game Selection</button>
+            </div>
+        </div>
+    `;
+    const playAgainMMBtn = document.getElementById('playMemoryMatchAgainBtn_Suite');
+    if (playAgainMMBtn) playAgainMMBtn.addEventListener('click', () => startMemoryMatchGame_Suite(memoryWordPairsForGame)); // Restart with same words
+    
+    const backBtn = document.getElementById('backToGameSelectionBtn_Suite');
+    if (backBtn) backBtn.addEventListener('click', () => { activeGame = null; resetGameUI(); });
+    activeGame = null;
+}
+
+// --- Function to Add the Initial Flashcard Game Button to the Modal ---
+function addFlashcardSuiteButtonToModal() {
+    const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
+    const buttonId = 'startGameFlashcardSuiteBtn';
+
+    if (gameSelectionArea && !document.getElementById(buttonId)) {
+        const suiteButton = document.createElement('button');
+        suiteButton.id = buttonId;
+        suiteButton.className = 'game-select-btn';
+        suiteButton.textContent = 'Flashcard & Memory'; // Combined name
+        suiteButton.addEventListener('click', startFlashcardGame_Suite);
+        
+        const existingButtons = gameSelectionArea.querySelectorAll('.game-select-btn');
+        if (existingButtons.length > 0) {
+            existingButtons[existingButtons.length - 1].insertAdjacentElement('afterend', suiteButton);
+        } else {
+            gameSelectionArea.appendChild(suiteButton);
+        }
+    }
+}
+
+// --- Helper: shuffleArray (ensure this is defined in your global scope or here) ---
+// function shuffleArray(array) { ... }
+
+
+// --- INITIALIZATION CALL ---
+// Call addFlashcardSuiteButtonToModal() at the end of your setupGameModal() function.
+// Example:
+// function setupGameModal() {
+//     // ... your existing modal setup code ...
+//     addFlashcardSuiteButtonToModal(); // <--- Add this call
+// }
+// Ensure `showGamePlayUI` and `resetGameUI` are your existing global functions for modal view management.
+// --- END OF GAME SUITE ---
 </script>
