@@ -188,7 +188,7 @@
         header {
             background-color: var(--color-bg-secondary);
             color: var(--color-text-primary);
-            padding: 15px var(--padding-main);
+            padding: 5px var(--padding-main);
             box-shadow: 0 2px 5px var(--color-shadow);
             display: flex;
             justify-content: space-between;
@@ -785,6 +785,11 @@ button#launchFullScreenReaderBtnEnhanced {
     position: absolute;
     right: 101px;
     top: 115px;
+}
+button#quitGameButton {
+    position: fixed;
+    bottom: 1px;
+    left: 3px;
 }
     </style>
     <!-- Optional: Include fonts if not available locally -->
@@ -4585,6 +4590,7 @@ const gameModalHTML = `
         });
     }
     addFlashcardSuiteButtonToModal();
+    addAyahTypingGameButtonToModal();
     addEnhancedFullScreenReaderLaunchButton();
 }
 
@@ -7319,5 +7325,858 @@ function setupKeyboardAndTapNavigation() {
 
 
 
+// === AYAH TYPING SPEED TEST GAME ===
+// === PASTE THIS ENTIRE BLOCK AT THE END OF YOUR MAIN SCRIPT, AFTER OTHER GAME CODE ===
 
+// --- Ayah Typing Game Specific Variables ---
+let ayahTypingTargetText = "";
+let ayahTypingTargetCleanText = ""; // Target text without diacritics
+let ayahTypingTargetSpans = [];
+let ayahTypingCurrentIndex = 0; // Index in the TARGET Ayah
+let ayahTypingErrors = 0;
+let ayahTypingCorrectStrokes = 0;
+let ayahTypingTotalStrokesAttemptedByPlayer = 0; // How many chars player tried to type for current Ayah
+let ayahTypingStartTime = 0;
+let ayahTypingTimerInterval = null;
+let ayahTypingGameActive = false;
+let ayahTypingDiacriticMode = 'ignore'; // 'ignore' or 'strict'
+let ayahTypingSessionHighScoreWPM = 0;
+let ayahTypingSessionHighScoreAcc = 0;
+let ayahTypingCurrentAyahData = null; // To store {surah, ayah} for audio
+
+// --- Utility Function to Remove Diacritics (from your thoughts, ensure it's robust) ---
+function normalizeArabicCharForTyping(char) {
+    if (!char) return "";
+    let nfdNormalizedChar = char.normalize('NFD');
+    let marksRemovedChar = nfdNormalizedChar.replace(/\p{M}/gu, '');
+    let tatweelRemovedChar = marksRemovedChar.replace(/\u0640/g, '');
+
+    let letterNormalizedChar = tatweelRemovedChar;
+    letterNormalizedChar = letterNormalizedChar.replace(/[آأإٱ]/g, 'ا');
+    letterNormalizedChar = letterNormalizedChar.replace(/[ؤو]/g, 'و');
+    letterNormalizedChar = letterNormalizedChar.replace(/[ىیي]/g, 'ي');
+    
+    // === MODIFIED HEH NORMALIZATION ===
+    letterNormalizedChar = letterNormalizedChar.replace(/[ہھةۃه]/g, 'ه'); // Teh Marbuta, HEH DOACHASHMEE, HEH GOAL to standard HEH
+    
+    letterNormalizedChar = letterNormalizedChar.replace(/[كک]/g, 'ك');
+    letterNormalizedChar = letterNormalizedChar.replace(/[لٰل]/g, 'ل'); // Lam with Hamza to standard Lam
+    letterNormalizedChar = letterNormalizedChar.replace(/[ڤ]/g, 'ف'); // V to F
+    letterNormalizedChar = letterNormalizedChar.replace(/[مٰم]/g, 'م'); // V to F
+    return letterNormalizedChar;
+}
+
+// --- CSS Injection for Ayah Typing Game ---
+function injectAyahTypingGameCSS_Engine() {
+    const cssId = "ayahTypingGameStylesEngine";
+    if (document.getElementById(cssId)) return;
+    const styles = `
+        .ayah-typing-game-area { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 10px; height: 100%; }
+        .typing-options-bar { display: flex; justify-content: space-around; align-items: center; width: 100%; max-width: 600px; margin-bottom: 15px; padding: 8px; background-color: var(--color-bg-secondary); border-radius: var(--border-radius); }
+        .typing-options-bar label { font-size: 0.9em; display:flex; align-items:center; gap: 5px;}
+        .typing-options-bar select, .typing-options-bar button { font-size: 0.9em; padding: 5px 8px; }
+        
+        #ayahDisplayContainer_Engine {
+            font-family: var(--font-arabic);
+            font-size: 2.2rem; /* Will be adjusted by main reader settings */
+            line-height: 2.5;
+            direction: rtl;
+            text-align: right;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            background-color: var(--color-bg-primary);
+            width: 100%;
+            max-width: 90%; /* Or set a fixed max-width like 700px */
+            min-height: 100px; /* Adjust based on typical ayah length */
+            overflow-wrap: break-word;
+        }
+        #ayahDisplayContainer_Engine span {
+            transition: background-color 0.1s, color 0.1s;
+            padding: 0; /* === MODIFIED: Removed padding === */
+            /* border-radius: 2px; */ /* Optional: keep or remove */
+            /* Ensure default browser letter-spacing isn't causing issues */
+            letter-spacing: normal; 
+        }
+        #ayahDisplayContainer_Engine .char-correct { background-color: #d4edda; color: #155724; } /* Light green */
+        #ayahDisplayContainer_Engine .char-incorrect { background-color: #f8d7da; color: #721c24; } /* Light red */
+        #ayahDisplayContainer_Engine .char-current { background-color: var(--color-highlight); box-shadow: 0 0 0 2px var(--color-accent); }
+        #ayahDisplayContainer_Engine .char-pending { color: var(--color-text-secondary); opacity: 0.7; }
+
+        #typingInputArea_Engine {
+            font-family: var(--font-arabic);
+            font-size: 2rem; /* Match display somewhat */
+            direction: rtl;
+            text-align: right;
+            width: 100%;
+            max-width: 90%; /* Match display */
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--color-accent);
+            border-radius: var(--border-radius);
+            min-height: 60px;
+            resize: none; /* Or vertical */
+        }
+        #typingInputArea_Engine:focus { outline: 2px solid var(--color-accent-dark); }
+
+        .typing-stats-container { display: flex; justify-content: space-around; width: 100%; max-width: 600px; margin-bottom: 15px; font-size: 1.1rem; }
+        .typing-stats-container div { background-color: var(--color-bg-secondary); padding: 8px 12px; border-radius: var(--border-radius); text-align: center; }
+        .typing-stats-container strong { color: var(--color-accent-dark); display:block; font-size: 1.3em; }
+        
+        .typing-controls-area { margin-top: 15px; }
+        .typing-controls-area button { margin: 0 5px; }
+        .typing-results-area { text-align: center; padding: 20px; }
+    `;
+    const styleSheet = document.createElement("style");
+    styleSheet.id = cssId;
+    styleSheet.type = "text/css";
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+}
+
+
+// --- Ayah Typing Game Main Logic ---
+// Modify your existing startAyahTyping_Engine function
+
+async function startAyahTyping_Engine() {
+    activeGame = 'ayahTyping_engine';
+    // showGamePlayUI("Ayah Typing Challenge"); // We will manage UI differently for this game
+
+    injectAyahTypingGameCSS_Engine(); // Ensure CSS is injected
+
+    const mainGameModal = document.getElementById('quranGameModal');
+    const gamePlayArea = document.getElementById('gamePlayArea'); // Get the gamePlayArea
+
+    if (!gamePlayArea) {
+        console.error("Ayah Typing: gamePlayArea element not found in the modal!");
+        return;
+    }
+    if (!mainGameModal) {
+        console.error("Ayah Typing: Main game modal not found!");
+        return;
+    }
+
+    // Hide the main game modal temporarily as we are taking over with browser fullscreen
+    mainGameModal.style.display = 'none';
+
+    // Prepare gamePlayArea content (same as before)
+    gamePlayArea.innerHTML = `
+        <div class="ayah-typing-game-area">
+            <div class="typing-options-bar">
+                <label for="diacriticModeSelect_Engine">Diacritics:
+                    <select id="diacriticModeSelect_Engine">
+                        <option value="ignore">Ignore (Type Base Letters)</option>
+                        <option value="strict">Strict (Match Exactly)</option>
+                    </select>
+                </label>
+                <button id="playAyahAudioBtn_Engine" title="Play Ayah Recitation" style="display:none;">🔊</button>
+            </div>
+            <div id="ayahDisplayContainer_Engine">Press "Start" to load an Ayah.</div>
+            <textarea id="typingInputArea_Engine" rows="2" placeholder="ابدأ الكتابة هنا..." disabled></textarea>
+            <div class="typing-stats-container">
+                <div>Timer: <strong id="typingTimer_Engine">0s</strong></div>
+                <div>WPM: <strong id="typingWPM_Engine">0</strong></div>
+                <div>Accuracy: <strong id="typingAccuracy_Engine">0%</strong></div>
+            </div>
+            <div class="typing-controls-area">
+                <button id="startTypingGameBtn_Engine">Start</button>
+                <button id="resetTypingGameBtn_Engine" style="display:none;">Next Ayah</button>
+            </div>
+            <div id="typingResultsArea_Engine" class="typing-results-area" style="display:none;"></div>
+        </div>
+    `;
+    
+    // Apply current reader font size (optional)
+    const ayahDisplay = document.getElementById('ayahDisplayContainer_Engine');
+    if (isFullScreenReaderActive && fullScreenReaderSettings && fullScreenReaderSettings.fontSize) {
+        ayahDisplay.style.fontSize = fullScreenReaderSettings.fontSize;
+    }
+
+    // Add event listeners for game controls (same as before)
+    document.getElementById('startTypingGameBtn_Engine').addEventListener('click', loadNextAyahForTyping_Engine);
+    document.getElementById('resetTypingGameBtn_Engine').addEventListener('click', loadNextAyahForTyping_Engine);
+    document.getElementById('diacriticModeSelect_Engine').addEventListener('change', (e) => {
+        ayahTypingDiacriticMode = e.target.value;
+    });
+    document.getElementById('playAyahAudioBtn_Engine').addEventListener('click', () => {
+        if (ayahTypingCurrentAyahData && typeof playAudioForAyahEnhanced === 'function') {
+            playAudioForAyahEnhanced(ayahTypingCurrentAyahData.surah, ayahTypingCurrentAyahData.ayah);
+        } else {
+             console.warn("Cannot play audio: Ayah data missing or audio player function not available.");
+        }
+    });
+    document.getElementById('typingInputArea_Engine').addEventListener('input', handleTypingInput_Engine);
+
+    // Load persisted high scores (same as before)
+    ayahTypingSessionHighScoreWPM = parseInt(localStorage.getItem('ayahTypingHighScoreWPM') || '0');
+    ayahTypingSessionHighScoreAcc = parseInt(localStorage.getItem('ayahTypingHighScoreAcc') || '0');
+
+    // NOW, request fullscreen for the gamePlayArea
+    requestAyahTypingFullscreen(gamePlayArea);
+
+    // Load the first Ayah after setting up fullscreen potentially
+    // Or you can call loadNextAyahForTyping_Engine inside requestAyahTypingFullscreen
+    // once the container is ready. For now, calling it here.
+    // Consider a slight delay if DOM manipulation within gamePlayArea happens too quickly.
+    // await loadNextAyahForTyping_Engine(); // Initial Ayah load - commented out, start button will do this
+}
+
+
+async function loadNextAyahForTyping_Engine() {
+    //console.log("[loadNextAyahForTyping_Engine] Function started.");
+    resetTypingGameState_Engine();
+    const ayahDisplay = document.getElementById('ayahDisplayContainer_Engine');
+    const typingInput = document.getElementById('typingInputArea_Engine');
+    ayahDisplay.innerHTML = '<p>Loading new Ayah...</p>';
+    typingInput.disabled = true;
+    typingInput.value = '';
+    document.getElementById('startTypingGameBtn_Engine').style.display = 'none';
+    document.getElementById('resetTypingGameBtn_Engine').style.display = 'inline-block';
+    document.getElementById('resetTypingGameBtn_Engine').textContent = 'Loading...';
+    document.getElementById('resetTypingGameBtn_Engine').disabled = true;
+    document.getElementById('playAyahAudioBtn_Engine').style.display = 'none';
+    document.getElementById('typingResultsArea_Engine').style.display = 'none';
+
+    try {
+        let randomAyahObj;
+        let attempts = 0;
+        const MIN_CHARS = 15; // Adjusted min characters slightly
+        const MAX_CHARS = 180; // Adjusted max characters slightly
+
+        do {
+            const randomSurah = Math.floor(Math.random() * 114) + 1;
+            const randomAyahNum = Math.floor(Math.random() * (surahAyahCounts[randomSurah] || 1)) + 1;
+            console.log(`[loadNextAyahForTyping_Engine] Attempt ${attempts + 1}: Trying S${randomSurah}:A${randomAyahNum}`);
+            randomAyahObj = await getData(STORE_QURAN, [randomSurah, randomAyahNum]);
+            if (randomAyahObj && randomAyahObj.arabic) {
+                console.log(`[loadNextAyahForTyping_Engine] Fetched Ayah (raw): '${randomAyahObj.arabic}' (Length: ${randomAyahObj.arabic.length})`);
+            } else {
+                console.log(`[loadNextAyahForTyping_Engine] Ayah S${randomSurah}:A${randomAyahNum} not found or no Arabic text.`);
+            }
+            attempts++;
+        } while ((!randomAyahObj || !randomAyahObj.arabic || randomAyahObj.arabic.trim().length < MIN_CHARS || randomAyahObj.arabic.trim().length > MAX_CHARS) && attempts < 50);
+
+        if (!randomAyahObj || !randomAyahObj.arabic) {
+            const errorMsg = "[loadNextAyahForTyping_Engine] Could not load a suitable Ayah after 50 attempts.";
+            console.error(errorMsg);
+            ayahDisplay.innerHTML = `<p style="color:red;">${errorMsg}</p>`;
+            document.getElementById('startTypingGameBtn_Engine').style.display = 'inline-block';
+            document.getElementById('resetTypingGameBtn_Engine').style.display = 'none';
+            return;
+        }
+        
+        ayahTypingCurrentAyahData = { surah: randomAyahObj.surah, ayah: randomAyahObj.ayah };
+        ayahTypingTargetText = randomAyahObj.arabic.trim(); // Crucial: Use the trimmed version
+
+        // *** DEBUGGING LOG FOR Fix 1A ***
+        console.log(`[loadNextAyahForTyping_Engine] FINAL ayahTypingTargetText for rendering: '${ayahTypingTargetText}' (Length: ${ayahTypingTargetText.length})`);
+        // To inspect for hidden/extra spaces, copy the output of the log above (including the single quotes)
+        // and paste it into a text editor or an online tool that can show invisible characters.
+
+        ayahTypingTargetCleanText = normalizeArabicCharForTyping(ayahTypingTargetText); // Normalize the final target text
+        console.log(`[loadNextAyahForTyping_Engine] Normalized (Clean) Target Text: '${ayahTypingTargetCleanText}'`);
+
+        renderAyahForTyping_Engine(ayahTypingTargetText); // Render the original (trimmed) text
+        
+        typingInput.disabled = false;
+        typingInput.placeholder = "ابدأ الكتابة هنا عند الجاهزية";
+        setTimeout(() => typingInput.focus(), 100);
+
+        document.getElementById('resetTypingGameBtn_Engine').textContent = 'Next Ayah';
+        document.getElementById('resetTypingGameBtn_Engine').disabled = false;
+        document.getElementById('playAyahAudioBtn_Engine').style.display = 'inline-block';
+        //loadNextAyahForTyping_Engine] New Ayah loaded successfully.");
+
+    } catch (error) {
+        console.error("[loadNextAyahForTyping_Engine] Error loading Ayah for typing:", error);
+        ayahDisplay.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
+        document.getElementById('startTypingGameBtn_Engine').style.display = 'inline-block';
+        document.getElementById('resetTypingGameBtn_Engine').style.display = 'none';
+    }
+}
+
+
+function renderAyahForTyping_Engine(ayahText) {
+    const ayahDisplay = document.getElementById('ayahDisplayContainer_Engine');
+    ayahDisplay.innerHTML = '';
+    ayahTypingTargetSpans = [];
+
+    for (let i = 0; i < ayahText.length; i++) {
+        const charSpan = document.createElement('span');
+        charSpan.textContent = ayahText[i];
+        charSpan.className = 'char-pending';
+        ayahDisplay.appendChild(charSpan);
+        ayahTypingTargetSpans.push(charSpan);
+    }
+    if (ayahTypingTargetSpans.length > 0) {
+        ayahTypingTargetSpans[0].classList.add('char-current'); // Highlight first char
+    }
+}
+
+function resetTypingGameState_Engine() {
+    if (ayahTypingTimerInterval) clearInterval(ayahTypingTimerInterval);
+    ayahTypingGameActive = false;
+    ayahTypingCurrentIndex = 0;
+    ayahTypingErrors = 0;
+    ayahTypingCorrectStrokes = 0;
+    ayahTypingTotalStrokesAttemptedByPlayer = 0;
+    ayahTypingStartTime = 0;
+    ayahTypingTimerInterval = null;
+    ayahTypingCurrentAyahData = null;
+
+    document.getElementById('typingTimer_Engine').textContent = "0s";
+    document.getElementById('typingWPM_Engine').textContent = "0";
+    document.getElementById('typingAccuracy_Engine').textContent = "0%";
+    const resultsArea = document.getElementById('typingResultsArea_Engine');
+    if(resultsArea) resultsArea.style.display = 'none';
+
+    const typingInput = document.getElementById('typingInputArea_Engine');
+    if (typingInput) {
+        typingInput.value = '';
+        typingInput.disabled = true; // Disable until new Ayah is loaded
+    }
+}
+
+function handleTypingInput_Engine() {
+    //console.log("[handleTypingInput_Engine] Current Diacritic Mode: " + ayahTypingDiacriticMode);
+
+    const typingInput = document.getElementById('typingInputArea_Engine');
+    if (!typingInput) { /* ... error handling ... */ return; }
+    const userInput = typingInput.value; // What the user has ACTUALLY typed so far
+
+    if (!ayahTypingGameActive && ayahTypingTargetSpans.length > 0 && userInput.length > 0) {
+        ayahTypingGameActive = true;
+        ayahTypingStartTime = Date.now();
+        if (ayahTypingTimerInterval) clearInterval(ayahTypingTimerInterval);
+        ayahTypingTimerInterval = setInterval(updateTypingTimer_Engine, 1000);
+       //console.log("[handleTypingInput_Engine] Game timer started.");
+    }
+    // ... (initial empty input handling) ...
+    if (ayahTypingTargetSpans.length === 0) return;
+
+    let currentEffectiveInputIndex = 0; // Tracks position in userInput
+    let MismatchEncountered = false;
+
+    for (let targetIdx = 0; targetIdx < ayahTypingTargetSpans.length; targetIdx++) {
+        const span = ayahTypingTargetSpans[targetIdx];
+        const targetCharOriginal = ayahTypingTargetText[targetIdx];
+        span.className = ''; // Reset classes
+
+        if (MismatchEncountered) { // If a mismatch already happened, all subsequent are pending
+            span.classList.add('char-pending');
+            continue;
+        }
+
+        const normalizedTargetChar = normalizeArabicCharForTyping(targetCharOriginal);
+
+        if (ayahTypingDiacriticMode === 'ignore' && normalizedTargetChar === '') {
+            // Target is a diacritic (or something that normalizes to empty).
+            // In 'ignore' mode, we consider this "correctly skipped" by the user.
+            // The user doesn't type anything for this.
+            span.classList.add('char-correct'); // Visually mark it as "handled"
+            // DO NOT increment currentEffectiveInputIndex here.
+            if (targetIdx === userInput.length && currentEffectiveInputIndex === userInput.length) {
+                // This logic is tricky. If current target is diacritic and user input matches up to previous base char
+                // the "current" highlight should be on the NEXT base char.
+            }
+            continue; // Move to the next target character
+        }
+
+        // If we reach here, targetChar is a base letter (or space, or something not normalizing to empty)
+        const userTypedCharOriginal = userInput[currentEffectiveInputIndex];
+
+        if (currentEffectiveInputIndex < userInput.length) { // User has typed a character for this position
+            const normalizedUserChar = normalizeArabicCharForTyping(userTypedCharOriginal);
+
+            if (targetIdx === currentEffectiveInputIndex && !MismatchEncountered ) { // Log for current comparison point
+                 console.log(`[Compare Char TargetIdx #${targetIdx} / InputIdx #${currentEffectiveInputIndex}] TargetOrig: '${targetCharOriginal}', UserTypedOrig: '${userTypedCharOriginal}'`);
+                 if(ayahTypingDiacriticMode === 'ignore') {
+                     console.log(`    NormTarget: '${normalizedTargetChar}', NormUser: '${normalizedUserChar}'`);
+                 }
+            }
+
+            if (normalizedUserChar === normalizedTargetChar) {
+                span.classList.add('char-correct');
+            } else {
+                 // Lenient space check
+                if (ayahTypingDiacriticMode === 'ignore' && normalizedTargetChar.trim() === '' && normalizedUserChar.trim() === '') {
+                     span.classList.add('char-correct');
+                } else {
+                    span.classList.add('char-incorrect');
+                    MismatchEncountered = true; // Stop further correct marking
+                    if (targetIdx === currentEffectiveInputIndex) {
+                         console.log(`    MISMATCH. UserNorm: '${normalizedUserChar}' vs TargetNorm: '${normalizedTargetChar}'`);
+                    }
+                }
+            }
+            currentEffectiveInputIndex++;
+        } else { // User hasn't typed up to this base character yet
+            if (!MismatchEncountered) { // Only mark as current if no prior mismatch
+                span.classList.add('char-current');
+                MismatchEncountered = true; // From here on, subsequent chars are pending until this 'current' is typed
+            } else {
+                span.classList.add('char-pending');
+            }
+        }
+    }
+    
+    // If user input is longer than effective target (after skipping diacritics), that's also an error.
+    // This part needs careful thought based on how `currentEffectiveInputIndex` ends up.
+
+    ayahTypingCurrentIndex = currentEffectiveInputIndex; // This is now the count of BASE characters matched/attempted
+
+    if (ayahTypingGameActive) {
+        updateLiveTypingStats_Engine(userInput); // userInput still reflects raw typed data
+    }
+
+    // Game completion check:
+    // Needs to compare `currentEffectiveInputIndex` against the count of non-diacritic characters in target.
+    let baseTargetLength = 0;
+    for(let char of ayahTypingTargetText) {
+        if(normalizeArabicCharForTyping(char) !== '') baseTargetLength++;
+    }
+
+    if (currentEffectiveInputIndex >= baseTargetLength && !MismatchEncountered && ayahTypingGameActive) {
+         //console.log("[handleTypingInput_Engine] Effective target base length reached. Ending round.");
+        endTypingRound_Engine(userInput); // Pass the raw user input for stat calculation
+    }
+}
+
+
+
+function updateLiveTypingStats_Engine(currentUserInput) {
+    if (!ayahTypingGameActive) {
+        document.getElementById('typingWPM_Engine').textContent = "0";
+        document.getElementById('typingAccuracy_Engine').textContent = "0%";
+        return;
+    }
+
+    let liveCorrectChars = 0; // Use local variable for this function's calculations
+    let liveErrors = 0;       // Use local variable for this function's calculations
+    const typedLength = currentUserInput.length;
+
+    const comparisonLength = Math.min(typedLength, ayahTypingTargetText.length);
+
+    for (let i = 0; i < comparisonLength; i++) {
+        const targetOriginal = ayahTypingTargetText[i];
+        const userTypedOriginal = currentUserInput[i];
+
+        if (ayahTypingDiacriticMode === 'ignore') {
+            if (normalizeArabicCharForTyping(userTypedOriginal) === normalizeArabicCharForTyping(targetOriginal)) {
+                liveCorrectChars++;
+            } else {
+                if (targetOriginal.trim() === '' && userTypedOriginal && userTypedOriginal.trim() === '') { // Lenient space
+                    liveCorrectChars++;
+                } else {
+                    liveErrors++;
+                }
+            }
+        } else { // 'strict' mode
+            if (userTypedOriginal === targetOriginal) {
+                liveCorrectChars++;
+            } else {
+                liveErrors++;
+            }
+        }
+    }
+
+    // Account for extra characters typed beyond the target as errors
+    if (typedLength > ayahTypingTargetText.length) {
+        liveErrors += (typedLength - ayahTypingTargetText.length);
+    }
+    
+    // *** CRITICAL: Update global variables that endTypingRound_Engine will use ***
+    ayahTypingCorrectStrokes = liveCorrectChars; 
+    ayahTypingErrors = liveErrors; 
+    // ayahTypingTotalStrokesAttemptedByPlayer should be typedLength for accuracy calculation
+    ayahTypingTotalStrokesAttemptedByPlayer = typedLength;
+
+
+    const currentTime = Date.now();
+    const timeElapsedSeconds = (currentTime - ayahTypingStartTime) / 1000;
+
+    let wpm = 0;
+    if (timeElapsedSeconds > 0.5) { 
+        const wordsTypedCorrectly = liveCorrectChars / 5; 
+        const minutesElapsed = timeElapsedSeconds / 60;
+        wpm = minutesElapsed > 0 ? Math.round(wordsTypedCorrectly / minutesElapsed) : 0;
+    }
+
+    let accuracy = 0;
+    if (typedLength > 0) { 
+        accuracy = Math.round((liveCorrectChars / typedLength) * 100);
+    }
+    if (accuracy < 0) accuracy = 0; 
+
+    document.getElementById('typingWPM_Engine').textContent = wpm;
+    document.getElementById('typingAccuracy_Engine').textContent = `${accuracy}%`;
+}
+// Replace your existing endTypingRound_Engine function with this one
+
+function endTypingRound_Engine(finalUserInput) { // finalUserInput is passed
+    if (!ayahTypingGameActive) {
+        console.warn("[endTypingRound_Engine] Called when game not active. Ignoring.");
+        return;
+    }
+
+    console.log("[endTypingRound_Engine] Ending round. Final user input (up to target length):", "'" + finalUserInput + "'");
+
+    ayahTypingGameActive = false; // Set game to inactive
+    if (ayahTypingTimerInterval) {
+        clearInterval(ayahTypingTimerInterval);
+        ayahTypingTimerInterval = null;
+    }
+
+    const typingInputEl = document.getElementById('typingInputArea_Engine');
+    if (typingInputEl) typingInputEl.disabled = true;
+    
+    const timeElapsedSeconds = (Date.now() - ayahTypingStartTime) / 1000;
+    console.log(`[endTypingRound_Engine] Time elapsed: ${timeElapsedSeconds.toFixed(2)}s`);
+
+    // Recalculate correct strokes and errors based on the *finalUserInput* and *ayahTypingTargetText*
+    // to ensure accuracy, rather than solely relying on the last update from updateLiveTypingStats_Engine.
+    // This is more robust.
+    let finalCorrectStrokes = 0;
+    let finalErrors = 0;
+    const finalComparisonLength = Math.min(finalUserInput.length, ayahTypingTargetText.length);
+
+    for (let i = 0; i < finalComparisonLength; i++) {
+        const targetOriginal = ayahTypingTargetText[i];
+        const userTypedOriginal = finalUserInput[i];
+
+        if (ayahTypingDiacriticMode === 'ignore') {
+            if (normalizeArabicCharForTyping(userTypedOriginal) === normalizeArabicCharForTyping(targetOriginal)) {
+                finalCorrectStrokes++;
+            } else {
+                if (targetOriginal.trim() === '' && userTypedOriginal && userTypedOriginal.trim() === '') { // Lenient space
+                    finalCorrectStrokes++;
+                } else {
+                    finalErrors++;
+                }
+            }
+        } else { // 'strict' mode
+            if (userTypedOriginal === targetOriginal) {
+                finalCorrectStrokes++;
+            } else {
+                finalErrors++;
+            }
+        }
+    }
+
+    // If user input was shorter than target, remaining target chars are effectively errors in terms of completion.
+    // However, for WPM/Accuracy, we usually consider what they *did* type.
+    // Let's stick to errors based on comparison up to finalUserInput.length.
+    // If finalUserInput.length < ayahTypingTargetText.length, it means they didn't finish typing.
+    // Accuracy should reflect what they DID type.
+    // WPM can be calculated based on how much of the target they correctly typed.
+
+    console.log(`[endTypingRound_Engine] Final Calculated Correct Strokes: ${finalCorrectStrokes}`);
+    console.log(`[endTypingRound_Engine] Final Calculated Errors (within typed length): ${finalErrors}`);
+
+    // Accuracy: (Correctly typed characters / Total characters ACTUALLY typed by user) * 100
+    // finalUserInput.length is the total characters the user attempted for this round.
+    let finalAccuracy = 0;
+    if (finalUserInput.length > 0) { // Avoid division by zero
+        finalAccuracy = Math.round((finalCorrectStrokes / finalUserInput.length) * 100);
+    }
+    finalAccuracy = Math.max(0, Math.min(100, finalAccuracy)); // Clamp between 0 and 100
+
+    console.log(`[endTypingRound_Engine] Final Accuracy: ${finalAccuracy}% (Correct: ${finalCorrectStrokes}, Typed: ${finalUserInput.length})`);
+
+    // WPM: ( (Correctly typed characters / 5) / time_in_minutes )
+    // Use finalCorrectStrokes here.
+    let finalWPM = 0;
+    if (timeElapsedSeconds > 0.5) { // Only calculate if some meaningful time has passed
+        const correctlyTypedWords = finalCorrectStrokes / 5; // Standard 5 characters per "word" for WPM
+        const minutesElapsed = timeElapsedSeconds / 60;
+        finalWPM = minutesElapsed > 0 ? Math.round(correctlyTypedWords / minutesElapsed) : 0;
+    }
+    finalWPM = Math.max(0, finalWPM); // Ensure WPM is not negative
+
+    console.log(`[endTypingRound_Engine] Final WPM: ${finalWPM}`);
+    
+    // Update display
+    document.getElementById('typingWPM_Engine').textContent = finalWPM;
+    document.getElementById('typingAccuracy_Engine').textContent = `${finalAccuracy}%`;
+    document.getElementById('typingTimer_Engine').textContent = `${timeElapsedSeconds.toFixed(1)}s`; // Show final time
+
+    // Update session high scores
+    if (finalWPM > ayahTypingSessionHighScoreWPM) {
+        ayahTypingSessionHighScoreWPM = finalWPM;
+        localStorage.setItem('ayahTypingHighScoreWPM', ayahTypingSessionHighScoreWPM);
+    }
+    // For high score accuracy, only update if WPM is also decent, or just track highest accuracy.
+    // Let's just track highest accuracy achieved in a completed round.
+    if (finalAccuracy > ayahTypingSessionHighScoreAcc) {
+        ayahTypingSessionHighScoreAcc = finalAccuracy;
+        localStorage.setItem('ayahTypingHighScoreAcc', ayahTypingSessionHighScoreAcc);
+    }
+    
+    const resultsArea = document.getElementById('typingResultsArea_Engine');
+    resultsArea.innerHTML = `
+        <h4>Ayah Complete!</h4>
+        <p>Your WPM: ${finalWPM}</p>
+        <p>Accuracy: ${finalAccuracy}%</p>
+        <p>Correct Characters: ${finalCorrectStrokes} / ${finalUserInput.length} (typed)</p>
+        <p>Errors (in what you typed): ${finalErrors}</p>
+        <p>Time: ${timeElapsedSeconds.toFixed(1)}s</p>
+        <p><em>Session High: ${ayahTypingSessionHighScoreWPM} WPM, ${ayahTypingSessionHighScoreAcc}% Acc</em></p>
+    `;
+    resultsArea.style.display = 'block';
+
+    const resetButton = document.getElementById('resetTypingGameBtn_Engine');
+    if (resetButton) resetButton.focus();
+}
+
+
+function updateTypingTimer_Engine() {
+    if (!ayahTypingGameActive) return;
+    const currentTime = Date.now();
+    const timeElapsed = Math.round((currentTime - ayahTypingStartTime) / 1000);
+    document.getElementById('typingTimer_Engine').textContent = `${timeElapsed}s`;
+}
+// --- Add Button to Main Game Modal ---
+function addAyahTypingGameButtonToModal() {
+    const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
+    const buttonId = 'startGameAyahTypingEngineBtn';
+
+    if (gameSelectionArea && !document.getElementById(buttonId)) {
+        const typingGameButton = document.createElement('button');
+        typingGameButton.id = buttonId;
+        typingGameButton.className = 'game-select-btn';
+        typingGameButton.textContent = 'Ayah Typing Challenge';
+        typingGameButton.addEventListener('click', () => {
+            const gamePlayArea = document.getElementById('gamePlayArea');
+            const gameSelectionArea = document.getElementById('game-selection-area');
+
+            if (gameSelectionArea) gameSelectionArea.style.display = 'none';
+            if (gamePlayArea) gamePlayArea.style.display = 'flex';
+
+            setTimeout(() => {
+                startAyahTyping_Engine();
+            }, 50); // Small delay, e.g., 50-100ms
+        });
+        
+        // Append after existing buttons or as first if none
+        const existingButtons = gameSelectionArea.querySelectorAll('.game-select-btn');
+        if (existingButtons.length > 0) {
+            existingButtons[existingButtons.length - 1].insertAdjacentElement('afterend', typingGameButton);
+        } else {
+            // If no buttons, find the <p> and insert after it
+            const pElement = gameSelectionArea.querySelector('p');
+            if (pElement) {
+                pElement.insertAdjacentElement('afterend', typingGameButton);
+            } else {
+                gameSelectionArea.appendChild(typingGameButton);
+            }
+        }
+    }
+}
+
+// === AYAH TYPING GAME - STANDALONE BROWSER FULLSCREEN LOGIC ===
+// Place these functions in your script. They are specific to this game.
+
+let ayahTypingGameOriginalParent = null; // To store where gamePlayArea was before fullscreen
+let ayahTypingGameCloseButtonFS = null; // The dedicated close button for fullscreen
+
+function requestAyahTypingFullscreen(gamePlayAreaElement) {
+    if (!gamePlayAreaElement) {
+        console.error("requestAyahTypingFullscreen: gamePlayAreaElement is null.");
+        return;
+    }
+
+    // Create a dedicated container for fullscreen mode
+    const fullscreenContainer = document.createElement('div');
+    fullscreenContainer.id = 'ayahTypingFullscreenContainer';
+    fullscreenContainer.style.position = 'fixed';
+    fullscreenContainer.style.top = '0';
+    fullscreenContainer.style.left = '0';
+    fullscreenContainer.style.width = '100vw';
+    fullscreenContainer.style.height = '100vh';
+    fullscreenContainer.style.backgroundColor = 'var(--color-bg-primary, #e8f5e9)'; // Use your theme's primary bg
+    fullscreenContainer.style.zIndex = '20000'; // Very high z-index
+    fullscreenContainer.style.display = 'flex';
+    fullscreenContainer.style.flexDirection = 'column';
+    fullscreenContainer.style.justifyContent = 'center';
+    fullscreenContainer.style.alignItems = 'center';
+    fullscreenContainer.style.padding = '20px'; // Some padding around the game area
+    fullscreenContainer.style.boxSizing = 'border-box';
+
+
+    // Store original parent and move gamePlayArea
+    ayahTypingGameOriginalParent = gamePlayAreaElement.parentNode;
+    fullscreenContainer.appendChild(gamePlayAreaElement); // Move gamePlayArea into our new container
+
+    // Style gamePlayArea for fullscreen (it's already styled by injectAyahTypingGameCSS_Engine)
+    // We just need to ensure it behaves well within its new fullscreen parent
+    gamePlayAreaElement.style.width = '100%'; // Or a specific max-width like '90vw', '1200px'
+    gamePlayAreaElement.style.height = '100%'; // Or '90vh'
+    gamePlayAreaElement.style.maxWidth = '1200px'; // Example constraint
+    gamePlayAreaElement.style.maxHeight = '95vh';
+    gamePlayAreaElement.style.overflow = 'auto'; // If content overflows
+    gamePlayAreaElement.style.backgroundColor = 'var(--color-bg-secondary, #c8e6c9)'; // Content background
+    gamePlayAreaElement.style.borderRadius = 'var(--border-radius, 8px)';
+    gamePlayAreaElement.style.boxShadow = '0 0 20px rgba(0,0,0,0.2)';
+
+
+    // Add a dedicated close button for this fullscreen mode
+    ayahTypingGameCloseButtonFS = document.createElement('button');
+    ayahTypingGameCloseButtonFS.id = 'ayahTypingCloseFullscreenBtn';
+    ayahTypingGameCloseButtonFS.textContent = '✕';
+    ayahTypingGameCloseButtonFS.style.position = 'absolute';
+    ayahTypingGameCloseButtonFS.style.top = '20px';
+    ayahTypingGameCloseButtonFS.style.right = '20px';
+    ayahTypingGameCloseButtonFS.style.fontSize = '1.8rem';
+    ayahTypingGameCloseButtonFS.style.padding = '5px 12px';
+    ayahTypingGameCloseButtonFS.style.backgroundColor = 'var(--color-error, #ef5350)';
+    ayahTypingGameCloseButtonFS.style.color = 'white';
+    ayahTypingGameCloseButtonFS.style.border = 'none';
+    ayahTypingGameCloseButtonFS.style.borderRadius = '50%';
+    ayahTypingGameCloseButtonFS.style.cursor = 'pointer';
+    ayahTypingGameCloseButtonFS.style.zIndex = '20001'; // Above gamePlayArea
+    ayahTypingGameCloseButtonFS.title = "Exit Fullscreen Typing (Esc)";
+    ayahTypingGameCloseButtonFS.onclick = exitAyahTypingFullscreen;
+    fullscreenContainer.appendChild(ayahTypingGameCloseButtonFS);
+
+    document.body.appendChild(fullscreenContainer);
+    document.body.style.overflow = 'hidden'; // Prevent body scroll
+
+    // Request browser fullscreen for the new container
+    if (fullscreenContainer.requestFullscreen) {
+        fullscreenContainer.requestFullscreen().catch(err => {
+            console.warn(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            // If browser FS fails, our custom "fixed" overlay is still active
+        });
+    } else if (fullscreenContainer.webkitRequestFullscreen) { /* Safari */
+        fullscreenContainer.webkitRequestFullscreen();
+    } else if (fullscreenContainer.msRequestFullscreen) { /* IE11 */
+        fullscreenContainer.msRequestFullscreen();
+    }
+
+    // Listen for browser fullscreen exit (e.g., user presses Esc)
+    document.addEventListener('fullscreenchange', handleBrowserFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleBrowserFullscreenChange); // Safari
+    document.addEventListener('mozfullscreenchange', handleBrowserFullscreenChange);    // Firefox
+    document.addEventListener('MSFullscreenChange', handleBrowserFullscreenChange);   // IE
+}
+
+function exitAyahTypingFullscreen() {
+    const gamePlayAreaElement = document.getElementById('gamePlayArea');
+    const fullscreenContainer = document.getElementById('ayahTypingFullscreenContainer');
+
+    // Exit browser fullscreen first if active
+    if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) { /* Safari */
+            document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) { /* Firefox */
+            document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) { /* IE11 */
+            document.msExitFullscreen();
+        }
+    }
+    // If browser fullscreen wasn't active or after it exits, clean up our custom overlay
+    cleanupAyahTypingCustomFullscreenOverlay(gamePlayAreaElement, fullscreenContainer);
+}
+
+function cleanupAyahTypingCustomFullscreenOverlay(gamePlayAreaElement, fullscreenContainer) {
+    if (fullscreenContainer && fullscreenContainer.parentNode) {
+        // Move gamePlayArea back to its original parent within the modal
+        if (gamePlayAreaElement && ayahTypingGameOriginalParent) {
+            // Reset styles that were specific for fullscreen
+            gamePlayAreaElement.style.width = '';
+            gamePlayAreaElement.style.height = '';
+            gamePlayAreaElement.style.maxWidth = '';
+            gamePlayAreaElement.style.maxHeight = '';
+            gamePlayAreaElement.style.overflow = '';
+            gamePlayAreaElement.style.backgroundColor = ''; // Let original CSS take over
+            gamePlayAreaElement.style.borderRadius = '';
+            gamePlayAreaElement.style.boxShadow = '';
+
+            ayahTypingGameOriginalParent.appendChild(gamePlayAreaElement);
+        }
+        fullscreenContainer.parentNode.removeChild(fullscreenContainer);
+    }
+
+    if (ayahTypingGameCloseButtonFS && ayahTypingGameCloseButtonFS.parentNode) {
+        ayahTypingGameCloseButtonFS.parentNode.removeChild(ayahTypingGameCloseButtonFS);
+        ayahTypingGameCloseButtonFS = null;
+    }
+
+    document.body.style.overflow = ''; // Restore body scroll
+
+    // Clean up event listeners for browser fullscreen
+    document.removeEventListener('fullscreenchange', handleBrowserFullscreenChange);
+    document.removeEventListener('webkitfullscreenchange', handleBrowserFullscreenChange);
+    document.removeEventListener('mozfullscreenchange', handleBrowserFullscreenChange);
+    document.removeEventListener('MSFullscreenChange', handleBrowserFullscreenChange);
+
+    // Important: After exiting our custom fullscreen, we need to tell the main game modal
+    // to reset its UI to the game selection screen.
+    activeGame = null; // Mark no game as active
+    resetGameUI(); // Your existing function to show game selection
+
+    // Also ensure the main game modal is still visible if it was hidden
+    const mainGameModal = document.getElementById('quranGameModal');
+    if (mainGameModal && mainGameModal.style.display === 'none') {
+        mainGameModal.style.display = 'flex'; // Or whatever its default display is
+    }
+}
+
+
+function handleBrowserFullscreenChange() {
+    // If the browser exits fullscreen (e.g., user pressed Esc)
+    // AND our custom container is still there, we need to clean it up.
+    const fullscreenContainer = document.getElementById('ayahTypingFullscreenContainer');
+    if (!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement)) {
+        if (fullscreenContainer) { // If our container exists, it means we initiated this
+            console.log("Browser fullscreen exited, cleaning up custom overlay.");
+            // Call cleanup directly, no need to call document.exitFullscreen() again
+            cleanupAyahTypingCustomFullscreenOverlay(
+                document.getElementById('gamePlayArea'),
+                fullscreenContainer
+            );
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+// In the STANDALONE IMMERSIVE MODE block:
+
+function enterSimpleImmersiveView() {
+    const gameModalTitleEl = document.getElementById('gameModalTitle');
+    // const gameSelectionArea = document.getElementById('game-selection-area'); // Temporarily ignore
+
+    if (gameModalTitleEl) {
+        originalTitleDisplay_SimpleImmersive = gameModalTitleEl.style.display;
+        gameModalTitleEl.style.display = 'none';
+        console.log("[SimpleImmersive] Title hidden.");
+    } else {
+        console.warn("[SimpleImmersive] gameModalTitleEl not found for hiding.");
+    }
+    // if (gameSelectionArea) { ... } // Temporarily ignore
+    isSimpleImmersiveActive = true;
+}
+
+function exitSimpleImmersiveView() {
+    if (!isSimpleImmersiveActive) return;
+    const gameModalTitleEl = document.getElementById('gameModalTitle');
+    // const gameSelectionArea = document.getElementById('game-selection-area'); // Temporarily ignore
+
+    if (gameModalTitleEl) {
+        gameModalTitleEl.style.display = originalTitleDisplay_SimpleImmersive;
+        console.log("[SimpleImmersive] Title restored.");
+    }
+    // if (gameSelectionArea) { ... } // Temporarily ignore
+    isSimpleImmersiveActive = false;
+}
 </script>
