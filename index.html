@@ -160,7 +160,7 @@
         .container {
             display: flex;
             flex-grow: 1; /* Allow container to take up available space */
-            padding: var(--padding-main);
+            padding: 6px 0px;
             max-width: 1200px;
             margin: 0 auto;
             width: 100%;
@@ -7527,7 +7527,7 @@ async function startAyahTyping_Engine() {
 
 
 async function loadNextAyahForTyping_Engine() {
-    //console.log("[loadNextAyahForTyping_Engine] Function started.");
+    ////console.log("[loadNextAyahForTyping_Engine] Function started.");
     resetTypingGameState_Engine();
     const ayahDisplay = document.getElementById('ayahDisplayContainer_Engine');
     const typingInput = document.getElementById('typingInputArea_Engine');
@@ -7642,7 +7642,7 @@ function resetTypingGameState_Engine() {
 }
 
 function handleTypingInput_Engine() {
-    //console.log("[handleTypingInput_Engine] Current Diacritic Mode: " + ayahTypingDiacriticMode);
+    ////console.log("[handleTypingInput_Engine] Current Diacritic Mode: " + ayahTypingDiacriticMode);
 
     const typingInput = document.getElementById('typingInputArea_Engine');
     if (!typingInput) { /* ... error handling ... */ return; }
@@ -7653,7 +7653,7 @@ function handleTypingInput_Engine() {
         ayahTypingStartTime = Date.now();
         if (ayahTypingTimerInterval) clearInterval(ayahTypingTimerInterval);
         ayahTypingTimerInterval = setInterval(updateTypingTimer_Engine, 1000);
-       //console.log("[handleTypingInput_Engine] Game timer started.");
+       ////console.log("[handleTypingInput_Engine] Game timer started.");
     }
     // ... (initial empty input handling) ...
     if (ayahTypingTargetSpans.length === 0) return;
@@ -7741,7 +7741,7 @@ function handleTypingInput_Engine() {
     }
 
     if (currentEffectiveInputIndex >= baseTargetLength && !MismatchEncountered && ayahTypingGameActive) {
-         //console.log("[handleTypingInput_Engine] Effective target base length reached. Ending round.");
+         ////console.log("[handleTypingInput_Engine] Effective target base length reached. Ending round.");
         endTypingRound_Engine(userInput); // Pass the raw user input for stat calculation
     }
 }
@@ -7823,7 +7823,7 @@ function endTypingRound_Engine(finalUserInput) { // finalUserInput is passed
         return;
     }
 
-    console.log("[endTypingRound_Engine] Ending round. Final user input (up to target length):", "'" + finalUserInput + "'");
+    //console.log("[endTypingRound_Engine] Ending round. Final user input (up to target length):", "'" + finalUserInput + "'");
 
     ayahTypingGameActive = false; // Set game to inactive
     if (ayahTypingTimerInterval) {
@@ -8162,7 +8162,7 @@ function enterSimpleImmersiveView() {
     if (gameModalTitleEl) {
         originalTitleDisplay_SimpleImmersive = gameModalTitleEl.style.display;
         gameModalTitleEl.style.display = 'none';
-        console.log("[SimpleImmersive] Title hidden.");
+        //console.log("[SimpleImmersive] Title hidden.");
     } else {
         console.warn("[SimpleImmersive] gameModalTitleEl not found for hiding.");
     }
@@ -8177,7 +8177,7 @@ function exitSimpleImmersiveView() {
 
     if (gameModalTitleEl) {
         gameModalTitleEl.style.display = originalTitleDisplay_SimpleImmersive;
-        console.log("[SimpleImmersive] Title restored.");
+        //console.log("[SimpleImmersive] Title restored.");
     }
     // if (gameSelectionArea) { ... } // Temporarily ignore
     isSimpleImmersiveActive = false;
@@ -8202,7 +8202,7 @@ function exitSimpleImmersiveView() {
             console.log("Standalone FS: Already in browser fullscreen mode.");
             return;
         }
-        console.log("[StandaloneFS] Attempting to request browser fullscreen for #fullScreenReaderOverlay.");
+        //console.log("[StandaloneFS] Attempting to request browser fullscreen for #fullScreenReaderOverlay.");
         try {
             if (readerOverlayElement.requestFullscreen) {
                 readerOverlayElement.requestFullscreen();
@@ -8224,7 +8224,7 @@ function exitSimpleImmersiveView() {
         const launchButton = document.getElementById('launchFullScreenReaderBtnEnhanced');
         if (launchButton) {
             launchButton.addEventListener('click', () => {
-                console.log("[StandaloneFS with Timeout] #launchFullScreenReaderBtnEnhanced clicked.");
+                //console.log("[StandaloneFS with Timeout] #launchFullScreenReaderBtnEnhanced clicked.");
                 if (typeof window.launchFullScreenQuranReaderEnhanced === 'function') {
                     window.launchFullScreenQuranReaderEnhanced(); 
                 } else {
@@ -8234,7 +8234,7 @@ function exitSimpleImmersiveView() {
                     requestBrowserFullscreenForReaderOverlay();
                 }, 100); // Delay after launching reader UI
             });
-            console.log("[StandaloneFS with Timeout] Event listener attached to #launchFullScreenReaderBtnEnhanced.");
+            //console.log("[StandaloneFS with Timeout] Event listener attached to #launchFullScreenReaderBtnEnhanced.");
         } else {
             console.warn("[StandaloneFS with Timeout] #launchFullScreenReaderBtnEnhanced button not found after timeout. Fullscreen will not be triggered.");
         }
@@ -8243,9 +8243,9 @@ function exitSimpleImmersiveView() {
     // --- MODIFIED SETUP ---
     // Wait for the full window to load, then wait an additional 300ms
     window.addEventListener('load', () => {
-        console.log("[StandaloneFS] Window 'load' event fired.");
+        //console.log("[StandaloneFS] Window 'load' event fired.");
         setTimeout(() => {
-            console.log("[StandaloneFS] Attempting to set up launch button after 300ms delay post-load.");
+            //console.log("[StandaloneFS] Attempting to set up launch button after 300ms delay post-load.");
             setupLaunchButtonForStandaloneFullscreenWithTimeout();
         }, 300); // 0.3 seconds delay
     });
@@ -8254,7 +8254,7 @@ function exitSimpleImmersiveView() {
 
     function handleFullscreenChange() {
         if (!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement)) {
-            console.log("[StandaloneFS] Browser exited fullscreen mode.");
+            //console.log("[StandaloneFS] Browser exited fullscreen mode.");
         }
     }
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -8332,7 +8332,7 @@ function exitSimpleImmersiveView() {
     // --- MODIFIED SETUP ---
     // Wait for the full window to load, then wait an additional delay
     window.addEventListener('load', () => {
-        console.log("[ModalFS] Window 'load' event fired for game modal fullscreen setup.");
+        //console.log("[ModalFS] Window 'load' event fired for game modal fullscreen setup.");
         setTimeout(() => {
             console.log(`[ModalFS] Attempting to set up launch button listener after ${INITIALIZATION_DELAY_MS}ms delay post-load.`);
             setupModalFullscreenLaunchListenerWithWait();
