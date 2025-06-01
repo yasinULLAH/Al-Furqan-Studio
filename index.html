@@ -781,7 +781,11 @@
             text-align: right !important;
             z-index: 2147483647 !important;
             }
-
+button#launchFullScreenReaderBtnEnhanced {
+    position: absolute;
+    right: 101px;
+    top: 115px;
+}
     </style>
     <!-- Optional: Include fonts if not available locally -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap">
@@ -1177,59 +1181,99 @@ const juzStartAyahs = [0, 1, 142, 253, 93, 24, 148, 82, 111, 41, 88, 93, 6, 53, 
 // This ^ is a very simplified example for how you might store Juz boundaries.
 // A more common way is to map each of the 604 pages of a TajCo mushaf to its Juz.
 // Or have a detailed list like: {juz: 1, startSurah: 1, startAyah: 1, endSurah: 2, endAyah: 141}, ...
+// === PLACE THIS AT THE TOP OF YOUR SCRIPT, WITH OTHER GLOBAL DATA LIKE surahNames ===
+const juzBoundariesData = [
+    { juz: 1, name: "Alif laam meem (آلم)", startSurah: 1, startAyah: 1 },
+    { juz: 2, name: "Sayaqulu (سَيَقُولُ)", startSurah: 2, startAyah: 142 },
+    { juz: 3, name: "Tilka r Rusulu (تِلْكَ الرُّسُلُ)", startSurah: 2, startAyah: 253 },
+    { juz: 4, name: "Lan Tana Loo (لَنْ تَنَالُوا)", startSurah: 3, startAyah: 93 }, // 92 in some, 93 in others. Using 93 as per some common divisions.
+    { juz: 5, name: "Wal Mohsanat (وَالْمُحْصَنَاتُ)", startSurah: 4, startAyah: 24 },
+    { juz: 6, name: "La Yahubbullah (لَا يُحِبُّ اللَّهُ)", startSurah: 4, startAyah: 148 },
+    { juz: 7, name: "Wa Iza Samiu (وَإِذَا سَمِعُوا)", startSurah: 5, startAyah: 82 }, // some say 83
+    { juz: 8, name: "Wa Lau Annana (وَلَوْ أَنَّنَا)", startSurah: 6, startAyah: 111 },
+    { juz: 9, name: "Qalal Malao (قَالَ الْمَلَأُ)", startSurah: 7, startAyah: 88 },
+    { juz: 10, name: "Wa A'lamu (وَاعْلَمُوا)", startSurah: 8, startAyah: 41 },
+    { juz: 11, name: "Yatazeroon (يَعْتَذِرُونَ)", startSurah: 9, startAyah: 93 }, // some say 94
+    { juz: 12, name: "Wa Mamin Da'abat (وَمَا مِنْ دَابَّةٍ)", startSurah: 11, startAyah: 6 },
+    { juz: 13, name: "Wa Ma Ubiroo (وَمَا أُبَرِّئُ)", startSurah: 12, startAyah: 53 },
+    { juz: 14, name: "Rubama (رُبَمَا)", startSurah: 15, startAyah: 1 }, // Al-Hijr
+    { juz: 15, name: "Subhanallazi (سُبْحَانَ الَّذِي)", startSurah: 17, startAyah: 1 }, // Al-Isra
+    { juz: 16, name: "Qal Alam (قَالَ أَلَمْ)", startSurah: 18, startAyah: 75 }, // Al-Kahf
+    { juz: 17, name: "Aqtarabo (اقْتَرَبَ لِلنَّاسِ)", startSurah: 21, startAyah: 1 }, // Al-Anbiya
+    { juz: 18, name: "Qadd Aflaha (قَدْ أَفْلَحَ)", startSurah: 23, startAyah: 1 }, // Al-Mu'minun
+    { juz: 19, name: "Wa Qalallazina (وَقَالَ الَّذِينَ)", startSurah: 25, startAyah: 21 }, // Al-Furqan
+    { juz: 20, name: "A'man Khalaq (أَمَّنْ خَلَقَ)", startSurah: 27, startAyah: 56 }, // An-Naml (some 60)
+    { juz: 21, name: "Utlu Ma Oohi (اتْلُ مَا أُوحِيَ)", startSurah: 29, startAyah: 46 }, // Al-'Ankabut
+    { juz: 22, name: "Wa Manyaqnut (وَمَنْ يَقْنُتْ)", startSurah: 33, startAyah: 31 }, // Al-Ahzab
+    { juz: 23, name: "Wa Mali (وَمَا لِيَ)", startSurah: 36, startAyah: 28 }, // Ya-Sin (some 22)
+    { juz: 24, name: "Faman Azlam (فَمَنْ أَظْلَمُ)", startSurah: 39, startAyah: 32 }, // Az-Zumar
+    { juz: 25, name: "Elahe Yuruddo (إِلَيْهِ يُرَدُّ)", startSurah: 41, startAyah: 47 }, // Fussilat
+    { juz: 26, name: "Ha'a Meem (حم)", startSurah: 46, startAyah: 1 }, // Al-Ahqaf
+    { juz: 27, name: "Qala Fama Khatbukum (قَالَ فَمَا خَطْبُكُمْ)", startSurah: 51, startAyah: 31 }, // Adh-Dhariyat
+    { juz: 28, name: "Qadd Sami Allah (قَدْ سَمِعَ اللَّهُ)", startSurah: 58, startAyah: 1 }, // Al-Mujadila
+    { juz: 29, name: "Tabarakallazi (تَبَارَكَ الَّذِي)", startSurah: 67, startAyah: 1 }, // Al-Mulk
+    { juz: 30, name: "Amma Yatasa'aloon (عَمَّ يَتَسَاءَلُونَ)", startSurah: 78, startAyah: 1 } // An-Naba
+];
+// === PLACE THIS AT THE TOP OF YOUR SCRIPT, WITH OTHER GLOBAL DATA ===
+
+const staticQuranicThemes = [
+    // Virtues & Specific Ayahs/Surahs
+    { id: 'static_01', name: "Ayat al-Kursi (Verse of the Throne)", exampleSurah: 2, exampleAyah: 255, description: "Greatest verse, protection, affirmation of Allah's sovereignty." },
+    { id: 'static_02', name: "Surah Al-Fatihah (The Opening)", exampleSurah: 1, exampleAyah: 1, description: "Essence of the Quran, recited in every prayer." },
+    { id: 'static_03', name: "Surah Yasin (Heart of the Quran)", exampleSurah: 36, exampleAyah: 1, description: "Recited for blessings, ease, and for the deceased." },
+    { id: 'static_04', name: "Surah Al-Mulk (The Dominion - Protector from Grave)", exampleSurah: 67, exampleAyah: 1, description: "Recited for protection from torment of the grave." },
+    { id: 'static_05', name: "Surah Al-Waqi'ah (The Inevitable - Sustenance)", exampleSurah: 56, exampleAyah: 1, description: "Recited for protection against poverty and for sustenance." },
+    { id: 'static_06', name: "Surah Ar-Rahman (The Most Merciful - Bride of Quran)", exampleSurah: 55, exampleAyah: 1, description: "Highlights Allah's bounties and mercy." },
+    { id: 'static_07', name: "Surah Al-Kahf (The Cave - Protection from Dajjal)", exampleSurah: 18, exampleAyah: 1, description: "Recited on Fridays, protection from Dajjal, stories of guidance." },
+    { id: 'static_08', name: "Last two Ayahs of Surah Al-Baqarah", exampleSurah: 2, exampleAyah: 285, description: "Sufficient for protection and blessings if recited at night." },
+    { id: 'static_09', name: "Surah Al-Ikhlas (Sincerity - Equals 1/3rd Quran)", exampleSurah: 112, exampleAyah: 1, description: "Pure monotheism, immense reward." },
+    { id: 'static_10', name: "Surah Al-Falaq (The Daybreak - Protection)", exampleSurah: 113, exampleAyah: 1, description: "Seeking refuge from evil." },
+    { id: 'static_11', name: "Surah An-Nas (Mankind - Protection)", exampleSurah: 114, exampleAyah: 1, description: "Seeking refuge from whispers of Shaytan." },
+    { id: 'static_12', name: "Ayah for seeking Forgiveness (Syed-ul-Istighfar concept)", exampleSurah: 3, exampleAyah: 135, description: "Verses encouraging repentance and seeking forgiveness." }, // Rabbana zalamna anfusana
+    { id: 'static_13', name: "Dua of Yunus (AS) / Ayat-e-Karima", exampleSurah: 21, exampleAyah: 87, description: "For relief from distress: La ilaha illa anta subhanaka inni kuntu minaz-zalimin." },
+    { id: 'static_14', name: "Verse of Light (Ayat an-Nur)", exampleSurah: 24, exampleAyah: 35, description: "Metaphorical description of Allah's light and guidance." },
+    { id: 'static_15', name: "Four Quls (Al-Kafirun, Al-Ikhlas, Al-Falaq, An-Nas)", exampleSurah: 109, exampleAyah: 1, description: "Collective term for these four protective Surahs." }, // Starts with Al-Kafirun
+
+    // Daily Life Themes & Guidance
+    { id: 'static_16', name: "Guidance in Decision Making (Istikhara concept)", exampleSurah: 2, exampleAyah: 216, description: "Trusting Allah's knowledge in what is good/bad for us." },
+    { id: 'static_17', name: "Marriage and Family", exampleSurah: 30, exampleAyah: 21, description: "Signs of Allah in creating spouses for tranquility and affection." },
+    { id: 'static_18', name: "Dealing with Grief and Loss", exampleSurah: 2, exampleAyah: 156, description: "Inna lillahi wa inna ilayhi raji'un - Turning to Allah in times of calamity." },
+    { id: 'static_19', name: "Financial Dealings & Charity", exampleSurah: 2, exampleAyah: 261, description: "Parable of those who spend in Allah's way." },
+    { id: 'static_20', name: "Good Conduct and Speech", exampleSurah: 17, exampleAyah: 53, description: "Speak that which is best." },
+    { id: 'static_21', name: "Patience in Adversity", exampleSurah: 39, exampleAyah: 10, description: "The patient will be given their reward without account." },
+    { id: 'static_22', name: "Seeking Knowledge", exampleSurah: 20, exampleAyah: 114, description: "Rabbi zidni ilma - My Lord, increase me in knowledge." },
+    { id: 'static_23', name: "Respect for Parents", exampleSurah: 17, exampleAyah: 23, description: "Decree to not worship except Him, and to parents, good treatment." },
+    { id: 'static_24', name: "Maintaining Ties of Kinship", exampleSurah: 4, exampleAyah: 1, description: "Fear Allah through whom you demand your mutual rights, and reverence the wombs." },
+    { id: 'static_25', name: "Trust in Allah (Tawakkul)", exampleSurah: 65, exampleAyah: 3, description: "And whoever relies upon Allah - then He is sufficient for him." },
+    { id: 'static_26', name: "Prohibition of Backbiting & Slander", exampleSurah: 49, exampleAyah: 12, description: "Avoid suspicion, do not spy or backbite each other." },
+    { id: 'static_27', name: "Importance of Justice", exampleSurah: 5, exampleAyah: 8, description: "Be just; that is nearer to righteousness." },
+    { id: 'static_28', name: "Humility", exampleSurah: 25, exampleAyah: 63, description: "Servants of the Most Merciful are those who walk upon the earth easily..." },
+    { id: 'static_29', name: "Gratitude for Blessings", exampleSurah: 16, exampleAyah: 114, description: "So eat of what Allah has provided you lawful and good and be grateful for the favor of Allah." },
+    { id: 'static_30', name: "Remembrance of Allah (Dhikr)", exampleSurah: 13, exampleAyah: 28, description: "Unquestionably, by the remembrance of Allah hearts are assured." },
+    { id: 'static_31', name: "Overcoming Anxiety & Stress", exampleSurah: 94, exampleAyah: 5, description: "For indeed, with hardship [will be] ease." }, // Surah Ash-Sharh
+    { id: 'static_32', name: "The Power of Dua (Supplication)", exampleSurah: 40, exampleAyah: 60, description: "And your Lord says, 'Call upon Me; I will respond to you.'" },
+    { id: 'static_33', name: "Warning Against Arrogance", exampleSurah: 31, exampleAyah: 18, description: "And do not turn your cheek [in contempt] toward people..." },
+    { id: 'static_34', name: "Importance of Consultation (Shura)", exampleSurah: 42, exampleAyah: 38, description: "...and whose affair is [determined by] consultation among themselves..." },
+    { id: 'static_35', name: "Forgiving Others", exampleSurah: 64, exampleAyah: 14, description: "...but if you pardon and overlook and forgive - then indeed, Allah is Forgiving and Merciful." },
+    { id: 'static_36', name: "Unity of the Ummah", exampleSurah: 3, exampleAyah: 103, description: "And hold firmly to the rope of Allah all together and do not become divided." },
+    { id: 'static_37', name: "The Brevity of Worldly Life", exampleSurah: 57, exampleAyah: 20, description: "Know that the life of this world is but amusement and diversion..." },
+    { id: 'static_38', name: "Reward for Good Deeds", exampleSurah: 99, exampleAyah: 7, description: "So whoever does an atom's weight of good will see it." },
+    { id: 'static_39', name: "Call to Reflection (Tadabbur)", exampleSurah: 47, exampleAyah: 24, description: "Then do they not reflect upon the Qur'an, or are there locks upon [their] hearts?" },
+    { id: 'static_40', name: "Friday Prayer (Jumu'ah)", exampleSurah: 62, exampleAyah: 9, description: "O you who have believed, when the adhan is called for the prayer on the day of Jumu'ah..." }
+];
 
 function getJuzFromSurahAyah(surah, ayah) {
-    if (!tajMushafPageData || tajMushafPageData.length === 0) {
-        // Fallback if page data (which should contain Juz info) isn't loaded
-        // This is a VERY rough estimate and should be replaced
-        let estimatedPage = 0;
-        for (let i = 1; i < surah; i++) {
-            estimatedPage += (surahAyahCounts[i] || 0) / 15; // Assuming surahAyahCounts is global
-        }
-        estimatedPage += (ayah || 0) / 15;
-        return Math.min(30, Math.max(1, Math.ceil(estimatedPage / (TAJ_COMPANY_PAGES / 30))));
-    }
+    if (isNaN(surah) || isNaN(ayah) || surah < 1 || ayah < 1) return 1; // Default for invalid input
 
-    // Prefer to use Juz info from tajMushafPageData if available and accurate
-    // Find the page containing this surah:ayah
-    const pageInfo = tajMushafPageData.find(p => {
-        if (surah > p.startSurah && surah < p.endSurah) return true;
-        if (surah === p.startSurah && surah === p.endSurah) return ayah >= p.startAyah && ayah <= p.endAyah;
-        if (surah === p.startSurah) return ayah >= p.startAyah && (surah < p.endSurah || (surah === p.endSurah && ayah <= p.endAyah));
-        if (surah === p.endSurah) return ayah <= p.endAyah && (surah > p.startSurah || (surah === p.startSurah && ayah >= p.startAyah));
-        return false;
-    });
-
-    if (pageInfo && pageInfo.juz) {
-        return pageInfo.juz;
-    }
-
-    // Fallback if no exact page match or page has no juz info (should not happen with good page data)
-    // This is a simplified boundary check based on common Juz divisions.
-    // You'll need a more accurate mapping for production.
-    // Example data structure for Juz boundaries:
-    const juzBoundaries = [
-        { juz: 1, s: 1, a: 1 }, { juz: 2, s: 2, a: 142 }, { juz: 3, s: 2, a: 253 },
-        { juz: 4, s: 3, a: 93 }, { juz: 5, s: 4, a: 24 }, { juz: 6, s: 4, a: 148 },
-        { juz: 7, s: 5, a: 82 }, { juz: 8, s: 6, a: 111 }, { juz: 9, s: 7, a: 88 },
-        { juz: 10, s: 8, a: 41 }, { juz: 11, s: 9, a: 93 }, { juz: 12, s: 11, a: 6 },
-        { juz: 13, s: 12, a: 53 }, { juz: 14, s: 15, a: 1 }, { juz: 15, s: 16, a: 1 }, // (Hijr starts Juz 14, Nahl starts Juz 14 but some consider start of 15th here)
-                                                                                    // Often Isra 1 starts Juz 15
-        { juz: 15, s: 17, a: 1 }, { juz: 16, s: 18, a: 75 }, { juz: 17, s: 21, a: 1 },
-        { juz: 18, s: 23, a: 1 }, { juz: 19, s: 25, a: 21 }, { juz: 20, s: 27, a: 56 }, // or Naml 60
-        { juz: 21, s: 29, a: 46 }, { juz: 22, s: 33, a: 31 }, { juz: 23, s: 36, a: 28 }, // or Ya-Sin 22
-        { juz: 24, s: 39, a: 32 }, { juz: 25, s: 41, a: 47 }, { juz: 26, s: 46, a: 1 },
-        { juz: 27, s: 51, a: 31 }, { juz: 28, s: 58, a: 1 }, { juz: 29, s: 67, a: 1 },
-        { juz: 30, s: 78, a: 1 }
-    ];
-
-    for (let i = juzBoundaries.length - 1; i >= 0; i--) {
-        if (surah > juzBoundaries[i].s || (surah === juzBoundaries[i].s && ayah >= juzBoundaries[i].a)) {
-            return juzBoundaries[i].juz;
+    for (let i = juzBoundariesData.length - 1; i >= 0; i--) {
+        const boundary = juzBoundariesData[i];
+        if (surah > boundary.startSurah || (surah === boundary.startSurah && ayah >= boundary.startAyah)) {
+            return boundary.juz;
         }
     }
-    return 1; // Default to Juz 1 if not found
+    return 1; // Should not happen if data is correct and input is valid Quran range
 }
+
         const surahNames = [
             "Al-Fatihah", "Al-Baqarah", "Al 'Imran", "An-Nisa'", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus",
             "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra'", "Al-Kahf", "Maryam", "Taha",
@@ -1365,7 +1409,48 @@ function getJuzFromSurahAyah(surah, ayah) {
                 };
             });
         }
+        // --- Thematic Linker Functions ---
+        async function populateThemeSelects() {
+            if (!db) return;
+            const themeSelectElements = [
+                document.getElementById('parent-theme-select'),
+                document.getElementById('link-theme-select')
+            ];
+            try {
+                const themes = await getAllData(STORE_THEMES);
+                themeSelectElements.forEach(select => {
+                    // Guard against null select elements if the "Themes" section isn't active/visible
+                    if (!select) return; 
+                    
+                    const preservedValue = select.value;
+                    select.innerHTML = ''; // Clear existing options
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = "";
+                    defaultOption.textContent = select.id === 'parent-theme-select' ? "-- No Parent --" : "-- Select Theme --";
+                    select.appendChild(defaultOption);
 
+                    themes.forEach(theme => {
+                        const option = document.createElement('option');
+                        option.value = theme.id;
+                        option.textContent = theme.name;
+                        select.appendChild(option);
+                    });
+
+                    // Try to restore previous selection if possible
+                    if (select.querySelector(`option[value="${preservedValue}"]`)) {
+                        select.value = preservedValue;
+                    } else {
+                        select.value = ""; // Default to the "-- Select --" or "-- No Parent --" option
+                    }
+                });
+            } catch (error) {
+                 console.error("Error populating theme selects:", error);
+                 // If setStatusMessage is available and relevant context exists
+                 if (typeof setStatusMessage === "function" && document.getElementById('theme-manager-status')) {
+                     setStatusMessage('theme-manager-status', 'Failed to load themes for dropdowns.', true);
+                 }
+            }
+        }
         function getObjectStore(storeName, mode) {
             if (!db) {
                 console.error("getObjectStore called but DB is not initialized.");
@@ -1374,6 +1459,172 @@ function getJuzFromSurahAyah(surah, ayah) {
             const transaction = db.transaction(storeName, mode);
             return transaction.objectStore(storeName);
         }
+
+        
+async function populateThemesIndexList() {
+    console.log("populateThemesIndexList: Function called."); // Log function entry
+
+    const themeListEl = document.getElementById('fsIndexThemeList');
+    const searchInput = document.getElementById('fsThematicIndexSearchInput');
+
+    if (!themeListEl) {
+        console.error("populateThemesIndexList: CRITICAL - Theme list element '#fsIndexThemeList' not found in DOM!");
+        // Attempt to show an error directly in a fallback location if reader is active
+        const contentDiv = document.getElementById('fsReaderContent');
+        if (contentDiv) contentDiv.innerHTML = "<p style='color:red; text-align:center;'>Error: Theme list UI element missing.</p>";
+        return;
+    }
+    if (!searchInput) {
+        console.warn("populateThemesIndexList: Theme search input '#fsThematicIndexSearchInput' not found. Search will not work.");
+        // Proceed without search if input is missing, but list should still populate
+    }
+
+    themeListEl.innerHTML = '<li>Loading themes...</li>'; // Initial message
+
+    let dbThemes = [];
+    try {
+        if (db && typeof getAllData === "function") { // Ensure DB is open and function exists
+            dbThemes = await getAllData(STORE_THEMES);
+            console.log("populateThemesIndexList: Fetched DB themes:", dbThemes ? dbThemes.length : 'null/undefined');
+        } else {
+            console.warn("populateThemesIndexList: Database not ready or getAllData not available. Proceeding with static themes only.");
+        }
+    } catch (dbError) {
+        console.error("populateThemesIndexList: Error fetching DB themes:", dbError);
+        // Continue with static themes even if DB themes fail
+    }
+
+    // Ensure staticQuranicThemes is defined and has content
+    if (typeof staticQuranicThemes === 'undefined' || !Array.isArray(staticQuranicThemes)) {
+        console.error("populateThemesIndexList: CRITICAL - staticQuranicThemes array is not defined!");
+        themeListEl.innerHTML = '<li>Error: Static theme data is missing.</li>';
+        return;
+    }
+    // console.log("populateThemesIndexList: Static themes count:", staticQuranicThemes.length);
+
+
+    const combinedThemes = [
+        ...staticQuranicThemes.map(st => ({
+            id: st.id, 
+            name: st.name, 
+            isStatic: true, 
+            exampleSurah: st.exampleSurah, 
+            exampleAyah: st.exampleAyah,
+            description: st.description || "" // Add description for search
+        })),
+        ...(dbThemes || []).map(dbt => ({ // Handle if dbThemes is null/undefined
+            id: dbt.id, 
+            name: dbt.name, 
+            isStatic: false,
+            description: dbt.description || "" // Assuming DB themes might have a description
+        }))
+    ];
+    // console.log("populateThemesIndexList: Combined themes count:", combinedThemes.length);
+
+
+    let themesToDisplay = [...combinedThemes];
+
+    const renderList = (themes) => {
+        // console.log("populateThemesIndexList - renderList: Rendering with themes:", themes.length);
+        themeListEl.innerHTML = ''; // Clear previous items (like "Loading themes...")
+        if (themes.length === 0) {
+            themeListEl.innerHTML = '<li>No themes found.</li>'; // This is the message you are seeing
+            return;
+        }
+        themes.sort((a, b) => a.name.localeCompare(b.name));
+
+        themes.forEach(theme => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = '#';
+            a.dataset.themeId = theme.id;
+            a.dataset.isStatic = theme.isStatic;
+            if (theme.isStatic) {
+                a.dataset.exampleSurah = theme.exampleSurah;
+                a.dataset.exampleAyah = theme.exampleAyah;
+            }
+            a.textContent = theme.name;
+            a.addEventListener('click', handleIndexThemeClick);
+            li.appendChild(a);
+            themeListEl.appendChild(li);
+        });
+    };
+    
+    renderList(themesToDisplay); // Render the combined list
+
+    if (searchInput) { // Only add listener if searchInput exists
+        searchInput.removeEventListener('input', themeSearchHandler); // Remove previous listener
+        searchInput.addEventListener('input', themeSearchHandler);
+    }
+}
+
+// Separate handler for theme search to easily remove/add listener
+function themeSearchHandler(e) {
+    const themeListEl = document.getElementById('fsIndexThemeList'); // Re-fetch in handler scope
+    if (!themeListEl) return;
+
+    // Re-fetch combinedThemes or pass it appropriately if not global
+    // For simplicity, assuming staticQuranicThemes is global and dbThemes can be re-fetched or cached briefly
+    // This part might need refinement if dbThemes is large and frequently re-fetched.
+    // For now, let's assume combinedThemes is re-calculated if search input is used.
+    
+    const searchTerm = e.target.value.toLowerCase().trim();
+    
+    // Re-calculate combinedThemes for filtering
+    // This is not ideal for performance if dbThemes is large.
+    // A better approach would be to have combinedThemes available in a wider scope
+    // or pass it to this handler. For now, quick recalculation:
+    let currentDbThemes = [];
+    if (db && typeof getAllData === "function") {
+        getAllData(STORE_THEMES).then(fetchedDbThemes => { // Asynchronous, this logic flow for live search needs care
+            currentDbThemes = fetchedDbThemes || [];
+            filterAndRender(currentDbThemes);
+        }).catch(() => filterAndRender([])); // Handle error by filtering static only
+    } else {
+        filterAndRender([]);
+    }
+
+    function filterAndRender(dbThemesForFilter) {
+        const allCombinedForSearch = [
+             ...staticQuranicThemes.map(st => ({id: st.id, name: st.name, isStatic: true, exampleSurah: st.exampleSurah, exampleAyah: st.exampleAyah, description: st.description || ""})),
+             ...(dbThemesForFilter).map(dbt => ({id: dbt.id, name: dbt.name, isStatic: false, description: dbt.description || ""}))
+        ];
+
+        let filteredThemes;
+        if (!searchTerm) {
+            filteredThemes = [...allCombinedForSearch];
+        } else {
+            filteredThemes = allCombinedForSearch.filter(theme => 
+                theme.name.toLowerCase().includes(searchTerm) ||
+                (theme.description && theme.description.toLowerCase().includes(searchTerm)) // Also search description
+            );
+        }
+        
+        // Re-use the inner renderList logic - might need to extract renderList to be accessible here
+        // For now, quick re-implementation of list rendering for search:
+        themeListEl.innerHTML = '';
+        if (filteredThemes.length === 0) {
+            themeListEl.innerHTML = '<li>No themes match your search.</li>';
+            return;
+        }
+        filteredThemes.sort((a,b) => a.name.localeCompare(b.name));
+        filteredThemes.forEach(theme => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = '#';
+            a.dataset.themeId = theme.id;
+            a.dataset.isStatic = theme.isStatic;
+            if (theme.isStatic) {
+                a.dataset.exampleSurah = theme.exampleSurah;
+                a.dataset.exampleAyah = theme.exampleAyah;
+            }
+            a.textContent = theme.name;
+            a.addEventListener('click', handleIndexThemeClick);
+            li.appendChild(a);
+            themeListEl.appendChild(li);
+        });
+    }
+}
 
         function addData(storeName, data) {
             return new Promise((resolve, reject) => {
@@ -2173,37 +2424,119 @@ function getJuzFromSurahAyah(surah, ayah) {
         }
 
         // --- Thematic Linker Functions ---
-        async function populateThemeSelects() {
-            if (!db) return;
-            const themeSelectElements = [
-                document.getElementById('parent-theme-select'),
-                document.getElementById('link-theme-select')
-            ];
-            try {
-                const themes = await getAllData(STORE_THEMES);
-                themeSelectElements.forEach(select => {
-                    const preservedValue = select.value;
-                    select.innerHTML = '';
-                    const defaultOption = document.createElement('option');
-                    defaultOption.value = "";
-                    defaultOption.textContent = select.id === 'parent-theme-select' ? "-- No Parent --" : "-- Select Theme --";
-                    select.appendChild(defaultOption);
-                    themes.forEach(theme => {
-                        const option = document.createElement('option');
-                        option.value = theme.id;
-                        option.textContent = theme.name;
-                        select.appendChild(option);
-                    });
-                    if (select.querySelector(`option[value="${preservedValue}"]`)) {
-                        select.value = preservedValue;
-                    } else {
-                        select.value = "";
-                    }
-                });
-            } catch (error) {
-                setStatusMessage('theme-manager-status', 'Failed to load themes.', true);
+        
+
+// New handler for clicking a theme in the index
+async function handleIndexThemeClick(event) {
+    event.preventDefault();
+    // const targetElement = event.currentTarget; // THIS IS THE LIKELY CULPRIT
+    const clickedAnchorElement = event.currentTarget; // Use a more descriptive name
+
+    // console.log('Clicked Theme Element:', clickedAnchorElement); // For debugging
+    // console.log('Clicked Theme Element Dataset:', clickedAnchorElement.dataset);
+
+    if (!clickedAnchorElement || !clickedAnchorElement.dataset) {
+        console.error("handleIndexThemeClick: clickedAnchorElement or its dataset is invalid.", clickedAnchorElement);
+        return;
+    }
+
+    const themeId = clickedAnchorElement.dataset.themeId;
+    const isStatic = clickedAnchorElement.dataset.isStatic === 'true'; 
+    // Check if exampleSurah/Ayah exist before parsing, especially for DB themes
+    const exampleSurahStr = clickedAnchorElement.dataset.exampleSurah;
+    const exampleAyahStr = clickedAnchorElement.dataset.exampleAyah;
+    
+    if (!themeId) {
+        console.error("Theme ID missing from clicked element's dataset.");
+        return;
+    }
+
+    const indexPanel = document.getElementById('fsReaderIndexPanel');
+    if(indexPanel) indexPanel.style.display = 'none';
+
+    stopAndClearAudio();
+
+    let targetSurah, targetAyah;
+
+    if (isStatic) {
+        // console.log("Static theme clicked:", themeId);
+        targetSurah = exampleSurahStr ? parseInt(exampleSurahStr) : NaN;
+        targetAyah = exampleAyahStr ? parseInt(exampleAyahStr) : NaN;
+        
+        const staticTheme = staticQuranicThemes.find(st => st.id === themeId);
+        if (staticTheme) {
+            const surahTitleEl = document.getElementById('fsReaderSurahTitle');
+            const pageInfoEl = document.getElementById('fsReaderPageInfo');
+            if (surahTitleEl) surahTitleEl.textContent = `Theme: ${staticTheme.name}`;
+            if (pageInfoEl) {
+                if (isNaN(targetSurah) || isNaN(targetAyah)) {
+                    pageInfoEl.textContent = "(Example Ayah not set or invalid)";
+                } else {
+                    pageInfoEl.textContent = `(Example: S${targetSurah}:A${targetAyah})`;
+                }
             }
         }
+    } else {
+        // console.log("DB theme clicked:", themeId);
+        try {
+            const dbThemeId = parseInt(themeId);
+            if (isNaN(dbThemeId)) {
+                console.error("Invalid DB Theme ID:", themeId);
+                return;
+            }
+            const allThemeAyahLinks = await getAllData(STORE_THEME_AYAHS);
+            const linksForThisTheme = allThemeAyahLinks
+                .filter(link => link.themeId === dbThemeId)
+                .sort((a, b) => (a.surah !== b.surah) ? a.surah - b.surah : a.ayah - b.ayah);
+
+            if (linksForThisTheme.length > 0) {
+                const firstLink = linksForThisTheme[0];
+                targetSurah = firstLink.surah;
+                targetAyah = firstLink.ayah;
+            } else {
+                alert("No Ayahs are currently linked to this user-defined theme.");
+                const themeData = await getData(STORE_THEMES, dbThemeId);
+                const surahTitleEl = document.getElementById('fsReaderSurahTitle');
+                const pageInfoEl = document.getElementById('fsReaderPageInfo');
+                if (themeData && surahTitleEl) surahTitleEl.textContent = `Theme: ${themeData.name}`;
+                if (pageInfoEl) pageInfoEl.textContent = "(No linked Ayahs)";
+                return; 
+            }
+        } catch (error) {
+            console.error("Error fetching links for DB theme:", error);
+            alert("Could not retrieve linked Ayahs for this theme.");
+            return;
+        }
+    }
+
+    // Validate targetSurah and targetAyah before navigation
+    if (!isNaN(targetSurah) && !isNaN(targetAyah) && targetSurah >= 1 && targetSurah <= 114 && targetAyah >= 1) {
+        // Further validation against surahAyahCounts
+        const maxAyahs = (surahAyahCounts[targetSurah]) ? surahAyahCounts[targetSurah] : 0;
+        if (maxAyahs > 0 && targetAyah <= maxAyahs) {
+            fullScreenReaderCurrentSurah = targetSurah;
+            fullScreenReaderCurrentAyah = targetAyah;
+
+            if (fullScreenReaderViewMode === 'paged') {
+                fullScreenReaderCurrentPage = surahToPageEnhanced(targetSurah, targetAyah);
+                await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+                setTimeout(() => highlightAndScrollToAyahInPage(targetSurah, targetAyah), 300); // slight increase
+            } else {
+                continuousScrollNextSurahToLoad = targetSurah;
+                continuousScrollNextAyahToLoad = targetAyah;
+                await initializeContinuousScroll(); 
+            }
+        } else {
+            console.warn(`Invalid Ayah number ${targetAyah} for Surah ${targetSurah}. Max is ${maxAyahs}. Cannot navigate.`);
+            if (isStatic) alert(`The example Ayah (S${targetSurah}:A${targetAyah}) for this static theme is invalid.`);
+        }
+    } else if (isStatic) {
+        // console.log(`Static theme "${themeId}" clicked, but no valid example Ayah to navigate to, or exampleAyah was not set.`);
+        // Header might have already been updated for static themes if no valid S/A.
+    } else {
+        console.warn(`Navigation aborted for theme "${themeId}" due to invalid targetSurah/Ayah.`);
+    }
+}
 
         async function displayThemesList() {
              if (!db) return;
@@ -5410,10 +5743,10 @@ function injectEnhancedFullScreenReaderCSS() {
         /* Paged View Page */
         .fsReaderPage {
             background-color: #fff; border: 1px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            padding: 15px 20px; margin-bottom: 15px; width: 96%; max-width: 750px; direction: rtl;
+            padding: 15px 20px; margin-bottom: 15px; width: 96%; /* max-width: 750px; */ direction: rtl;
         }
         /* Continuous Scroll Container & Surah Blocks */
-        #continuousScrollSurahContainer { width: 100%; max-width: 800px; /* Centered */ margin: 0 auto; }
+        #continuousScrollSurahContainer { width: 100%; /* Centered */ margin: 0 auto; }
         .continuousSurahBlock {
             padding: 10px 15px; margin-bottom: 20px; direction: rtl;
             border-bottom: 2px solid var(--color-accent, #4caf50); /* Separator */
@@ -5451,11 +5784,11 @@ function injectEnhancedFullScreenReaderCSS() {
 
         /* Panels (Settings & Index) */
         .fsReaderSlidingPanel {
-            position: absolute; top: 45px; /* Below header */
+            position: absolute; top: 33px; /* Below header */
             width: 320px; max-width: 90%; background-color: var(--color-bg-primary);
             border: 1px solid var(--color-border); box-shadow: 0 3px 10px rgba(0,0,0,0.15);
             padding: 15px; z-index: 10001; display: none;
-            color: var(--color-text-primary); max-height: calc(100vh - 100px); overflow-y:auto;
+            color: var(--color-text-primary); overflow-y:auto;
         }
         #fsReaderSettingsPanel { right: 0; border-radius: 0 0 0 var(--border-radius); }
         #fsReaderIndexPanel { left: 0; border-radius: 0 0 var(--border-radius) 0; }
@@ -5662,13 +5995,17 @@ async function loadTajMushafPageDataIfNeeded() {
 }
 
 
-// --- Content Rendering (Paged View - Revised) ---
+// === In ENHANCED FULL-SCREEN TAJ QURAN READER block ===
 async function renderQuranPageEnhanced(pageNumber) {
     const contentDiv = document.getElementById('fsReaderContent');
-    if (!contentDiv || !tajMushafPageData.length) return;
-    contentDiv.innerHTML = ''; // Clear previous
-    contentDiv.style.alignItems = 'center'; // Center page
-    contentDiv.style.fontSize = fullScreenReaderSettings.fontSize; // Apply base font size
+    if (!contentDiv || !tajMushafPageData.length) {
+        console.error("renderQuranPageEnhanced: Content div or page data missing.");
+        if(contentDiv) contentDiv.innerHTML = "<p style='color:red;text-align:center;'>Error rendering page.</p>";
+        return;
+    }
+    contentDiv.innerHTML = ''; 
+    contentDiv.style.alignItems = 'center'; 
+    contentDiv.style.fontSize = fullScreenReaderSettings.fontSize;
 
     const pageData = tajMushafPageData.find(p => p.page === pageNumber);
     if (!pageData) {
@@ -5677,31 +6014,28 @@ async function renderQuranPageEnhanced(pageNumber) {
     }
 
     fullScreenReaderCurrentPage = pageNumber;
-    // Update current Surah/Ayah to the start of the new page for state consistency
-    fullScreenReaderCurrentSurah = pageData.startSurah;
-    fullScreenReaderCurrentAyah = pageData.startAyah;
+    fullScreenReaderCurrentSurah = pageData.startSurah; // Set global current S/A to page start
+    fullScreenReaderCurrentAyah = pageData.startAyah;  // for header and play button context
 
     const pageDiv = document.createElement('div');
     pageDiv.className = 'fsReaderPage';
-    // Font family applied via .fsReaderAyah or specific Bismillah style
 
-    let currentS = pageData.startSurah;
-    let currentA = pageData.startAyah;
-    let lineCountApproximation = 0; // Used to respect linesPerPage setting
+    let currentS_loop_var = pageData.startSurah; // Use loop-specific variables
+    let currentA_loop_var = pageData.startAyah;
+    let lineCountApproximation = 0;
 
-    // Loop to render Ayahs for the current page
     while (true) {
-        if (currentS > pageData.endSurah || (currentS === pageData.endSurah && currentA > pageData.endAyah)) {
-            break; // Exceeded page's defined Ayah range
+        if (currentS_loop_var > pageData.endSurah || (currentS_loop_var === pageData.endSurah && currentA_loop_var > pageData.endAyah)) {
+            break; 
         }
-        if (currentS > 114) break; // End of Quran
+        if (currentS_loop_var > 114) break;
 
-        const ayahData = await getData(STORE_QURAN, [currentS, currentA]); // From your IndexedDB
+        const ayahData = await getData(STORE_QURAN, [currentS_loop_var, currentA_loop_var]);
         if (ayahData && ayahData.arabic) {
-            if (currentA === 1 && currentS !== 1 && currentS !== 9) { // Bismillah
+            if (currentA_loop_var === 1 && currentS_loop_var !== 1 && currentS_loop_var !== 9) {
                 const bismDiv = document.createElement('div');
-                bismDiv.className = 'bismillahText'; // Apply specific styling
-                bismDiv.style.fontFamily = fullScreenReaderSettings.arabicFont; // Can override with specific Bismillah font
+                bismDiv.className = 'bismillahText';
+                bismDiv.style.fontFamily = fullScreenReaderSettings.arabicFont;
                 bismDiv.textContent = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
                 pageDiv.appendChild(bismDiv);
                 lineCountApproximation++;
@@ -5709,26 +6043,25 @@ async function renderQuranPageEnhanced(pageNumber) {
 
             const ayahSpan = document.createElement('span');
             ayahSpan.className = 'fsReaderAyah';
-            ayahSpan.dataset.surah = currentS;
-            ayahSpan.dataset.ayah = currentA;
+            ayahSpan.dataset.surah = currentS_loop_var;
+            ayahSpan.dataset.ayah = currentA_loop_var;
             ayahSpan.style.fontFamily = fullScreenReaderSettings.arabicFont;
-            ayahSpan.textContent = ayahData.arabic;
-            ayahSpan.addEventListener('click', () => { // Click Ayah to play
-                fullScreenReaderCurrentSurah = currentS; // Update reader state
-                fullScreenReaderCurrentAyah = currentA;
-                updateReaderHeaderInfo();
-                playAudioForAyahEnhanced(currentS, currentA);
+            ayahSpan.textContent = ayahData.arabic.trim();
+
+            const s_for_click = currentS_loop_var; // Capture for closure
+            const a_for_click = currentA_loop_var; // Capture for closure
+            ayahSpan.addEventListener('click', () => {
+                handleAyahSpanClick(s_for_click, a_for_click);
             });
+            pageDiv.appendChild(ayahSpan);
 
             const ayahNumSpan = document.createElement('span');
             ayahNumSpan.className = 'fsReaderAyahNumber';
-            ayahNumSpan.textContent = arabicNumber(currentA); // Your arabicNumber helper
-            
-            pageDiv.appendChild(ayahSpan);
+            ayahNumSpan.textContent = arabicNumber(currentA_loop_var);
             pageDiv.appendChild(ayahNumSpan);
 
             if (fullScreenReaderSettings.showTransliteration) {
-                const translitText = await getAyahTransliteration(currentS, currentA); // Your helper
+                const translitText = await getAyahTransliteration(currentS_loop_var, currentA_loop_var);
                 if (translitText) {
                     const translitSpan = document.createElement('span');
                     translitSpan.className = 'fsReaderTransliteration';
@@ -5736,18 +6069,20 @@ async function renderQuranPageEnhanced(pageNumber) {
                     pageDiv.appendChild(translitSpan);
                 }
             }
-            lineCountApproximation++; // Simple line counting; actual layout is more complex
+            lineCountApproximation++;
+        } else if (!ayahData) {
+            // console.warn(`renderQuranPageEnhanced: No data for S${currentS_loop_var}:A${currentA_loop_var}`);
         }
 
-        currentA++;
-        if (currentA > surahAyahCounts[currentS]) { // surahAyahCounts global array
-            currentS++;
-            currentA = 1;
+
+        currentA_loop_var++;
+        if (currentA_loop_var > surahAyahCounts[currentS_loop_var]) {
+            currentS_loop_var++;
+            currentA_loop_var = 1;
         }
-        // Ensure we don't render more lines than set, ONLY if not the last page
+        
         if (lineCountApproximation >= fullScreenReaderSettings.linesPerPage && pageNumber < TAJ_COMPANY_PAGES) {
-             if (currentS < pageData.endSurah || (currentS === pageData.endSurah && currentA <= pageData.endAyah)) {
-                 // Still more ayahs on this logical page, but we hit line limit
+             if (currentS_loop_var < pageData.endSurah || (currentS_loop_var === pageData.endSurah && currentA_loop_var <= pageData.endAyah)) {
                  break;
              }
         }
@@ -5758,9 +6093,7 @@ async function renderQuranPageEnhanced(pageNumber) {
     updateScrubSliderRangeAndValue();
 }
 
-
 // --- Content Rendering (Continuous Scroll - Revised) ---
-// === Within your ENHANCED FULL-SCREEN TAJ QURAN READER block ===
 
 async function initializeContinuousScroll() {
     const contentDiv = document.getElementById('fsReaderContent');
@@ -5768,7 +6101,7 @@ async function initializeContinuousScroll() {
         console.error("initializeContinuousScroll: fsReaderContent not found.");
         return;
     }
-    contentDiv.innerHTML = ''; // Clear previous content (e.g., paged view or old continuous)
+    contentDiv.innerHTML = ''; 
     contentDiv.style.alignItems = 'stretch';
     contentDiv.style.fontSize = fullScreenReaderSettings.fontSize;
 
@@ -5776,299 +6109,203 @@ async function initializeContinuousScroll() {
     continuousScrollSurahContainer.id = 'continuousScrollSurahContainer';
     contentDiv.appendChild(continuousScrollSurahContainer);
 
-    // Ensure current S/A are valid numbers before using them
-    continuousScrollNextSurahToLoad = parseInt(fullScreenReaderCurrentSurah) || 1;
-    continuousScrollNextAyahToLoad = parseInt(fullScreenReaderCurrentAyah) || 1;
-    
-    isLoadingMoreAyahs = false; // Reset lock
-    await loadMoreAyahsForContinuousScroll(); // Load initial batch
+    continuousScrollNextSurahToLoad = parseInt(fullScreenReaderCurrentSurah);
+    continuousScrollNextAyahToLoad = parseInt(fullScreenReaderCurrentAyah);
 
-    if (fullScreenReaderCurrentSurah > 1 || fullScreenReaderCurrentAyah > 1) {
-        setTimeout(() => {
+    if (isNaN(continuousScrollNextSurahToLoad) || continuousScrollNextSurahToLoad < 1 || continuousScrollNextSurahToLoad > 114) {
+        continuousScrollNextSurahToLoad = 1;
+    }
+    const maxAyahsForInitS = (continuousScrollNextSurahToLoad >= 1 && continuousScrollNextSurahToLoad <= 114 && surahAyahCounts[continuousScrollNextSurahToLoad]) ? surahAyahCounts[continuousScrollNextSurahToLoad] : 0;
+    if (isNaN(continuousScrollNextAyahToLoad) || continuousScrollNextAyahToLoad < 1 || (maxAyahsForInitS > 0 && continuousScrollNextAyahToLoad > maxAyahsForInitS) ) {
+        continuousScrollNextAyahToLoad = 1;
+    }
+    
+    isLoadingMoreAyahs = false;
+    await loadMoreAyahsForContinuousScroll();
+
+    // Scroll to the initially intended Ayah if it's not the very start of the Quran
+    const initialTargetS = continuousScrollNextSurahToLoad; // Use the validated start values
+    const initialTargetA = continuousScrollNextAyahToLoad;
+
+    if (initialTargetS > 1 || initialTargetA > 1) {
+         setTimeout(() => {
             const targetAyahEl = continuousScrollSurahContainer.querySelector(
-                `.fsReaderAyah[data-surah="${fullScreenReaderCurrentSurah}"][data-ayah="${fullScreenReaderCurrentAyah}"]`
+                `.fsReaderAyah[data-surah="${initialTargetS}"][data-ayah="${initialTargetA}"]`
             );
             if (targetAyahEl) {
                 targetAyahEl.scrollIntoView({ behavior: "auto", block: "start" });
-                highlightAyahEnhanced(fullScreenReaderCurrentSurah, fullScreenReaderCurrentAyah);
+                highlightAyahEnhanced(initialTargetS, initialTargetA);
             }
-             updateReaderHeaderInfo(); // Update header after potential scroll
-             updateScrubSliderRangeAndValue();
-        }, 200);
+            updateReaderHeaderInfo();
+            updateScrubSliderRangeAndValue();
+        }, 200); // Timeout allows DOM to render
     } else {
         updateReaderHeaderInfo();
         updateScrubSliderRangeAndValue();
     }
 }
 
+
+// === In ENHANCED FULL-SCREEN TAJ QURAN READER block ===
 async function loadMoreAyahsForContinuousScroll() {
     if (!continuousScrollSurahContainer || !document.body.contains(continuousScrollSurahContainer)) {
-        // console.warn("loadMoreAyahs: continuousScrollSurahContainer is not valid. Aborting.");
-        isLoadingMoreAyahs = false;
-        return;
+        isLoadingMoreAyahs = false; return;
     }
     if (isLoadingMoreAyahs || continuousScrollNextSurahToLoad > 114) {
-        // console.log("Load more: Already loading or end of Quran.");
-        if(continuousScrollNextSurahToLoad > 114) isLoadingMoreAyahs = false; // Reset if at end
+        if (continuousScrollNextSurahToLoad > 114) isLoadingMoreAyahs = false;
         return;
     }
     isLoadingMoreAyahs = true;
-    // console.log(`Loading more Ayahs from S:${continuousScrollNextSurahToLoad} A:${continuousScrollNextAyahToLoad}`);
 
     let ayahsLoadedInBatch = 0;
-    let currentBatchSurah = -1; // Tracks the surah for the current surahBlockDiv
-    let surahBlockDivForBatch = null;
+    let currentRenderingSurah = -1;
+    let surahBlockDiv = null;
 
     while (ayahsLoadedInBatch < CONTINUOUS_SCROLL_LOAD_COUNT && continuousScrollNextSurahToLoad <= 114) {
         if (!continuousScrollSurahContainer || !document.body.contains(continuousScrollSurahContainer)) {
-            // console.warn("loadMoreAyahs: continuousScrollSurahContainer became invalid during loop. Aborting.");
             isLoadingMoreAyahs = false; return;
         }
 
-        const s = parseInt(continuousScrollNextSurahToLoad) || 1; // Ensure number
-        const a = parseInt(continuousScrollNextAyahToLoad) || 1; // Ensure number
+        const s_loop = parseInt(continuousScrollNextSurahToLoad);
+        const a_loop = parseInt(continuousScrollNextAyahToLoad);
 
-        if (s !== currentBatchSurah) {
-            currentBatchSurah = s;
-            // Attempt to find existing block for this Surah, or create new one
-            surahBlockDivForBatch = continuousScrollSurahContainer.querySelector(`.continuousSurahBlock[data-surah-num="${s}"]`);
-            if (!surahBlockDivForBatch) {
-                surahBlockDivForBatch = document.createElement('div');
-                surahBlockDivForBatch.className = 'continuousSurahBlock';
-                surahBlockDivForBatch.dataset.surahNum = s;
-                
-                const surahNameHeader = document.createElement('h2');
-                surahNameHeader.className = 'surahNameHeader';
-                surahNameHeader.style.fontFamily = fullScreenReaderSettings.arabicFont;
-                surahNameHeader.textContent = `${s}. Surah ${surahNames[s-1] || `Surah ${s}`}`; // Fallback for surahNames
-                surahBlockDivForBatch.appendChild(surahNameHeader);
-
-                if (s !== 1 && s !== 9) { /* Bismillah */ 
-                    const bismDiv = document.createElement('div');
-                    bismDiv.className = 'bismillahText';
-                    bismDiv.style.fontFamily = fullScreenReaderSettings.arabicFont;
-                    bismDiv.textContent = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
-                    surahBlockDivForBatch.appendChild(bismDiv);
-                }
-                continuousScrollSurahContainer.appendChild(surahBlockDivForBatch);
-            }
-        }
-        
-        if (!surahBlockDivForBatch || !document.body.contains(surahBlockDivForBatch)) {
-             console.error("loadMoreAyahs: surahBlockDivForBatch is invalid for S:"+s+". Aborting batch.");
-             isLoadingMoreAyahs = false; return;
+        if (isNaN(s_loop) || isNaN(a_loop) || s_loop < 1 || s_loop > 114 || a_loop < 1) {
+            isLoadingMoreAyahs = false; break; 
         }
 
-        const ayahData = await getData(STORE_QURAN, [s, a]);
-        
-        // Re-validate containers after await
-        if (!surahBlockDivForBatch || !document.body.contains(surahBlockDivForBatch) || !continuousScrollSurahContainer || !document.body.contains(continuousScrollSurahContainer)) {
-            // console.warn("loadMoreAyahs: Container or surahBlock became invalid after fetching ayahData. Skipping append.");
-            isLoadingMoreAyahs = false; return; 
-        }
-
-        if (ayahData && ayahData.arabic) {
-            const ayahSpan = document.createElement('span');
-            ayahSpan.className = 'fsReaderAyah';
-            ayahSpan.dataset.surah = s;
-            ayahSpan.dataset.ayah = a;
-            ayahSpan.style.fontFamily = fullScreenReaderSettings.arabicFont;
-            ayahSpan.textContent = ayahData.arabic;
-            ayahSpan.addEventListener('click', () => {
-                fullScreenReaderCurrentSurah = s; 
-                fullScreenReaderCurrentAyah = a;
-                updateReaderHeaderInfo(); 
-                playAudioForAyahEnhanced(s, a);
-            });
-
-            const ayahNumSpan = document.createElement('span');
-            ayahNumSpan.className = 'fsReaderAyahNumber';
-            ayahNumSpan.textContent = arabicNumber(a);
-            
-            surahBlockDivForBatch.appendChild(ayahSpan);
-            surahBlockDivForBatch.appendChild(ayahNumSpan);
-
-            if (fullScreenReaderSettings.showTransliteration) {
-                const translitText = await getAyahTransliteration(s,a);
-                if (translitText) {
-                    const translitSpan = document.createElement('span');
-                    translitSpan.className = 'fsReaderTransliteration';
-                    translitSpan.textContent = translitText;
-                    const br = document.createElement('br'); 
-                    surahBlockDivForBatch.appendChild(br); 
-                    surahBlockDivForBatch.appendChild(translitSpan);
-                }
-            }
-            ayahsLoadedInBatch++;
-        } else if (!ayahData && s <= 114) {
-            // Ayah data might be missing for a valid S/A. Log it but try to continue to next logical ayah.
-            // console.warn(`Missing ayahData for S:${s} A:${a}`);
-        }
-
-
-        continuousScrollNextAyahToLoad++;
-        if (continuousScrollNextAyahToLoad > (surahAyahCounts[s] || 0)) { // Fallback for surahAyahCounts
-            continuousScrollNextSurahToLoad = 1;
-            continuousScrollNextSurahToLoad++; // This was the error, should be:
-                                              // continuousScrollNextAyahToLoad = 1; // Reset Ayah
-                                              // continuousScrollNextSurahToLoad++; // Increment Surah
-                                              // Corrected:
-            if (s < 114) { // Only increment surah if not the last one
-                 continuousScrollNextSurahToLoad = s + 1;
-                 continuousScrollNextAyahToLoad = 1;
-            } else { // Reached end of Quran
-                 continuousScrollNextSurahToLoad = 115; // Stop further loading
-                 break; 
-            }
-        }
-    }
-    isLoadingMoreAyahs = false;
-    // console.log("Finished loading batch. Total loaded in batch:", ayahsLoadedInBatch, "Next to load S:", continuousScrollNextSurahToLoad);
-}
-
-
-async function loadMoreAyahsForContinuousScroll() {
-    if (!continuousScrollSurahContainer || !document.body.contains(continuousScrollSurahContainer)) {
-        isLoadingMoreAyahs = false;
-        return;
-    }
-    if (isLoadingMoreAyahs || continuousScrollNextSurahToLoad > 114) return;
-    isLoadingMoreAyahs = true;
-
-    let ayahsLoadedInBatch = 0;
-    let currentRenderingSurah = -1; // Tracks the surah for the current surahBlockDiv
-    let surahBlockDiv = null; // Will hold the div for the current surah being processed
-
-    while (ayahsLoadedInBatch < CONTINUOUS_SCROLL_LOAD_COUNT && continuousScrollNextSurahToLoad <= 114) {
-        // **Re-validate container before each iteration if critical**
-        if (!continuousScrollSurahContainer || !document.body.contains(continuousScrollSurahContainer)) {
-            // console.warn("loadMoreAyahs...: continuousScrollSurahContainer became invalid during loop. Aborting further loading.");
-            isLoadingMoreAyahs = false;
-            return;
-        }
-
-        const s = continuousScrollNextSurahToLoad;
-        const a = continuousScrollNextAyahToLoad;
-
-        if (s !== currentRenderingSurah) {
-            currentRenderingSurah = s;
-            // Check if a surahBlock for this surah already exists (e.g. if we are resuming loading for it)
-            surahBlockDiv = continuousScrollSurahContainer.querySelector(`.continuousSurahBlock[data-surah-num="${s}"]`);
+        if (s_loop !== currentRenderingSurah) {
+            currentRenderingSurah = s_loop;
+            surahBlockDiv = continuousScrollSurahContainer.querySelector(`.continuousSurahBlock[data-surah-num="${s_loop}"]`);
             if (!surahBlockDiv) {
                 surahBlockDiv = document.createElement('div');
                 surahBlockDiv.className = 'continuousSurahBlock';
-                surahBlockDiv.dataset.surahNum = s; // Use dataset for easier selection
+                surahBlockDiv.dataset.surahNum = s_loop;
                 
                 const surahNameHeader = document.createElement('h2');
                 surahNameHeader.className = 'surahNameHeader';
                 surahNameHeader.style.fontFamily = fullScreenReaderSettings.arabicFont;
-                surahNameHeader.textContent = `${s}. Surah ${surahNames[s-1]}`;
+                surahNameHeader.textContent = `${s_loop}. Surah ${surahNames[s_loop-1] || `Surah ${s_loop}`}`;
                 surahBlockDiv.appendChild(surahNameHeader);
 
-                if (s !== 1 && s !== 9) {
+                if (s_loop !== 1 && s_loop !== 9) {
                     const bismDiv = document.createElement('div');
                     bismDiv.className = 'bismillahText';
                     bismDiv.style.fontFamily = fullScreenReaderSettings.arabicFont;
                     bismDiv.textContent = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
                     surahBlockDiv.appendChild(bismDiv);
                 }
-                // **Crucial Append:**
-                if (continuousScrollSurahContainer && document.body.contains(continuousScrollSurahContainer)){
-                    continuousScrollSurahContainer.appendChild(surahBlockDiv);
-                } else {
-                    // console.warn("loadMoreAyahs...: continuousScrollSurahContainer invalid before appending new surahBlockDiv. Aborting.");
-                    isLoadingMoreAyahs = false; return;
-                }
+                continuousScrollSurahContainer.appendChild(surahBlockDiv);
             }
         }
         
-        // Ensure surahBlockDiv is valid before appending ayahs to it
         if (!surahBlockDiv || !document.body.contains(surahBlockDiv)) {
-            // console.warn(`loadMoreAyahs...: surahBlockDiv for Surah ${s} is invalid. Trying to re-fetch or create.`);
-            // Attempt to re-acquire or create it (this indicates a state issue if it happens often)
-            surahBlockDiv = continuousScrollSurahContainer.querySelector(`.continuousSurahBlock[data-surah-num="${s}"]`);
-            if (!surahBlockDiv) { // If still not found, something is seriously wrong with the container
-                 // console.error("CRITICAL: Cannot find/create surahBlockDiv. Aborting loadMoreAyahs.");
-                 isLoadingMoreAyahs = false; return;
-            }
+             isLoadingMoreAyahs = false; return;
         }
 
-        const ayahData = await getData(STORE_QURAN, [s, a]); // Async operation
+        const ayahData = await getData(STORE_QURAN, [s_loop, a_loop]);
         
-        // **Re-validate surahBlockDiv and its parent AFTER await**
         if (!surahBlockDiv || !document.body.contains(surahBlockDiv) || !continuousScrollSurahContainer || !document.body.contains(continuousScrollSurahContainer)) {
-            // console.warn("loadMoreAyahs...: Container or surahBlock became invalid after fetching ayahData. Skipping append for this ayah.");
-            // Might need to break loop or re-initialize if this happens
-            isLoadingMoreAyahs = false; // Allow re-trigger if needed
-            return; // Exit this batch load
+            isLoadingMoreAyahs = false; return; 
         }
 
-        if (ayahData && ayahData.arabic) {
-            // ... (create ayahSpan, ayahNumSpan, translitSpan) ...
-            const ayahSpan = document.createElement('span');
-            ayahSpan.className = 'fsReaderAyah';
-            // ... (set dataset, style, textContent, event listener for ayahSpan) ...
-            const ayahNumSpan = document.createElement('span');
-            ayahNumSpan.className = 'fsReaderAyahNumber';
-            // ... (set textContent for ayahNumSpan) ...
+        const ayahSpan = document.createElement('span');
+        ayahSpan.className = 'fsReaderAyah';
+        ayahSpan.dataset.surah = s_loop;
+        ayahSpan.dataset.ayah = a_loop;
+        ayahSpan.style.fontFamily = fullScreenReaderSettings.arabicFont;
 
-            surahBlockDiv.appendChild(ayahSpan); // **Potential point of failure if surahBlockDiv detached**
-            surahBlockDiv.appendChild(ayahNumSpan); // **Same here**
+        if (ayahData && ayahData.arabic && ayahData.arabic.trim() !== "") {
+            ayahSpan.textContent = ayahData.arabic.trim();
+        } else {
+            ayahSpan.textContent = "[No Text]"; 
+            ayahSpan.style.color = "red"; 
+            ayahSpan.style.fontStyle = "italic";
+        }
+        
+        const s_for_click = s_loop; // Capture for closure
+        const a_for_click = a_loop; // Capture for closure
+        ayahSpan.addEventListener('click', () => {
+            handleAyahSpanClick(s_for_click, a_for_click);
+        });
+        surahBlockDiv.appendChild(ayahSpan);
 
-            // ... (transliteration append) ...
-            ayahsLoadedInBatch++;
+        const ayahNumSpan = document.createElement('span');
+        ayahNumSpan.className = 'fsReaderAyahNumber';
+        ayahNumSpan.textContent = arabicNumber(a_loop);
+        surahBlockDiv.appendChild(ayahNumSpan);
+
+        ayahsLoadedInBatch++;
+
+        if (fullScreenReaderSettings.showTransliteration && ayahData) {
+            const translitText = await getAyahTransliteration(s_loop,a_loop);
+            if (translitText) {
+                const translitSpan = document.createElement('span');
+                translitSpan.className = 'fsReaderTransliteration';
+                translitSpan.textContent = translitText;
+                surahBlockDiv.appendChild(translitSpan);
+            }
         }
 
         continuousScrollNextAyahToLoad++;
-        if (continuousScrollNextAyahToLoad > surahAyahCounts[s]) {
-            continuousScrollNextSurahToLoad++;
-            continuousScrollNextAyahToLoad = 1;
+        const maxAyahsThisSurah = (s_loop >= 1 && s_loop <= 114 && surahAyahCounts[s_loop]) ? surahAyahCounts[s_loop] : 0;
+        if (maxAyahsThisSurah > 0 && continuousScrollNextAyahToLoad > maxAyahsThisSurah) {
+            if (s_loop < 114) {
+                 continuousScrollNextSurahToLoad = s_loop + 1; // This should be next surah
+                 continuousScrollNextAyahToLoad = 1;
+            } else { 
+                 continuousScrollNextSurahToLoad = 115; 
+                 break; 
+            }
+        } else if (maxAyahsThisSurah === 0 && s_loop <= 114) {
+            isLoadingMoreAyahs = false; break;
         }
     }
     isLoadingMoreAyahs = false;
 }
 
+
 // --- Index Panel Logic ---
 function populateIndexLists() {
     const surahListEl = document.getElementById('fsIndexSurahList');
     const juzListEl = document.getElementById('fsIndexJuzList');
+    // ... (theme list elements if you have them)
     if (!surahListEl || !juzListEl) return;
 
     surahListEl.innerHTML = '';
     juzListEl.innerHTML = '';
+    // ... (themes list innerHTML = '' if exists)
 
-    // Surahs
+
+    // Surahs (no change here, assumed correct)
     for (let i = 1; i <= 114; i++) {
         const li = document.createElement('li');
         const a = document.createElement('a');
         a.href = '#';
         a.dataset.surah = i;
-        a.innerHTML = `<span class="index-list-item-num">${arabicNumber(i)}</span> ${surahNames[i-1]}`;
+        a.innerHTML = `<span class="index-list-item-num">${arabicNumber(i)}</span> ${surahNames[i-1] || `Surah ${i}`}`; // Fallback
         a.addEventListener('click', handleIndexSurahClick);
         li.appendChild(a);
         surahListEl.appendChild(li);
     }
 
-    // Juz (Parahs) - This needs accurate Juz start data
-    for (let i = 1; i <= 30; i++) {
+    // Juz (Parahs) - Updated
+    juzBoundariesData.forEach(juzInfo => {
         const li = document.createElement('li');
         const a = document.createElement('a');
         a.href = '#';
-        a.dataset.juz = i;
-        // To get start Surah/Ayah for Juz, you need a mapping.
-        // For now, use the start of the page associated with the Juz.
-        const pageForJuz = tajMushafPageData.find(p => p.juz === i);
-        const startS = pageForJuz ? pageForJuz.startSurah : 1; // Fallback
-        const startA = pageForJuz ? pageForJuz.startAyah : 1; // Fallback
-        a.dataset.startSurah = startS;
-        a.dataset.startAyah = startA;
-        a.innerHTML = `<span class="index-list-item-num">${arabicNumber(i)}</span> Juz ${i}`;
+        a.dataset.juz = juzInfo.juz;
+        a.dataset.startSurah = juzInfo.startSurah;
+        a.dataset.startAyah = juzInfo.startAyah;
+        // Display Juz number and its common starting phrase/name
+        a.innerHTML = `<span class="index-list-item-num">${arabicNumber(juzInfo.juz)}</span> ${juzInfo.name}`;
         a.addEventListener('click', handleIndexJuzClick);
         li.appendChild(a);
         juzListEl.appendChild(li);
-    }
-}
+    });
 
+    // Themes - Placeholder, will be populated by populateThemesIndexList
+    populateThemesIndexList();
+}
 // === Within your ENHANCED FULL-SCREEN TAJ QURAN READER block ===
 
 async function handleIndexSurahClick(event) {
@@ -6102,8 +6339,8 @@ async function handleIndexSurahClick(event) {
 
 async function handleIndexJuzClick(event) {
     event.preventDefault();
-    const startS = parseInt(event.currentTarget.dataset.startSurah) || 1;
-    const startA = parseInt(event.currentTarget.dataset.startAyah) || 1;
+    const startS = parseInt(event.currentTarget.dataset.startSurah);
+    const startA = parseInt(event.currentTarget.dataset.startAyah);
     const indexPanel = document.getElementById('fsReaderIndexPanel');
     if(indexPanel) indexPanel.style.display = 'none';
 
@@ -6112,7 +6349,7 @@ async function handleIndexJuzClick(event) {
         console.error("handleIndexJuzClick: fsReaderContent not found.");
         return;
     }
-    stopAndClearAudio();
+    stopAndClearAudio(); // Stop any currently playing audio
 
     fullScreenReaderCurrentSurah = startS;
     fullScreenReaderCurrentAyah = startA;
@@ -6121,66 +6358,15 @@ async function handleIndexJuzClick(event) {
         const page = surahToPageEnhanced(startS, startA);
         fullScreenReaderCurrentPage = page;
         await renderQuranPageEnhanced(page);
-        setTimeout(() => highlightAndScrollToAyahInPage(startS, startA), 250); // Increased delay slightly
+        setTimeout(() => highlightAndScrollToAyahInPage(startS, startA), 250);
     } else {
-        continuousScrollNextSurahToLoad = startS;
-        continuousScrollNextAyahToLoad = startA;
-        await initializeContinuousScroll(); 
-    }
-    // updateReaderHeaderInfo(); // Called by render/init functions
-    // updateScrubSliderRangeAndValue(); // Called by render/init functions
-}
-
-async function handleIndexJuzClick(event) {
-    event.preventDefault();
-    const startS = parseInt(event.currentTarget.dataset.startSurah);
-    const startA = parseInt(event.currentTarget.dataset.startAyah);
-    const indexPanel = document.getElementById('fsReaderIndexPanel');
-    if(indexPanel) indexPanel.style.display = 'none';
-
-    const contentDiv = document.getElementById('fsReaderContent'); // Get fresh reference
-    if (!contentDiv) {
-        console.error("handleIndexJuzClick: fsReaderContent not found.");
-        return;
-    }
-
-    fullScreenReaderCurrentSurah = startS;
-    fullScreenReaderCurrentAyah = startA;
-
-    if (fullScreenReaderViewMode === 'paged') {
-        const page = surahToPageEnhanced(startS, startA);
-        fullScreenReaderCurrentPage = page;
-        await renderQuranPageEnhanced(page);
-        setTimeout(() => highlightAndScrollToAyahInPage(startS, startA), 200);
-    } else {
+        // For continuous scroll, clear existing content and re-initialize from the new start point
+        if (continuousScrollSurahContainer) {
+            continuousScrollSurahContainer.innerHTML = '';
+        }
         continuousScrollNextSurahToLoad = startS;
         continuousScrollNextAyahToLoad = startA;
         await initializeContinuousScroll();
-    }
-    updateReaderHeaderInfo();
-    updateScrubSliderRangeAndValue();
-}
-
-async function handleIndexJuzClick(event) {
-    event.preventDefault();
-    const startS = parseInt(event.currentTarget.dataset.startSurah);
-    const startA = parseInt(event.currentTarget.dataset.startAyah);
-    document.getElementById('fsReaderIndexPanel').style.display = 'none';
-
-    fullScreenReaderCurrentSurah = startS;
-    fullScreenReaderCurrentAyah = startA;
-
-    if (fullScreenReaderViewMode === 'paged') {
-        const page = surahToPageEnhanced(startS, startA);
-        fullScreenReaderCurrentPage = page;
-        await renderQuranPageEnhanced(page);
-        // Highlight specific ayah if possible (more complex for paged)
-        setTimeout(() => highlightAndScrollToAyahInPage(startS, startA), 200);
-    } else {
-        continuousScrollSurahContainer.innerHTML = '';
-        continuousScrollNextSurahToLoad = startS;
-        continuousScrollNextAyahToLoad = startA;
-        await initializeContinuousScroll(); // Will load and scroll
     }
     updateReaderHeaderInfo();
     updateScrubSliderRangeAndValue();
@@ -6208,29 +6394,45 @@ function updateReaderHeaderInfo() {
     const pageInfoEl = document.getElementById('fsReaderPageInfo');
     if (!surahTitleEl || !pageInfoEl) return;
 
-    // Find current Surah/Ayah visible at top of viewport for continuous scroll
-    let displayS = fullScreenReaderCurrentSurah;
-    let displayA = fullScreenReaderCurrentAyah;
-    let displayPage = fullScreenReaderCurrentPage;
-    let displayJuz = getJuzFromSurahAyah(displayS, displayA); // Needs accurate getJuzFromSurahAyah
+    let displayS = parseInt(fullScreenReaderCurrentSurah);
+    let displayA = parseInt(fullScreenReaderCurrentAyah);
+    let displayPage = parseInt(fullScreenReaderCurrentPage);
+
+    // Fallback for NaN or out-of-bounds values for global state
+    if (isNaN(displayS) || displayS < 1 || displayS > 114) displayS = 1;
+    const maxAyahsForCurrentDisplayS = (displayS >=1 && displayS <=114 && surahAyahCounts[displayS]) ? surahAyahCounts[displayS] : 0;
+    if (isNaN(displayA) || displayA < 1 || (maxAyahsForCurrentDisplayS > 0 && displayA > maxAyahsForCurrentDisplayS) ) displayA = 1;
+    if (isNaN(displayPage) || displayPage < 1) displayPage = 1;
+
 
     if (fullScreenReaderViewMode === 'continuous-scroll' && continuousScrollSurahContainer) {
         const firstVisibleAyah = findFirstVisibleAyah();
         if (firstVisibleAyah) {
-            displayS = parseInt(firstVisibleAyah.dataset.surah);
-            displayA = parseInt(firstVisibleAyah.dataset.ayah);
-            displayJuz = getJuzFromSurahAyah(displayS, displayA);
+            let sFromDOM = parseInt(firstVisibleAyah.dataset.surah);
+            let aFromDOM = parseInt(firstVisibleAyah.dataset.ayah);
+
+            if (!isNaN(sFromDOM) && sFromDOM >= 1 && sFromDOM <= 114) displayS = sFromDOM;
+            const maxAyahsForDomS = (sFromDOM >=1 && sFromDOM <=114 && surahAyahCounts[sFromDOM]) ? surahAyahCounts[sFromDOM] : 0;
+            if (!isNaN(aFromDOM) && aFromDOM >= 1 && (maxAyahsForDomS > 0 && aFromDOM <= maxAyahsForDomS) ) displayA = aFromDOM;
         }
     } else if (fullScreenReaderViewMode === 'paged') {
         const pageData = tajMushafPageData.find(p => p.page === displayPage);
         if (pageData) {
-            displayS = pageData.startSurah; // Show start of page
+            displayS = pageData.startSurah;
             displayA = pageData.startAyah;
-            displayJuz = pageData.juz || getJuzFromSurahAyah(displayS,displayA);
+        } else { // Page data not found, default gracefully
+            displayS = 1; displayA = 1; displayPage = 1;
         }
     }
 
-    surahTitleEl.textContent = `Surah ${displayS}: ${surahNames[displayS - 1]}`;
+    let displayJuz = getJuzFromSurahAyah(displayS, displayA);
+    if (isNaN(displayJuz) || displayJuz < 1 || displayJuz > 30) displayJuz = 1;
+
+    const surahNameText = (displayS >= 1 && displayS <= 114 && surahNames[displayS - 1])
+                          ? surahNames[displayS - 1]
+                          : `Surah ${displayS}`; // Fallback if surahNames is not right
+
+    surahTitleEl.textContent = `Surah ${displayS}: ${surahNameText}`;
     let pageText = `Juz ${displayJuz}`;
     if (fullScreenReaderViewMode === 'paged') {
         pageText = `Page ${displayPage}/${TAJ_COMPANY_PAGES} (Juz ${displayJuz})`;
@@ -6239,6 +6441,7 @@ function updateReaderHeaderInfo() {
     }
     pageInfoEl.textContent = pageText;
 }
+
 
 function findFirstVisibleAyah() {
     const contentDiv = document.getElementById('fsReaderContent');
@@ -6419,14 +6622,34 @@ function loadLastReadPosition() {
     if (saved) {
         try {
             const pos = JSON.parse(saved);
-            page = parseInt(pos.page) || 1; // Fallback to 1 if NaN or missing
-            surah = parseInt(pos.surah) || 1; // Fallback to 1 if NaN or missing
-            ayah = parseInt(pos.ayah) || 1;   // Fallback to 1 if NaN or missing
+            page = parseInt(pos.page);
+            surah = parseInt(pos.surah); // `surah` could be NaN here if pos.surah is not a number string
+            ayah = parseInt(pos.ayah);
             viewMode = pos.viewMode === 'continuous-scroll' ? 'continuous-scroll' : 'paged'; // Validate viewMode
+
+            if (isNaN(page) || page < 1 || page > TAJ_COMPANY_PAGES) page = 1;
+            
+            // Crucial: Validate `surah` *before* using it as an index or for ayah validation
+            if (isNaN(surah) || surah < 1 || surah > 114) {
+                surah = 1; // Default surah
+            }
+            // Now `surah` is guaranteed to be a valid number (1-114)
+            
+            // Validate `ayah` against the (now validated) `surah`
+            const maxAyahsForSurah = (surah >= 1 && surah <= 114 && surahAyahCounts[surah]) ? surahAyahCounts[surah] : 0;
+            if (isNaN(ayah) || ayah < 1 || (maxAyahsForSurah > 0 && ayah > maxAyahsForSurah)) {
+                 ayah = 1; // Default ayah
+            }
+            // Specific check for Al-Fatihah if surah was defaulted or loaded as 1
+            if (surah === 1 && ayah > 7) ayah = 1; // Max 7 for Al-Fatihah, or reset to 1 if out of bounds
+
+
         } catch(e) {
             console.error("Error parsing last read position, resetting to defaults.", e);
-            // Defaults are already set above
+            page = 1; surah = 1; ayah = 1; viewMode = 'paged';
         }
+    } else {
+         page = 1; surah = 1; ayah = 1; viewMode = 'paged';
     }
 
     fullScreenReaderCurrentPage = page;
@@ -6434,12 +6657,10 @@ function loadLastReadPosition() {
     fullScreenReaderCurrentAyah = ayah;
     fullScreenReaderViewMode = viewMode;
 
-    // Apply view mode to selector if the reader UI is already built
     const viewModeSelect = document.getElementById('fsViewModeSelect');
-    if (viewModeSelect) { // Check if element exists
+    if (viewModeSelect) {
         viewModeSelect.value = fullScreenReaderViewMode;
     }
-    // console.log(`Loaded last read position: S${fullScreenReaderCurrentSurah}, A${fullScreenReaderCurrentAyah}, Page${fullScreenReaderCurrentPage}, Mode:${fullScreenReaderViewMode}`);
 }
 
 function saveLastReadPosition() { // Revised
@@ -6453,85 +6674,148 @@ function saveLastReadPosition() { // Revised
 
 
 // --- Audio & Highlighting (Revised) ---
+// === In ENHANCED FULL-SCREEN TAJ QURAN READER block ===
+// === Modify playAudioForAyahEnhanced ===
 async function playAudioForAyahEnhanced(surah, ayah) {
-    stopAndClearAudio(); // Your existing function
-    
-    const surahPadded = String(surah).padStart(3, '0');
-    const ayahPadded = String(ayah).padStart(3, '0');
-    // Example: Mishary Rashid Alafasy (you can make Qari selectable)
-    const audioSrc = `https://everyayah.com/data/Mishary_Al-Afasy_128kbps/${surahPadded}${ayahPadded}.mp3`;
+    const sNum = parseInt(surah);
+    const aNum = parseInt(ayah);
+
+    // ... (your existing validation for sNum, aNum) ...
+    if (isNaN(sNum) || isNaN(aNum) || sNum < 1 || sNum > 114 || aNum < 1 || 
+        (surahAyahCounts[sNum] && aNum > surahAyahCounts[sNum])) {
+        console.error(`playAudioForAyahEnhanced: Invalid input S:${surah} A:${ayah}. Aborting.`);
+        if (fullScreenReaderIsPlayingAudio) stopAndClearAudio();
+        return;
+    }
+
+    stopAndClearAudio(); 
+
+    const surahPadded = String(sNum).padStart(3, '0');
+    const ayahPadded = String(aNum).padStart(3, '0');
+    const audioSrc = `https://everyayah.com/data/Alafasy_128kbps/${surahPadded}${ayahPadded}.mp3`;
+    // console.log(`playAudioForAyahEnhanced: Preparing to play S${sNum} A${aNum} from ${audioSrc}`);
 
     fullScreenReaderAudioPlayer = new Audio(audioSrc);
+    // Store the S/A this audio object is for:
+    fullScreenReaderAudioPlayer.currentSrcAyahS = sNum;
+    fullScreenReaderAudioPlayer.currentSrcAyahA = aNum;
+
     try {
         await fullScreenReaderAudioPlayer.play();
+        // ... (rest of the try block: setting flags, button text, highlight) ...
         fullScreenReaderIsPlayingAudio = true;
-        document.getElementById('fsReaderPlayPauseBtn').textContent = '❚❚';
-        highlightAyahEnhanced(surah, ayah);
+        const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
+        if (playPauseBtn) playPauseBtn.textContent = '❚❚';
+        highlightAyahEnhanced(sNum, aNum);
+
 
         fullScreenReaderAudioPlayer.onended = async () => {
-            fullScreenReaderIsPlayingAudio = false;
-            document.getElementById('fsReaderPlayPauseBtn').textContent = '🔊';
-            // Don't remove highlight immediately if continuous play will highlight next
+            // ... (existing onended logic) ...
+             fullScreenReaderIsPlayingAudio = false;
+            const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
+            if (playPauseBtn) playPauseBtn.textContent = '🔊';
             
             if (fullScreenReaderSettings.continuousAudio) {
-                let nextS = surah;
-                let nextA = ayah + 1;
-                if (nextA > surahAyahCounts[nextS]) {
-                    nextS++;
-                    nextA = 1;
+                let nextS = sNum; // Use sNum from the current closure
+                let nextA = aNum + 1; // Use aNum from the current closure
+                if (surahAyahCounts[nextS] && nextA > surahAyahCounts[nextS]) {
+                    if (nextS < 114) {
+                        nextS++;
+                        nextA = 1;
+                    } else {
+                        removeHighlightEnhanced(); 
+                        return; 
+                    }
+                } else if (!surahAyahCounts[nextS]) { 
+                     removeHighlightEnhanced(); return;
                 }
-                if (nextS <= 114) {
-                    // Update global state for next ayah to be played
-                    fullScreenReaderCurrentSurah = nextS;
-                    fullScreenReaderCurrentAyah = nextA;
-                    updateReaderHeaderInfo(); // Update header for new current ayah
-                    playAudioForAyahEnhanced(nextS, nextA); // Recursive call for next
-                } else {
-                    removeHighlightEnhanced(); // End of Quran
-                }
+
+                fullScreenReaderCurrentSurah = nextS; // Update global state for the *next* one
+                fullScreenReaderCurrentAyah = nextA;
+                updateReaderHeaderInfo();
+                playAudioForAyahEnhanced(nextS, nextA); 
             } else {
-                 removeHighlightEnhanced(); // Remove highlight if not continuous
+                 removeHighlightEnhanced();
             }
         };
         fullScreenReaderAudioPlayer.onerror = (e) => {
-            console.error("Audio player error:", e);
-            fullScreenReaderIsPlayingAudio = false;
-            document.getElementById('fsReaderPlayPauseBtn').textContent = '🔊';
-            removeHighlightEnhanced();
+            // ... (existing onerror logic) ...
         };
 
     } catch (err) {
-        console.error("Error playing audio:", err);
-        fullScreenReaderIsPlayingAudio = false;
-        document.getElementById('fsReaderPlayPauseBtn').textContent = '🔊';
-        removeHighlightEnhanced();
+        // ... (existing catch block) ...
     }
 }
 
 function toggleAudioPlaybackEnhanced() {
-    if (!fullScreenReaderAudioPlayer || fullScreenReaderAudioPlayer.src === '' || fullScreenReaderAudioPlayer.src === window.location.href) { // Check if src is not set or default
-        // Start playing the current ayah in view
-        let targetS = fullScreenReaderCurrentSurah;
-        let targetA = fullScreenReaderCurrentAyah;
-        if(fullScreenReaderViewMode === 'continuous-scroll') {
-            const firstVisible = findFirstVisibleAyah();
-            if(firstVisible){
-                targetS = parseInt(firstVisible.dataset.surah);
-                targetA = parseInt(firstVisible.dataset.ayah);
+    const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
+
+    if (!fullScreenReaderAudioPlayer || fullScreenReaderAudioPlayer.src === '' || fullScreenReaderAudioPlayer.src === window.location.href || fullScreenReaderAudioPlayer.ended) {
+        // Case 1: No audio loaded, or previous audio finished. Start new playback.
+        let targetS = parseInt(fullScreenReaderCurrentSurah);
+        let targetA = parseInt(fullScreenReaderCurrentAyah);
+
+        // Validate current global state
+        if (isNaN(targetS) || targetS < 1 || targetS > 114) targetS = 1;
+        const maxAyahsForGlobalS = (targetS >= 1 && targetS <= 114 && surahAyahCounts[targetS]) ? surahAyahCounts[targetS] : 0;
+        if (isNaN(targetA) || targetA < 1 || (maxAyahsForGlobalS > 0 && targetA > maxAyahsForGlobalS)) targetA = 1;
+        
+        if (fullScreenReaderViewMode === 'continuous-scroll') {
+            const firstVisible = findFirstVisibleAyah(); // This finds the Ayah at the top of the viewport
+            if (firstVisible && firstVisible.dataset.surah && firstVisible.dataset.ayah) {
+                let sFromDOM = parseInt(firstVisible.dataset.surah);
+                let aFromDOM = parseInt(firstVisible.dataset.ayah);
+
+                // Validate DOM values before using them
+                if (!isNaN(sFromDOM) && sFromDOM >= 1 && sFromDOM <= 114) {
+                    const maxAyahsForDomS = (sFromDOM >=1 && sFromDOM <=114 && surahAyahCounts[sFromDOM]) ? surahAyahCounts[sFromDOM] : 0;
+                    if (!isNaN(aFromDOM) && aFromDOM >= 1 && (maxAyahsForDomS > 0 && aFromDOM <= maxAyahsForDomS)) {
+                        targetS = sFromDOM;
+                        targetA = aFromDOM;
+                        // console.log(`TogglePlay: Continuous - Will play first visible S${targetS} A${targetA}`);
+                    } else {
+                        // console.warn(`TogglePlay: Continuous - Invalid Ayah from DOM (${aFromDOM}), using global S${targetS} A${targetA}`);
+                    }
+                } else {
+                    // console.warn(`TogglePlay: Continuous - Invalid Surah from DOM (${sFromDOM}), using global S${targetS} A${targetA}`);
+                }
+            } else {
+                // console.warn(`TogglePlay: Continuous - No visible Ayah found, using global S${targetS} A${targetA}`);
             }
+        } else { // Paged view
+            // For paged view, fullScreenReaderCurrentSurah/Ayah should ideally already be set
+            // to the start of the current page, or the last clicked Ayah on that page.
+            // console.log(`TogglePlay: Paged - Will play S${targetS} A${targetA}`);
         }
+        
+        // Update global state to reflect what we are about to play
+        fullScreenReaderCurrentSurah = targetS;
+        fullScreenReaderCurrentAyah = targetA;
+        updateReaderHeaderInfo(); // Reflect this in the header
         playAudioForAyahEnhanced(targetS, targetA);
+
     } else if (fullScreenReaderIsPlayingAudio) {
+        // Case 2: Audio is currently playing, so pause it.
         fullScreenReaderAudioPlayer.pause();
         fullScreenReaderIsPlayingAudio = false;
-        document.getElementById('fsReaderPlayPauseBtn').textContent = '🔊';
-    } else { // Player exists but is paused
+        if (playPauseBtn) playPauseBtn.textContent = '🔊';
+        // console.log("TogglePlay: Paused audio");
+    } else {
+        // Case 3: Audio player exists and is loaded but paused, so resume.
         fullScreenReaderAudioPlayer.play().then(() => {
             fullScreenReaderIsPlayingAudio = true;
-            document.getElementById('fsReaderPlayPauseBtn').textContent = '❚❚';
-        }).catch(err => console.error("Error resuming audio:", err));
+            if (playPauseBtn) playPauseBtn.textContent = '❚❚';
+            // console.log("TogglePlay: Resumed audio");
+            // Ensure the correct Ayah is highlighted if resuming
+            highlightAyahEnhanced(parseInt(fullScreenReaderAudioPlayer.currentSrcAyahS) || fullScreenReaderCurrentSurah, 
+                                  parseInt(fullScreenReaderAudioPlayer.currentSrcAyahA) || fullScreenReaderCurrentAyah);
+        }).catch(err => {
+            console.error("Error resuming audio:", err);
+            if (playPauseBtn) playPauseBtn.textContent = '🔊';
+        });
     }
 }
+
 // stopAndClearAudio remains mostly the same, just ensure it calls removeHighlightEnhanced
 function stopAndClearAudio() {
     if (fullScreenReaderAudioPlayer) {
@@ -6658,22 +6942,133 @@ function setupEnhancedFullScreenReaderEventListeners() {
 
     // Settings Panel Internal Listeners (IDs must match HTML)
     const arabicFontSelect = document.getElementById('fsArabicFontSelect');
-    // ... (all other getElementById calls for settings elements) ...
-    // Make sure all these IDs exist in your overlay.innerHTML string.
-    // Example:
-    if(arabicFontSelect) arabicFontSelect.addEventListener('change', (e) => { /* ... */ });
-    // Add all other settings listeners with null checks for each element.
-    // ... (rest of your event listeners from previous correct version, with null checks) ...
-    // Ensure each getElementById is guarded:
+    const fontSizeSlider = document.getElementById('fsFontSizeSlider');
+    const fontSizeValueEl = document.getElementById('fsFontSizeValue');
+    const linesPerPageSlider = document.getElementById('fsLinesPerPageSlider');
+    const linesPerPageValueEl = document.getElementById('fsLinesPerPageValue');
+    const showTransliterationCheck = document.getElementById('fsShowTransliterationCheck');
+    const continuousAudioCheck = document.getElementById('fsContinuousAudioCheck');
+    const autoScrollAudioCheck = document.getElementById('fsAutoScrollAudioCheck');
+    const highlightColorPicker = document.getElementById('fsHighlightColorPicker');
     const viewModeSelect = document.getElementById('fsViewModeSelect');
+
+    if (arabicFontSelect) arabicFontSelect.addEventListener('change', (e) => {
+        fullScreenReaderSettings.arabicFont = e.target.value;
+        applyFullScreenReaderSettingsChanges();
+    });
+    if (fontSizeSlider && fontSizeValueEl) {
+        fontSizeSlider.addEventListener('input', (e) => {
+            fullScreenReaderSettings.fontSize = `${e.target.value}rem`;
+            fontSizeValueEl.textContent = fullScreenReaderSettings.fontSize;
+            // Apply live to content div for immediate feedback
+            const contentDiv = document.getElementById('fsReaderContent');
+            if (contentDiv) contentDiv.style.fontSize = fullScreenReaderSettings.fontSize;
+        });
+        fontSizeSlider.addEventListener('change', applyFullScreenReaderSettingsChanges); // Save and re-render if needed
+    }
+    if (linesPerPageSlider && linesPerPageValueEl) {
+        linesPerPageSlider.addEventListener('input', (e) => {
+            fullScreenReaderSettings.linesPerPage = parseInt(e.target.value, 10);
+            linesPerPageValueEl.textContent = fullScreenReaderSettings.linesPerPage;
+        });
+        linesPerPageSlider.addEventListener('change', applyFullScreenReaderSettingsChanges);
+    }
+    if (showTransliterationCheck) showTransliterationCheck.addEventListener('change', (e) => {
+        fullScreenReaderSettings.showTransliteration = e.target.checked;
+        applyFullScreenReaderSettingsChanges();
+    });
+    if (continuousAudioCheck) continuousAudioCheck.addEventListener('change', (e) => {
+        fullScreenReaderSettings.continuousAudio = e.target.checked;
+        saveFullScreenReaderSettings(); // Save immediately
+    });
+    if (autoScrollAudioCheck) autoScrollAudioCheck.addEventListener('change', (e) => {
+        fullScreenReaderSettings.autoScrollAudio = e.target.checked;
+        saveFullScreenReaderSettings(); // Save immediately
+    });
+    if (highlightColorPicker) highlightColorPicker.addEventListener('change', (e) => {
+        fullScreenReaderSettings.highlightColor = e.target.value;
+        saveFullScreenReaderSettings(); // Save immediately
+    });
     if (viewModeSelect) {
         viewModeSelect.addEventListener('change', async (e) => {
-            // ... (your existing view mode change logic with NaN prevention) ...
+            fullScreenReaderViewMode = e.target.value;
+            saveFullScreenReaderSettings(); // Save new view mode
+            document.getElementById('fsLinesPerPageSettingDiv').style.display = (fullScreenReaderViewMode === 'paged') ? 'block' : 'none';
+            stopAndClearAudio(); // Stop audio when changing view mode
+
+            if (fullScreenReaderViewMode === 'paged') {
+                fullScreenReaderCurrentPage = surahToPageEnhanced(fullScreenReaderCurrentSurah, fullScreenReaderCurrentAyah);
+                await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+            } else {
+                // Re-initialize continuous scroll from current position
+                continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
+                continuousScrollNextAyahToLoad = fullScreenReaderCurrentAyah;
+                await initializeContinuousScroll();
+            }
+            updateReaderHeaderInfo();
+            updateScrubSliderRangeAndValue();
         });
-    } else {
-        console.warn("fsViewModeSelect not found in DOM for event listener setup.");
     }
-    // And so on for fsFontSizeSlider, fsLinesPerPageSlider, etc.
+
+    // Index Panel Internal Listeners
+    document.querySelectorAll('#fsReaderIndexPanel .index-tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            document.querySelectorAll('#fsReaderIndexPanel .index-tab').forEach(t => t.classList.remove('active-tab'));
+            e.target.classList.add('active-tab');
+            document.querySelectorAll('#fsReaderIndexPanel .index-content-panel').forEach(p => p.style.display = 'none');
+            document.getElementById(`fsIndexContent${e.target.dataset.tab.charAt(0).toUpperCase() + e.target.dataset.tab.slice(1)}`).style.display = 'block';
+        });
+    });
+
+    // Scrub Slider Listener
+    if (scrubSlider) {
+        scrubSlider.addEventListener('input', () => {
+            // Update header info live as slider is dragged
+            if (fullScreenReaderViewMode === 'paged') {
+                const page = parseInt(scrubSlider.value, 10);
+                const pageData = tajMushhafPageData.find(p => p.page === page);
+                if (pageData) {
+                    document.getElementById('fsReaderSurahTitle').textContent = `Surah ${pageData.startSurah}: ${surahNames[pageData.startSurah - 1]}`;
+                    document.getElementById('fsReaderPageInfo').textContent = `Page ${page}/${TAJ_COMPANY_PAGES} (Juz ${pageData.juz || getJuzFromSurahAyah(pageData.startSurah, pageData.startAyah)})`;
+                }
+            } else { // Continuous scroll, slider represents Surah
+                const surah = parseInt(scrubSlider.value, 10);
+                document.getElementById('fsReaderSurahTitle').textContent = `Surah ${surah}: ${surahNames[surah - 1]}`;
+                document.getElementById('fsReaderPageInfo').textContent = `Juz ${getJuzFromSurahAyah(surah, 1)}`;
+            }
+        });
+        scrubSlider.addEventListener('change', async () => {
+            stopAndClearAudio();
+            if (fullScreenReaderViewMode === 'paged') {
+                fullScreenReaderCurrentPage = parseInt(scrubSlider.value, 10);
+                await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+            } else { // Continuous scroll, jump to Surah
+                fullScreenReaderCurrentSurah = parseInt(scrubSlider.value, 10);
+                fullScreenReaderCurrentAyah = 1; // Always start from Ayah 1 of the selected Surah
+                continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
+                continuousScrollNextAyahToLoad = 1;
+                await initializeContinuousScroll();
+            }
+            updateReaderHeaderInfo(); // Ensure final update
+        });
+    }
+
+    // Continuous scroll loading trigger
+    if (contentDiv) {
+        contentDiv.addEventListener('scroll', async () => {
+            if (fullScreenReaderViewMode === 'continuous-scroll' && !isLoadingMoreAyahs) {
+                const scrollThreshold = contentDiv.scrollHeight - contentDiv.clientHeight - 300; // 300px from bottom
+                if (contentDiv.scrollTop >= scrollThreshold) {
+                    await loadMoreAyahsForContinuousScroll();
+                }
+                // Update header info as user scrolls
+                updateReaderHeaderInfo();
+            }
+        });
+    }
+
+    setupKeyboardAndTapNavigation(); 
+    
 }
 
 // New function to toggle header/footer visibility
@@ -6728,6 +7123,16 @@ function addEnhancedFullScreenReaderLaunchButton() {
             fullScreenReaderCurrentPage = surahToPageEnhanced(fullScreenReaderCurrentSurah, fullScreenReaderCurrentAyah);
         }
         launchFullScreenQuranReaderEnhanced();
+        setTimeout(() => {
+            document.getElementById('fsReaderSettingsToggleBtn').click(); // Open settings panel on launch
+            setTimeout(() => {
+                document.getElementById('fsReaderSettingsToggleBtn').click(); // off settings panel on launch
+            }, 200);
+            document.querySelector("#fsReaderSettingsPanel").style.right = "66px"
+            document.querySelector("#fsReaderSettingsPanel").style.top = "4px"
+            document.querySelector("#fsReaderSettingsPanel").style.maxHeight = "100%"
+        }, 200);
+        
     });
 
     const quranControls = quranViewerSection.querySelector('.quran-controls:first-of-type .flex-group'); // Target the flex-group in first controls div
@@ -6739,6 +7144,180 @@ function addEnhancedFullScreenReaderLaunchButton() {
         else quranViewerSection.insertBefore(launchButton, quranViewerSection.firstChild);
     }
 }
+
+function handleAyahSpanClick(clickedSurah, clickedAyah) {
+    // console.log(`Ayah Span Clicked: S${clickedSurah} A${clickedAyah}`);
+
+    fullScreenReaderCurrentSurah = parseInt(clickedSurah);
+    fullScreenReaderCurrentAyah = parseInt(clickedAyah);
+
+    updateReaderHeaderInfo(); 
+    // playAudioForAyahEnhanced itself calls stopAndClearAudio, so it's not needed here.
+    playAudioForAyahEnhanced(fullScreenReaderCurrentSurah, fullScreenReaderCurrentAyah);
+}
+
+function setupKeyboardAndTapNavigation() {
+    const readerOverlay = document.getElementById('fullScreenReaderOverlay');
+    const contentArea = document.getElementById('fsReaderContent'); // For tap events
+
+    if (!readerOverlay) {
+        console.warn("Keyboard/Tap Nav: fullScreenReaderOverlay not found.");
+        return;
+    }
+
+    // --- Keyboard Navigation (Arrow Keys) ---
+    const handleKeyDown = (event) => {
+        // Ensure the reader is active and no input field is focused (to avoid interfering with typing in search, etc.)
+        if (!isFullScreenReaderActive || 
+            (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
+            return;
+        }
+
+        // Check if a modal inside the reader is open (like settings or index panel)
+        const settingsPanel = document.getElementById('fsReaderSettingsPanel');
+        const indexPanel = document.getElementById('fsReaderIndexPanel');
+        if ((settingsPanel && settingsPanel.style.display === 'block') || 
+            (indexPanel && indexPanel.style.display === 'block')) {
+            // If a panel is open, let Escape close it, but don't trigger page navigation
+            if (event.key === 'Escape') {
+                 if (settingsPanel && settingsPanel.style.display === 'block') settingsPanel.style.display = 'none';
+                 if (indexPanel && indexPanel.style.display === 'block') indexPanel.style.display = 'none';
+                 event.preventDefault(); // Prevent other escape actions if any
+            }
+            return;
+        }
+
+
+        switch (event.key) {
+            case 'ArrowLeft':
+                // console.log("ArrowLeft pressed");
+                if (typeof goToPrevEnhanced === "function") {
+                    goToPrevEnhanced();
+                    event.preventDefault(); // Prevent default browser scroll
+                }
+                break;
+            case 'ArrowRight':
+                // console.log("ArrowRight pressed");
+                if (typeof goToNextEnhanced === "function") {
+                    goToNextEnhanced();
+                    event.preventDefault(); // Prevent default browser scroll
+                }
+                break;
+            case 'Escape': // Also allow Esc to close reader if no panels are open
+                // console.log("Escape pressed in reader");
+                 if (typeof closeFullScreenQuranReaderEnhanced === "function") {
+                    closeFullScreenQuranReaderEnhanced();
+                    event.preventDefault();
+                 }
+                break;
+        }
+    };
+
+    // Add listener to the document or readerOverlay
+    // Using document is simpler if readerOverlay might be recreated or if you want global keys when active.
+    // Ensure to remove it when the reader is closed to prevent conflicts.
+    document.addEventListener('keydown', handleKeyDown);
+
+
+    // --- Tap Navigation (Top/Bottom of Content Area) ---
+    if (contentArea) {
+        let touchStartY = 0;
+        let touchEndY = 0;
+        const tapThreshold = 50; // Min pixels to be considered a swipe/meaningful tap movement
+        const screenPortionThreshold = 0.33; // Tap in top 33% or bottom 33%
+
+        const handleTouchStart = (event) => {
+            if (event.touches.length === 1) { // Single touch
+                touchStartY = event.touches[0].clientY;
+            }
+        };
+
+        const handleTouchEnd = (event) => {
+            if (event.changedTouches.length === 1) { // Single touch ended
+                touchEndY = event.changedTouches[0].clientY;
+                
+                const verticalDiff = touchEndY - touchStartY;
+                const screenHeight = window.innerHeight; // or contentArea.clientHeight
+
+                // Distinguish between a swipe and a tap
+                // If it's mostly a vertical swipe, don't treat as top/bottom tap for page turn
+                if (Math.abs(verticalDiff) > tapThreshold * 1.5) { // If it was a noticeable swipe
+                     // console.log("Vertical swipe detected, not a top/bottom tap for page turn.");
+                     return;
+                }
+
+                // Check tap position relative to contentArea or screen
+                // Using clientY from the *start* of the touch is more reliable for "tap" location
+                const tapYPosition = touchStartY; // Where the tap initiated
+
+                if (tapYPosition < screenHeight * screenPortionThreshold) {
+                    // Tap in the top portion (e.g., top 33%)
+                    // console.log("Tap in TOP portion of the screen");
+                    if (typeof goToPrevEnhanced === "function") {
+                        goToPrevEnhanced();
+                    }
+                } else if (tapYPosition > screenHeight * (1 - screenPortionThreshold)) {
+                    // Tap in the bottom portion (e.g., bottom 33%)
+                    // console.log("Tap in BOTTOM portion of the screen");
+                    if (typeof goToNextEnhanced === "function") {
+                        goToNextEnhanced();
+                    }
+                } else {
+                    // console.log("Tap in middle portion, or not a distinct top/bottom tap.");
+                }
+            }
+        };
+        
+        // Using 'click' for desktop mouse simulation and simple taps if touch events don't capture all cases.
+        // More robust tap handling might use touchend without much movement.
+        const handleContentClickForTap = (event) => {
+             // Make sure the click is directly on the content area or its immediate children,
+             // not on an interactive element like an Ayah span itself (which has its own click for audio)
+             // or a button within the content if any.
+            if (event.target.closest('.fsReaderAyah, button, select, input, a')) {
+                return; // Don't interpret clicks on interactive elements as page turns
+            }
+            
+            // Check if a panel is open
+            const settingsPanel = document.getElementById('fsReaderSettingsPanel');
+            const indexPanel = document.getElementById('fsReaderIndexPanel');
+            if ((settingsPanel && settingsPanel.style.display === 'block') || 
+                (indexPanel && indexPanel.style.display === 'block')) {
+                return; // Don't trigger tap navigation if a panel is open
+            }
+
+
+            const contentRect = contentArea.getBoundingClientRect();
+            const clickYRelativeToContent = event.clientY - contentRect.top;
+            const contentHeight = contentArea.clientHeight;
+
+             if (clickYRelativeToContent < contentHeight * screenPortionThreshold) {
+                // console.log("Click in TOP portion of contentArea");
+                if (typeof goToPrevEnhanced === "function") {
+                    goToPrevEnhanced();
+                }
+            } else if (clickYRelativeToContent > contentHeight * (1 - screenPortionThreshold)) {
+                // console.log("Click in BOTTOM portion of contentArea");
+                if (typeof goToNextEnhanced === "function") {
+                    goToNextEnhanced();
+                }
+            }
+        };
+
+        contentArea.addEventListener('touchstart', handleTouchStart, { passive: true });
+        contentArea.addEventListener('touchend', handleTouchEnd, { passive: true });
+        contentArea.addEventListener('click', handleContentClickForTap);
+
+        // Store handlers to remove them later
+        readerOverlay.readerKeyDownHandler = handleKeyDown;
+        contentArea.readerTouchStartHandler = handleTouchStart;
+        contentArea.readerTouchEndHandler = handleTouchEnd;
+        contentArea.readerContentClickHandler = handleContentClickForTap;
+    }
+}
+
+
+
 
 
 </script>
