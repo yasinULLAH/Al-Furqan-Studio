@@ -4408,11 +4408,11 @@ const gameModalHTML = `
         .game-modal-content h2 {
             text-align: center;
             color: var(--color-text-secondary);
-            margin-bottom: 20px;
+            margin-bottom: 0px;
         }
         .game-selection-area {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: -3px;
         }
         .game-select-btn {
             margin: 10px;
@@ -4420,7 +4420,7 @@ const gameModalHTML = `
             font-size: 1.1rem;
         }
         .game-play-area {
-            padding: 20px;
+            padding: 8px;
             border: 1px solid var(--color-border);
             border-radius: var(--border-radius);
             background-color: var(--color-bg-secondary);
@@ -4430,7 +4430,7 @@ const gameModalHTML = `
         .game-question-arabic {
             font-family: var(--font-arabic);
             font-size: 2rem;
-            margin-bottom: 20px;
+            margin-bottom: 13px;
             direction: rtl;
         }
         .game-options-list {
@@ -8261,6 +8261,96 @@ function exitSimpleImmersiveView() {
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+})();
+
+
+
+
+
+// === BROWSER FULLSCREEN FOR THE ENTIRE GAME MODAL (with Robust Button Wait) ===
+// Paste this entire block at the very end of your existing <script> tag.
+
+(function() { // IIFE to keep it self-contained
+
+    const GAME_MODAL_ID = 'quranGameModal';
+    const GAME_MODAL_LAUNCH_BUTTON_ID = 'openGamesModalBtn';
+    const INITIALIZATION_DELAY_MS = 300; // 0.3 seconds delay after window load
+
+    function attemptModalFullscreen() {
+        const gameModalElement = document.getElementById(GAME_MODAL_ID);
+
+        if (!gameModalElement) {
+            console.error(`ModalFS: Element with ID "${GAME_MODAL_ID}" not found. Cannot go fullscreen.`);
+            return;
+        }
+
+        if (gameModalElement.style.display === 'none' || getComputedStyle(gameModalElement).display === 'none') {
+            console.warn(`ModalFS: Target modal "${GAME_MODAL_ID}" is not visible. Fullscreen might fail. Ensure original click handler makes it visible.`);
+        }
+        
+        console.log(`ModalFS: Attempting fullscreen for #${GAME_MODAL_ID}`);
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+            console.log("ModalFS: Already in browser fullscreen mode.");
+            return; // Avoid re-requesting if already fullscreen with some element
+        }
+
+        if (gameModalElement.requestFullscreen) {
+            gameModalElement.requestFullscreen().catch(err => console.warn("ModalFS: Fullscreen request failed:", err.message));
+        } else if (gameModalElement.webkitRequestFullscreen) { // Safari
+            gameModalElement.webkitRequestFullscreen().catch(err => console.warn("ModalFS: Fullscreen request failed (webkit):", err.message));
+        } else if (gameModalElement.mozRequestFullScreen) { // Older Firefox
+            gameModalElement.mozRequestFullScreen();
+        } else if (gameModalElement.msRequestFullscreen) { // IE11
+            gameModalElement.msRequestFullscreen();
+        } else {
+            console.warn("ModalFS: Browser Fullscreen API not supported on this element.");
+        }
+    }
+
+    function setupModalFullscreenLaunchListenerWithWait() {
+        const launchButton = document.getElementById(GAME_MODAL_LAUNCH_BUTTON_ID);
+
+        if (launchButton) {
+            launchButton.addEventListener('click', (event) => {
+                // Your original event listener for this button should have already:
+                // 1. Made the #quranGameModal visible (e.g., style.display = 'flex')
+                // 2. Called resetGameUI() to show the game selection screen.
+                console.log(`ModalFS: Button #${GAME_MODAL_LAUNCH_BUTTON_ID} clicked. Original handler should have shown modal.`);
+
+                // Attempt fullscreen AFTER the original click handler has likely made the modal visible.
+                setTimeout(() => {
+                    attemptModalFullscreen();
+                }, 50); // Short delay for DOM updates from original handler
+            });
+            console.log(`ModalFS: Fullscreen trigger listener attached to #${GAME_MODAL_LAUNCH_BUTTON_ID}.`);
+        } else {
+            console.warn(`ModalFS: Game modal launch button with ID "${GAME_MODAL_LAUNCH_BUTTON_ID}" not found after wait. Fullscreen cannot be triggered by it.`);
+        }
+    }
+
+    // --- MODIFIED SETUP ---
+    // Wait for the full window to load, then wait an additional delay
+    window.addEventListener('load', () => {
+        console.log("[ModalFS] Window 'load' event fired for game modal fullscreen setup.");
+        setTimeout(() => {
+            console.log(`[ModalFS] Attempting to set up launch button listener after ${INITIALIZATION_DELAY_MS}ms delay post-load.`);
+            setupModalFullscreenLaunchListenerWithWait();
+        }, INITIALIZATION_DELAY_MS);
+    });
+    // --- END MODIFIED SETUP ---
+
+    function logModalFullscreenExit(event) {
+        if (!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement)) {
+            console.log("ModalFS: Exited browser fullscreen mode for modal.");
+        }
+    }
+    document.addEventListener('fullscreenchange', logModalFullscreenExit);
+    document.addEventListener('webkitfullscreenchange', logModalFullscreenExit);
+    document.addEventListener('mozfullscreenchange', logModalFullscreenExit);
+    document.addEventListener('MSFullscreenChange', logModalFullscreenExit);
+
+    console.log("ModalFS: Fullscreen logic for the entire game modal (with wait) initialized.");
 
 })();
 </script>
