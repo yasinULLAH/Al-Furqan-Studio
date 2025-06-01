@@ -791,6 +791,9 @@ button#quitGameButton {
     bottom: 1px;
     left: 3px;
 }
+#fsReaderSettingsPanel > div:nth-child(2) > label:nth-child(7) {
+    display: none;
+}
     </style>
     <!-- Optional: Include fonts if not available locally -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap">
@@ -5752,7 +5755,7 @@ function injectEnhancedFullScreenReaderCSS() {
             padding: 15px 20px; margin-bottom: 15px; width: 96%; /* max-width: 750px; */ direction: rtl;
         }
         /* Continuous Scroll Container & Surah Blocks */
-        #continuousScrollSurahContainer { width: 100%; /* Centered */ margin: 0 auto; }
+        #continuousScrollSurahContainer { width: 96%; /* Centered */ margin: 0 auto; }
         .continuousSurahBlock {
             padding: 10px 15px; margin-bottom: 20px; direction: rtl;
             border-bottom: 2px solid var(--color-accent, #4caf50); /* Separator */
@@ -8179,4 +8182,85 @@ function exitSimpleImmersiveView() {
     // if (gameSelectionArea) { ... } // Temporarily ignore
     isSimpleImmersiveActive = false;
 }
+
+
+
+
+// === STANDALONE BROWSER FULLSCREEN REQUESTER (with Timeout for Button) ===
+// Paste this entire block at the very end of your existing <script> tag.
+
+(function() { // IIFE to keep it self-contained
+
+    function requestBrowserFullscreenForReaderOverlay() {
+        const readerOverlayElement = document.getElementById('fullScreenReaderOverlay');
+        // ... (rest of requestBrowserFullscreenForReaderOverlay function remains the same as previous)
+        if (!readerOverlayElement) {
+            console.error("Standalone FS: Reader overlay (#fullScreenReaderOverlay) not found. Cannot request fullscreen.");
+            return;
+        }
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+            console.log("Standalone FS: Already in browser fullscreen mode.");
+            return;
+        }
+        console.log("[StandaloneFS] Attempting to request browser fullscreen for #fullScreenReaderOverlay.");
+        try {
+            if (readerOverlayElement.requestFullscreen) {
+                readerOverlayElement.requestFullscreen();
+            } else if (readerOverlayElement.webkitRequestFullscreen) { // Safari
+                readerOverlayElement.webkitRequestFullscreen();
+            } else if (readerOverlayElement.mozRequestFullScreen) { // Older Firefox
+                readerOverlayElement.mozRequestFullScreen();
+            } else if (readerOverlayElement.msRequestFullscreen) { // IE11
+                readerOverlayElement.msRequestFullscreen();
+            } else {
+                console.warn("Standalone FS: Browser Fullscreen API not fully supported.");
+            }
+        } catch (err) {
+            console.error(`[StandaloneFS] Error during fullscreen request: ${err.message} (${err.name})`);
+        }
+    }
+
+    function setupLaunchButtonForStandaloneFullscreenWithTimeout() {
+        const launchButton = document.getElementById('launchFullScreenReaderBtnEnhanced');
+        if (launchButton) {
+            launchButton.addEventListener('click', () => {
+                console.log("[StandaloneFS with Timeout] #launchFullScreenReaderBtnEnhanced clicked.");
+                if (typeof window.launchFullScreenQuranReaderEnhanced === 'function') {
+                    window.launchFullScreenQuranReaderEnhanced(); 
+                } else {
+                    console.error("[StandaloneFS with Timeout] window.launchFullScreenQuranReaderEnhanced() is not defined.");
+                }
+                setTimeout(() => {
+                    requestBrowserFullscreenForReaderOverlay();
+                }, 100); // Delay after launching reader UI
+            });
+            console.log("[StandaloneFS with Timeout] Event listener attached to #launchFullScreenReaderBtnEnhanced.");
+        } else {
+            console.warn("[StandaloneFS with Timeout] #launchFullScreenReaderBtnEnhanced button not found after timeout. Fullscreen will not be triggered.");
+        }
+    }
+
+    // --- MODIFIED SETUP ---
+    // Wait for the full window to load, then wait an additional 300ms
+    window.addEventListener('load', () => {
+        console.log("[StandaloneFS] Window 'load' event fired.");
+        setTimeout(() => {
+            console.log("[StandaloneFS] Attempting to set up launch button after 300ms delay post-load.");
+            setupLaunchButtonForStandaloneFullscreenWithTimeout();
+        }, 300); // 0.3 seconds delay
+    });
+    // --- END MODIFIED SETUP ---
+
+
+    function handleFullscreenChange() {
+        if (!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement)) {
+            console.log("[StandaloneFS] Browser exited fullscreen mode.");
+        }
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+})();
 </script>
