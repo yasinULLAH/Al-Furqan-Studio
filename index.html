@@ -1417,6 +1417,7 @@ function getJuzFromSurahAyah(surah, ayah) {
                 };
             });
         }
+
         // --- Thematic Linker Functions ---
         async function populateThemeSelects() {
             if (!db) return;
@@ -4604,42 +4605,120 @@ let wordWhizQuestions = [];
 let currentWordWhizQuestionIndex = 0;
 let ayahJumbleQuestion = null;
 
+// === These are your GENERAL GAME MODAL functions, NOT specific to recitation game ===
+// === Add logging to them ===
+
 function resetGameUI() {
+    //console.log("[MainGameModal] resetGameUI called, timeout initiated.");
+
+    setTimeout(() => {
+        //console.log("[MainGameModal] resetGameUI executing after timeout.");
+
+        // Get references to the main UI areas of the game modal
+        const gamePlayArea = document.getElementById('gamePlayArea');
+        const gameSelectionArea = document.getElementById('game-selection-area'); // THIS IS KEY
+        const gameScoreArea = document.getElementById('gameScoreArea');
+        const quitGameButton = document.getElementById('quitGameButton');
+        const gameModalTitle = document.getElementById('gameModalTitle');
+
+        // Critical check: If gameSelectionArea is missing, the modal's structure might be compromised.
+        if (!gameSelectionArea) {
+            //console.error("[MainGameModal] CRITICAL in resetGameUI: game-selection-area NOT FOUND. Modal HTML might be incorrect or cleared.");
+            // Further check if gamePlayArea is also missing, indicating a more severe issue.
+            if (!gamePlayArea) {
+                //console.error("[MainGameModal] CRITICAL in resetGameUI: gamePlayArea also NOT FOUND.");
+            }
+            // Attempt to locate the modal content area to potentially restore basic structure.
+            // This is a fallback for severe cases and might need more robust implementation
+            // depending on how the modal content can be cleared or corrupted.
+            const modalContent = document.querySelector('#quranGameModal .modal-content');
+            if (modalContent && !gameSelectionArea) { // Check modalContent exists and gameSelectionArea is still missing
+                //console.warn("[MainGameModal] Attempting to restore basic game selection HTML in resetGameUI.");
+                // The commented-out HTML below is an example of what might be restored.
+                // Implementing a full restoration here can be complex and is generally a sign
+                // that the modal's HTML is being unintentionally removed elsewhere.
+                // modalContent.innerHTML = `<h2 id="gameModalTitle">Quranic Games</h2>
+                //                         <div class="game-selection-area" id="game-selection-area">
+                //                             <p>Choose a game to play:</p>
+                //                         </div> ... rest of your base modal structure ...`;
+                // console.warn("[MainGameModal] Placeholder for HTML restoration logic. Ensure this is handled robustly if needed.");
+            }
+        } else {
+            // If gameSelectionArea exists, ensure it's visible.
+            gameSelectionArea.style.display = 'block';
+        }
+
+        // Hide and clear the game play area
+        if (gamePlayArea) {
+            gamePlayArea.style.display = 'none';
+            gamePlayArea.innerHTML = ''; // Clear any specific game content
+        } else {
+            //console.error("[MainGameModal] resetGameUI: gamePlayArea not found");
+        }
+
+        // Hide the game score area
+        if (gameScoreArea) {
+            gameScoreArea.style.display = 'none';
+        } else {
+            console.error("[MainGameModal] resetGameUI: gameScoreArea not found");
+        }
+
+        // Hide the quit game button
+        if (quitGameButton) {
+            quitGameButton.style.display = 'none';
+        } else {
+            console.error("[MainGameModal] resetGameUI: quitGameButton not found");
+        }
+
+        // Reset the modal title
+        if (gameModalTitle) {
+            gameModalTitle.textContent = "Quranic Games"; // Default title
+        } else {
+            console.error("[MainGameModal] resetGameUI: gameModalTitle not found");
+        }
+
+        //console.log("[MainGameModal] resetGameUI finished execution after timeout.");
+    }, 400); // 400 millisecond timeout
+}
+
+function showGamePlayUI(gameTitle) {
+    console.log(`[MainGameModal] showGamePlayUI called for title: "${gameTitle}".`);
+    const gameSelectionArea = document.getElementById('game-selection-area'); // THIS IS KEY
     const gamePlayArea = document.getElementById('gamePlayArea');
-    const gameSelectionArea = document.getElementById('game-selection-area');
     const gameScoreArea = document.getElementById('gameScoreArea');
     const quitGameButton = document.getElementById('quitGameButton');
     const gameModalTitle = document.getElementById('gameModalTitle');
 
-    if (gamePlayArea) {
-        gamePlayArea.style.display = 'none';
-        gamePlayArea.innerHTML = '';
+    if (gameSelectionArea) {
+        gameSelectionArea.style.display = 'none';
     } else {
-        console.error("resetGameUI: gamePlayArea not found");
+        console.error("[MainGameModal] CRITICAL in showGamePlayUI: game-selection-area NOT FOUND.");
     }
 
-    if (gameSelectionArea) {
-        gameSelectionArea.style.display = 'block';
+    if (gamePlayArea) {
+        gamePlayArea.style.display = 'block'; // Or 'flex' if your games use flex layout
+         // gamePlayArea.innerHTML = ''; // DO NOT clear here; the specific game's start function will populate it.
     } else {
-        console.error("resetGameUI: gameSelectionArea not found");
+        console.error("[MainGameModal] showGamePlayUI: gamePlayArea not found");
     }
 
     if (gameScoreArea) {
-        gameScoreArea.style.display = 'none';
+        gameScoreArea.style.display = 'block';
+        updateScoreDisplay();
     } else {
-        console.error("resetGameUI: gameScoreArea not found");
+        console.error("[MainGameModal] showGamePlayUI: gameScoreArea not found");
     }
 
     if (quitGameButton) {
-        quitGameButton.style.display = 'none';
+        quitGameButton.style.display = 'block';
     } else {
-        console.error("resetGameUI: quitGameButton not found");
+        console.error("[MainGameModal] showGamePlayUI: quitGameButton not found");
     }
 
     if (gameModalTitle) {
-        gameModalTitle.textContent = "Quranic Games";
+        gameModalTitle.textContent = gameTitle;
     } else {
-        console.error("resetGameUI: gameModalTitle not found");
+        console.error("[MainGameModal] showGamePlayUI: gameModalTitle not found");
     }
 }
 
@@ -4653,32 +4732,32 @@ function showGamePlayUI(gameTitle) {
     if (gameSelectionArea) {
         gameSelectionArea.style.display = 'none';
     } else {
-        console.error("showGamePlayUI: gameSelectionArea not found");
+        //console.error("showGamePlayUI: gameSelectionArea not found");
     }
 
     if (gamePlayArea) {
         gamePlayArea.style.display = 'block';
     } else {
-        console.error("showGamePlayUI: gamePlayArea not found");
+        //console.error("showGamePlayUI: gamePlayArea not found");
     }
 
     if (gameScoreArea) {
         gameScoreArea.style.display = 'block';
         updateScoreDisplay(); // Call this only if gameScoreArea exists
     } else {
-        console.error("showGamePlayUI: gameScoreArea not found");
+        //console.error("showGamePlayUI: gameScoreArea not found");
     }
 
     if (quitGameButton) {
         quitGameButton.style.display = 'block';
     } else {
-        console.error("showGamePlayUI: quitGameButton not found");
+        //console.error("showGamePlayUI: quitGameButton not found");
     }
 
     if (gameModalTitle) {
         gameModalTitle.textContent = gameTitle;
     } else {
-        console.error("showGamePlayUI: gameModalTitle not found");
+        //console.error("showGamePlayUI: gameModalTitle not found");
     }
 }
 
@@ -5307,6 +5386,9 @@ function injectFlashcardGameCSS_Suite() {
     styleSheet.innerText = styles;
     document.head.appendChild(styleSheet);
 }
+
+
+
 
 function injectMemoryMatchGameCSS_Suite() {
     const cssId = "memoryMatchGameStylesSuite"; // Unique ID
@@ -6481,6 +6563,10 @@ function updateScrubSliderRangeAndValue() {
         slider.value = fullScreenReaderCurrentSurah; // Or the dominant Surah on screen
     }
 }
+
+
+
+
 
 async function goToNextEnhanced() {
     stopAndClearAudio();
@@ -8220,25 +8306,26 @@ function exitSimpleImmersiveView() {
         }
     }
 
-    function setupLaunchButtonForStandaloneFullscreenWithTimeout() {
+function setupLaunchButtonForStandaloneFullscreenWithTimeout() {
+    setTimeout(() => {
         const launchButton = document.getElementById('launchFullScreenReaderBtnEnhanced');
         if (launchButton) {
-            launchButton.addEventListener('click', () => {
+            // Attach the event listener to the button
+            launchButton.addEventListener('click', () => { // Arrow function for the event listener starts here
                 //console.log("[StandaloneFS with Timeout] #launchFullScreenReaderBtnEnhanced clicked.");
                 if (typeof window.launchFullScreenQuranReaderEnhanced === 'function') {
-                    window.launchFullScreenQuranReaderEnhanced(); 
+                    window.launchFullScreenQuranReaderEnhanced();
                 } else {
                     console.error("[StandaloneFS with Timeout] window.launchFullScreenQuranReaderEnhanced() is not defined.");
                 }
-                setTimeout(() => {
-                    requestBrowserFullscreenForReaderOverlay();
-                }, 100); // Delay after launching reader UI
-            });
-            //console.log("[StandaloneFS with Timeout] Event listener attached to #launchFullScreenReaderBtnEnhanced.");
+                //console.log("[StandaloneFS with Timeout] Event listener attached to #launchFullScreenReaderBtnEnhanced.");
+            }); // CORRECTED: Properly close the arrow function for addEventListener here
         } else {
+            // This 'else' correctly corresponds to 'if (launchButton)'
             console.warn("[StandaloneFS with Timeout] #launchFullScreenReaderBtnEnhanced button not found after timeout. Fullscreen will not be triggered.");
         }
-    }
+    }, 400); // Timeout duration
+}
 
     // --- MODIFIED SETUP ---
     // Wait for the full window to load, then wait an additional 300ms
@@ -8289,7 +8376,7 @@ function exitSimpleImmersiveView() {
             console.warn(`ModalFS: Target modal "${GAME_MODAL_ID}" is not visible. Fullscreen might fail. Ensure original click handler makes it visible.`);
         }
         
-        console.log(`ModalFS: Attempting fullscreen for #${GAME_MODAL_ID}`);
+        //console.log(`ModalFS: Attempting fullscreen for #${GAME_MODAL_ID}`);
         if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
             console.log("ModalFS: Already in browser fullscreen mode.");
             return; // Avoid re-requesting if already fullscreen with some element
@@ -8313,19 +8400,11 @@ function exitSimpleImmersiveView() {
 
         if (launchButton) {
             launchButton.addEventListener('click', (event) => {
-                // Your original event listener for this button should have already:
-                // 1. Made the #quranGameModal visible (e.g., style.display = 'flex')
-                // 2. Called resetGameUI() to show the game selection screen.
-                console.log(`ModalFS: Button #${GAME_MODAL_LAUNCH_BUTTON_ID} clicked. Original handler should have shown modal.`);
-
-                // Attempt fullscreen AFTER the original click handler has likely made the modal visible.
                 setTimeout(() => {
                     attemptModalFullscreen();
                 }, 50); // Short delay for DOM updates from original handler
             });
-            console.log(`ModalFS: Fullscreen trigger listener attached to #${GAME_MODAL_LAUNCH_BUTTON_ID}.`);
         } else {
-            console.warn(`ModalFS: Game modal launch button with ID "${GAME_MODAL_LAUNCH_BUTTON_ID}" not found after wait. Fullscreen cannot be triggered by it.`);
         }
     }
 
@@ -8334,7 +8413,7 @@ function exitSimpleImmersiveView() {
     window.addEventListener('load', () => {
         //console.log("[ModalFS] Window 'load' event fired for game modal fullscreen setup.");
         setTimeout(() => {
-            console.log(`[ModalFS] Attempting to set up launch button listener after ${INITIALIZATION_DELAY_MS}ms delay post-load.`);
+            //console.log(`[ModalFS] Attempting to set up launch button listener after ${INITIALIZATION_DELAY_MS}ms delay post-load.`);
             setupModalFullscreenLaunchListenerWithWait();
         }, INITIALIZATION_DELAY_MS);
     });
@@ -8342,7 +8421,7 @@ function exitSimpleImmersiveView() {
 
     function logModalFullscreenExit(event) {
         if (!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement)) {
-            console.log("ModalFS: Exited browser fullscreen mode for modal.");
+            //console.log("ModalFS: Exited browser fullscreen mode for modal.");
         }
     }
     document.addEventListener('fullscreenchange', logModalFullscreenExit);
@@ -8350,7 +8429,1217 @@ function exitSimpleImmersiveView() {
     document.addEventListener('mozfullscreenchange', logModalFullscreenExit);
     document.addEventListener('MSFullscreenChange', logModalFullscreenExit);
 
-    console.log("ModalFS: Fullscreen logic for the entire game modal (with wait) initialized.");
+    //console.log("ModalFS: Fullscreen logic for the entire game modal (with wait) initialized.");
 
 })();
+
+
+
+
+
+// === QURAN RECITATION PRACTICE GAME ===
+// === PASTE THIS ENTIRE BLOCK AT THE END OF YOUR MAIN SCRIPT, AFTER OTHER GAME CODE ===
+
+// --- Recitation Game Specific Variables ---
+let recitationGame_UI = {
+    surahSelect: null,
+    ayahStartSelect: null,
+    ayahEndSelect: null,
+    loadAyahButton: null,
+    ayahDisplayArea: null,
+    referencePlayButton: null,
+    recordButton: null,
+    analysisFeedbackArea: null,
+    recordingStatusText: null,
+    currentScoreDisplay: null,
+    bestScoreDisplay: null
+};
+
+let recitationGame_State = {
+    currentSurah: 1,
+    currentAyahStart: 1,
+    currentAyahEnd: 1,
+    targetAyahText: "", // Concatenated text if range
+    targetAyahWords: [], // Array of words for highlighting
+    referenceAudio: null,
+    referenceAudioDuration: 0,
+    referenceHighlightInterval: null,
+    userAudioRecorder: null,
+    userAudioChunks: [],
+    isRecording: false,
+    speechRecognition: null,
+    currentReferenceHighlightIndex: 0,
+    gameActive: false, // Is the game screen for recitation practice active
+    ayahKey: "" // e.g., "s1a1" or "s1a1-a3"
+};
+
+const STORE_RECITATION_GAME_PROGRESS = 'recitationGameProgress_v1'; // For user scores
+
+// --- CSS Injection for Recitation Game ---
+function injectRecitationPracticeGameCSS_Engine() {
+    const cssId = "recitationPracticeGameStylesEngine";
+    if (document.getElementById(cssId)) return;
+    const styles = `
+        .recitation-practice-game-area { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 10px; height:100%; box-sizing: border-box; }
+        .recitation-controls-bar { display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center; width: 100%; max-width: 700px; margin-bottom: 15px; padding: 10px; background-color: var(--color-bg-secondary); border-radius: var(--border-radius); gap: 10px; }
+        .recitation-controls-bar label { font-size: 0.9em; margin-right: 5px;}
+        .recitation-controls-bar select, .recitation-controls-bar button { font-size: 0.9em; padding: 6px 10px; }
+        
+        #recitationAyahDisplay_Engine {
+            font-family: var(--font-arabic); /* Ensure this is your primary Arabic font */
+            font-size: 2.4rem; /* Adjust as needed, can be linked to reader settings */
+            line-height: 2.8; /* Generous line height for Arabic */
+            direction: rtl;
+            text-align: right;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            background-color: var(--color-bg-primary);
+            width: 100%;
+            max-width: 95%;
+            min-height: 150px;
+            overflow-y: auto; /* If Ayah is very long */
+            cursor: default; /* Indicate it's display text */
+        }
+        #recitationAyahDisplay_Engine .highlight-word {
+            background-color: var(--color-highlight, yellow); /* Theme highlight */
+            border-radius: 3px;
+            padding: 0 0.1em; /* Slight padding for better visual */
+            transition: background-color 0.15s ease-in-out;
+        }
+        #recitationAyahDisplay_Engine .diff-correct { color: var(--color-success, green); font-weight: bold; }
+        #recitationAyahDisplay_Engine .diff-incorrect { color: var(--color-error, red); text-decoration: line-through; }
+        #recitationAyahDisplay_Engine .diff-missing { color: var(--color-text-secondary, gray); font-style: italic; }
+
+
+        .recitation-action-buttons { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+        .recitation-action-buttons button { padding: 10px 18px; font-size: 1.1rem; }
+        #recordUserAyah_Engine.is-recording { background-color: var(--color-error); }
+
+        #recordingStatus_Engine { font-size: 1em; color: var(--color-text-secondary); min-height: 1.5em; margin-bottom: 10px; text-align: center;}
+        #analysisFeedbackArea_Engine { width: 100%; max-width: 95%; padding: 15px; border: 1px dashed var(--color-border); border-radius: var(--border-radius); background-color: var(--color-bg-secondary); min-height: 80px; text-align: center; margin-top:15px; }
+        #analysisFeedbackArea_Engine h4 { margin-top: 0; color: var(--color-text-primary); }
+        #analysisFeedbackArea_Engine p { margin-bottom: 8px; }
+        
+        .recitation-game-scores { text-align: center; margin-top: 15px; font-size: 1rem; }
+    `;
+    const styleSheet = document.createElement("style");
+    styleSheet.id = cssId;
+    styleSheet.type = "text/css";
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+    if (db && !db.objectStoreNames.contains(STORE_RECITATION_GAME_PROGRESS)) {
+        //console.warn(`${STORE_RECITATION_GAME_PROGRESS} not found. Game scores might not persist correctly until DB version upgrade.`);
+        // Attempting a version change here is risky if other parts of app rely on current db object.
+        // Best practice: add to main onupgradeneeded and increment DB_VERSION.
+    }
+}
+
+// --- Main Game Setup and Logic ---
+// === QURAN RECITATION PRACTICE GAME ===
+
+async function startRecitationPracticeGame_Engine() {
+    ////console.log("[RecitationGame] startRecitationPracticeGame_Engine called.");
+    activeGame = 'recitationPractice_engine';
+    // showGamePlayUI("Recitation Practice"); // This was already problematic based on logs
+    injectRecitationPracticeGameCSS_Engine();
+    recitationGame_State.gameActive = true;
+
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    if (!gamePlayArea) {
+        ////console.error("[RecitationGame] CRITICAL: gamePlayArea element not found! Cannot inject game HTML.");
+        // Attempt to inform user more directly if possible
+        const mainModal = document.getElementById('quranGameModal');
+        if(mainModal) mainModal.innerHTML = "<p style='color:red; text-align:center; padding:20px;'>Error: Game area component missing. Cannot start recitation practice.</p>";
+        return;
+    }
+    ////console.log("[RecitationGame] gamePlayArea found. Preparing to inject HTML.");
+
+    // Call showGamePlayUI here, AFTER we are sure gamePlayArea exists
+    // and BEFORE we inject new content into it, so it can set up the overall game view.
+    showGamePlayUI("Recitation Practice");
+
+
+    const gameHTML = `
+        <div class="recitation-practice-game-area">
+            <div class="recitation-controls-bar">
+                <div>
+                    <label for="recitationSurahSelect_Engine">Surah:</label>
+                    <select id="recitationSurahSelect_Engine"></select>
+                </div>
+                <div>
+                    <label for="recitationAyahStartSelect_Engine">From Ayah:</label>
+                    <select id="recitationAyahStartSelect_Engine"></select>
+                </div>
+                <div>
+                    <label for="recitationAyahEndSelect_Engine">To Ayah (Optional):</label>
+                    <select id="recitationAyahEndSelect_Engine"><option value="">Single Ayah</option></select>
+                </div>
+                <button id="loadRecitationAyah_Engine">Load Ayah(s)</button>
+            </div>
+
+            <div id="recitationAyahDisplay_Engine">Select Surah and Ayah, then click "Load Ayah(s)".</div>
+            
+            <div class="recitation-action-buttons">
+                <button id="playReferenceAyah_Engine" disabled>▶️ Play Reference</button>
+                <button id="recordUserAyah_Engine" disabled>🎤 Record My Recitation</button>
+            </div>
+            <div id="recordingStatus_Engine"></div>
+
+            <div id="analysisFeedbackArea_Engine" style="display:none;">
+                <h4>Analysis Feedback</h4>
+                <p id="feedbackTextAccuracy_Engine">Accuracy: -</p>
+                <p id="feedbackTiming_Engine">Timing: -</p>
+                <p id="feedbackRecognizedText_Engine" style="font-family: var(--font-arabic); direction:rtl;"></p>
+            </div>
+            <div class="recitation-game-scores">
+                Current Ayah Accuracy: <strong id="currentRecitationScore_Engine">-</strong>%<br>
+                Best Accuracy for this Ayah: <strong id="bestRecitationScore_Engine">-</strong>%
+            </div>
+        </div>
+    `;
+    gamePlayArea.innerHTML = gameHTML;
+    //console.log("[RecitationGame] HTML injected into gamePlayArea.");
+
+    // Verify elements immediately after injection
+    if (!document.getElementById('feedbackTextAccuracy_Engine')) {
+        ////console.error("[RecitationGame] URGENT: feedbackTextAccuracy_Engine NOT found immediately after HTML injection!");
+    } else {
+        ////console.log("[RecitationGame] feedbackTextAccuracy_Engine IS present immediately after HTML injection.");
+    }
+    if (!document.getElementById('feedbackRecognizedText_Engine')) {
+        //console.error("[RecitationGame] URGENT: feedbackRecognizedText_Engine NOT found immediately after HTML injection!");
+    }
+    if (!document.getElementById('feedbackTiming_Engine')) {
+        //console.error("[RecitationGame] URGENT: feedbackTiming_Engine NOT found immediately after HTML injection!");
+    }
+
+
+    // Cache UI elements
+    recitationGame_UI.surahSelect = document.getElementById('recitationSurahSelect_Engine');
+    recitationGame_UI.ayahStartSelect = document.getElementById('recitationAyahStartSelect_Engine');
+    recitationGame_UI.ayahEndSelect = document.getElementById('recitationAyahEndSelect_Engine');
+    recitationGame_UI.loadAyahButton = document.getElementById('loadRecitationAyah_Engine');
+    recitationGame_UI.ayahDisplayArea = document.getElementById('recitationAyahDisplay_Engine');
+    recitationGame_UI.referencePlayButton = document.getElementById('playReferenceAyah_Engine');
+    recitationGame_UI.recordButton = document.getElementById('recordUserAyah_Engine');
+    recitationGame_UI.analysisFeedbackArea = document.getElementById('analysisFeedbackArea_Engine');
+    recitationGame_UI.recordingStatusText = document.getElementById('recordingStatus_Engine');
+    recitationGame_UI.currentScoreDisplay = document.getElementById('currentRecitationScore_Engine');
+    recitationGame_UI.bestScoreDisplay = document.getElementById('bestRecitationScore_Engine');
+
+    // Populate Surah Select
+    if (recitationGame_UI.surahSelect) {
+        for (let i = 1; i <= 114; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `${i}. ${surahNames[i - 1]}`; // Ensure surahNames is globally available
+            recitationGame_UI.surahSelect.appendChild(option);
+        }
+        //console.log("[RecitationGame] Surah select populated.");
+    } else {
+        //console.error("[RecitationGame] recitationSurahSelect_Engine not found for population.");
+    }
+
+    
+    // Event Listeners
+    if(recitationGame_UI.surahSelect) recitationGame_UI.surahSelect.addEventListener('change', updateRecitationAyahSelectors_Engine);
+    if(recitationGame_UI.ayahStartSelect) recitationGame_UI.ayahStartSelect.addEventListener('change', () => {
+        const startAyah = parseInt(recitationGame_UI.ayahStartSelect.value);
+        const endAyahSelect = recitationGame_UI.ayahEndSelect;
+        if (endAyahSelect) { // Null check
+            const currentEndValue = parseInt(endAyahSelect.value);
+            if (currentEndValue && currentEndValue < startAyah) {
+                endAyahSelect.value = ""; 
+            }
+            populateRecitationAyahEndSelect_Engine(parseInt(recitationGame_UI.surahSelect.value), startAyah);
+        }
+    });
+
+    if(recitationGame_UI.loadAyahButton) recitationGame_UI.loadAyahButton.addEventListener('click', loadAyahForRecitationPractice_Engine);
+    if(recitationGame_UI.referencePlayButton) recitationGame_UI.referencePlayButton.addEventListener('click', playReferenceAudioWithHighlighting_Engine);
+    if(recitationGame_UI.recordButton) recitationGame_UI.recordButton.addEventListener('click', toggleUserRecording_Recitation_Engine);
+
+    //console.log("[RecitationGame] Event listeners attached.");
+
+    // Initial population of Ayah selects
+    updateRecitationAyahSelectors_Engine();
+    setupSpeechRecognition_Engine();
+    //console.log("[RecitationGame] startRecitationPracticeGame_Engine finished.");
+}
+
+function updateRecitationAyahSelectors_Engine() {
+    const surahNum = parseInt(recitationGame_UI.surahSelect.value);
+    const totalAyahs = surahAyahCounts[surahNum] || 0;
+
+    recitationGame_UI.ayahStartSelect.innerHTML = '';
+    for (let i = 1; i <= totalAyahs; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = i;
+        recitationGame_UI.ayahStartSelect.appendChild(option);
+    }
+    populateRecitationAyahEndSelect_Engine(surahNum, 1); // Populate end based on surah and default start ayah 1
+}
+
+function populateRecitationAyahEndSelect_Engine(surahNum, startAyahNum) {
+    const totalAyahs = surahAyahCounts[surahNum] || 0;
+    const endSelect = recitationGame_UI.ayahEndSelect;
+    const currentEndValue = endSelect.value; // Preserve selection if possible
+
+    endSelect.innerHTML = '<option value="">Single Ayah Mode</option>'; // Default
+    for (let i = startAyahNum; i <= totalAyahs; i++) { // Start from the selected startAyahNum
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = i;
+        endSelect.appendChild(option);
+    }
+    // Try to restore previous selection if valid
+    if (currentEndValue && parseInt(currentEndValue) >= startAyahNum && parseInt(currentEndValue) <= totalAyahs) {
+        endSelect.value = currentEndValue;
+    } else {
+        endSelect.value = ""; // Default to single if previous selection invalid
+    }
+}
+
+
+async function loadAyahForRecitationPractice_Engine() {
+    recitationGame_State.currentSurah = parseInt(recitationGame_UI.surahSelect.value);
+    recitationGame_State.currentAyahStart = parseInt(recitationGame_UI.ayahStartSelect.value);
+    const endAyahValue = recitationGame_UI.ayahEndSelect.value;
+    recitationGame_State.currentAyahEnd = endAyahValue ? parseInt(endAyahValue) : recitationGame_State.currentAyahStart;
+
+    if (recitationGame_State.currentAyahEnd < recitationGame_State.currentAyahStart) {
+        alert("End Ayah cannot be before Start Ayah.");
+        recitationGame_State.currentAyahEnd = recitationGame_State.currentAyahStart; // Correct it
+        recitationGame_UI.ayahEndSelect.value = ""; // Reset UI
+    }
+
+    recitationGame_State.targetAyahText = "";
+    recitationGame_State.targetAyahWords = [];
+    recitationGame_UI.ayahDisplayArea.innerHTML = "Loading...";
+    recitationGame_UI.analysisFeedbackArea.style.display = 'none';
+    recitationGame_UI.currentScoreDisplay.textContent = '-';
+    
+    recitationGame_State.ayahKey = `s${recitationGame_State.currentSurah}a${recitationGame_State.currentAyahStart}`;
+    if (recitationGame_State.currentAyahStart !== recitationGame_State.currentAyahEnd) {
+        recitationGame_State.ayahKey += `-a${recitationGame_State.currentAyahEnd}`;
+    }
+
+    for (let i = recitationGame_State.currentAyahStart; i <= recitationGame_State.currentAyahEnd; i++) {
+        const ayahData = await getData(STORE_QURAN, [recitationGame_State.currentSurah, i]);
+        if (ayahData && ayahData.arabic) {
+            const ayahTextClean = ayahData.arabic.trim();
+            recitationGame_State.targetAyahText += ayahTextClean + (i < recitationGame_State.currentAyahEnd ? " " : ""); // Add space if not last ayah in range
+            recitationGame_State.targetAyahWords.push(...ayahTextClean.split(/\s+/).filter(w => w.length > 0));
+        }
+    }
+
+    if (recitationGame_State.targetAyahText) {
+        renderLoadedAyahForRecitation_Engine();
+        recitationGame_UI.referencePlayButton.disabled = false;
+        recitationGame_UI.recordButton.disabled = false;
+    } else {
+        recitationGame_UI.ayahDisplayArea.innerHTML = "Error loading Ayah text.";
+        recitationGame_UI.referencePlayButton.disabled = true;
+        recitationGame_UI.recordButton.disabled = true;
+    }
+    loadBestScore_Recitation_Engine();
+}
+
+function renderLoadedAyahForRecitation_Engine() {
+    recitationGame_UI.ayahDisplayArea.innerHTML = '';
+    recitationGame_State.targetAyahWords.forEach(word => {
+        const span = document.createElement('span');
+        span.textContent = word + " "; // Add space for display separation
+        recitationGame_UI.ayahDisplayArea.appendChild(span);
+    });
+}
+
+async function playReferenceAudioWithHighlighting_Engine() {
+    if (recitationGame_State.isRecording) {
+        alert("Please stop recording first.");
+        return;
+    }
+    stopReferenceAudio_Engine(); // Stop any previous audio
+
+    recitationGame_UI.referencePlayButton.textContent = "🔄 Loading...";
+    recitationGame_UI.referencePlayButton.disabled = true;
+    recitationGame_UI.recordButton.disabled = true;
+
+    let combinedAudioBufferSources = [];
+    let totalDuration = 0;
+
+    try {
+        for (let i = recitationGame_State.currentAyahStart; i <= recitationGame_State.currentAyahEnd; i++) {
+            const surahPadded = String(recitationGame_State.currentSurah).padStart(3, '0');
+            const ayahPadded = String(i).padStart(3, '0');
+            const audioSrcUrl = `https://everyayah.com/data/Alafasy_128kbps/${surahPadded}${ayahPadded}.mp3`;
+            
+            // We need to fetch and decode each segment if we want accurate individual durations
+            const response = await fetch(audioSrcUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            // To get duration, we need an AudioContext (can be dummy if not playing through WebAudio API directly)
+            const tempAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const decodedBuffer = await tempAudioCtx.decodeAudioData(arrayBuffer);
+            combinedAudioBufferSources.push({ src: audioSrcUrl, duration: decodedBuffer.duration });
+            totalDuration += decodedBuffer.duration;
+            await tempAudioCtx.close(); // Close temporary context
+        }
+    } catch (error) {
+        console.error("Error fetching reference audio segment durations:", error);
+        recitationGame_UI.ayahDisplayArea.innerHTML = "Error loading reference audio data.";
+        recitationGame_UI.referencePlayButton.textContent = "▶️ Play Reference";
+        recitationGame_UI.referencePlayButton.disabled = false;
+        recitationGame_UI.recordButton.disabled = false;
+        return;
+    }
+
+    recitationGame_State.referenceAudioDuration = totalDuration;
+    recitationGame_State.currentReferenceHighlightIndex = 0;
+
+    // Create a single audio element to play segments sequentially
+    recitationGame_State.referenceAudio = new Audio();
+    let currentSegmentIndex = 0;
+
+    const playNextSegment = () => {
+        if (currentSegmentIndex >= combinedAudioBufferSources.length) {
+            stopReferenceAudio_Engine();
+            return;
+        }
+        recitationGame_State.referenceAudio.src = combinedAudioBufferSources[currentSegmentIndex].src;
+        recitationGame_State.referenceAudio.play().catch(e => {
+            console.error("Error playing segment:", e);
+            stopReferenceAudio_Engine();
+        });
+        currentSegmentIndex++;
+    };
+
+    recitationGame_State.referenceAudio.onended = playNextSegment;
+    recitationGame_State.referenceAudio.onerror = () => {
+        console.error("Error with reference audio playback.");
+        stopReferenceAudio_Engine();
+    };
+    
+    playNextSegment(); // Start playing the first segment
+
+    // Highlighting logic (approximate based on total words and total duration)
+    const wordsToHighlight = recitationGame_UI.ayahDisplayArea.querySelectorAll('span');
+    if (wordsToHighlight.length > 0 && totalDuration > 0) {
+        const timePerWord = totalDuration / wordsToHighlight.length;
+        let highlightIdx = 0;
+        wordsToHighlight.forEach(s => s.classList.remove('highlight-word')); // Clear previous
+
+        recitationGame_State.referenceHighlightInterval = setInterval(() => {
+            if (highlightIdx < wordsToHighlight.length) {
+                if (highlightIdx > 0) wordsToHighlight[highlightIdx - 1].classList.remove('highlight-word');
+                wordsToHighlight[highlightIdx].classList.add('highlight-word');
+                highlightIdx++;
+            } else {
+                clearInterval(recitationGame_State.referenceHighlightInterval);
+                if (wordsToHighlight.length > 0) wordsToHighlight[wordsToHighlight.length - 1].classList.remove('highlight-word');
+            }
+        }, timePerWord * 1000); // Convert timePerWord to ms
+    }
+
+    recitationGame_UI.referencePlayButton.textContent = "⏹️ Stop Reference";
+    recitationGame_UI.referencePlayButton.disabled = false;
+}
+
+function stopReferenceAudio_Engine() {
+    if (recitationGame_State.referenceAudio) {
+        recitationGame_State.referenceAudio.pause();
+        recitationGame_State.referenceAudio.src = ""; // Clear source
+        recitationGame_State.referenceAudio.onended = null;
+        recitationGame_State.referenceAudio.onerror = null;
+        recitationGame_State.referenceAudio = null;
+    }
+    if (recitationGame_State.referenceHighlightInterval) {
+        clearInterval(recitationGame_State.referenceHighlightInterval);
+        recitationGame_State.referenceHighlightInterval = null;
+    }
+    // Clear any remaining highlight
+    recitationGame_UI.ayahDisplayArea.querySelectorAll('span.highlight-word').forEach(s => s.classList.remove('highlight-word'));
+
+    recitationGame_UI.referencePlayButton.textContent = "▶️ Play Reference";
+    if (recitationGame_State.targetAyahText) { // Only enable if an Ayah is loaded
+      recitationGame_UI.referencePlayButton.disabled = false;
+      recitationGame_UI.recordButton.disabled = false;
+    }
+}
+
+
+async function toggleUserRecording_Recitation_Engine() {
+    if (recitationGame_State.isRecording) {
+        stopUserRecording_Recitation_Engine();
+    } else {
+        // Stop reference audio if playing
+        if (recitationGame_State.referenceAudio && !recitationGame_State.referenceAudio.paused) {
+            stopReferenceAudio_Engine();
+        }
+        await startUserRecording_Recitation_Engine();
+    }
+}
+async function startUserRecording_Recitation_Engine() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Your browser does not support audio recording.");
+        return;
+    }
+    try {
+        // Reset synchronization flags for the new recording session
+        recitationGame_State.mediaRecordingStopped = false;
+        recitationGame_State.speechResultReceived = false;
+        recitationGame_State.userTranscript = null;
+        recitationGame_State.audioBlobForAnalysis = null;
+        recitationGame_State.analysisTriggeredThisRound = false;
+
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recitationGame_State.userAudioRecorder = new MediaRecorder(stream);
+        recitationGame_State.userAudioChunks = [];
+
+        recitationGame_State.userAudioRecorder.ondataavailable = event => {
+            recitationGame_State.userAudioChunks.push(event.data);
+        };
+
+        recitationGame_State.userAudioRecorder.onstop = async () => {
+            const audioBlob = new Blob(recitationGame_State.userAudioChunks, { type: 'audio/wav' });
+            //console.log("[RecitationGame] MediaRecorder.onstop: User audio chunks length:", recitationGame_State.userAudioChunks.length);
+            //console.log("[RecitationGame] MediaRecorder.onstop: Created audioBlob size:", audioBlob.size);
+
+            recitationGame_State.audioBlobForAnalysis = audioBlob; // Store the blob
+            recitationGame_State.mediaRecordingStopped = true;
+
+            stream.getTracks().forEach(track => track.stop()); // Release microphone
+
+            tryFinalizeAnalysis_Engine(); // Attempt to finalize
+        };
+
+        recitationGame_State.userAudioRecorder.start();
+        recitationGame_State.isRecording = true;
+        recitationGame_UI.recordButton.textContent = "🛑 Stop Recording";
+        recitationGame_UI.recordButton.classList.add('is-recording');
+        recitationGame_UI.recordingStatusText.textContent = "Recording... Speak now.";
+        recitationGame_UI.referencePlayButton.disabled = true; // Disable play reference while recording
+        recitationGame_UI.analysisFeedbackArea.style.display = 'none';
+
+
+        // Start Speech Recognition
+        if (recitationGame_State.speechRecognition) {
+            try {
+                recitationGame_State.speechRecognition.start();
+            } catch(e) {
+                console.warn("Speech recognition start error (possibly already started):", e.message);
+                try {
+                    recitationGame_State.speechRecognition.abort(); // Try to abort if it was stuck
+                    recitationGame_State.speechRecognition.start();
+                } catch (e2) {
+                    console.error("Failed to restart speech recognition:", e2);
+                     recitationGame_UI.recordingStatusText.textContent = "Speech recognition error. Try again.";
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Error accessing microphone:", err);
+        alert("Could not access microphone. Please check permissions. " + err.message);
+        recitationGame_UI.recordingStatusText.textContent = "Microphone access denied or error.";
+        // Ensure UI resets if mic access fails
+        recitationGame_State.isRecording = false;
+        if (recitationGame_UI.recordButton) {
+            recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
+            recitationGame_UI.recordButton.classList.remove('is-recording');
+        }
+        if (recitationGame_UI.referencePlayButton && recitationGame_State.targetAyahText) {
+            recitationGame_UI.referencePlayButton.disabled = false;
+        }
+    }
+}
+
+
+
+function stopUserRecording_Recitation_Engine() {
+    if (recitationGame_State.userAudioRecorder && recitationGame_State.isRecording) {
+        recitationGame_State.userAudioRecorder.stop(); // This will trigger MediaRecorder.onstop
+
+        if (recitationGame_State.speechRecognition) {
+            //console.log("[RecitationGame] Explicitly stopping SpeechRecognition.");
+            recitationGame_State.speechRecognition.stop(); // Explicitly stop SR. Its onend will fire.
+        }
+        // isRecording and button text will be updated in tryFinalize or MediaRecorder.onstop
+        // or SR.onend when conditions are met for UI update.
+        // For immediate feedback, you can do some parts here:
+        recitationGame_UI.recordingStatusText.textContent = "Processing your recitation...";
+    } else {
+        //console.log("[RecitationGame] stopUserRecording called but not actively recording or recorder missing.");
+        // Ensure UI is consistent if called unexpectedly
+        recitationGame_State.isRecording = false;
+        if (recitationGame_UI.recordButton) {
+            recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
+            recitationGame_UI.recordButton.classList.remove('is-recording');
+        }
+        if (recitationGame_UI.referencePlayButton && recitationGame_State.targetAyahText) {
+            recitationGame_UI.referencePlayButton.disabled = false;
+        }
+    }
+}
+function setupSpeechRecognition_Engine() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        console.warn("Speech Recognition API not supported in this browser.");
+        recitationGame_UI.recordingStatusText.textContent = "Speech recognition not supported by your browser.";
+        if(recitationGame_UI.recordButton) recitationGame_UI.recordButton.disabled = true;
+        return;
+    }
+
+    recitationGame_State.speechRecognition = new SpeechRecognition();
+    recitationGame_State.speechRecognition.lang = 'ar-SA';
+    recitationGame_State.speechRecognition.interimResults = true; // Get interim results for responsiveness (optional, but good for UX)
+    recitationGame_State.speechRecognition.maxAlternatives = 1;
+    recitationGame_State.speechRecognition.continuous = true; // <<< KEY CHANGE HERE
+
+    let final_transcript = ''; // To accumulate final results
+
+    recitationGame_State.speechRecognition.onstart = () => {
+        final_transcript = ''; // Reset accumulated transcript on new start
+        //console.log("[RecitationGame] Speech recognition started.");
+    };
+
+    recitationGame_State.speechRecognition.onresult = (event) => {
+        let interim_transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                final_transcript += event.results[i][0].transcript;
+            } else {
+                interim_transcript += event.results[i][0].transcript;
+            }
+        }
+        // Display interim transcript if desired (e.g., for user feedback)
+        // console.log("Interim SR Transcript:", interim_transcript);
+        // recitationGame_UI.recordingStatusText.textContent = "Listening... " + interim_transcript;
+
+        // The final_transcript will be taken when SR is explicitly stopped or naturally ends.
+        // We will use the accumulated final_transcript.
+        recitationGame_State.userTranscript = final_transcript.trim() || interim_transcript.trim(); // Fallback to last interim if no final yet
+        console.log("Accumulated/Current SR Transcript:", recitationGame_State.userTranscript);
+        
+        // Do NOT call tryFinalizeAnalysis_Engine here when continuous is true.
+        // We wait for the user to click "Stop Recording".
+    };
+
+    recitationGame_State.speechRecognition.onerror = (event) => {
+        console.error("Speech Recognition Error:", event.error, event.message);
+        let errorMsg = "Speech recognition error: " + event.error;
+        if (event.error === 'no-speech') {
+            errorMsg = "No speech was detected after a while. Try speaking closer to the mic.";
+             // If continuous and no-speech, it often means the user stopped talking for a while.
+             // We will rely on the user clicking "Stop Recording" to finalize.
+             // We can consider the current `final_transcript` as the result.
+        } else if (event.error === 'audio-capture') {
+            errorMsg = "Audio capture error. Ensure microphone is working.";
+        } else if (event.error === 'not-allowed') {
+            errorMsg = "Microphone access not allowed. Please check permissions.";
+        } else if (event.error === 'network') {
+            errorMsg = "Network error for speech recognition. Check connection.";
+        }
+        recitationGame_UI.recordingStatusText.textContent = errorMsg;
+
+        // Even on error, try to use whatever transcript was gathered.
+        recitationGame_State.userTranscript = final_transcript.trim(); // Use accumulated
+        recitationGame_State.speechResultReceived = true; // Mark as "resulted" (an error is a form of result)
+
+        // If recording was active, the "Stop Recording" button or an auto-stop mechanism
+        // should handle the rest. We don't want to trigger analysis prematurely here
+        // if the MediaRecorder is still expected to run.
+        // However, if the error is fatal (like 'not-allowed'), we should stop everything.
+        if (event.error === 'not-allowed' || event.error === 'audio-capture') {
+            if (recitationGame_State.isRecording) {
+                stopUserRecording_Recitation_Engine(); // This will eventually call tryFinalize.
+            }
+        } else {
+            // For other errors like 'no-speech' or 'network' in continuous mode,
+            // we might not stop the MediaRecorder immediately, letting the user
+            // decide when to press "Stop".
+            // tryFinalizeAnalysis_Engine(); // Don't call directly if MediaRecorder might still be running.
+        }
+    };
+
+    recitationGame_State.speechRecognition.onend = () => {
+        // This 'onend' is now more of an indication that SR has stopped listening,
+        // possibly due to an explicit stop() command or a natural end (like silence timeout if not continuous,
+        // or error).
+        console.log("Speech recognition service ended.");
+        // The accumulated `final_transcript` is what we have.
+        // Ensure userTranscript has the latest final accumulated value.
+        recitationGame_State.userTranscript = final_transcript.trim();
+        recitationGame_State.speechResultReceived = true;
+
+        // Call tryFinalizeAnalysis_Engine here. If MediaRecorder.onstop hasn't fired yet,
+        // it will wait. If it has, this will trigger the analysis.
+        tryFinalizeAnalysis_Engine();
+    };
+}
+
+
+
+function tryFinalizeAnalysis_Engine() {
+    console.log(`[RecitationGame] tryFinalizeAnalysis_Engine called. analysisTriggered: ${recitationGame_State.analysisTriggeredThisRound}, mediaStopped: ${recitationGame_State.mediaRecordingStopped}, speechReceived: ${recitationGame_State.speechResultReceived}`);
+
+    if (recitationGame_State.analysisTriggeredThisRound) {
+        //console.log("[RecitationGame] tryFinalizeAnalysis_Engine: Analysis already triggered or completed this round. Aborting.");
+        return; // Analysis already started or completed for this round
+    }
+
+    if (recitationGame_State.mediaRecordingStopped && recitationGame_State.speechResultReceived) {
+        //console.log("[RecitationGame] tryFinalizeAnalysis_Engine: Both conditions met. Triggering analysis.");
+        recitationGame_State.analysisTriggeredThisRound = true;
+
+        const blobToAnalyze = recitationGame_State.audioBlobForAnalysis;
+
+        if (!blobToAnalyze || blobToAnalyze.size === 0) { // Check blob size as well
+            console.error("[RecitationGame] tryFinalizeAnalysis_Engine: audioBlobForAnalysis is null or empty. Cannot analyze.");
+            if (recitationGame_UI.recordingStatusText) {
+                recitationGame_UI.recordingStatusText.textContent = "Error: Audio data missing or empty.";
+            }
+            // Reset flags to allow a new attempt
+            recitationGame_State.analysisTriggeredThisRound = false;
+            recitationGame_State.mediaRecordingStopped = false;
+            recitationGame_State.speechResultReceived = false;
+            // Ensure UI is reset for next attempt
+            if (recitationGame_UI.recordButton) {
+                 recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
+                 recitationGame_UI.recordButton.classList.remove('is-recording');
+            }
+            recitationGame_State.isRecording = false;
+            return;
+        }
+
+        if (recitationGame_UI.recordingStatusText) {
+            recitationGame_UI.recordingStatusText.textContent = "Processing your recitation...";
+        }
+        if (recitationGame_UI.recordButton) { // Ensure button is reset visually
+            recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
+            recitationGame_UI.recordButton.classList.remove('is-recording');
+        }
+        recitationGame_State.isRecording = false; // Mark recording as definitively over
+
+        analyzeUserRecitation_Engine(blobToAnalyze);
+    } else {
+        //console.log("[RecitationGame] tryFinalizeAnalysis_Engine: Conditions not yet met for analysis.");
+    }
+}
+
+async function analyzeUserRecitation_Engine(audioBlob) {
+    //console.log("[RecitationGame] analyzeUserRecitation_Engine called. Game active:", recitationGame_State.gameActive);
+    if (!recitationGame_State.gameActive) {
+        console.warn("[RecitationGame] Analysis aborted: game state is not active.");
+        if(recitationGame_UI.recordButton) {
+            recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
+            recitationGame_UI.recordButton.classList.remove('is-recording');
+        }
+        if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "";
+        return;
+    }
+
+    if (recitationGame_UI.recordingStatusText) {
+        recitationGame_UI.recordingStatusText.textContent = "Analyzing...";
+    } else {
+        console.warn("[RecitationGame] analyzeUserRecitation_Engine: recordingStatusText UI element was null.");
+    }
+
+    if (recitationGame_UI.analysisFeedbackArea) {
+        recitationGame_UI.analysisFeedbackArea.style.display = 'block';
+        // Clear previous results but keep the title
+        recitationGame_UI.analysisFeedbackArea.innerHTML = '<h4>Analysis Feedback</h4><p id="feedbackTextAccuracy_Engine">Accuracy: -</p><p id="feedbackTiming_Engine">Timing: -</p><p id="feedbackRecognizedText_Engine" style="font-family: var(--font-arabic); direction:rtl;"></p>';
+    } else {
+        console.warn("[RecitationGame] analyzeUserRecitation_Engine: analysisFeedbackArea UI element was null.");
+    }
+
+    // Use the transcript from the state
+    const recognizedText = recitationGame_State.userTranscript || "";
+    //console.log("[RecitationGame] Analyzing with transcript from state:", recognizedText);
+
+    const targetTextNorm = normalizeArabicForComparison_Engine(recitationGame_State.targetAyahText);
+    const recognizedTextNorm = normalizeArabicForComparison_Engine(recognizedText);
+    //console.log("[RecitationGame] Target normalized:", targetTextNorm);
+    //console.log("[RecitationGame] Recognized normalized:", recognizedTextNorm);
+
+    const { accuracy, diffHTML } = calculateTextAccuracyAndDiff_Engine(targetTextNorm, recognizedTextNorm);
+    console.log(`[RecitationGame] Calculated Accuracy: ${accuracy}%, Diff HTML generated.`);
+
+    if (recitationGame_UI.currentScoreDisplay) {
+        recitationGame_UI.currentScoreDisplay.textContent = `${accuracy.toFixed(0)}`;
+    } else {
+        console.warn("[RecitationGame] analyzeUserRecitation_Engine: currentScoreDisplay UI element was null.");
+    }
+
+    const feedbackTextAccuracyEl = document.getElementById('feedbackTextAccuracy_Engine');
+    if (feedbackTextAccuracyEl) {
+        feedbackTextAccuracyEl.textContent = `Text Accuracy: ${accuracy.toFixed(1)}%`;
+    } else {
+        console.error("[RecitationGame] FAILED to find feedbackTextAccuracy_Engine for update.");
+    }
+
+    const feedbackRecognizedEl = document.getElementById('feedbackRecognizedText_Engine');
+    if (feedbackRecognizedEl) {
+        if (recognizedTextNorm) {
+             feedbackRecognizedEl.innerHTML = `Recognized (Normalized): ${recognizedTextNorm} <hr> Target (Normalized): ${targetTextNorm} <hr> Visual Diff (what you said vs target):<br>${diffHTML}`;
+        } else {
+             feedbackRecognizedEl.innerHTML = "Could not recognize speech clearly or speech was empty. <hr> Target (Normalized): " + targetTextNorm;
+        }
+    } else {
+        console.error("[RecitationGame] FAILED to find feedbackRecognizedText_Engine for update.");
+    }
+
+    let timingFeedback = "Timing: N/A"; // Default
+    if (recitationGame_State.referenceAudioDuration > 0 && audioBlob && audioBlob.size > 100) { // Min blob size check
+        const getUserDurationPromise = new Promise((resolve, reject) => {
+            const tempUserAudio = new Audio();
+            const timeoutDuration = 7000; // 7 seconds timeout
+
+            const timer = setTimeout(() => {
+                console.warn("[RecitationGame] getUserDuration: Timeout (7s) waiting for onloadedmetadata.");
+                if (tempUserAudio.src && tempUserAudio.src.startsWith('blob:')) { URL.revokeObjectURL(tempUserAudio.src); }
+                tempUserAudio.onloadedmetadata = null;
+                tempUserAudio.onerror = null;
+                reject(new Error("Timeout loading user audio metadata."));
+            }, timeoutDuration);
+
+            tempUserAudio.onloadedmetadata = () => {
+                clearTimeout(timer);
+                //console.log("[RecitationGame] getUserDuration: onloadedmetadata fired. Duration:", tempUserAudio.duration);
+                const duration = tempUserAudio.duration;
+                if (tempUserAudio.src && tempUserAudio.src.startsWith('blob:')) { URL.revokeObjectURL(tempUserAudio.src); }
+                if (duration === Infinity || isNaN(duration) || duration <= 0) { // also check for duration <= 0
+                    reject(new Error(`Audio duration reported as ${duration}.`));
+                } else {
+                    resolve(duration);
+                }
+            };
+            tempUserAudio.onerror = (e) => {
+                clearTimeout(timer);
+                let errorDetail = e && e.target && e.target.error ? e.target.error.message : 'Unknown audio error';
+                if (e && e.target && e.target.error && e.target.error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+                    errorDetail = "Audio format not supported by browser or corrupted.";
+                }
+                console.error("[RecitationGame] getUserDuration: Error loading user audio for duration:", errorDetail);
+                if (tempUserAudio.src && tempUserAudio.src.startsWith('blob:')) { URL.revokeObjectURL(tempUserAudio.src); }
+                reject(new Error(`Failed to load user audio metadata: ${errorDetail}`));
+            };
+
+            try {
+                if (!audioBlob || audioBlob.size === 0) {
+                    clearTimeout(timer);
+                    reject(new Error("Audio blob is null or empty."));
+                    return;
+                }
+                const userAudioUrl = URL.createObjectURL(audioBlob);
+                //console.log("[RecitationGame] getUserDuration: Created object URL for audioBlob (size:", audioBlob.size, "type:", audioBlob.type, "):", userAudioUrl);
+                tempUserAudio.src = userAudioUrl;
+                // tempUserAudio.load(); // Some browsers might need this explicitly
+            } catch (urlError) {
+                clearTimeout(timer);
+                console.error("[RecitationGame] getUserDuration: Error creating object URL:", urlError);
+                reject(new Error("Error creating URL for audio blob."));
+            }
+        });
+
+        try {
+            const userDuration = await getUserDurationPromise;
+            //console.log("[RecitationGame] User audio duration successfully retrieved:", userDuration);
+            const diffPercent = ((userDuration - recitationGame_State.referenceAudioDuration) / recitationGame_State.referenceAudioDuration) * 100;
+            timingFeedback = `Timing: Your recitation was ${userDuration.toFixed(1)}s. Reference was ${recitationGame_State.referenceAudioDuration.toFixed(1)}s. `;
+            if (Math.abs(diffPercent) < 15) timingFeedback += "Very similar!";
+            else if (diffPercent > 0) timingFeedback += `(${diffPercent.toFixed(0)}% slower).`;
+            else timingFeedback += `(${Math.abs(diffPercent).toFixed(0)}% faster).`;
+        } catch (err) {
+            console.error("[RecitationGame] Error getting final user duration:", err.message);
+            timingFeedback = `Timing: Error determining your audio duration. (${err.message.substring(0, 100)})`;
+            if (audioBlob){ 
+                ////console.log("[RecitationGame] Details of audioBlob on duration error: size=", audioBlob.size, "type=", audioBlob.type);
+        }}
+    } else if (recitationGame_State.referenceAudioDuration <= 0) {
+       // timingFeedback = "Timing: N/A (Reference audio not played or duration unknown).";
+    } else {
+        timingFeedback = "Timing: N/A (User audio missing or empty).";
+        console.warn("[RecitationGame] User audio blob was null or too small for duration calculation. Size:", audioBlob ? audioBlob.size : 'null', "Min required > 100");
+    }
+
+    const feedbackTimingEl = document.getElementById('feedbackTiming_Engine');
+    if (feedbackTimingEl) {
+        feedbackTimingEl.textContent = timingFeedback;
+    } else {
+        console.error("[RecitationGame] FAILED to find feedbackTiming_Engine for update.");
+    }
+    //console.log("[RecitationGame] Timing feedback:", timingFeedback);
+
+    if (recitationGame_UI.recordingStatusText) {
+        recitationGame_UI.recordingStatusText.textContent = "Analysis complete.";
+    }
+
+    saveScore_Recitation_Engine(accuracy);
+    //console.log("[RecitationGame] analyzeUserRecitation_Engine finished.");
+}
+
+
+// Normalization specifically for comparison (more aggressive)
+function normalizeArabicForComparison_Engine(text) {
+    if (!text) return "";
+    let str = text;
+    // Remove all diacritics
+    str = str.normalize('NFD').replace(/[\u064B-\u065F\u0670\u08D4-\u08E1\u08E3-\u08FF]/g, ''); // More comprehensive diacritic removal
+    // Tatweel (Kashida)
+    str = str.replace(/\u0640/g, '');
+    // Normalize common letter variations to a single form
+    str = str.replace(/[إأآٱ]/g, 'ا'); // All Alifs to plain Alif
+    str = str.replace(/[ؤ]/g, 'و');   // Waw with Hamza above to plain Waw
+    str = str.replace(/[ئ]/g, 'ي');   // Ya with Hamza above to plain Ya (often contextually a Yaa sound)
+    str = str.replace(/[ى]/g, 'ي');   // Alif Maqsurah to Yaa
+    str = str.replace(/[ة]/g, 'ه');   // Teh Marbuta to Heh (common in spoken informal or for comparison)
+    str = str.replace(/[كک]/g, 'ك');  // Persian Kaf to Arabic Kaf
+    // Remove punctuation and numbers for pure text comparison
+    str = str.replace(/[.,!?:;"'()\[\]{}0-9٠-٩]/g, '');
+    // Collapse multiple spaces to single space and trim
+    str = str.replace(/\s+/g, ' ').trim();
+    return str;
+}
+
+
+// Levenshtein Distance for string similarity
+function levenshteinDistance_Engine(s1, s2) {
+    s1 = s1.toLowerCase(); s2 = s2.toLowerCase();
+    const costs = [];
+    for (let i = 0; i <= s1.length; i++) {
+        let lastValue = i;
+        for (let j = 0; j <= s2.length; j++) {
+            if (i === 0) costs[j] = j;
+            else if (j > 0) {
+                let newValue = costs[j - 1];
+                if (s1[i - 1] !== s2[j - 1]) newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                costs[j - 1] = lastValue;
+                lastValue = newValue;
+            }
+        }
+        if (i > 0) costs[s2.length] = lastValue;
+    }
+    return costs[s2.length];
+}
+// === QURAN RECITATION PRACTICE GAME ===
+function normalizeArabicForComparison_Engine(text) {
+    if (!text) return "";
+    let str = text;
+
+    // 1. Remove ALL diacritics (vowel marks, shaddah, madda on alif if not handled by alif normalization, etc.)
+    // Using a comprehensive range for Unicode diacritics.
+    str = str.normalize('NFD').replace(/[\u064B-\u065F\u0670\u0610-\u061A\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u08E4-\u08FF]/g, '');
+
+    // 2. Normalize specific letter variations to a common form
+    // Alifs: Normalize Alif with Madda, Hamza above/below, Wasla to plain Alif.
+    str = str.replace(/[أإآٱ]/g, 'ا');
+
+    // Yaas: Normalize Alif Maqsura to Yaa. Keep Yaa with Hamza if it's distinct.
+    // If Yaa with Hamza (ئ) should be treated as plain Yaa (ي) for typing, add it:
+    // str = str.replace(/[ىئ]/g, 'ي');
+    str = str.replace(/[ى]/g, 'ي'); // Alif Maqsura to Yaa
+
+    // Waws: Normalize Waw with Hamza to plain Waw.
+    str = str.replace(/[ؤ]/g, 'و');
+
+    // Hehs: Normalize Teh Marbuta to Heh. This is common for simplified typing.
+    // If you want to distinguish them, remove this line.
+    str = str.replace(/[ة]/g, 'ه');
+
+    // Kafs: Normalize Persian Kaf to Arabic Kaf.
+    str = str.replace(/[ک]/g, 'ك');
+    
+    // Optional: Remove Tatweel (Kashida) - connecting character.
+    str = str.replace(/\u0640/g, '');
+
+    // 3. Collapse multiple spaces to a single space and trim leading/trailing spaces.
+    str = str.replace(/\s+/g, ' ').trim();
+
+    return str;
+}
+
+
+// Calculate accuracy and generate HTML diff
+function calculateTextAccuracyAndDiff_Engine(targetNormalized, recognizedNormalized) {
+    if (!targetNormalized) return { accuracy: 0, diffHTML: "<p>(Target text missing or empty after normalization)</p>" };
+    // Allow recognized to be empty for accuracy calculation based on target
+    // if (!recognizedNormalized) return { accuracy: 0, diffHTML: "<p>(No speech recognized or empty after normalization)</p>" };
+
+    const targetWords = targetNormalized.split(/\s+/).filter(w => w.length > 0);
+    const recognizedWords = recognizedNormalized ? recognizedNormalized.split(/\s+/).filter(w => w.length > 0) : [];
+    
+    let matches = 0;
+    let diffHTML = "";
+    const maxLength = Math.max(targetWords.length, recognizedWords.length);
+
+    if (targetWords.length === 0 && recognizedWords.length > 0) {
+        // User said something, but target was empty (shouldn't happen with valid Ayah)
+         recognizedWords.forEach(recWord => {
+            diffHTML += `<span class="diff-incorrect">${recWord}</span> `;
+        });
+        return { accuracy: 0, diffHTML: `(Target was empty) You said: ${diffHTML}` };
+    }
+    if (targetWords.length === 0 && recognizedWords.length === 0) {
+        return { accuracy: 100, diffHTML: "(Both target and recognized are empty)"}; // Or 0, depends on definition
+    }
+
+
+    for (let i = 0; i < maxLength; i++) {
+        const targetWord = targetWords[i];
+        const recognizedWord = recognizedWords[i];
+
+        if (targetWord && recognizedWord) {
+            if (targetWord === recognizedWord) {
+                matches++;
+                diffHTML += `<span class="diff-correct">${recognizedWord}</span> `;
+            } else {
+                // Word mismatch
+                diffHTML += `<span class="diff-incorrect" title="You said: ${recognizedWord}\nShould be: ${targetWord}">${recognizedWord}</span> `;
+            }
+        } else if (recognizedWord) { // Extra word in recognized (user said more than target)
+            diffHTML += `<span class="diff-incorrect" title="Extra word: ${recognizedWord}">${recognizedWord}</span> `;
+        } else if (targetWord) { // Missing word in recognized (user said less than target)
+            diffHTML += `<span class="diff-missing" title="Missing: ${targetWord}">(${targetWord})</span> `;
+        }
+    }
+    
+    // Accuracy based on matched words vs. target words length
+    // If recognized is shorter than target, unattempted target words are effectively "misses" for accuracy.
+    const accuracy = targetWords.length > 0 ? (matches / targetWords.length) * 100 : (recognizedWords.length === 0 ? 100 : 0);
+    
+    // Ensure accuracy is not negative if recognizedWords.length > targetWords.length but all initial words matched.
+    const finalAccuracy = Math.max(0, Math.min(100, accuracy));
+
+    return { accuracy: finalAccuracy, diffHTML };
+}
+
+
+async function saveScore_Recitation_Engine(accuracy) {
+    if (!recitationGame_State.ayahKey) {
+        console.warn("saveScore_Recitation_Engine: Ayah key is not set. Cannot save score.");
+        return;
+    }
+    try {
+        const key = `recitationPractice_${recitationGame_State.ayahKey}_bestAccuracy`;
+        const existingBestAccuracyText = localStorage.getItem(key);
+        const existingBestAccuracy = existingBestAccuracyText ? parseFloat(existingBestAccuracyText) : 0;
+        
+        const newBestAccuracy = Math.max(existingBestAccuracy, accuracy);
+
+        localStorage.setItem(key, newBestAccuracy.toString());
+
+        // Also store last attempt info if desired
+        localStorage.setItem(`recitationPractice_${recitationGame_State.ayahKey}_lastAttemptDate`, new Date().toISOString());
+        localStorage.setItem(`recitationPractice_${recitationGame_State.ayahKey}_lastScore`, accuracy.toString());
+
+        if (recitationGame_UI.bestScoreDisplay) {
+            recitationGame_UI.bestScoreDisplay.textContent = `${newBestAccuracy.toFixed(0)}`;
+        } else {
+            console.warn("saveScore_Recitation_Engine: bestScoreDisplay UI element not found.");
+        }
+    } catch (error) {
+        console.error("Error saving recitation game score to localStorage:", error);
+    }
+}
+
+async function loadBestScore_Recitation_Engine() {
+    if (recitationGame_UI.bestScoreDisplay) {
+        recitationGame_UI.bestScoreDisplay.textContent = '-'; // Default
+    } else {
+        console.warn("loadBestScore_Recitation_Engine: bestScoreDisplay UI element not found, cannot set default.");
+    }
+
+    if (!recitationGame_State.ayahKey) {
+        console.warn("loadBestScore_Recitation_Engine: Ayah key is not set. Cannot load score.");
+        return;
+    }
+    try {
+        const key = `recitationPractice_${recitationGame_State.ayahKey}_bestAccuracy`;
+        const bestAccuracyText = localStorage.getItem(key);
+        const bestAccuracy = bestAccuracyText ? parseFloat(bestAccuracyText) : 0;
+
+        if (recitationGame_UI.bestScoreDisplay) {
+            recitationGame_UI.bestScoreDisplay.textContent = `${bestAccuracy.toFixed(0)}`;
+        }
+    } catch (error) {
+        console.error("Error loading best recitation game score from localStorage:", error);
+    }
+}
+
+
+
+// --- Add Button to Main Game Modal ---
+function addRecitationPracticeGameButtonToModal() {
+    const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
+    const buttonId = 'startRecitationPracticeGameBtn';
+
+    if (gameSelectionArea && !document.getElementById(buttonId)) {
+        const recitationGameButton = document.createElement('button');
+        recitationGameButton.id = buttonId;
+        recitationGameButton.className = 'game-select-btn';
+        recitationGameButton.textContent = 'Recitation Practice';
+        recitationGameButton.addEventListener('click', startRecitationPracticeGame_Engine);
+        
+        const existingButtons = gameSelectionArea.querySelectorAll('.game-select-btn');
+        if (existingButtons.length > 0) {
+            existingButtons[existingButtons.length - 1].insertAdjacentElement('afterend', recitationGameButton);
+        } else {
+            const pElement = gameSelectionArea.querySelector('p');
+            if (pElement) pElement.insertAdjacentElement('afterend', recitationGameButton);
+            else gameSelectionArea.appendChild(recitationGameButton);
+        }
+    }
+}
+
+if (document.getElementById('quranGameModal')) {
+    addRecitationPracticeGameButtonToModal();
+} else {
+    // If modal isn't there yet, might need to defer this call or ensure modal setup runs first
+    const observer = new MutationObserver((mutationsList, obs) => {
+        for(const mutation of mutationsList) {
+            if (mutation.type === 'childList') {
+                const modal = document.getElementById('quranGameModal');
+                if (modal) {
+                    addRecitationPracticeGameButtonToModal();
+                    obs.disconnect(); // Stop observing once added
+                    return;
+                }
+            }
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+}
+
+// When main game modal is closed, ensure this game's state is reset if it was active
+// Modify your existing game modal close logic or add an event listener:
+const mainGameModalForRecitationCleanup = document.getElementById('quranGameModal');
+if (mainGameModalForRecitationCleanup) {
+    const originalCloseHandler = () => { // Assuming you have similar logic in your main game modal
+        if (recitationGame_State.gameActive) {
+            stopReferenceAudio_Engine();
+            if (recitationGame_State.isRecording) stopUserRecording_Recitation_Engine();
+            if (recitationGame_State.speechRecognition) recitationGame_State.speechRecognition.abort();
+            recitationGame_State.gameActive = false;
+            console.log("Recitation practice game state reset due to modal close.");
+        }
+        // ... your existing modal close logic (e.g., modal.style.display = 'none'; resetGameUI();)
+    };
+    // Example: if you have a close button with class 'game-close-button'
+    const gameModalCloseBtn = mainGameModalForRecitationCleanup.querySelector('.game-close-button');
+    if(gameModalCloseBtn) {
+        // It's tricky to "add" to an existing listener without replacing it or knowing its structure.
+        // For robust integration, this cleanup should be part of the *same* function that handles
+        // the main game modal's close action.
+        // As a simpler, potentially additive approach if the button might have multiple listeners:
+        gameModalCloseBtn.addEventListener('click', () => {
+             if (recitationGame_State.gameActive) {
+                // Simplified cleanup for this specific context
+                stopReferenceAudio_Engine();
+                if (recitationGame_State.isRecording && recitationGame_State.userAudioRecorder) {
+                    recitationGame_State.userAudioRecorder.stop(); // Will try to process
+                }
+                 if (recitationGame_State.speechRecognition) recitationGame_State.speechRecognition.abort();
+                recitationGame_State.gameActive = false;
+                recitationGame_State.isRecording = false;
+             }
+        });
+    }
+    
+}
+
+
+
+(function() { // IIFE to keep it self-contained
+
+    const GAME_MODAL_LAUNCH_BUTTON_ID = 'openGamesModalBtn';
+    const TARGET_ELEMENT_FOR_FULLSCREEN_ID = 'quranGameModal'; // The modal itself
+    const INITIALIZATION_DELAY_MS = 300; // Delay after window load to find the button
+
+    function requestFullscreenForElement(elementId) {
+        const targetElement = document.getElementById(elementId);
+
+        if (!targetElement) {
+            console.error(`Fullscreen Targeter: Element with ID "${elementId}" not found. Cannot go fullscreen.`);
+            return;
+        }
+
+        // Check if the target element is visible. Fullscreen might fail or be weird for hidden elements.
+        // This check happens *after* the original click handler for the button runs,
+        // which should make the modal visible.
+        if (targetElement.style.display === 'none' || getComputedStyle(targetElement).display === 'none') {
+            console.warn(`Fullscreen Targeter: Target element "${elementId}" is not visible. Fullscreen might not work as expected. Ensuring original click handler makes it visible.`);
+        }
+        
+        //console.log(`Fullscreen Targeter: Attempting browser fullscreen for #${elementId}`);
+        
+        // Prevent re-requesting if already in fullscreen with *any* element,
+        // or specifically with *this* element if you want to allow switching.
+        // For simplicity, let's prevent re-request if *any* element is fullscreen.
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+            //console.log("Fullscreen Targeter: Already in browser fullscreen mode with some element.");
+            return; 
+        }
+
+        if (targetElement.requestFullscreen) {
+            targetElement.requestFullscreen().catch(err => console.warn("Fullscreen Targeter: Fullscreen request failed:", err.message, err.name));
+        } else if (targetElement.webkitRequestFullscreen) { // Safari
+            targetElement.webkitRequestFullscreen().catch(err => console.warn("Fullscreen Targeter: Fullscreen request failed (webkit):", err.message, err.name));
+        } else if (targetElement.mozRequestFullScreen) { // Older Firefox
+            targetElement.mozRequestFullScreen(); // Note: Older Firefox API might not return a Promise
+        } else if (targetElement.msRequestFullscreen) { // IE11
+            targetElement.msRequestFullscreen();
+        } else {
+            console.warn(`Fullscreen Targeter: Browser Fullscreen API not supported for the element "${elementId}".`);
+        }
+    }
+
+    function setupLaunchButtonListenerForFullscreen() {
+        const launchButton = document.getElementById(GAME_MODAL_LAUNCH_BUTTON_ID);
+
+        if (launchButton) {
+            //console.log(`Fullscreen Targeter: Found launch button #${GAME_MODAL_LAUNCH_BUTTON_ID}. Attaching listener.`);
+            launchButton.addEventListener('click', (event) => {
+                // The original click handler on this button (added by setupGameModal)
+                // is responsible for making the modal visible.
+                // We add our fullscreen request *after* that original handler has likely executed.
+                // A short timeout ensures the modal is in the DOM and visible.
+                //console.log(`Fullscreen Targeter: Button #${GAME_MODAL_LAUNCH_BUTTON_ID} clicked. Scheduling fullscreen request.`);
+                setTimeout(() => {
+                    requestFullscreenForElement(TARGET_ELEMENT_FOR_FULLSCREEN_ID);
+                }, 50); // 50ms delay, adjust if needed for your modal's display logic
+            });
+        } else {
+            console.warn(`Fullscreen Targeter: Launch button #${GAME_MODAL_LAUNCH_BUTTON_ID} not found after delay. Fullscreen on click will not be enabled.`);
+        }
+    }
+
+    // Wait for the window to load fully, then wait a bit more for dynamic elements
+    window.addEventListener('load', () => {
+        //console.log("Fullscreen Targeter: Window 'load' event fired.");
+        setTimeout(() => {
+            //console.log(`Fullscreen Targeter: Attempting to set up launch button listener after ${INITIALIZATION_DELAY_MS}ms delay post-load.`);
+            setupLaunchButtonListenerForFullscreen();
+        }, INITIALIZATION_DELAY_MS);
+    });
+
+    function logFullscreenExit(event) {
+        if (!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement)) {
+            //console.log("Fullscreen Targeter: Browser exited fullscreen mode.");
+            // You could add logic here if the modal needs to be re-styled or hidden when FS exits.
+            // For example, if your modal's visibility was tied to FS:
+            // const modal = document.getElementById(TARGET_ELEMENT_FOR_FULLSCREEN_ID);
+            // if (modal) modal.style.display = 'none'; // Hide it if FS is exited by user
+        }
+    }
+    document.addEventListener('fullscreenchange', logFullscreenExit);
+    document.addEventListener('webkitfullscreenchange', logFullscreenExit);
+    document.addEventListener('mozfullscreenchange', logFullscreenExit);
+    document.addEventListener('MSFullscreenChange', logFullscreenExit);
+
+    //console.log("Fullscreen Targeter: Logic for making game modal fullscreen on button click initialized.");
+
+})();
+
 </script>
