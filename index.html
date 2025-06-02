@@ -783,8 +783,8 @@
             }
 button#launchFullScreenReaderBtnEnhanced {
     position: absolute;
-    right: 101px;
-    top: 115px;
+    right: 83px;
+    top: 71px;
 }
 button#quitGameButton {
     position: fixed;
@@ -8324,19 +8324,17 @@ function setupLaunchButtonForStandaloneFullscreenWithTimeout() {
             // This 'else' correctly corresponds to 'if (launchButton)'
             console.warn("[StandaloneFS with Timeout] #launchFullScreenReaderBtnEnhanced button not found after timeout. Fullscreen will not be triggered.");
         }
-    }, 400); // Timeout duration
+    }, 500); // Timeout duration
 }
 
-    // --- MODIFIED SETUP ---
-    // Wait for the full window to load, then wait an additional 300ms
-    window.addEventListener('load', () => {
-        //console.log("[StandaloneFS] Window 'load' event fired.");
-        setTimeout(() => {
-            //console.log("[StandaloneFS] Attempting to set up launch button after 300ms delay post-load.");
-            setupLaunchButtonForStandaloneFullscreenWithTimeout();
-        }, 300); // 0.3 seconds delay
-    });
-    // --- END MODIFIED SETUP ---
+window.addEventListener('load', () => {
+    //console.log("[StandaloneFS] Window 'load' event fired.");
+    setTimeout(() => {
+        //console.log("[StandaloneFS] Attempting to set up launch button after 300ms delay post-load.");
+        setupLaunchButtonForStandaloneFullscreenWithTimeout();
+    }, 500); // 0.3 seconds delay
+});
+
 
 
     function handleFullscreenChange() {
@@ -9551,7 +9549,7 @@ if (mainGameModalForRecitationCleanup) {
 
 
 
-(function() { // IIFE to keep it self-contained
+(function() {
 
     const GAME_MODAL_LAUNCH_BUTTON_ID = 'openGamesModalBtn';
     const TARGET_ELEMENT_FOR_FULLSCREEN_ID = 'quranGameModal'; // The modal itself
@@ -9608,7 +9606,7 @@ if (mainGameModalForRecitationCleanup) {
                 //console.log(`Fullscreen Targeter: Button #${GAME_MODAL_LAUNCH_BUTTON_ID} clicked. Scheduling fullscreen request.`);
                 setTimeout(() => {
                     requestFullscreenForElement(TARGET_ELEMENT_FOR_FULLSCREEN_ID);
-                }, 50); // 50ms delay, adjust if needed for your modal's display logic
+                }, 200); // 50ms delay, adjust if needed for your modal's display logic
             });
         } else {
             console.warn(`Fullscreen Targeter: Launch button #${GAME_MODAL_LAUNCH_BUTTON_ID} not found after delay. Fullscreen on click will not be enabled.`);
@@ -9642,4 +9640,106 @@ if (mainGameModalForRecitationCleanup) {
 
 })();
 
+
+
+// === BROWSER FULLSCREEN FOR ENHANCED QURAN READER OVERLAY ===
+// Place this at the very end of your <script> tag, after all other code.
+(function() { // IIFE to keep it self-contained
+
+    const READER_LAUNCH_BUTTON_ID = 'launchFullScreenReaderBtnEnhanced';
+    const READER_OVERLAY_ID = 'fullScreenReaderOverlay';
+    // Delay after window.load to ensure the launch button itself is likely created by other scripts.
+    const INITIALIZATION_DELAY_MS = 500; // Increased slightly for safety
+    // Delay after the launch button is clicked, to allow the overlay to be created by its original handler.
+    const FULLSCREEN_REQUEST_DELAY_MS = 200; // Delay to wait for overlay creation
+
+    function requestFullscreenForReaderOverlay(elementId) {
+        const targetElement = document.getElementById(elementId);
+
+        if (!targetElement) {
+            console.error(`Reader FS Overlay: Element with ID "${elementId}" not found. Cannot go fullscreen.`);
+            return;
+        }
+
+        // The overlay should be made visible by the launchFullScreenQuranReaderEnhanced function
+        // before this fullscreen request is attempted.
+        if (targetElement.style.display === 'none' || getComputedStyle(targetElement).display === 'none') {
+            console.warn(`Reader FS Overlay: Target overlay "${elementId}" is not visible. Fullscreen might not work as expected. Ensure launchFullScreenQuranReaderEnhanced() makes it visible.`);
+        }
+        
+        console.log(`Reader FS Overlay: Attempting browser fullscreen for #${elementId}`);
+        
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+            console.log("Reader FS Overlay: Already in browser fullscreen mode with some element. Will not re-request for overlay.");
+            // If you want to allow switching fullscreen target, this logic might need adjustment.
+            // For now, if anything is fullscreen, we don't try to make the overlay also fullscreen.
+            return; 
+        }
+
+        if (targetElement.requestFullscreen) {
+            targetElement.requestFullscreen().catch(err => console.warn("Reader FS Overlay: Fullscreen request failed:", err.message, err.name));
+        } else if (targetElement.webkitRequestFullscreen) { // Safari
+            targetElement.webkitRequestFullscreen().catch(err => console.warn("Reader FS Overlay: Fullscreen request failed (webkit):", err.message, err.name));
+        } else if (targetElement.mozRequestFullScreen) { // Older Firefox
+            targetElement.mozRequestFullScreen();
+        } else if (targetElement.msRequestFullscreen) { // IE11
+            targetElement.msRequestFullscreen();
+        } else {
+            console.warn(`Reader FS Overlay: Browser Fullscreen API not supported for the element "${elementId}".`);
+        }
+    }
+
+    function setupReaderFullscreenLaunchListener() {
+        const launchButton = document.getElementById(READER_LAUNCH_BUTTON_ID);
+
+        if (launchButton) {
+            console.log(`Reader FS Overlay: Found launch button #${READER_LAUNCH_BUTTON_ID}. Attaching additional click listener for fullscreen.`);
+            
+            // This adds a *new* listener. The original listener on this button
+            // (from addEnhancedFullScreenReaderLaunchButton) will still execute first,
+            // launching the reader and creating the overlay.
+            launchButton.addEventListener('click', () => {
+                console.log(`Reader FS Overlay: Button #${READER_LAUNCH_BUTTON_ID} clicked. Scheduling fullscreen request for overlay.`);
+                
+                // Wait for the launchFullScreenQuranReaderEnhanced() function (called by the original listener)
+                // to create and display the READER_OVERLAY_ID element.
+                setTimeout(() => {
+                    requestFullscreenForReaderOverlay(READER_OVERLAY_ID);
+                }, FULLSCREEN_REQUEST_DELAY_MS);
+            });
+        } else {
+            console.warn(`Reader FS Overlay: Launch button #${READER_LAUNCH_BUTTON_ID} not found after delay. Fullscreen on click will not be enabled for reader overlay.`);
+        }
+    }
+
+    // Wait for the window to load fully, then wait a bit more for dynamic elements like the button to be created.
+    window.addEventListener('load', () => {
+        console.log("Reader FS Overlay: Window 'load' event fired.");
+        setTimeout(() => {
+            console.log(`Reader FS Overlay: Attempting to set up launch button listener after ${INITIALIZATION_DELAY_MS}ms delay post-load.`);
+            setupReaderFullscreenLaunchListener();
+        }, INITIALIZATION_DELAY_MS);
+    });
+
+    function logReaderFullscreenExit(event) {
+        // This function is called when the browser exits *any* fullscreen mode.
+        // We check if the fullscreen element was our reader overlay.
+        const readerOverlayElement = document.getElementById(READER_OVERLAY_ID);
+        
+        // If no element is fullscreen, and previously our overlay might have been...
+        if (!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement)) {
+            console.log("Reader FS Overlay: Browser exited fullscreen mode.");
+            // If you need specific actions when the READER OVERLAY exits fullscreen,
+            // you might need to track its fullscreen state more precisely.
+            // For now, this just logs any fullscreen exit.
+        }
+    }
+    document.addEventListener('fullscreenchange', logReaderFullscreenExit);
+    document.addEventListener('webkitfullscreenchange', logReaderFullscreenExit);
+    document.addEventListener('mozfullscreenchange', logReaderFullscreenExit);
+    document.addEventListener('MSFullscreenChange', logReaderFullscreenExit);
+
+    console.log("Reader FS Overlay: Logic for making Quran reader overlay fullscreen on button click initialized.");
+
+})();
 </script>
