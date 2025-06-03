@@ -1364,32 +1364,25 @@
             return transaction.objectStore(storeName);
         }
         async function populateThemesIndexList() {
-            //console.log("populateThemesIndexList: Function called."); // Log function entry
             const themeListEl = document.getElementById('fsIndexThemeList');
             const searchInput = document.getElementById('fsThematicIndexSearchInput');
             if (!themeListEl) {
-                //console.error("populateThemesIndexList: CRITICAL - Theme list element '#fsIndexThemeList' not found in DOM!");
                 const contentDiv = document.getElementById('fsReaderContent');
                 if (contentDiv) contentDiv.innerHTML = "<p style='color:red; text-align:center;'>Error: Theme list UI element missing.</p>";
                 return;
             }
             if (!searchInput) {
-                //console.warn("populateThemesIndexList: Theme search input '#fsThematicIndexSearchInput' not found. Search will not work.");
             }
             themeListEl.innerHTML = '<li>Loading themes...</li>'; // Initial message
             let dbThemes = [];
             try {
                 if (db && typeof getAllData === "function") { // Ensure DB is open and function exists
                     dbThemes = await getAllData(STORE_THEMES);
-                    //console.log("populateThemesIndexList: Fetched DB themes:", dbThemes ? dbThemes.length : 'null/undefined');
                 } else {
-                    //console.warn("populateThemesIndexList: Database not ready or getAllData not available. Proceeding with static themes only.");
                 }
             } catch (dbError) {
-                //console.error("populateThemesIndexList: Error fetching DB themes:", dbError);
             }
             if (typeof staticQuranicThemes === 'undefined' || !Array.isArray(staticQuranicThemes)) {
-                //console.error("populateThemesIndexList: CRITICAL - staticQuranicThemes array is not defined!");
                 themeListEl.innerHTML = '<li>Error: Static theme data is missing.</li>';
                 return;
             }
@@ -2265,54 +2258,33 @@
                 console.warn(`Navigation aborted for theme "${themeId}" due to invalid targetSurah/Ayah.`);
             }
         }
-        
         let isLoadingThemesListGlobalFlag = false;
-
         async function displayThemesList() {
             if (!db) {
-                //console.warn('[displayThemesList] DB not ready.');
                 return;
             }
             if (isLoadingThemesListGlobalFlag) {
-                //console.warn('[displayThemesList] Already in progress. Call skipped.');
                 return;
             }
-
             isLoadingThemesListGlobalFlag = true;
             const themesListElement = document.getElementById('themes-list');
-
             if (!themesListElement) {
                 console.error('[displayThemesList] Element with ID "themes-list" not found.');
                 isLoadingThemesListGlobalFlag = false;
                 return;
             }
-
-            // console.log('[displayThemesList] Entry. Current children in themesListElement:', themesListElement.children.length);
             themesListElement.innerHTML = ''; // Clear the list at the very beginning
-            // console.log('[displayThemesList] After clear. Current children in themesListElement:', themesListElement.children.length);
-
-            // No showLoading/hideLoading here unless it's a very long operation,
-            // as this is often called during section switches which might have their own loading indicators.
-            // If it becomes slow, consider adding a more localized loading indicator.
-
             try {
                 const themes = await getAllData(STORE_THEMES);
-                // console.log('[displayThemesList] Fetched themes. Count:', themes.length);
-
                 if (!themesListElement.parentNode) {
-                    // If themesListElement was removed from DOM during await, stop.
-                    //console.warn('[displayThemesList] themesListElement no longer in DOM after fetching data.');
                     isLoadingThemesListGlobalFlag = false;
                     return;
                 }
-
                 if (themes.length === 0) {
                     themesListElement.innerHTML = '<li>No themes added yet.</li>';
                 } else {
                     themes.forEach(theme => {
                         const li = document.createElement('li');
-                        // Ensure unique IDs for buttons if they are generated this way, or use event delegation.
-                        // For simplicity here, assuming IDs are not strictly needed if event listeners are re-attached properly.
                         li.innerHTML = `
                             <span data-theme-id="${theme.id}" class="view-theme-ayahs" tabindex="0" role="button" aria-label="View ayahs for theme ${theme.name}">${theme.name}</span>
                             <div class="theme-actions" style="display: inline-block;">
@@ -2321,17 +2293,12 @@
                         `;
                         themesListElement.appendChild(li);
                     });
-                    // console.log('[displayThemesList] After populating. Current children in themesListElement:', themesListElement.children.length);
-
-                    // Re-attach event listeners after clearing and re-populating
                     themesListElement.querySelectorAll('.view-theme-ayahs').forEach(span => {
-                        // Clone-and-replace to ensure clean listeners
                         const newSpan = span.cloneNode(true);
                         span.parentNode.replaceChild(newSpan, span);
                         newSpan.addEventListener('click', handleViewThemeAyahs);
                         newSpan.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') handleViewThemeAyahs(e); });
                     });
-
                     themesListElement.querySelectorAll('.delete-theme-btn').forEach(button => {
                         const newButton = button.cloneNode(true);
                         button.parentNode.replaceChild(newButton, button);
@@ -2341,13 +2308,12 @@
             } catch (error) {
                 console.error("[displayThemesList] Error:", error);
                 if (themesListElement) {
-                themesListElement.innerHTML = `<li>Error loading themes: ${error.message}</li>`;
+                    themesListElement.innerHTML = `<li>Error loading themes: ${error.message}</li>`;
                 }
             } finally {
                 isLoadingThemesListGlobalFlag = false; // Reset the flag
             }
         }
-
         async function addTheme() {
             if (!db) return;
             const nameInput = document.getElementById('new-theme-name');
@@ -2438,27 +2404,23 @@
             }
         }
         async function handleGoToAyahFromThemeModal(event) {
-                const surah = parseInt(event.currentTarget.getAttribute('data-surah'), 10);
-                const ayah = parseInt(event.currentTarget.getAttribute('data-ayah'), 10);
-
-                if (!isNaN(surah) && !isNaN(ayah)) {
-                    // Close the modal first
-                    const modal = document.getElementById('themeAyahsModal');
-                    if (modal) {
-                        modal.style.display = 'none';
-                    }
-
-                    // Load Ayah and switch section (assuming these functions are globally available)
-                    if (typeof loadAyah === 'function' && typeof window.showSection === 'function') {
-                        await loadAyah(surah, ayah);
-                        window.showSection('quran'); // Use the globally patched showSection
-                    } else {
-                        console.error("loadAyah or showSection function not found.");
-                        alert("Error navigating to Ayah. Required functions are missing.");
-                    }
-                } else {
-                    console.warn("Invalid Surah/Ayah data on clicked element:", event.currentTarget.dataset);
+            const surah = parseInt(event.currentTarget.getAttribute('data-surah'), 10);
+            const ayah = parseInt(event.currentTarget.getAttribute('data-ayah'), 10);
+            if (!isNaN(surah) && !isNaN(ayah)) {
+                const modal = document.getElementById('themeAyahsModal');
+                if (modal) {
+                    modal.style.display = 'none';
                 }
+                if (typeof loadAyah === 'function' && typeof window.showSection === 'function') {
+                    await loadAyah(surah, ayah);
+                    window.showSection('quran'); // Use the globally patched showSection
+                } else {
+                    console.error("loadAyah or showSection function not found.");
+                    alert("Error navigating to Ayah. Required functions are missing.");
+                }
+            } else {
+                console.warn("Invalid Surah/Ayah data on clicked element:", event.currentTarget.dataset);
+            }
         }
         async function handleViewThemeAyahs(event) {
             if (!db) return;
@@ -2467,25 +2429,21 @@
                 console.warn("handleViewThemeAyahs: Could not determine themeId from event target.", event.target);
                 return;
             }
-
             showLoading("Loading linked ayahs...");
             try {
                 const theme = await getData(STORE_THEMES, themeId);
                 if (!theme) {
-                    setStatusMessage('theme-manager-status', 'Theme not found.', true); 
-                    hideLoading(); 
+                    setStatusMessage('theme-manager-status', 'Theme not found.', true);
+                    hideLoading();
                     return;
                 }
-
                 document.getElementById('modal-theme-name').textContent = theme.name;
                 const listEl = document.getElementById('modal-linked-ayahs-list');
                 listEl.innerHTML = ''; // Clear previous
-
                 const store = getObjectStore(STORE_THEME_AYAHS, 'readonly');
                 const index = store.index('themeId');
                 const request = index.openCursor(IDBKeyRange.only(themeId));
                 const linkedAyahs = [];
-
                 request.onsuccess = (e) => {
                     const cursor = e.target.result;
                     if (cursor) {
@@ -2498,7 +2456,6 @@
                             linkedAyahs.sort((a, b) => (a.surah !== b.surah) ? a.surah - b.surah : a.ayah - b.ayah);
                             linkedAyahs.forEach(link => {
                                 const li = document.createElement('li');
-                                // **** MODIFICATION START ****
                                 li.innerHTML = `
                                     <strong>
                                         <span class="item-surah-ayah theme-modal-ayah-link" 
@@ -2513,18 +2470,13 @@
                                     ${link.notes ? ` - <em>${link.notes.substring(0, 100)}${link.notes.length > 100 ? '...' : ''}</em>` : ''}
                                     <button data-link-id="${link.id}" class="delete-theme-link-btn" style="margin-left: 10px;" aria-label="Unlink Ayah ${link.surah}:${link.ayah} from this theme">Unlink</button>
                                 `;
-                                // **** MODIFICATION END ****
                                 listEl.appendChild(li);
                             });
-
-                            // Add event listeners to newly created elements
                             listEl.querySelectorAll('.delete-theme-link-btn').forEach(button => {
                                 const newButton = button.cloneNode(true); // Clone to ensure fresh listeners
                                 button.parentNode.replaceChild(newButton, button);
                                 newButton.addEventListener('click', handleDeleteThemeLink);
                             });
-                            
-                            // **** NEW: Add event listeners for clickable Ayah links ****
                             listEl.querySelectorAll('.theme-modal-ayah-link').forEach(span => {
                                 const newSpan = span.cloneNode(true); // Clone for clean listeners
                                 span.parentNode.replaceChild(newSpan, span);
@@ -2542,17 +2494,15 @@
                         document.getElementById('themeAyahsModalTitle').focus();
                     }
                 };
-                request.onerror = () => { 
-                    listEl.innerHTML = `<li>Error loading linked Ayahs.</li>`; 
-                    hideLoading(); 
+                request.onerror = () => {
+                    listEl.innerHTML = `<li>Error loading linked Ayahs.</li>`;
+                    hideLoading();
                 };
             } catch (error) {
-                setStatusMessage('theme-manager-status', 'Failed to load theme details.', true); 
+                setStatusMessage('theme-manager-status', 'Failed to load theme details.', true);
                 hideLoading();
             }
         }
-        
-       
         async function handleDeleteThemeLink(event) {
             if (!db) return;
             const linkId = parseInt(event.target.getAttribute('data-link-id'), 10);
@@ -3039,59 +2989,39 @@
                 if (rootNodePopupEl) rootNodePopupEl.style.display = 'none';
             }
         }
-        
-
         let isLoadingRecitationLogsGlobalFlag = false;
-
-            async function loadRecitationLogs() {
-                if (!db) {
-                    //console.warn('[loadRecitationLogs] DB not ready.');
-                    return;
-                }
-                if (isLoadingRecitationLogsGlobalFlag) {
-                    //console.warn('[loadRecitationLogs] Already in progress. Call skipped.');
-                    return;
-                }
-
-                isLoadingRecitationLogsGlobalFlag = true;
-                const listEl = document.getElementById('recitations-list');
-
-                // Ensure listEl exists before trying to manipulate it
-                if (!listEl) {
-                    console.error('[loadRecitationLogs] Element with ID "recitations-list" not found.');
+        async function loadRecitationLogs() {
+            if (!db) {
+                return;
+            }
+            if (isLoadingRecitationLogsGlobalFlag) {
+                return;
+            }
+            isLoadingRecitationLogsGlobalFlag = true;
+            const listEl = document.getElementById('recitations-list');
+            if (!listEl) {
+                console.error('[loadRecitationLogs] Element with ID "recitations-list" not found.');
+                isLoadingRecitationLogsGlobalFlag = false;
+                return;
+            }
+            listEl.innerHTML = ''; // Clear the list at the very beginning
+            showLoading("Loading recitation logs...");
+            try {
+                const logs = await getAllData(STORE_RECITATIONS);
+                if (!listEl.parentNode) {
                     isLoadingRecitationLogsGlobalFlag = false;
+                    hideLoading();
                     return;
                 }
-                
-                // console.log('[loadRecitationLogs] Entry. Current children in listEl:', listEl.children.length);
-                
-                listEl.innerHTML = ''; // Clear the list at the very beginning
-                // console.log('[loadRecitationLogs] After clear. Current children in listEl:', listEl.children.length);
-
-                showLoading("Loading recitation logs...");
-                
-                try {
-                    const logs = await getAllData(STORE_RECITATIONS);
-                    // console.log('[loadRecitationLogs] Fetched logs. Count:', logs.length);
-
-                    if (!listEl.parentNode) {
-                        // If listEl was removed from DOM during await, stop.
-                        //console.warn('[loadRecitationLogs] listEl no longer in DOM after fetching data.');
-                        isLoadingRecitationLogsGlobalFlag = false;
-                        hideLoading();
-                        return;
-                    }
-
-                    if (logs.length === 0) {
-                        listEl.innerHTML = '<li>No entries logged yet.</li>';
-                    } else {
-                        logs.sort((a, b) => new Date(b.date) - new Date(a.date));
-                        
-                        logs.forEach(log => {
-                            const li = document.createElement('li');
-                            const range = log.ayahStart && log.ayahEnd ? `Ayahs ${log.ayahStart}-${log.ayahEnd}` :
-                                log.ayahStart ? `Ayah ${log.ayahStart}` : 'Full Surah';
-                            li.innerHTML = `
+                if (logs.length === 0) {
+                    listEl.innerHTML = '<li>No entries logged yet.</li>';
+                } else {
+                    logs.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    logs.forEach(log => {
+                        const li = document.createElement('li');
+                        const range = log.ayahStart && log.ayahEnd ? `Ayahs ${log.ayahStart}-${log.ayahEnd}` :
+                            log.ayahStart ? `Ayah ${log.ayahStart}` : 'Full Surah';
+                        li.innerHTML = `
                                 <strong>S ${log.surah} (${surahNames[log.surah - 1]})</strong> - ${range} <br>
                                 Qari: ${log.qari || 'N/A'} | Date: ${log.date || 'N/A'}
                                 ${log.notes ? `<br>Notes: <em>${log.notes}</em>` : ''}
@@ -3099,27 +3029,24 @@
                                     <button data-log-id="${log.id}" class="delete-recitation-btn">Delete</button>
                                 </div>
                             `;
-                            listEl.appendChild(li);
-                        });
-                        // console.log('[loadRecitationLogs] After populating. Current children in listEl:', listEl.children.length);
-
-                        listEl.querySelectorAll('.delete-recitation-btn').forEach(button => {
-                            // Remove old listener if any (safer for complex scenarios, though innerHTML='' should handle)
-                            const newButton = button.cloneNode(true);
-                            button.parentNode.replaceChild(newButton, button);
-                            newButton.addEventListener('click', handleDeleteRecitationLog);
-                        });
-                    }
-                } catch (error) {
-                    console.error("[loadRecitationLogs] Error:", error);
-                    if (listEl) { // Check if listEl still exists before modifying
-                    listEl.innerHTML = `<li>Error loading recitation logs: ${error.message}</li>`;
-                    }
-                } finally {
-                    hideLoading();
-                    isLoadingRecitationLogsGlobalFlag = false; // Reset the flag
+                        listEl.appendChild(li);
+                    });
+                    listEl.querySelectorAll('.delete-recitation-btn').forEach(button => {
+                        const newButton = button.cloneNode(true);
+                        button.parentNode.replaceChild(newButton, button);
+                        newButton.addEventListener('click', handleDeleteRecitationLog);
+                    });
                 }
+            } catch (error) {
+                console.error("[loadRecitationLogs] Error:", error);
+                if (listEl) { // Check if listEl still exists before modifying
+                    listEl.innerHTML = `<li>Error loading recitation logs: ${error.message}</li>`;
+                }
+            } finally {
+                hideLoading();
+                isLoadingRecitationLogsGlobalFlag = false; // Reset the flag
             }
+        }
         async function saveRecitationLog() {
             if (!db) return;
             const surah = parseInt(document.getElementById('rec-surah-select').value, 10);
@@ -3167,52 +3094,32 @@
             }
         }
         let isLoadingHifzForSurahGlobalFlag = false;
-
         async function loadHifzForSurah(surah) {
             if (!db) {
-                //console.warn('[loadHifzForSurah] DB not ready.');
                 return;
             }
-
-            // Check if this specific Surah is already being loaded or was just loaded
-            // This requires a more nuanced flag if you want to allow switching Surahs rapidly
-            // For now, a simple global flag to prevent any concurrent execution.
             if (isLoadingHifzForSurahGlobalFlag) {
-                //console.warn('[loadHifzForSurah] Already in progress for a surah. Call skipped for Surah:', surah);
                 return;
             }
-
             isLoadingHifzForSurahGlobalFlag = true;
             const listEl = document.getElementById('hifz-ayahs-list');
-
             if (!listEl) {
                 console.error('[loadHifzForSurah] Element with ID "hifz-ayahs-list" not found.');
                 isLoadingHifzForSurahGlobalFlag = false;
                 return;
             }
-
-            // console.log(`[loadHifzForSurah] Entry for Surah ${surah}. Current children in listEl:`, listEl.children.length);
             listEl.innerHTML = ''; // Clear the list at the very beginning
-            // console.log(`[loadHifzForSurah] After clear for Surah ${surah}. Current children in listEl:`, listEl.children.length);
-
             if (isNaN(surah) || surah < 1 || surah > 114) {
                 listEl.innerHTML = '<p class="text-center">Select a valid Surah.</p>';
                 isLoadingHifzForSurahGlobalFlag = false;
                 return;
             }
-
-            showLoading(`Loading Hifz for Surah ${surah} (${surahNames[surah-1] || ''})...`);
-            
+            showLoading(`Loading Hifz for Surah ${surah} (${surahNames[surah - 1] || ''})...`);
             try {
                 const totalAyahs = surahAyahCounts[surah]; // Ensure surahAyahCounts is globally available
-                
-                // Fetch all Hifz entries for the current surah in one go
                 const store = getObjectStore(STORE_HIFZ, 'readonly');
-                // Create a key range for the specific surah. 
-                // Assumes keyPath is ['surah', 'ayah'].
                 const keyRange = IDBKeyRange.bound([surah, 1], [surah, totalAyahs + 1]); // +1 to be inclusive of last ayah
                 const request = store.getAll(keyRange);
-                
                 const hifzEntries = await new Promise((resolve, reject) => {
                     request.onsuccess = () => resolve(request.result);
                     request.onerror = (event) => {
@@ -3220,17 +3127,13 @@
                         reject(event.target.error);
                     };
                 });
-
                 if (!listEl.parentNode) {
                     console.warn(`[loadHifzForSurah] listEl no longer in DOM after fetching data for Surah ${surah}.`);
                     isLoadingHifzForSurahGlobalFlag = false;
                     hideLoading();
                     return;
                 }
-
                 const hifzMap = new Map(hifzEntries.map(e => [e.ayah, e]));
-                // console.log(`[loadHifzForSurah] Fetched ${hifzEntries.length} hifz entries for Surah ${surah}.`);
-
                 if (totalAyahs === 0) {
                     listEl.innerHTML = `<p class="text-center">No Ayahs listed for Surah ${surah}.</p>`;
                 } else {
@@ -3239,13 +3142,11 @@
                         const li = document.createElement('div'); // Using div as per original for class 'ayah'
                         li.classList.add('ayah'); // This class usually has padding/border
                         li.setAttribute('data-ayah-ref', `${surah}:${i}`); // For easier debugging
-
                         let statusText = ayahData.status.replace('-', ' ');
                         let reviewInfo = '';
                         if (ayahData.status === 'memorized' && ayahData.nextReviewDate) {
                             reviewInfo = ` | Next Review: ${ayahData.nextReviewDate}`;
                         }
-
                         li.innerHTML = `
                             <div class="ayah-number">S ${surah}:${i}</div>
                             <div class="hifz-ayah-details" style="margin-bottom: 8px;">
@@ -3261,9 +3162,6 @@
                         `;
                         listEl.appendChild(li);
                     }
-                    // console.log(`[loadHifzForSurah] After populating for Surah ${surah}. Current children in listEl:`, listEl.children.length);
-
-                    // Re-attach event listeners using clone-and-replace for safety
                     listEl.querySelectorAll('.set-hifz-status-btn').forEach(button => {
                         const newButton = button.cloneNode(true);
                         button.parentNode.replaceChild(newButton, button);
@@ -3280,19 +3178,16 @@
                         newButton.addEventListener('click', handleViewHifzNotes);
                     });
                 }
-
             } catch (error) {
                 console.error(`[loadHifzForSurah] Error for Surah ${surah}:`, error);
                 if (listEl) { // Check if listEl still exists
-                listEl.innerHTML = `<li>Error loading Hifz data for Surah ${surah}: ${error.message}</li>`;
+                    listEl.innerHTML = `<li>Error loading Hifz data for Surah ${surah}: ${error.message}</li>`;
                 }
             } finally {
                 hideLoading();
                 isLoadingHifzForSurahGlobalFlag = false; // Reset the flag
             }
         }
-
-       
         async function handleSetHifzStatus(event) {
             if (!db) return;
             const surah = parseInt(event.target.getAttribute('data-surah'), 10);
@@ -4088,45 +3983,37 @@
             console.warn("Export Tafsir to DOCX button not found.");
         }
     }
-    
-    // Helper function (place in global scope of your main <script> or before setupGameModal)
-function exitBrowserFullscreen() {
-    if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
-        if (document.exitFullscreen) {
-            document.exitFullscreen().catch(err => console.error("Error exiting fullscreen:", err.message, err.name));
-        } else if (document.webkitExitFullscreen) { /* Safari */
-            document.webkitExitFullscreen();
-        } else if (document.mozCancelFullScreen) { /* Firefox */
-            document.mozCancelFullScreen();
-        } else if (document.msExitFullscreen) { /* IE11 */
-            document.msExitFullscreen();
+    function exitBrowserFullscreen() {
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(err => console.error("Error exiting fullscreen:", err.message, err.name));
+            } else if (document.webkitExitFullscreen) { /* Safari */
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) { /* Firefox */
+                document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) { /* IE11 */
+                document.msExitFullscreen();
+            }
+            return true; // Indicate an exit was attempted
         }
-        //console.log("Attempted to exit browser fullscreen.");
-        return true; // Indicate an exit was attempted
+        return false; // Indicate not in fullscreen or no attempt made
     }
-    return false; // Indicate not in fullscreen or no attempt made
-}
-
-// Helper function (place in global scope of your main <script> or before setupGameModal)
-function requestBrowserFullscreenForDocument() {
-    const docEl = document.documentElement;
-    //console.log("Attempting to request browser fullscreen for documentElement.");
-    if (docEl.requestFullscreen) {
-        docEl.requestFullscreen().catch(err => console.warn("FS Doc: Request failed:", err.message, err.name));
-    } else if (docEl.webkitRequestFullscreen) { /* Safari */
-        docEl.webkitRequestFullscreen();
-    } else if (docEl.mozRequestFullScreen) { /* Firefox */
-        docEl.mozRequestFullScreen();
-    } else if (docEl.msRequestFullscreen) { /* IE/Edge */
-        docEl.msRequestFullscreen();
-    } else {
-        console.warn("FS Doc: Browser Fullscreen API not supported for documentElement.");
+    function requestBrowserFullscreenForDocument() {
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) {
+            docEl.requestFullscreen().catch(err => console.warn("FS Doc: Request failed:", err.message, err.name));
+        } else if (docEl.webkitRequestFullscreen) { /* Safari */
+            docEl.webkitRequestFullscreen();
+        } else if (docEl.mozRequestFullScreen) { /* Firefox */
+            docEl.mozRequestFullScreen();
+        } else if (docEl.msRequestFullscreen) { /* IE/Edge */
+            docEl.msRequestFullscreen();
+        } else {
+            console.warn("FS Doc: Browser Fullscreen API not supported for documentElement.");
+        }
     }
-}
-
-
-function setupGameModal() {
-    const gameModalHTML = `
+    function setupGameModal() {
+        const gameModalHTML = `
     <div id="quranGameModal" class="modal game-modal" role="dialog" aria-modal="true" aria-labelledby="gameModalTitle" style="display: none;">
         <div class="modal-content game-modal-content">
             <span class="close-button game-close-button" aria-label="Close Game">×</span>
@@ -4149,8 +4036,8 @@ function setupGameModal() {
             </div>
         </div>
     `;
-    document.body.insertAdjacentHTML('beforeend', gameModalHTML);
-    const gameModalCSS = `
+        document.body.insertAdjacentHTML('beforeend', gameModalHTML);
+        const gameModalCSS = `
         .game-modal .modal-content {
             max-width: 90%;
             width: 700px; /* Adjust as needed */
@@ -4285,214 +4172,179 @@ function setupGameModal() {
             overflow-y: auto;
         }
     `;
-    const styleSheet = document.createElement("style");
-    styleSheet.type = "text/css";
-    styleSheet.innerText = gameModalCSS;
-    document.head.appendChild(styleSheet);
-
-    const gameModal = document.getElementById('quranGameModal');
-    const closeButton = gameModal.querySelector('.game-close-button');
-    const startGameWordWhizBtn = document.getElementById('startGameWordWhiz');
-    const startGameAyahJumbleBtn = document.getElementById('startGameAyahJumble');
-    const quitGameButton = document.getElementById('quitGameButton');
-
-    function performModalCloseActions(switchToQuranViewer = true) {
-        if (gameModal.style.display !== 'none') {
-            const wasGameModalTheFullscreenElement = (
-                document.fullscreenElement === gameModal ||
-                document.webkitFullscreenElement === gameModal ||
-                document.mozFullScreenElement === gameModal || // Note: Older Firefox used mozFullScreenElement
-                document.msFullscreenElement === gameModal
-            );
-
-            gameModal.style.display = 'none';
-            gameModal.classList.remove('fullscreen'); // CSS class for styling
-            // gameModal.style.pointerEvents = 'none'; // This might not be enough on its own
-
-            resetGameUI(); // This will also call restoreModalInteractivity
-            activeGame = null;
-
-            // Cleanup for specific games if they were active
-            if (typeof recitationGame_State !== 'undefined' && recitationGame_State.gameActive) {
-                if (typeof stopReferenceAudio_Engine === 'function') stopReferenceAudio_Engine();
-                if (recitationGame_State.isRecording && typeof stopUserRecording_Recitation_Engine === 'function') stopUserRecording_Recitation_Engine();
-                if (recitationGame_State.speechRecognition && typeof recitationGame_State.speechRecognition.abort === 'function') recitationGame_State.speechRecognition.abort();
-                recitationGame_State.gameActive = false;
-                recitationGame_State.isRecording = false;
-            }
-            if (typeof ayahTypingGameActive !== 'undefined' && ayahTypingGameActive) {
-                if (typeof ayahTypingTimerInterval !== 'undefined' && ayahTypingTimerInterval) {
-                    clearInterval(ayahTypingTimerInterval);
-                    ayahTypingTimerInterval = null;
+        const styleSheet = document.createElement("style");
+        styleSheet.type = "text/css";
+        styleSheet.innerText = gameModalCSS;
+        document.head.appendChild(styleSheet);
+        const gameModal = document.getElementById('quranGameModal');
+        const closeButton = gameModal.querySelector('.game-close-button');
+        const startGameWordWhizBtn = document.getElementById('startGameWordWhiz');
+        const startGameAyahJumbleBtn = document.getElementById('startGameAyahJumble');
+        const quitGameButton = document.getElementById('quitGameButton');
+        function performModalCloseActions(switchToQuranViewer = true) {
+            if (gameModal.style.display !== 'none') {
+                const wasGameModalTheFullscreenElement = (
+                    document.fullscreenElement === gameModal ||
+                    document.webkitFullscreenElement === gameModal ||
+                    document.mozFullScreenElement === gameModal || // Note: Older Firefox used mozFullScreenElement
+                    document.msFullscreenElement === gameModal
+                );
+                gameModal.style.display = 'none';
+                gameModal.classList.remove('fullscreen'); // CSS class for styling
+                resetGameUI(); // This will also call restoreModalInteractivity
+                activeGame = null;
+                if (typeof recitationGame_State !== 'undefined' && recitationGame_State.gameActive) {
+                    if (typeof stopReferenceAudio_Engine === 'function') stopReferenceAudio_Engine();
+                    if (recitationGame_State.isRecording && typeof stopUserRecording_Recitation_Engine === 'function') stopUserRecording_Recitation_Engine();
+                    if (recitationGame_State.speechRecognition && typeof recitationGame_State.speechRecognition.abort === 'function') recitationGame_State.speechRecognition.abort();
+                    recitationGame_State.gameActive = false;
+                    recitationGame_State.isRecording = false;
                 }
-                ayahTypingGameActive = false;
-            }
-
-            if (switchToQuranViewer && typeof showSection === 'function') {
-                showSection('quran');
-                const quranViewerSection = document.getElementById('quran');
-                if (quranViewerSection) {
-                    quranViewerSection.setAttribute('tabindex', '-1'); // Make it focusable
-                    quranViewerSection.focus();
+                if (typeof ayahTypingGameActive !== 'undefined' && ayahTypingGameActive) {
+                    if (typeof ayahTypingTimerInterval !== 'undefined' && ayahTypingTimerInterval) {
+                        clearInterval(ayahTypingTimerInterval);
+                        ayahTypingTimerInterval = null;
+                    }
+                    ayahTypingGameActive = false;
+                }
+                if (switchToQuranViewer && typeof showSection === 'function') {
+                    showSection('quran');
+                    const quranViewerSection = document.getElementById('quran');
+                    if (quranViewerSection) {
+                        quranViewerSection.setAttribute('tabindex', '-1'); // Make it focusable
+                        quranViewerSection.focus();
+                    }
+                }
+                if (wasGameModalTheFullscreenElement) {
+                    if (exitBrowserFullscreen()) { // Check if exit was actually attempted
+                        setTimeout(() => {
+                            requestBrowserFullscreenForDocument();
+                        }, 150); // Adjust delay if needed, 100-200ms usually okay
+                    } else {
+                        console.log("exitBrowserFullscreen reported not in FS, but wasGameModalTheFullscreenElement was true. This is odd. Focusing Quran viewer.");
+                        const quranViewerSection = document.getElementById('quran');
+                        if (quranViewerSection) quranViewerSection.focus();
+                    }
                 }
             }
-
-            // If the game modal was the browser's fullscreen element,
-            // exit its fullscreen and then immediately try to fullscreen the whole document.
-            if (wasGameModalTheFullscreenElement) {
-                //console.log("Game modal was the browser fullscreen element. Exiting its FS and attempting to re-FS the document.");
-                if (exitBrowserFullscreen()) { // Check if exit was actually attempted
-                    // Short delay to allow browser to process exitFullscreen before requesting new one
-                    setTimeout(() => {
-                        requestBrowserFullscreenForDocument();
-                    }, 150); // Adjust delay if needed, 100-200ms usually okay
+        }
+        function restoreModalInteractivity() {
+            if (gameModal) {
+                gameModal.style.pointerEvents = ''; // Or 'auto'
+            }
+        }
+        function resetGameUI() {
+            restoreModalInteractivity();
+            setTimeout(() => {
+                const gamePlayArea = document.getElementById('gamePlayArea');
+                const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
+                const gameScoreArea = document.getElementById('gameScoreArea');
+                const quitGameButton = document.getElementById('quitGameButton');
+                const gameModalTitle = document.getElementById('gameModalTitle');
+                if (gameSelectionArea) {
+                    gameSelectionArea.style.display = 'block';
                 } else {
-                    // If not in fullscreen, but we thought it was, just ensure document is interactive
-                    console.log("exitBrowserFullscreen reported not in FS, but wasGameModalTheFullscreenElement was true. This is odd. Focusing Quran viewer.");
-                     const quranViewerSection = document.getElementById('quran');
-                     if (quranViewerSection) quranViewerSection.focus();
+                    console.error("[MainGameModal] resetGameUI: gameSelectionArea (.game-selection-area) not found.");
                 }
-            }
-            // If browser wasn't in fullscreen OR gameModal wasn't the fullscreen element,
-            // then the existing fullscreen (if any, by another element like the reader) remains.
+                if (gamePlayArea) {
+                    gamePlayArea.style.display = 'none';
+                    gamePlayArea.innerHTML = '';
+                } else {
+                    console.error("[MainGameModal] resetGameUI: gamePlayArea not found");
+                }
+                if (gameScoreArea) {
+                    gameScoreArea.style.display = 'none';
+                } else {
+                    console.error("[MainGameModal] resetGameUI: gameScoreArea not found");
+                }
+                if (quitGameButton) {
+                    quitGameButton.style.display = 'none';
+                } else {
+                    console.error("[MainGameModal] resetGameUI: quitGameButton not found");
+                }
+                if (gameModalTitle) {
+                    gameModalTitle.textContent = "Quranic Games";
+                } else {
+                    console.error("[MainGameModal] resetGameUI: gameModalTitle not found");
+                }
+            }, 400);
         }
-    }
-
-    function restoreModalInteractivity() {
-        if (gameModal) {
-            gameModal.style.pointerEvents = ''; // Or 'auto'
-        }
-    }
-
-    function resetGameUI() {
-        restoreModalInteractivity();
-
-        setTimeout(() => {
-            const gamePlayArea = document.getElementById('gamePlayArea');
+        function showGamePlayUI(gameTitle) {
+            restoreModalInteractivity();
             const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
+            const gamePlayArea = document.getElementById('gamePlayArea');
             const gameScoreArea = document.getElementById('gameScoreArea');
             const quitGameButton = document.getElementById('quitGameButton');
             const gameModalTitle = document.getElementById('gameModalTitle');
-
             if (gameSelectionArea) {
-                gameSelectionArea.style.display = 'block';
+                gameSelectionArea.style.display = 'none';
             } else {
-                console.error("[MainGameModal] resetGameUI: gameSelectionArea (.game-selection-area) not found.");
+                console.error("[MainGameModal] showGamePlayUI: game-selection-area (.game-selection-area) not found.");
             }
             if (gamePlayArea) {
-                gamePlayArea.style.display = 'none';
-                gamePlayArea.innerHTML = '';
+                gamePlayArea.style.display = 'block';
             } else {
-                console.error("[MainGameModal] resetGameUI: gamePlayArea not found");
+                console.error("[MainGameModal] showGamePlayUI: gamePlayArea not found");
             }
             if (gameScoreArea) {
-                gameScoreArea.style.display = 'none';
+                gameScoreArea.style.display = 'block';
+                if (typeof updateScoreDisplay === "function") updateScoreDisplay();
             } else {
-                console.error("[MainGameModal] resetGameUI: gameScoreArea not found");
+                console.error("[MainGameModal] showGamePlayUI: gameScoreArea not found");
             }
             if (quitGameButton) {
-                quitGameButton.style.display = 'none';
+                quitGameButton.style.display = 'block';
             } else {
-                console.error("[MainGameModal] resetGameUI: quitGameButton not found");
+                console.error("[MainGameModal] showGamePlayUI: quitGameButton not found");
             }
             if (gameModalTitle) {
-                gameModalTitle.textContent = "Quranic Games";
+                gameModalTitle.textContent = gameTitle;
             } else {
-                console.error("[MainGameModal] resetGameUI: gameModalTitle not found");
+                console.error("[MainGameModal] showGamePlayUI: gameModalTitle not found");
             }
-        }, 400);
-    }
-
-    function showGamePlayUI(gameTitle) {
-        restoreModalInteractivity();
-        const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
-        const gamePlayArea = document.getElementById('gamePlayArea');
-        const gameScoreArea = document.getElementById('gameScoreArea');
-        const quitGameButton = document.getElementById('quitGameButton');
-        const gameModalTitle = document.getElementById('gameModalTitle');
-
-        if (gameSelectionArea) {
-            gameSelectionArea.style.display = 'none';
-        } else {
-            console.error("[MainGameModal] showGamePlayUI: game-selection-area (.game-selection-area) not found.");
         }
-        if (gamePlayArea) {
-            gamePlayArea.style.display = 'block';
-        } else {
-            console.error("[MainGameModal] showGamePlayUI: gamePlayArea not found");
-        }
-        if (gameScoreArea) {
-            gameScoreArea.style.display = 'block';
-            if (typeof updateScoreDisplay === "function") updateScoreDisplay();
-        } else {
-            console.error("[MainGameModal] showGamePlayUI: gameScoreArea not found");
-        }
-        if (quitGameButton) {
-            quitGameButton.style.display = 'block';
-        } else {
-            console.error("[MainGameModal] showGamePlayUI: quitGameButton not found");
-        }
-        if (gameModalTitle) {
-            gameModalTitle.textContent = gameTitle;
-        } else {
-            console.error("[MainGameModal] showGamePlayUI: gameModalTitle not found");
-        }
-    }
-
-
-    closeButton.addEventListener('click', () => {
-        performModalCloseActions(true);
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target === gameModal) {
+        closeButton.addEventListener('click', () => {
             performModalCloseActions(true);
-        }
-    });
-
-    window.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && gameModal.style.display === 'flex') {
-            // If #quranGameModal was the fullscreen element, Esc will cause browser to exit fullscreen.
-            // Our performModalCloseActions will then run to hide modal and switch view.
-            // If something else was fullscreen, Esc might do nothing to that, but our modal still closes.
-            performModalCloseActions(true);
-        }
-    });
-
-    startGameWordWhizBtn.addEventListener('click', () => startWordWhizGame());
-    startGameAyahJumbleBtn.addEventListener('click', () => startAyahJumbleGame());
-
-    quitGameButton.addEventListener('click', () => {
-        activeGame = null;
-        resetGameUI(); // Go back to game selection within the modal
-    });
-
-    const sidebarNav = document.querySelector('.sidebar nav ul');
-    if (sidebarNav) {
-        const gameLi = document.createElement('li');
-        const gameLink = document.createElement('a');
-        gameLink.href = "#games";
-        gameLink.textContent = "Quranic Games";
-        gameLink.id = "openGamesModalBtn"; // Important for your fullscreen IIFE
-        gameLi.appendChild(gameLink);
-        sidebarNav.appendChild(gameLi);
-
-        gameLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.querySelectorAll('.nav-link.active').forEach(l => l.classList.remove('active'));
-            gameLink.classList.add('active');
-            restoreModalInteractivity();
-            gameModal.style.display = 'flex';
-            gameModal.classList.add('fullscreen'); // CSS class for styling the modal content
-            resetGameUI(); // Show game selection screen
-            // The IIFE that targets "openGamesModalBtn" click handles browser fullscreen request for #quranGameModal.
         });
+        window.addEventListener('click', (event) => {
+            if (event.target === gameModal) {
+                performModalCloseActions(true);
+            }
+        });
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && gameModal.style.display === 'flex') {
+                performModalCloseActions(true);
+            }
+        });
+        startGameWordWhizBtn.addEventListener('click', () => startWordWhizGame());
+        startGameAyahJumbleBtn.addEventListener('click', () => startAyahJumbleGame());
+        quitGameButton.addEventListener('click', () => {
+            activeGame = null;
+            resetGameUI(); // Go back to game selection within the modal
+        });
+        const sidebarNav = document.querySelector('.sidebar nav ul');
+        if (sidebarNav) {
+            const gameLi = document.createElement('li');
+            const gameLink = document.createElement('a');
+            gameLink.href = "#games";
+            gameLink.textContent = "Quranic Games";
+            gameLink.id = "openGamesModalBtn"; // Important for your fullscreen IIFE
+            gameLi.appendChild(gameLink);
+            sidebarNav.appendChild(gameLi);
+            gameLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.nav-link.active').forEach(l => l.classList.remove('active'));
+                gameLink.classList.add('active');
+                restoreModalInteractivity();
+                gameModal.style.display = 'flex';
+                gameModal.classList.add('fullscreen'); // CSS class for styling the modal content
+                resetGameUI(); // Show game selection screen
+            });
+        }
+        addFlashcardSuiteButtonToModal();
+        addAyahTypingGameButtonToModal();
+        addEnhancedFullScreenReaderLaunchButton();
     }
-    addFlashcardSuiteButtonToModal();
-    addAyahTypingGameButtonToModal();
-    addEnhancedFullScreenReaderLaunchButton();
-}
-    
     let activeGame = null; // To track which game is running
     let gameScore = 0;
     let gameHighScore = 0; // Session high score
@@ -5600,7 +5452,6 @@ function setupGameModal() {
     }
     async function loadTajMushafPageDataIfNeeded() {
         if (tajMushafPageData.length > 0) return;
-        //console.warn("loadTajMushafPageDataIfNeeded: Triggering SIMULATED Taj Mushaf page data load. REPLACE with actual data source.");
         tajMushafPageData = [];
         let currentS = 1, currentA = 1;
         let currentJuz = 1;
@@ -8111,7 +7962,6 @@ function setupGameModal() {
                 return;
             }
             if (targetElement.style.display === 'none' || getComputedStyle(targetElement).display === 'none') {
-                //console.warn(`Fullscreen Targeter: Target element "${elementId}" is not visible. Fullscreen might not work as expected. Ensuring original click handler makes it visible.`);
             }
             if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
                 return;
@@ -8125,7 +7975,6 @@ function setupGameModal() {
             } else if (targetElement.msRequestFullscreen) { // IE11
                 targetElement.msRequestFullscreen();
             } else {
-                //console.warn(`Fullscreen Targeter: Browser Fullscreen API not supported for the element "${elementId}".`);
             }
         }
         function setupLaunchButtonListenerForFullscreen() {
@@ -8137,7 +7986,6 @@ function setupGameModal() {
                     }, 200); // 50ms delay, adjust if needed for your modal's display logic
                 });
             } else {
-                //console.warn(`Fullscreen Targeter: Launch button #${GAME_MODAL_LAUNCH_BUTTON_ID} not found after delay. Fullscreen on click will not be enabled.`);
             }
         }
         window.addEventListener('load', () => {
@@ -8168,7 +8016,6 @@ function setupGameModal() {
             if (targetElement.style.display === 'none' || getComputedStyle(targetElement).display === 'none') {
                 console.warn(`Reader FS Overlay: Target overlay "${elementId}" is not visible. Fullscreen might not work as expected. Ensure launchFullScreenQuranReaderEnhanced() makes it visible.`);
             }
-            //console.log(`Reader FS Overlay: Attempting browser fullscreen for #${elementId}`);
             if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
                 console.log("Reader FS Overlay: Already in browser fullscreen mode with some element. Will not re-request for overlay.");
                 return;
@@ -8188,19 +8035,15 @@ function setupGameModal() {
         function setupReaderFullscreenLaunchListener() {
             const launchButton = document.getElementById(READER_LAUNCH_BUTTON_ID);
             if (launchButton) {
-                //console.log(`Reader FS Overlay: Found launch button #${READER_LAUNCH_BUTTON_ID}. Attaching additional click listener for fullscreen.`);
                 launchButton.addEventListener('click', () => {
-                    //console.log(`Reader FS Overlay: Button #${READER_LAUNCH_BUTTON_ID} clicked. Scheduling fullscreen request for overlay.`);
                     setTimeout(() => {
                         requestFullscreenForReaderOverlay(READER_OVERLAY_ID);
                     }, FULLSCREEN_REQUEST_DELAY_MS);
                 });
             } else {
-                //console.warn(`Reader FS Overlay: Launch button #${READER_LAUNCH_BUTTON_ID} not found after delay. Fullscreen on click will not be enabled for reader overlay.`);
             }
         }
         window.addEventListener('load', () => {
-            //console.log("Reader FS Overlay: Window 'load' event fired.");
             setTimeout(() => {
                 setupReaderFullscreenLaunchListener();
             }, INITIALIZATION_DELAY_MS);
@@ -8215,23 +8058,11 @@ function setupGameModal() {
         document.addEventListener('mozfullscreenchange', logReaderFullscreenExit);
         document.addEventListener('MSFullscreenChange', logReaderFullscreenExit);
     })();
-
-
-
-
-
-
-
-
-// === REPORTING MODULE (ENHANCED WITH FIX) START ===
-
-let currentReportingUserData = null; // DECLARED GLOBALLY (or top of this script block) and INITIALIZED
-
-function injectReportingModuleStyles_Enhanced() {
-    const cssId = "reportingModuleStylesEnhanced";
-    if (document.getElementById(cssId)) return;
-
-    const styles = `
+    let currentReportingUserData = null; // DECLARED GLOBALLY (or top of this script block) and INITIALIZED
+    function injectReportingModuleStyles_Enhanced() {
+        const cssId = "reportingModuleStylesEnhanced";
+        if (document.getElementById(cssId)) return;
+        const styles = `
         /* Existing Reporting Styles (assumed from previous response, slightly condensed) */
         .reporting-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; padding: 15px; background-color: var(--color-bg-secondary); border-radius: var(--border-radius); }
         .dashboard-card { background-color: var(--color-bg-primary); padding: 15px; border-radius: var(--border-radius); box-shadow: 0 1px 3px var(--color-shadow); text-align: center; }
@@ -8245,7 +8076,6 @@ function injectReportingModuleStyles_Enhanced() {
         .reporting-quick-date-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; margin-bottom: 10px; }
         .reporting-quick-date-filters button { padding: 6px 10px; font-size: 0.85em; background-color: var(--color-accent-dark); flex-grow:1; min-width: 80px;}
         .reporting-quick-date-filters button:hover { background-color: var(--color-accent); }
-
         .reporting-content-area { margin-top: 20px; }
         .report-section { margin-bottom: 25px; padding: 15px; background-color: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: var(--border-radius); }
         .report-section h4 { margin-top: 0; margin-bottom: 10px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border); padding-bottom: 5px; }
@@ -8265,7 +8095,6 @@ function injectReportingModuleStyles_Enhanced() {
         .bar-chart .bar .bar-label { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 0.7em; color: var(--color-text-primary); white-space: nowrap; }
         .bar-chart .bar .bar-value { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.75em; font-weight: bold; color: var(--color-text-primary); }
         #noReportDataMessage { text-align: center; padding: 20px; font-style: italic; }
-
         /* Fullscreen Reporting Styles */
         body.body-reporting-fullscreen { overflow: hidden !important; } /* Prevent body scroll */
         body.body-reporting-fullscreen > header,
@@ -8312,30 +8141,26 @@ function injectReportingModuleStyles_Enhanced() {
             cursor:pointer;
         }
     `;
-    const styleSheet = document.createElement("style");
-    styleSheet.id = cssId;
-    styleSheet.type = "text/css";
-    styleSheet.innerText = styles;
-    document.head.appendChild(styleSheet);
-}
-
-function createReportingSectionStructure_Enhanced() {
-    const mainContent = document.querySelector('.main-content');
-    if (!mainContent || document.getElementById('reporting')) return;
-
-    const reportingSection = document.createElement('section');
-    reportingSection.id = 'reporting';
-    reportingSection.className = 'section';
-    reportingSection.setAttribute('role', 'region');
-    reportingSection.setAttribute('aria-labelledby', 'reporting-heading');
-    // Remove #exitReportFullscreenBtnContainer, button will be added directly
-    reportingSection.innerHTML = `
+        const styleSheet = document.createElement("style");
+        styleSheet.id = cssId;
+        styleSheet.type = "text/css";
+        styleSheet.innerText = styles;
+        document.head.appendChild(styleSheet);
+    }
+    function createReportingSectionStructure_Enhanced() {
+        const mainContent = document.querySelector('.main-content');
+        if (!mainContent || document.getElementById('reporting')) return;
+        const reportingSection = document.createElement('section');
+        reportingSection.id = 'reporting';
+        reportingSection.className = 'section';
+        reportingSection.setAttribute('role', 'region');
+        reportingSection.setAttribute('aria-labelledby', 'reporting-heading');
+        reportingSection.innerHTML = `
         <h2 id="reporting-heading">My Contributions & Progress</h2>
         <!-- Exit button will be prepended by addExitReportFullscreenButton_Enhanced -->
         <div id="reportingDashboard" class="reporting-dashboard">
             <p>Loading dashboard...</p>
         </div>
-
         <div class="reporting-filters-container">
             <h3>Filter Reports</h3>
             <div class="reporting-quick-date-filters">
@@ -8380,680 +8205,561 @@ function createReportingSectionStructure_Enhanced() {
                 </div>
             </div>
         </div>
-
         <div id="reportingContent" class="reporting-content-area">
             <p>Select filters and apply to view reports.</p>
         </div>
     `;
-    mainContent.appendChild(reportingSection);
-
-    const surahFilterSelect = document.getElementById('reportSurahFilter');
-    if (surahFilterSelect && typeof surahNames !== 'undefined' && surahNames.length > 0) {
-        surahNames.forEach((name, index) => {
-            const option = document.createElement('option');
-            option.value = index + 1;
-            option.textContent = `${index + 1}. ${name}`;
-            surahFilterSelect.appendChild(option);
-        });
-    }
-}
-
-function enterReportingFullscreen() {
-    document.body.classList.add('body-reporting-fullscreen');
-    const reportingSection = document.getElementById('reporting');
-    if (reportingSection) {
-        reportingSection.classList.add('reporting-fullscreen-active');
-        addExitReportFullscreenButton_Enhanced(); // Add button when entering
-        reportingSection.scrollTop = 0;
-    }
-}
-
-function exitReportingFullscreen() {
-    document.body.classList.remove('body-reporting-fullscreen');
-    const reportingSection = document.getElementById('reporting');
-    if (reportingSection) {
-        reportingSection.classList.remove('reporting-fullscreen-active');
-    }
-    removeExitReportFullscreenButton_Enhanced(); // Remove button when exiting
-}
-
-function addExitReportFullscreenButton_Enhanced() {
-    removeExitReportFullscreenButton_Enhanced(); 
-    const reportingSection = document.getElementById('reporting');
-    if(!reportingSection) return;
-    
-    const btn = document.createElement('button');
-    btn.id = 'exitReportFullscreenBtn';
-    btn.textContent = 'Exit Fullscreen Report';
-    btn.onclick = () => {
-        exitReportingFullscreen();
-        if(typeof window.showSection_Patched === 'function') window.showSection_Patched('quran');
-        else if(typeof window.showSection === 'function') window.showSection('quran');
-    };
-    reportingSection.insertBefore(btn, reportingSection.firstChild); // Prepend to reporting section
-}
-
-function removeExitReportFullscreenButton_Enhanced() {
-    const btn = document.getElementById('exitReportFullscreenBtn');
-    if (btn && btn.parentNode) {
-        btn.parentNode.removeChild(btn);
-    }
-}
-
-function getISODateString(date) {
-    return date.getFullYear() + '-' +
-           ('0' + (date.getMonth() + 1)).slice(-2) + '-' +
-           ('0' + date.getDate()).slice(-2);
-}
-
-function getTodayDateRange_Enhanced() {
-    const today = new Date();
-    return { start: getISODateString(today), end: getISODateString(today) };
-}
-function getThisWeekDateRange_Enhanced() {
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // Sunday - 0, Monday - 1, ..., Saturday - 6
-    const startDate = new Date(today);
-    // Set to Monday of the current week
-    startDate.setDate(today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)); 
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6); // Sunday of the current week
-    return { start: getISODateString(startDate), end: getISODateString(endDate) };
-}
-
-function getThisMonthDateRange_Enhanced() {
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = today.getMonth();
-    const startDate = new Date(y, m, 1);
-    const endDate = new Date(y, m + 1, 0);
-    return { start: getISODateString(startDate), end: getISODateString(endDate) };
-}
-
-function getThisYearDateRange_Enhanced() {
-    const today = new Date();
-    const y = today.getFullYear();
-    const startDate = new Date(y, 0, 1);
-    const endDate = new Date(y, 11, 31);
-    return { start: getISODateString(startDate), end: getISODateString(endDate) };
-}
-
-function setupReportingFiltersEventListeners_Enhanced(userData) {
-    const applyBtn = document.getElementById('applyReportFiltersBtn');
-    const dateFromInput = document.getElementById('reportDateFromFilter');
-    const dateToInput = document.getElementById('reportDateToFilter');
-
-    if (applyBtn) {
-        applyBtn.onclick = () => {
-            const filters = {
-                reportType: document.getElementById('reportTypeFilter').value,
-                surah: document.getElementById('reportSurahFilter').value,
-                dateFrom: dateFromInput.value,
-                dateTo: dateToInput.value,
-                keyword: document.getElementById('reportKeywordSearch').value,
-            };
-            renderReportDetails(userData, filters);
-        };
-    }
-
-    document.querySelectorAll('.reporting-quick-date-filters button').forEach(button => {
-        button.addEventListener('click', () => {
-            const period = button.dataset.period;
-            let range;
-            switch (period) {
-                case 'today': range = getTodayDateRange_Enhanced(); break;
-                case 'this_week': range = getThisWeekDateRange_Enhanced(); break;
-                case 'this_month': range = getThisMonthDateRange_Enhanced(); break;
-                case 'this_year': range = getThisYearDateRange_Enhanced(); break;
-                case 'all_time':
-                    dateFromInput.value = '';
-                    dateToInput.value = '';
-                    if(applyBtn) applyBtn.click();
-                    return;
-            }
-            if (range) {
-                dateFromInput.value = range.start;
-                dateToInput.value = range.end;
-            }
-            if(applyBtn) applyBtn.click();
-        });
-    });
-}
-
-
-async function loadAllUserDataForReports() {
-    if (!db) {
-        console.error("DB not available for loading report data.");
-        currentReportingUserData = null; // Ensure it's null if DB not ready
-        return null;
-    }
-    try {
-        const [
-            tafsir, themes, themeAyahs, roots, 
-            recitations, hifz, quran 
-        ] = await Promise.all([
-            getAllData(STORE_TAFSIR),
-            getAllData(STORE_THEMES),
-            getAllData(STORE_THEME_AYAHS),
-            getAllData(STORE_ROOTS),
-            getAllData(STORE_RECITATIONS),
-            getAllData(STORE_HIFZ),
-            getAllData(STORE_QURAN) 
-        ]);
-
-        const quranMap = new Map();
-        if (quran) {
-            quran.forEach(item => quranMap.set(`${item.surah}-${item.ayah}`, item.arabic));
+        mainContent.appendChild(reportingSection);
+        const surahFilterSelect = document.getElementById('reportSurahFilter');
+        if (surahFilterSelect && typeof surahNames !== 'undefined' && surahNames.length > 0) {
+            surahNames.forEach((name, index) => {
+                const option = document.createElement('option');
+                option.value = index + 1;
+                option.textContent = `${index + 1}. ${name}`;
+                surahFilterSelect.appendChild(option);
+            });
         }
-        
-        currentReportingUserData = { tafsir, themes, themeAyahs, roots, recitations, hifz, quranMap };
-        return currentReportingUserData;
-
-    } catch (error) {
-        console.error("Error fetching all user data for reports:", error);
-        currentReportingUserData = null;
-        return null;
     }
-}
-
-function renderReportingDashboard(userData) {
-    const dashboardArea = document.getElementById('reportingDashboard');
-    if (!dashboardArea || !userData) {
-        if (dashboardArea) dashboardArea.innerHTML = "<p>Error loading dashboard data.</p>";
-        return;
+    function enterReportingFullscreen() {
+        document.body.classList.add('body-reporting-fullscreen');
+        const reportingSection = document.getElementById('reporting');
+        if (reportingSection) {
+            reportingSection.classList.add('reporting-fullscreen-active');
+            addExitReportFullscreenButton_Enhanced(); // Add button when entering
+            reportingSection.scrollTop = 0;
+        }
     }
-    const { tafsir, themes, roots, recitations, hifz } = userData;
-
-    const totalTafsir = tafsir ? tafsir.length : 0;
-    const totalThemes = themes ? themes.length : 0;
-    const totalRootNotes = roots ? roots.filter(r => r.description && r.description.trim() !== '').length : 0;
-    const totalRecitations = recitations ? recitations.length : 0;
-    const totalHifzAyahs = hifz ? hifz.filter(h => h.status === 'memorized').length : 0;
-    const totalHifzInProgress = hifz ? hifz.filter(h => h.status === 'in-progress').length : 0;
-
-    dashboardArea.innerHTML = `
+    function exitReportingFullscreen() {
+        document.body.classList.remove('body-reporting-fullscreen');
+        const reportingSection = document.getElementById('reporting');
+        if (reportingSection) {
+            reportingSection.classList.remove('reporting-fullscreen-active');
+        }
+        removeExitReportFullscreenButton_Enhanced(); // Remove button when exiting
+    }
+    function addExitReportFullscreenButton_Enhanced() {
+        removeExitReportFullscreenButton_Enhanced();
+        const reportingSection = document.getElementById('reporting');
+        if (!reportingSection) return;
+        const btn = document.createElement('button');
+        btn.id = 'exitReportFullscreenBtn';
+        btn.textContent = 'Exit Fullscreen Report';
+        btn.onclick = () => {
+            exitReportingFullscreen();
+            if (typeof window.showSection_Patched === 'function') window.showSection_Patched('quran');
+            else if (typeof window.showSection === 'function') window.showSection('quran');
+        };
+        reportingSection.insertBefore(btn, reportingSection.firstChild); // Prepend to reporting section
+    }
+    function removeExitReportFullscreenButton_Enhanced() {
+        const btn = document.getElementById('exitReportFullscreenBtn');
+        if (btn && btn.parentNode) {
+            btn.parentNode.removeChild(btn);
+        }
+    }
+    function getISODateString(date) {
+        return date.getFullYear() + '-' +
+            ('0' + (date.getMonth() + 1)).slice(-2) + '-' +
+            ('0' + date.getDate()).slice(-2);
+    }
+    function getTodayDateRange_Enhanced() {
+        const today = new Date();
+        return { start: getISODateString(today), end: getISODateString(today) };
+    }
+    function getThisWeekDateRange_Enhanced() {
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // Sunday - 0, Monday - 1, ..., Saturday - 6
+        const startDate = new Date(today);
+        startDate.setDate(today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6); // Sunday of the current week
+        return { start: getISODateString(startDate), end: getISODateString(endDate) };
+    }
+    function getThisMonthDateRange_Enhanced() {
+        const today = new Date();
+        const y = today.getFullYear();
+        const m = today.getMonth();
+        const startDate = new Date(y, m, 1);
+        const endDate = new Date(y, m + 1, 0);
+        return { start: getISODateString(startDate), end: getISODateString(endDate) };
+    }
+    function getThisYearDateRange_Enhanced() {
+        const today = new Date();
+        const y = today.getFullYear();
+        const startDate = new Date(y, 0, 1);
+        const endDate = new Date(y, 11, 31);
+        return { start: getISODateString(startDate), end: getISODateString(endDate) };
+    }
+    function setupReportingFiltersEventListeners_Enhanced(userData) {
+        const applyBtn = document.getElementById('applyReportFiltersBtn');
+        const dateFromInput = document.getElementById('reportDateFromFilter');
+        const dateToInput = document.getElementById('reportDateToFilter');
+        if (applyBtn) {
+            applyBtn.onclick = () => {
+                const filters = {
+                    reportType: document.getElementById('reportTypeFilter').value,
+                    surah: document.getElementById('reportSurahFilter').value,
+                    dateFrom: dateFromInput.value,
+                    dateTo: dateToInput.value,
+                    keyword: document.getElementById('reportKeywordSearch').value,
+                };
+                renderReportDetails(userData, filters);
+            };
+        }
+        document.querySelectorAll('.reporting-quick-date-filters button').forEach(button => {
+            button.addEventListener('click', () => {
+                const period = button.dataset.period;
+                let range;
+                switch (period) {
+                    case 'today': range = getTodayDateRange_Enhanced(); break;
+                    case 'this_week': range = getThisWeekDateRange_Enhanced(); break;
+                    case 'this_month': range = getThisMonthDateRange_Enhanced(); break;
+                    case 'this_year': range = getThisYearDateRange_Enhanced(); break;
+                    case 'all_time':
+                        dateFromInput.value = '';
+                        dateToInput.value = '';
+                        if (applyBtn) applyBtn.click();
+                        return;
+                }
+                if (range) {
+                    dateFromInput.value = range.start;
+                    dateToInput.value = range.end;
+                }
+                if (applyBtn) applyBtn.click();
+            });
+        });
+    }
+    async function loadAllUserDataForReports() {
+        if (!db) {
+            console.error("DB not available for loading report data.");
+            currentReportingUserData = null; // Ensure it's null if DB not ready
+            return null;
+        }
+        try {
+            const [
+                tafsir, themes, themeAyahs, roots,
+                recitations, hifz, quran
+            ] = await Promise.all([
+                getAllData(STORE_TAFSIR),
+                getAllData(STORE_THEMES),
+                getAllData(STORE_THEME_AYAHS),
+                getAllData(STORE_ROOTS),
+                getAllData(STORE_RECITATIONS),
+                getAllData(STORE_HIFZ),
+                getAllData(STORE_QURAN)
+            ]);
+            const quranMap = new Map();
+            if (quran) {
+                quran.forEach(item => quranMap.set(`${item.surah}-${item.ayah}`, item.arabic));
+            }
+            currentReportingUserData = { tafsir, themes, themeAyahs, roots, recitations, hifz, quranMap };
+            return currentReportingUserData;
+        } catch (error) {
+            console.error("Error fetching all user data for reports:", error);
+            currentReportingUserData = null;
+            return null;
+        }
+    }
+    function renderReportingDashboard(userData) {
+        const dashboardArea = document.getElementById('reportingDashboard');
+        if (!dashboardArea || !userData) {
+            if (dashboardArea) dashboardArea.innerHTML = "<p>Error loading dashboard data.</p>";
+            return;
+        }
+        const { tafsir, themes, roots, recitations, hifz } = userData;
+        const totalTafsir = tafsir ? tafsir.length : 0;
+        const totalThemes = themes ? themes.length : 0;
+        const totalRootNotes = roots ? roots.filter(r => r.description && r.description.trim() !== '').length : 0;
+        const totalRecitations = recitations ? recitations.length : 0;
+        const totalHifzAyahs = hifz ? hifz.filter(h => h.status === 'memorized').length : 0;
+        const totalHifzInProgress = hifz ? hifz.filter(h => h.status === 'in-progress').length : 0;
+        dashboardArea.innerHTML = `
         <div class="dashboard-card"><h4>Personal Tafsir</h4><span class="stat-value">${totalTafsir}</span><span>Ayahs with Notes</span></div>
         <div class="dashboard-card"><h4>Memorized Ayahs</h4><span class="stat-value">${totalHifzAyahs}</span><span>Status: Memorized</span></div>
         <div class="dashboard-card"><h4>Themes Created</h4><span class="stat-value">${totalThemes}</span><span>Custom Themes</span></div>
         <div class="dashboard-card"><h4>Recitation Logs</h4><span class="stat-value">${totalRecitations}</span><span>Listening Sessions</span></div>
         <div class="dashboard-card"><h4>Root Word Notes</h4><span class="stat-value">${totalRootNotes}</span><span>Roots with Descriptions</span></div>
         <div class="dashboard-card"><h4>Hifz In Progress</h4><span class="stat-value">${totalHifzInProgress}</span><span>Ayahs In Progress</span></div>`;
-}
-
-function renderReportDetails(userData, filters) {
-    const contentArea = document.getElementById('reportingContent');
-    if (!contentArea || !userData) {
-        if (contentArea) contentArea.innerHTML = "<p>Error loading report details.</p>";
-        return;
     }
-    contentArea.innerHTML = '';
-
-    const reportType = filters.reportType || 'all';
-    const filterSurah = filters.surah ? parseInt(filters.surah) : null;
-    const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : null;
-    const dateTo = filters.dateTo ? new Date(filters.dateTo) : null;
-    if (dateTo) dateTo.setHours(23, 59, 59, 999);
-    const keyword = filters.keyword ? filters.keyword.toLowerCase() : null;
-
-    let dataFound = false;
-    const createSection = (title, items) => {
-        if (items.length === 0) return '';
-        dataFound = true;
-        let listHTML = '<ul class="report-list">' + items.join('') + '</ul>';
-        return `<div class="report-section"><h4>${title}</h4>${listHTML}</div>`;
-    };
-    const makeAyahClickable = (s, a, txt) => `<span class="item-surah-ayah" data-surah="${s}" data-ayah="${a}" title="Go to S${s}:A${a}">${txt}</span>`;
-
-    if (reportType === 'all' || reportType === 'tafsir') {
-        const items = (userData.tafsir || []).filter(t => 
-            (!filterSurah || t.surah === filterSurah) && 
-            (!keyword || (t.notes && t.notes.toLowerCase().includes(keyword)))
-        ).map(t => `<li>${makeAyahClickable(t.surah,t.ayah,`S ${t.surah}:${t.ayah}`)}<span class="item-notes">${(t.notes||'').substring(0,150)}...</span></li>`);
-        contentArea.innerHTML += createSection('Personal Tafsir Notes', items);
-    }
-    if (reportType === 'all' || reportType === 'hifz') {
-        const items = (userData.hifz || []).filter(h => 
-            (!filterSurah || h.surah === filterSurah) && 
-            (!keyword || (h.notes && h.notes.toLowerCase().includes(keyword)))
-        ).map(h => {
-            let d = `Status: <span class="hifz-ayah-status status-${h.status}">${h.status.replace('-',' ')}</span>`;
-            if(h.nextReviewDate) d += ` | Next Review: ${h.nextReviewDate}`;
-            if(h.notes) d += `<span class="item-notes">${h.notes.substring(0,100)}...</span>`;
-            return `<li>${makeAyahClickable(h.surah,h.ayah,`S ${h.surah}:${h.ayah}`)} - ${d}</li>`;
-        });
-        contentArea.innerHTML += createSection('Memorization (Hifz) Progress', items);
-        if (items.length > 0 && (reportType === 'all' || reportType === 'hifz')) {
-            const chartData = Object.entries((userData.hifz||[]).filter(h=>h.status==='memorized').reduce((acc,h)=>{acc[h.surah]=(acc[h.surah]||0)+1;return acc;},{}))
-                .map(([s,c])=>({label:`S${s}`,count:c,fullLabel:`${surahNames[parseInt(s)-1]||'S'+s}: ${c} Ayahs`}))
-                .sort((a,b)=>parseInt(a.label.substring(1))-parseInt(b.label.substring(1)));
-            if(chartData.length>0) {
-                const id='hifzProgressChart'; contentArea.innerHTML+=`<div class="report-section"><h4>Hifz Progress (Memorized)</h4><div id="${id}"></div></div>`;
-                setTimeout(()=>createSimpleBarChart(chartData,id,"Ayahs Memorized per Surah",'count','label','var(--color-success)'),0); dataFound=true;
-            }
-        }
-    }
-    if (reportType === 'all' || reportType === 'themes') {
-        const themeNotes = (userData.themes||[]).filter(th=>!keyword||(th.name.toLowerCase().includes(keyword)||(th.description&&th.description.toLowerCase().includes(keyword))))
-            .map(th=>`<li>Theme: <span class="item-ref">${th.name}</span><span class="item-notes">${th.description?th.description.substring(0,150)+'...':'No description.'}</span></li>`);
-        contentArea.innerHTML += createSection('Theme Notes & Descriptions', themeNotes);
-        const themeLinks = (userData.themeAyahs||[]).filter(ta=>{
-            const theme=userData.themes.find(t=>t.id===ta.themeId);
-            return (!filterSurah||ta.surah===filterSurah)&&(!keyword||(ta.notes&&ta.notes.toLowerCase().includes(keyword))||(theme&&theme.name.toLowerCase().includes(keyword)));
-        }).map(ta=>{
-            const theme=userData.themes.find(t=>t.id===ta.themeId);
-            return `<li>${makeAyahClickable(ta.surah,ta.ayah,`S ${ta.surah}:${ta.ayah}`)} linked to <span class="item-ref">${theme?theme.name:'Unknown'}</span>${ta.notes?`<span class="item-notes">Note: ${ta.notes.substring(0,100)}...</span>`:''}</li>`;
-        });
-        contentArea.innerHTML += createSection('Ayahs Linked to Themes', themeLinks);
-    }
-    if (reportType === 'all' || reportType === 'roots') {
-        const items = (userData.roots||[]).filter(r=>!keyword||(r.root.toLowerCase().includes(keyword)||(r.description&&r.description.toLowerCase().includes(keyword))))
-            .map(r=>`<li>Root: <span class="item-ref" lang="ar" dir="rtl">${r.root}</span><span class="item-notes">${r.description?r.description.substring(0,150)+'...':'No notes.'}</span></li>`);
-        contentArea.innerHTML += createSection('Root Word Notes', items);
-    }
-        if (reportType === 'all' || reportType === 'recitations') {
-        const filteredRecitationItems = (userData.recitations || [])
-            .filter(r => {
-                const recDate = r.date ? new Date(r.date) : null;
-                if (!recDate) return false; 
-
-                if (filterSurah && r.surah !== filterSurah) return false;
-                if (dateFrom && recDate < dateFrom) return false;
-                if (dateTo && recDate > dateTo) return false;
-                if (keyword && ((!r.qari || !r.qari.toLowerCase().includes(keyword)) && (!r.notes || !r.notes.toLowerCase().includes(keyword)))) return false;
-                return true;
-            });
-        
-        const recitationListItems = filteredRecitationItems
-            .sort((a,b) => new Date(b.date) - new Date(a.date)) 
-            .map(r => {
-                let ayahCount = 0;
-                if (r.ayahStart && r.ayahEnd) {
-                    ayahCount = (r.ayahEnd - r.ayahStart) + 1;
-                } else if (r.ayahStart) { // Single ayah logged
-                    ayahCount = 1;
-                } else { // Full Surah assumed if no specific ayahs
-                    ayahCount = surahAyahCounts[r.surah] || 0; 
-                }
-                const range = r.ayahStart && r.ayahEnd ? `Ayahs ${r.ayahStart}-${r.ayahEnd}` : r.ayahStart ? `Ayah ${r.ayahStart}` : 'Full Surah';
-                return `<li>Surah ${r.surah} (${surahNames[r.surah-1]}) - ${range} (${ayahCount} Ayah${ayahCount !== 1 ? 's' : ''})
-                            <span class="item-date"> - ${r.qari || 'N/A'} on ${r.date || 'N/A'}</span>
-                            ${r.notes ? `<span class="item-notes">${r.notes.substring(0,150)}...</span>` : ''}</li>`;
-            });
-        contentArea.innerHTML += createSection('Recitation Logs', recitationListItems);
-
-        // --- CHART DATA AGGREGATION MODIFIED ---
-        if (filteredRecitationItems.length > 0) {
-            const ayahsRecitedByMonth = {};
-            const ayahsRecitedByDay = {};
-
-            filteredRecitationItems.forEach(r => {
-                if (r.date) {
-                    let countOfAyahsInLog = 0;
-                    if (r.ayahStart && r.ayahEnd) {
-                        countOfAyahsInLog = (parseInt(r.ayahEnd) - parseInt(r.ayahStart)) + 1;
-                    } else if (r.ayahStart) { // Single ayah logged
-                        countOfAyahsInLog = 1;
-                    } else { // Full Surah assumed
-                        countOfAyahsInLog = surahAyahCounts[r.surah] || 0; 
-                    }
-                    if (countOfAyahsInLog <= 0) return; // Skip if no ayahs calculated
-
-                    // Aggregate for Monthly Chart
-                    const monthYear = new Date(r.date).toLocaleDateString(navigator.language || 'en-US', { year: 'numeric', month: 'short' });
-                    ayahsRecitedByMonth[monthYear] = (ayahsRecitedByMonth[monthYear] || 0) + countOfAyahsInLog;
-
-                    // Aggregate for Daily Chart
-                    const dayKey = getISODateString(new Date(r.date)); 
-                    ayahsRecitedByDay[dayKey] = (ayahsRecitedByDay[dayKey] || 0) + countOfAyahsInLog;
-                }
-            });
-
-            // Monthly Ayahs Recited Chart
-            const monthlyChartData = Object.entries(ayahsRecitedByMonth)
-                .map(([month, count]) => ({ 
-                    label: month, 
-                    count: count, // 'count' here means ayahs recited
-                    fullLabel: `${month}: ${count} Ayahs Recited` 
-                }))
-                .sort((a, b) => new Date(a.label) - new Date(b.label)); 
-
-            if(monthlyChartData.length > 0) {
-                const monthlyChartContainerId = 'recitationLogsMonthlyChart';
-                let sectionEl = contentArea.querySelector('#recitationLogsMonthlyChartSection');
-                if (!sectionEl) {
-                    sectionEl = document.createElement('div');
-                    sectionEl.className = 'report-section';
-                    sectionEl.id = 'recitationLogsMonthlyChartSection';
-                    contentArea.appendChild(sectionEl);
-                }
-                sectionEl.innerHTML = `<h4>Ayahs Recited (Monthly)</h4><div id="${monthlyChartContainerId}"></div>`;
-                setTimeout(() => createSimpleBarChart(monthlyChartData, monthlyChartContainerId, null, 'count', 'label', 'var(--color-accent)'), 0);
-                dataFound = true;
-            }
-
-            // Daily Ayahs Recited Chart
-            const dailyChartData = Object.entries(ayahsRecitedByDay)
-                .map(([day, count]) => ({ 
-                    label: new Date(day).toLocaleDateString(navigator.language || 'en-US', { month: 'short', day: 'numeric' }),
-                    date: day, 
-                    count: count, // 'count' here means ayahs recited
-                    fullLabel: `${new Date(day).toLocaleDateString(navigator.language || 'en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}: ${count} Ayahs Recited` 
-                }))
-                .sort((a, b) => new Date(a.date) - new Date(b.date)); 
-
-            if(dailyChartData.length > 0) {
-                let showDailyChart = true;
-                if (dateFrom && dateTo) {
-                    const diffTime = Math.abs(dateTo - dateFrom);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    if (diffDays > 62) { 
-                        showDailyChart = false; 
-                    }
-                } else if (!dateFrom && !dateTo && dailyChartData.length > 62) { 
-                    showDailyChart = false;
-                }
-
-                if (showDailyChart) {
-                    const dailyChartContainerId = 'recitationLogsDailyChart';
-                    let sectionElDaily = contentArea.querySelector('#recitationLogsDailyChartSection');
-                     if (!sectionElDaily) {
-                        sectionElDaily = document.createElement('div');
-                        sectionElDaily.className = 'report-section';
-                        sectionElDaily.id = 'recitationLogsDailyChartSection';
-                        contentArea.appendChild(sectionElDaily);
-                    }
-                    sectionElDaily.innerHTML = `<h4>Ayahs Recited (Daily - Filtered Period)</h4><div id="${dailyChartContainerId}"></div>`;
-                    setTimeout(() => createSimpleBarChart(dailyChartData, dailyChartContainerId, null, 'count', 'label', 'var(--color-accent-dark)'), 0);
-                    dataFound = true;
-                }
-            }
-        }
-    }
-
-    contentArea.querySelectorAll('.item-surah-ayah').forEach(el=>el.addEventListener('click',e=>{
-        const s=parseInt(e.currentTarget.dataset.surah),a=parseInt(e.currentTarget.dataset.ayah);
-        if(s&&a&&typeof loadAyah==='function'&&typeof window.showSection==='function'){loadAyah(s,a);window.showSection('quran');}
-    }));
-    if (!dataFound) contentArea.innerHTML = '<p id="noReportDataMessage">No data matches criteria.</p>';
-}
-
-function createSimpleBarChart(data, containerId, title, valueKey = 'count', labelKey = 'label', barColor = 'var(--color-accent)') {
-    const container = document.getElementById(containerId);
-    if (!container) {
-        console.error(`Chart container #${containerId} not found.`);
-        return;
-    }
-    
-    container.innerHTML = ''; // Clear previous content like "No data for chart."
-
-    if (!data || data.length === 0) {
-        container.innerHTML = "<p>No data to display in chart.</p>";
-        return;
-    }
-
-    if (title) {
-        const titleEl = document.createElement('div');
-        titleEl.className = 'bar-chart-title';
-        titleEl.textContent = title;
-        container.appendChild(titleEl);
-    }
-
-    const chartEl = document.createElement('div');
-    chartEl.className = 'bar-chart';
-    // If many bars, consider making the chart scrollable horizontally
-    if (data.length > 15) { // Example threshold
-        chartEl.style.overflowX = 'auto';
-        chartEl.style.minWidth = `${data.length * 30}px`; // Estimate width
-    }
-
-
-    const maxValue = Math.max(...data.map(item => item[valueKey]), 0);
-    if (maxValue === 0 && data.every(item => item[valueKey] === 0)) { // Check if all values are strictly zero
-         container.innerHTML += "<p>All values are zero for this period.</p>";
-         return;
-    }
-
-
-    data.forEach(item => {
-        const barWrapper = document.createElement('div');
-        barWrapper.className = 'bar';
-        // Ensure item[valueKey] is a number, default to 0 if not
-        const numericValue = Number(item[valueKey]) || 0;
-        const percentageHeight = maxValue > 0 ? (numericValue / maxValue) * 100 : 0;
-        
-        barWrapper.style.height = `${Math.max(percentageHeight, 5)}%`; // Min height 5% for visibility
-        barWrapper.style.backgroundColor = barColor;
-        barWrapper.title = item.fullLabel || `${item[labelKey]}: ${numericValue}`;
-
-        const valueSpan = document.createElement('span');
-        valueSpan.className = 'bar-value';
-        valueSpan.textContent = numericValue; // Display the numeric value
-        barWrapper.appendChild(valueSpan);
-        
-        const labelSpan = document.createElement('span');
-        labelSpan.className = 'bar-label';
-        labelSpan.textContent = item[labelKey];
-        barWrapper.appendChild(labelSpan);
-
-        chartEl.appendChild(barWrapper);
-    });
-
-    container.appendChild(chartEl);
-}
-
-
-let reportingModuleInitialized = false;
-function initializeReportingModule_Enhanced() {
-    if(reportingModuleInitialized) return;
-    createReportingSectionStructure_Enhanced();
-    injectReportingModuleStyles_Enhanced();
-
-    const sidebarNav = document.querySelector('.sidebar nav ul');
-    const existingReportLink = document.querySelector('a[data-section="reporting"]');
-
-    if (sidebarNav && !existingReportLink) {
-        const reportLi = document.createElement('li');
-        const reportLink = document.createElement('a');
-        reportLink.href = "#reporting";
-        reportLink.className = "nav-link";
-        reportLink.dataset.section = "reporting";
-        reportLink.textContent = "Reporting";
-        reportLi.appendChild(reportLink);
-        
-        const dataManagementLink = sidebarNav.querySelector('a[data-section="data"]');
-        if (dataManagementLink && dataManagementLink.parentElement) {
-            sidebarNav.insertBefore(reportLi, dataManagementLink.parentElement);
-        } else {
-            sidebarNav.appendChild(reportLi);
-        }
-        
-         reportLink.addEventListener('click', (event) => {
-            event.preventDefault();
-            // CRITICAL: Directly call the globally patched window.showSection
-            if (typeof window.showSection === 'function') {
-                window.showSection('reporting');
-            } else {
-                console.error("Global window.showSection function not found for reporting link.");
-            }
-        });
-    }
-    reportingModuleInitialized = true;
-}
-
-
-async function loadAndDisplayReportData_Enhanced() {
-    const reportingContent = document.getElementById('reportingContent');
-    const dashboardArea = document.getElementById('reportingDashboard');
-
-    if (dashboardArea) dashboardArea.innerHTML = '<p>Loading dashboard...</p>';
-    if (reportingContent) reportingContent.innerHTML = '<p>Loading report data...</p>';
-    
-    try {
-        // loadAllUserDataForReports should now correctly set the global currentReportingUserData
-        await loadAllUserDataForReports(); 
-        if (!currentReportingUserData) { 
-            if (dashboardArea) dashboardArea.innerHTML = "<p>Failed to load data for dashboard.</p>";
-            if (reportingContent) reportingContent.innerHTML = "<p>Failed to load report data. Check console for errors.</p>";
+    function renderReportDetails(userData, filters) {
+        const contentArea = document.getElementById('reportingContent');
+        if (!contentArea || !userData) {
+            if (contentArea) contentArea.innerHTML = "<p>Error loading report details.</p>";
             return;
         }
-        renderReportingDashboard(currentReportingUserData);
-        renderReportDetails(currentReportingUserData, { reportType: 'all' });
-        setupReportingFiltersEventListeners_Enhanced(currentReportingUserData);
-    } catch (error) {
-        console.error("Error loading/displaying report data:", error);
-        if (dashboardArea) dashboardArea.innerHTML = "<p style='color:red;'>Error loading dashboard. See console.</p>";
-        if (reportingContent) reportingContent.innerHTML = "<p style='color:red;'>Error loading reports. See console.</p>";
-    }
-}
-
-
-// Store the original DOMContentLoaded handler from the main script if available
-// This needs to happen BEFORE the original script's DOMContentLoaded listener is added
-// For patching, we assume window.originalAppDOMContentLoaded stores it.
-if (!window.originalAppDOMContentLoaded && typeof window.originalDOMContentLoadedHandler === 'function') {
-    window.originalAppDOMContentLoaded = window.originalDOMContentLoadedHandler;
-} else if (!window.originalAppDOMContentLoaded) {
-     // If no handler was explicitly stored, we might need to create a placeholder
-     // or ensure our logic runs after a minimal known setup from the HTML.
-     // This part is the most fragile in "patching" without modifying original HTML script block.
-     //console.warn("Reporting Patch: Could not identify a specific original DOMContentLoaded handler to chain from. Will attempt to run basic setup.");
-}
-
-(function() { // IIFE to manage scope and ensure patching happens correctly
-
-    let originalDOMContentLoadedHandler = null;
-    let originalShowSectionHandler = null;
-
-    // Attempt to capture original handlers if they exist on window
-    if (typeof window.originalDOMContentLoadedHandler === 'function') { // From previous attempts
-        originalDOMContentLoadedHandler = window.originalDOMContentLoadedHandler;
-    }
-    if (typeof window.showSection === 'function') {
-        originalShowSectionHandler = window.showSection;
-    }
-
-
-    const patchedDOMLoadHandler = async () => {
-        if (typeof originalDOMContentLoadedHandler === 'function' && originalDOMContentLoadedHandler !== patchedDOMLoadHandler) {
-            await originalDOMContentLoadedHandler();
-        } else {
-            // Fallback: Minimum essential setup from original script
-            // This assumes these functions are globally available from the original script
-            if (typeof openDB === 'function') await openDB(); else console.error("openDB not found");
-            if (typeof loadThemePreference === 'function') await loadThemePreference();
-            if (typeof setupEventListeners === 'function') setupEventListeners(); else console.error("setupEventListeners not found");
-            if (typeof loadQuranData === 'function') await loadQuranData();
-            if (typeof displayThemesList === 'function') displayThemesList();
-            // Add other critical init functions from original DOMContentLoaded here
-            if (typeof setupTafsirDocxButton === 'function') setupTafsirDocxButton();
-            //if (typeof setupGameModal === 'function') setTimeout(setupGameModal, 200);
-            if (typeof document !== 'undefined' && !window.rootNodePopupEl) window.rootNodePopupEl = document.getElementById('root-node-popup');
+        contentArea.innerHTML = '';
+        const reportType = filters.reportType || 'all';
+        const filterSurah = filters.surah ? parseInt(filters.surah) : null;
+        const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : null;
+        const dateTo = filters.dateTo ? new Date(filters.dateTo) : null;
+        if (dateTo) dateTo.setHours(23, 59, 59, 999);
+        const keyword = filters.keyword ? filters.keyword.toLowerCase() : null;
+        let dataFound = false;
+        const createSection = (title, items) => {
+            if (items.length === 0) return '';
+            dataFound = true;
+            let listHTML = '<ul class="report-list">' + items.join('') + '</ul>';
+            return `<div class="report-section"><h4>${title}</h4>${listHTML}</div>`;
+        };
+        const makeAyahClickable = (s, a, txt) => `<span class="item-surah-ayah" data-surah="${s}" data-ayah="${a}" title="Go to S${s}:A${a}">${txt}</span>`;
+        if (reportType === 'all' || reportType === 'tafsir') {
+            const items = (userData.tafsir || []).filter(t =>
+                (!filterSurah || t.surah === filterSurah) &&
+                (!keyword || (t.notes && t.notes.toLowerCase().includes(keyword)))
+            ).map(t => `<li>${makeAyahClickable(t.surah, t.ayah, `S ${t.surah}:${t.ayah}`)}<span class="item-notes">${(t.notes || '').substring(0, 150)}...</span></li>`);
+            contentArea.innerHTML += createSection('Personal Tafsir Notes', items);
         }
-        initializeReportingModule_Enhanced(); // Initialize our reporting module AFTER original/basic setup
-    };
-
-    // Replace/Set the DOMContentLoaded listener
-    // Remove any listener that might have been set with a similar name from previous attempts
-    if (typeof window.originalDOMContentLoadedHandler === 'function') {
-         document.removeEventListener('DOMContentLoaded', window.originalDOMContentLoadedHandler);
-    }
-    window.originalDOMContentLoadedHandler = patchedDOMLoadHandler; // Store our patched one globally
-    document.addEventListener('DOMContentLoaded', window.originalDOMContentLoadedHandler);
-
-
-    // Patch showSection
-    const patchedShowSection = function(sectionId) {
-        if (typeof originalShowSectionHandler === 'function' && originalShowSectionHandler !== patchedShowSection) {
-            originalShowSectionHandler(sectionId); // Call original display logic
-        } else {
-            // Minimal fallback if original showSection not captured or is THIS function
-            if (typeof document !== 'undefined') {
-                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                const activeS = document.getElementById(sectionId);
-                if (activeS) activeS.classList.add('active');
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                const activeL = document.querySelector(`.nav-link[data-section="${sectionId}"]`);
-                if (activeL) activeL.classList.add('active');
-            }
-        }
-
-        const activeSectionElement = typeof document !== 'undefined' ? document.getElementById(sectionId) : null;
-
-        if (sectionId === 'reporting') {
-            if (activeSectionElement && activeSectionElement.classList.contains('active')) {
-                enterReportingFullscreen();
-                // currentReportingUserData is now global and should be defined (or null)
-                if (!currentReportingUserData) { 
-                     loadAndDisplayReportData_Enhanced();
-                } else { 
-                    renderReportingDashboard(currentReportingUserData); // Re-render dashboard
-                    renderReportDetails(currentReportingUserData, { reportType: 'all' }); // Re-render details with default filter
-                    setupReportingFiltersEventListeners_Enhanced(currentReportingUserData);
+        if (reportType === 'all' || reportType === 'hifz') {
+            const items = (userData.hifz || []).filter(h =>
+                (!filterSurah || h.surah === filterSurah) &&
+                (!keyword || (h.notes && h.notes.toLowerCase().includes(keyword)))
+            ).map(h => {
+                let d = `Status: <span class="hifz-ayah-status status-${h.status}">${h.status.replace('-', ' ')}</span>`;
+                if (h.nextReviewDate) d += ` | Next Review: ${h.nextReviewDate}`;
+                if (h.notes) d += `<span class="item-notes">${h.notes.substring(0, 100)}...</span>`;
+                return `<li>${makeAyahClickable(h.surah, h.ayah, `S ${h.surah}:${h.ayah}`)} - ${d}</li>`;
+            });
+            contentArea.innerHTML += createSection('Memorization (Hifz) Progress', items);
+            if (items.length > 0 && (reportType === 'all' || reportType === 'hifz')) {
+                const chartData = Object.entries((userData.hifz || []).filter(h => h.status === 'memorized').reduce((acc, h) => { acc[h.surah] = (acc[h.surah] || 0) + 1; return acc; }, {}))
+                    .map(([s, c]) => ({ label: `S${s}`, count: c, fullLabel: `${surahNames[parseInt(s) - 1] || 'S' + s}: ${c} Ayahs` }))
+                    .sort((a, b) => parseInt(a.label.substring(1)) - parseInt(b.label.substring(1)));
+                if (chartData.length > 0) {
+                    const id = 'hifzProgressChart'; contentArea.innerHTML += `<div class="report-section"><h4>Hifz Progress (Memorized)</h4><div id="${id}"></div></div>`;
+                    setTimeout(() => createSimpleBarChart(chartData, id, "Ayahs Memorized per Surah", 'count', 'label', 'var(--color-success)'), 0); dataFound = true;
                 }
             }
-        } else {
-            if (typeof document !== 'undefined' && document.body.classList.contains('body-reporting-fullscreen')) {
-                exitReportingFullscreen();
+        }
+        if (reportType === 'all' || reportType === 'themes') {
+            const themeNotes = (userData.themes || []).filter(th => !keyword || (th.name.toLowerCase().includes(keyword) || (th.description && th.description.toLowerCase().includes(keyword))))
+                .map(th => `<li>Theme: <span class="item-ref">${th.name}</span><span class="item-notes">${th.description ? th.description.substring(0, 150) + '...' : 'No description.'}</span></li>`);
+            contentArea.innerHTML += createSection('Theme Notes & Descriptions', themeNotes);
+            const themeLinks = (userData.themeAyahs || []).filter(ta => {
+                const theme = userData.themes.find(t => t.id === ta.themeId);
+                return (!filterSurah || ta.surah === filterSurah) && (!keyword || (ta.notes && ta.notes.toLowerCase().includes(keyword)) || (theme && theme.name.toLowerCase().includes(keyword)));
+            }).map(ta => {
+                const theme = userData.themes.find(t => t.id === ta.themeId);
+                return `<li>${makeAyahClickable(ta.surah, ta.ayah, `S ${ta.surah}:${ta.ayah}`)} linked to <span class="item-ref">${theme ? theme.name : 'Unknown'}</span>${ta.notes ? `<span class="item-notes">Note: ${ta.notes.substring(0, 100)}...</span>` : ''}</li>`;
+            });
+            contentArea.innerHTML += createSection('Ayahs Linked to Themes', themeLinks);
+        }
+        if (reportType === 'all' || reportType === 'roots') {
+            const items = (userData.roots || []).filter(r => !keyword || (r.root.toLowerCase().includes(keyword) || (r.description && r.description.toLowerCase().includes(keyword))))
+                .map(r => `<li>Root: <span class="item-ref" lang="ar" dir="rtl">${r.root}</span><span class="item-notes">${r.description ? r.description.substring(0, 150) + '...' : 'No notes.'}</span></li>`);
+            contentArea.innerHTML += createSection('Root Word Notes', items);
+        }
+        if (reportType === 'all' || reportType === 'recitations') {
+            const filteredRecitationItems = (userData.recitations || [])
+                .filter(r => {
+                    const recDate = r.date ? new Date(r.date) : null;
+                    if (!recDate) return false;
+                    if (filterSurah && r.surah !== filterSurah) return false;
+                    if (dateFrom && recDate < dateFrom) return false;
+                    if (dateTo && recDate > dateTo) return false;
+                    if (keyword && ((!r.qari || !r.qari.toLowerCase().includes(keyword)) && (!r.notes || !r.notes.toLowerCase().includes(keyword)))) return false;
+                    return true;
+                });
+            const recitationListItems = filteredRecitationItems
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .map(r => {
+                    let ayahCount = 0;
+                    if (r.ayahStart && r.ayahEnd) {
+                        ayahCount = (r.ayahEnd - r.ayahStart) + 1;
+                    } else if (r.ayahStart) { // Single ayah logged
+                        ayahCount = 1;
+                    } else { // Full Surah assumed if no specific ayahs
+                        ayahCount = surahAyahCounts[r.surah] || 0;
+                    }
+                    const range = r.ayahStart && r.ayahEnd ? `Ayahs ${r.ayahStart}-${r.ayahEnd}` : r.ayahStart ? `Ayah ${r.ayahStart}` : 'Full Surah';
+                    return `<li>Surah ${r.surah} (${surahNames[r.surah - 1]}) - ${range} (${ayahCount} Ayah${ayahCount !== 1 ? 's' : ''})
+                            <span class="item-date"> - ${r.qari || 'N/A'} on ${r.date || 'N/A'}</span>
+                            ${r.notes ? `<span class="item-notes">${r.notes.substring(0, 150)}...</span>` : ''}</li>`;
+                });
+            contentArea.innerHTML += createSection('Recitation Logs', recitationListItems);
+            if (filteredRecitationItems.length > 0) {
+                const ayahsRecitedByMonth = {};
+                const ayahsRecitedByDay = {};
+                filteredRecitationItems.forEach(r => {
+                    if (r.date) {
+                        let countOfAyahsInLog = 0;
+                        if (r.ayahStart && r.ayahEnd) {
+                            countOfAyahsInLog = (parseInt(r.ayahEnd) - parseInt(r.ayahStart)) + 1;
+                        } else if (r.ayahStart) { // Single ayah logged
+                            countOfAyahsInLog = 1;
+                        } else { // Full Surah assumed
+                            countOfAyahsInLog = surahAyahCounts[r.surah] || 0;
+                        }
+                        if (countOfAyahsInLog <= 0) return; // Skip if no ayahs calculated
+                        const monthYear = new Date(r.date).toLocaleDateString(navigator.language || 'en-US', { year: 'numeric', month: 'short' });
+                        ayahsRecitedByMonth[monthYear] = (ayahsRecitedByMonth[monthYear] || 0) + countOfAyahsInLog;
+                        const dayKey = getISODateString(new Date(r.date));
+                        ayahsRecitedByDay[dayKey] = (ayahsRecitedByDay[dayKey] || 0) + countOfAyahsInLog;
+                    }
+                });
+                const monthlyChartData = Object.entries(ayahsRecitedByMonth)
+                    .map(([month, count]) => ({
+                        label: month,
+                        count: count, // 'count' here means ayahs recited
+                        fullLabel: `${month}: ${count} Ayahs Recited`
+                    }))
+                    .sort((a, b) => new Date(a.label) - new Date(b.label));
+                if (monthlyChartData.length > 0) {
+                    const monthlyChartContainerId = 'recitationLogsMonthlyChart';
+                    let sectionEl = contentArea.querySelector('#recitationLogsMonthlyChartSection');
+                    if (!sectionEl) {
+                        sectionEl = document.createElement('div');
+                        sectionEl.className = 'report-section';
+                        sectionEl.id = 'recitationLogsMonthlyChartSection';
+                        contentArea.appendChild(sectionEl);
+                    }
+                    sectionEl.innerHTML = `<h4>Ayahs Recited (Monthly)</h4><div id="${monthlyChartContainerId}"></div>`;
+                    setTimeout(() => createSimpleBarChart(monthlyChartData, monthlyChartContainerId, null, 'count', 'label', 'var(--color-accent)'), 0);
+                    dataFound = true;
+                }
+                const dailyChartData = Object.entries(ayahsRecitedByDay)
+                    .map(([day, count]) => ({
+                        label: new Date(day).toLocaleDateString(navigator.language || 'en-US', { month: 'short', day: 'numeric' }),
+                        date: day,
+                        count: count, // 'count' here means ayahs recited
+                        fullLabel: `${new Date(day).toLocaleDateString(navigator.language || 'en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}: ${count} Ayahs Recited`
+                    }))
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
+                if (dailyChartData.length > 0) {
+                    let showDailyChart = true;
+                    if (dateFrom && dateTo) {
+                        const diffTime = Math.abs(dateTo - dateFrom);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        if (diffDays > 62) {
+                            showDailyChart = false;
+                        }
+                    } else if (!dateFrom && !dateTo && dailyChartData.length > 62) {
+                        showDailyChart = false;
+                    }
+                    if (showDailyChart) {
+                        const dailyChartContainerId = 'recitationLogsDailyChart';
+                        let sectionElDaily = contentArea.querySelector('#recitationLogsDailyChartSection');
+                        if (!sectionElDaily) {
+                            sectionElDaily = document.createElement('div');
+                            sectionElDaily.className = 'report-section';
+                            sectionElDaily.id = 'recitationLogsDailyChartSection';
+                            contentArea.appendChild(sectionElDaily);
+                        }
+                        sectionElDaily.innerHTML = `<h4>Ayahs Recited (Daily - Filtered Period)</h4><div id="${dailyChartContainerId}"></div>`;
+                        setTimeout(() => createSimpleBarChart(dailyChartData, dailyChartContainerId, null, 'count', 'label', 'var(--color-accent-dark)'), 0);
+                        dataFound = true;
+                    }
+                }
             }
         }
-
-        // Specific logic for other sections from previous response
-        if (typeof document !== 'undefined') { // Ensure document is available
-            if (sectionId === 'themes' && typeof populateThemeSelects === 'function' && typeof displayLinkedAyahsForCurrentTheme === 'function') {
-                populateThemeSelects(); displayLinkedAyahsForCurrentTheme();
-            } else if (sectionId === 'recitation' && typeof loadRecitationLogs === 'function') {
-                loadRecitationLogs();
-            } else if (sectionId === 'hifz' && typeof loadHifzForSurah === 'function') {
-                const hifzSurahSelect = document.getElementById('hifz-surah-select');
-                if (hifzSurahSelect && hifzSurahSelect.value) loadHifzForSurah(parseInt(hifzSurahSelect.value, 10));
-            } else if (sectionId === 'roots' && typeof window.rootNetwork !== 'undefined' && window.rootNetwork && typeof window.rootNetwork.fit === 'function') {
-                 setTimeout(() => window.rootNetwork.fit(), 100);
-            }
-        }
-    };
-    window.showSection = patchedShowSection; // This is now the global showSection
-
-})();
-// === REPORTING MODULE (ENHANCED WITH FIX) END ===
-
-
-
-
-function detectDirection(text) {
-    const urduPattern = /[\u0600-\u06FF]/;
-    return urduPattern.test(text) ? 'rtl' : 'ltr';
-}
-
-const textarea = document.getElementById('tafsir-notes');
-
-// Wrap the native value property
-(function(watchTextarea) {
-    let _value = watchTextarea.value;
-
-    function updateDirection(val) {
-        const dir = detectDirection(val);
-        watchTextarea.setAttribute('dir', dir);
+        contentArea.querySelectorAll('.item-surah-ayah').forEach(el => el.addEventListener('click', e => {
+            const s = parseInt(e.currentTarget.dataset.surah), a = parseInt(e.currentTarget.dataset.ayah);
+            if (s && a && typeof loadAyah === 'function' && typeof window.showSection === 'function') { loadAyah(s, a); window.showSection('quran'); }
+        }));
+        if (!dataFound) contentArea.innerHTML = '<p id="noReportDataMessage">No data matches criteria.</p>';
     }
-
-    Object.defineProperty(watchTextarea, 'value', {
-        get() {
-            return _value;
-        },
-        set(val) {
-            _value = val;
-            watchTextarea.defaultValue = val; // optional: reflect in DOM
-            updateDirection(val);
+    function createSimpleBarChart(data, containerId, title, valueKey = 'count', labelKey = 'label', barColor = 'var(--color-accent)') {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.error(`Chart container #${containerId} not found.`);
+            return;
         }
-    });
-
-    // Also respond to manual input
-    watchTextarea.addEventListener('input', () => {
-        _value = watchTextarea.value;
+        container.innerHTML = ''; // Clear previous content like "No data for chart."
+        if (!data || data.length === 0) {
+            container.innerHTML = "<p>No data to display in chart.</p>";
+            return;
+        }
+        if (title) {
+            const titleEl = document.createElement('div');
+            titleEl.className = 'bar-chart-title';
+            titleEl.textContent = title;
+            container.appendChild(titleEl);
+        }
+        const chartEl = document.createElement('div');
+        chartEl.className = 'bar-chart';
+        if (data.length > 15) { // Example threshold
+            chartEl.style.overflowX = 'auto';
+            chartEl.style.minWidth = `${data.length * 30}px`; // Estimate width
+        }
+        const maxValue = Math.max(...data.map(item => item[valueKey]), 0);
+        if (maxValue === 0 && data.every(item => item[valueKey] === 0)) { // Check if all values are strictly zero
+            container.innerHTML += "<p>All values are zero for this period.</p>";
+            return;
+        }
+        data.forEach(item => {
+            const barWrapper = document.createElement('div');
+            barWrapper.className = 'bar';
+            const numericValue = Number(item[valueKey]) || 0;
+            const percentageHeight = maxValue > 0 ? (numericValue / maxValue) * 100 : 0;
+            barWrapper.style.height = `${Math.max(percentageHeight, 5)}%`; // Min height 5% for visibility
+            barWrapper.style.backgroundColor = barColor;
+            barWrapper.title = item.fullLabel || `${item[labelKey]}: ${numericValue}`;
+            const valueSpan = document.createElement('span');
+            valueSpan.className = 'bar-value';
+            valueSpan.textContent = numericValue; // Display the numeric value
+            barWrapper.appendChild(valueSpan);
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'bar-label';
+            labelSpan.textContent = item[labelKey];
+            barWrapper.appendChild(labelSpan);
+            chartEl.appendChild(barWrapper);
+        });
+        container.appendChild(chartEl);
+    }
+    let reportingModuleInitialized = false;
+    function initializeReportingModule_Enhanced() {
+        if (reportingModuleInitialized) return;
+        createReportingSectionStructure_Enhanced();
+        injectReportingModuleStyles_Enhanced();
+        const sidebarNav = document.querySelector('.sidebar nav ul');
+        const existingReportLink = document.querySelector('a[data-section="reporting"]');
+        if (sidebarNav && !existingReportLink) {
+            const reportLi = document.createElement('li');
+            const reportLink = document.createElement('a');
+            reportLink.href = "#reporting";
+            reportLink.className = "nav-link";
+            reportLink.dataset.section = "reporting";
+            reportLink.textContent = "Reporting";
+            reportLi.appendChild(reportLink);
+            const dataManagementLink = sidebarNav.querySelector('a[data-section="data"]');
+            if (dataManagementLink && dataManagementLink.parentElement) {
+                sidebarNav.insertBefore(reportLi, dataManagementLink.parentElement);
+            } else {
+                sidebarNav.appendChild(reportLi);
+            }
+            reportLink.addEventListener('click', (event) => {
+                event.preventDefault();
+                if (typeof window.showSection === 'function') {
+                    window.showSection('reporting');
+                } else {
+                    console.error("Global window.showSection function not found for reporting link.");
+                }
+            });
+        }
+        reportingModuleInitialized = true;
+    }
+    async function loadAndDisplayReportData_Enhanced() {
+        const reportingContent = document.getElementById('reportingContent');
+        const dashboardArea = document.getElementById('reportingDashboard');
+        if (dashboardArea) dashboardArea.innerHTML = '<p>Loading dashboard...</p>';
+        if (reportingContent) reportingContent.innerHTML = '<p>Loading report data...</p>';
+        try {
+            await loadAllUserDataForReports();
+            if (!currentReportingUserData) {
+                if (dashboardArea) dashboardArea.innerHTML = "<p>Failed to load data for dashboard.</p>";
+                if (reportingContent) reportingContent.innerHTML = "<p>Failed to load report data. Check console for errors.</p>";
+                return;
+            }
+            renderReportingDashboard(currentReportingUserData);
+            renderReportDetails(currentReportingUserData, { reportType: 'all' });
+            setupReportingFiltersEventListeners_Enhanced(currentReportingUserData);
+        } catch (error) {
+            console.error("Error loading/displaying report data:", error);
+            if (dashboardArea) dashboardArea.innerHTML = "<p style='color:red;'>Error loading dashboard. See console.</p>";
+            if (reportingContent) reportingContent.innerHTML = "<p style='color:red;'>Error loading reports. See console.</p>";
+        }
+    }
+    if (!window.originalAppDOMContentLoaded && typeof window.originalDOMContentLoadedHandler === 'function') {
+        window.originalAppDOMContentLoaded = window.originalDOMContentLoadedHandler;
+    } else if (!window.originalAppDOMContentLoaded) {
+    }
+    (function () { // IIFE to manage scope and ensure patching happens correctly
+        let originalDOMContentLoadedHandler = null;
+        let originalShowSectionHandler = null;
+        if (typeof window.originalDOMContentLoadedHandler === 'function') { // From previous attempts
+            originalDOMContentLoadedHandler = window.originalDOMContentLoadedHandler;
+        }
+        if (typeof window.showSection === 'function') {
+            originalShowSectionHandler = window.showSection;
+        }
+        const patchedDOMLoadHandler = async () => {
+            if (typeof originalDOMContentLoadedHandler === 'function' && originalDOMContentLoadedHandler !== patchedDOMLoadHandler) {
+                await originalDOMContentLoadedHandler();
+            } else {
+                if (typeof openDB === 'function') await openDB(); else console.error("openDB not found");
+                if (typeof loadThemePreference === 'function') await loadThemePreference();
+                if (typeof setupEventListeners === 'function') setupEventListeners(); else console.error("setupEventListeners not found");
+                if (typeof loadQuranData === 'function') await loadQuranData();
+                if (typeof displayThemesList === 'function') displayThemesList();
+                if (typeof setupTafsirDocxButton === 'function') setupTafsirDocxButton();
+                if (typeof document !== 'undefined' && !window.rootNodePopupEl) window.rootNodePopupEl = document.getElementById('root-node-popup');
+            }
+            initializeReportingModule_Enhanced(); // Initialize our reporting module AFTER original/basic setup
+        };
+        if (typeof window.originalDOMContentLoadedHandler === 'function') {
+            document.removeEventListener('DOMContentLoaded', window.originalDOMContentLoadedHandler);
+        }
+        window.originalDOMContentLoadedHandler = patchedDOMLoadHandler; // Store our patched one globally
+        document.addEventListener('DOMContentLoaded', window.originalDOMContentLoadedHandler);
+        const patchedShowSection = function (sectionId) {
+            if (typeof originalShowSectionHandler === 'function' && originalShowSectionHandler !== patchedShowSection) {
+                originalShowSectionHandler(sectionId); // Call original display logic
+            } else {
+                if (typeof document !== 'undefined') {
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    const activeS = document.getElementById(sectionId);
+                    if (activeS) activeS.classList.add('active');
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    const activeL = document.querySelector(`.nav-link[data-section="${sectionId}"]`);
+                    if (activeL) activeL.classList.add('active');
+                }
+            }
+            const activeSectionElement = typeof document !== 'undefined' ? document.getElementById(sectionId) : null;
+            if (sectionId === 'reporting') {
+                if (activeSectionElement && activeSectionElement.classList.contains('active')) {
+                    enterReportingFullscreen();
+                    if (!currentReportingUserData) {
+                        loadAndDisplayReportData_Enhanced();
+                    } else {
+                        renderReportingDashboard(currentReportingUserData); // Re-render dashboard
+                        renderReportDetails(currentReportingUserData, { reportType: 'all' }); // Re-render details with default filter
+                        setupReportingFiltersEventListeners_Enhanced(currentReportingUserData);
+                    }
+                }
+            } else {
+                if (typeof document !== 'undefined' && document.body.classList.contains('body-reporting-fullscreen')) {
+                    exitReportingFullscreen();
+                }
+            }
+            if (typeof document !== 'undefined') { // Ensure document is available
+                if (sectionId === 'themes' && typeof populateThemeSelects === 'function' && typeof displayLinkedAyahsForCurrentTheme === 'function') {
+                    populateThemeSelects(); displayLinkedAyahsForCurrentTheme();
+                } else if (sectionId === 'recitation' && typeof loadRecitationLogs === 'function') {
+                    loadRecitationLogs();
+                } else if (sectionId === 'hifz' && typeof loadHifzForSurah === 'function') {
+                    const hifzSurahSelect = document.getElementById('hifz-surah-select');
+                    if (hifzSurahSelect && hifzSurahSelect.value) loadHifzForSurah(parseInt(hifzSurahSelect.value, 10));
+                } else if (sectionId === 'roots' && typeof window.rootNetwork !== 'undefined' && window.rootNetwork && typeof window.rootNetwork.fit === 'function') {
+                    setTimeout(() => window.rootNetwork.fit(), 100);
+                }
+            }
+        };
+        window.showSection = patchedShowSection; // This is now the global showSection
+    })();
+    function detectDirection(text) {
+        const urduPattern = /[\u0600-\u06FF]/;
+        return urduPattern.test(text) ? 'rtl' : 'ltr';
+    }
+    const textarea = document.getElementById('tafsir-notes');
+    (function (watchTextarea) {
+        let _value = watchTextarea.value;
+        function updateDirection(val) {
+            const dir = detectDirection(val);
+            watchTextarea.setAttribute('dir', dir);
+        }
+        Object.defineProperty(watchTextarea, 'value', {
+            get() {
+                return _value;
+            },
+            set(val) {
+                _value = val;
+                watchTextarea.defaultValue = val; // optional: reflect in DOM
+                updateDirection(val);
+            }
+        });
+        watchTextarea.addEventListener('input', () => {
+            _value = watchTextarea.value;
+            updateDirection(_value);
+        });
         updateDirection(_value);
-    });
-
-    // Initial set
-    updateDirection(_value);
-
-})(textarea);
+    })(textarea);
 </script>
