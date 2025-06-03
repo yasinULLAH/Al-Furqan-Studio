@@ -1,0 +1,389 @@
+async function runStandaloneSampleDataPopulation() {
+    console.log("Starting STANDALONE sample data population (with URDU text)...");
+
+    // --- Configuration (Must match your app's DB setup) ---
+    const DB_NAME_STANDALONE = 'NurAlQuranStudioDBz';
+    const DB_VERSION_STANDALONE = 7; // Ensure this matches your app's DB version
+    const NUM_SAMPLES_STANDALONE = 25;
+
+    // Store names (must match your app)
+    const STORE_TAFSIR_S = 'tafsir';
+    const STORE_THEMES_S = 'themes';
+    const STORE_THEME_AYAHS_S = 'theme_ayahs';
+    const STORE_ROOTS_S = 'roots';
+    const STORE_RECITATIONS_S = 'recitations';
+    const STORE_HIFZ_S = 'hifz';
+
+    // --- Embedded Static Data (from your app) ---
+    const surahAyahCounts_S = [
+        0, 7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110, 98, 135, 112, 78, 118, 64, 77, 227, 93, 88, 69,
+        60, 34, 30, 73, 54, 45, 83, 182, 88, 75, 85, 54, 53, 89, 59, 37, 35, 38, 29, 18, 45, 60, 49, 62, 55, 78, 96, 29, 22, 24,
+        13, 14, 11, 11, 18, 12, 12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25, 22, 17, 19, 26, 30,
+        20, 15, 21, 11, 8, 5, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4, 5, 6
+    ];
+    const surahNames_S = [ /* ... (Keep your existing full surahNames_S array here) ... */
+        "Al-Fatihah", "Al-Baqarah", "Al 'Imran", "An-Nisa'", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus",
+        "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra'", "Al-Kahf", "Maryam", "Taha",
+        "Al-Anbya'", "Al-Hajj", "Al-Mu'minun", "An-Nur", "Al-Furqan", "Ash-Shu'ara'", "An-Naml", "Al-Qasas", "Al-'Ankabut", "Ar-Rum",
+        "Luqman", "As-Sajdah", "Al-Ahzab", "Saba'", "Fatir", "Ya-Sin", "As-Saffat", "Sad", "Az-Zumar", "Ghafir",
+        "Fussilat", "Ash-Shura", "Az-Zukhruf", "Ad-Dukhan", "Al-Jathiyah", "Al-Ahqaf", "Muhammad", "Al-Fath", "Al-Hujurat", "Qaf",
+        "Adh-Dhariyat", "At-Tur", "An-Najm", "Al-Qamar", "Ar-Rahman", "Al-Waqi'ah", "Al-Hadid", "Al-Mujadilah", "Al-Hashr", "Al-Mumtahanah",
+        "As-Saff", "Al-Jumu'ah", "Al-Munafiqun", "At-Taghabun", "At-Talaq", "At-Tahrim", "Al-Mulk", "Al-Qalam", "Al-Haqqah", "Al-Ma'arij",
+        "Nuh", "Al-Jinn", "Al-Muzzammil", "Al-Muddaththir", "Al-Qiyamah", "Al-Insan", "Al-Mursalat", "An-Naba'", "An-Nazi'at", "'Abasa",
+        "At-Takwir", "Al-Infitar", "Al-Mutaffifin", "Al-Inshiqaq", "Al-Buruj", "At-Tariq", "Al-A'la", "Al-Ghashiyah", "Al-Fajr", "Al-Balad",
+        "Ash-Shams", "Al-Layl", "Ad-Duha", "Ash-Sharh", "At-Tin", "Al-'Alaq", "Al-Qadr", "Al-Bayyinah", "Az-Zalzalah", "Al-'Adiyat",
+        "Al-Qari'ah", "At-Takathur", "Al-'Asr", "Al-Humazah", "Al-Fil", "Quraysh", "Al-Ma'un", "Al-Kawthar", "Al-Kafirun", "An-Nasr",
+        "Al-Masad", "Al-Ikhlas", "Al-Falaq", "An-Nas"
+    ];
+
+
+    // --- Standalone DB Helper Functions (Same as before) ---
+    let dbInstance_S = null;
+    // ... (Keep openDBStandalone, getObjectStoreStandalone, addDataStandalone, putDataStandalone, getAllDataStandalone functions exactly as in the previous good version) ...
+    function openDBStandalone() {
+        return new Promise((resolve, reject) => {
+            if (dbInstance_S) {
+                resolve(dbInstance_S);
+                return;
+            }
+            const request = indexedDB.open(DB_NAME_STANDALONE, DB_VERSION_STANDALONE);
+            request.onupgradeneeded = (event) => {
+                console.warn("Standalone Populator: `onupgradeneeded` triggered. This script should run against an already initialized database schema by the main application. If stores are missing, population will fail.");
+            };
+            request.onsuccess = (event) => {
+                dbInstance_S = event.target.result;
+                console.log("Standalone Populator: IndexedDB opened successfully.");
+                const expectedStores = [STORE_TAFSIR_S, STORE_THEMES_S, STORE_THEME_AYAHS_S, STORE_ROOTS_S, STORE_RECITATIONS_S, STORE_HIFZ_S];
+                let allStoresExist = true;
+                for (const storeName of expectedStores) {
+                    if (!dbInstance_S.objectStoreNames.contains(storeName)) {
+                        console.error(`Standalone Populator: Critical - Object store "${storeName}" not found in the database. Cannot populate this store.`);
+                        allStoresExist = false;
+                    }
+                }
+                if (!allStoresExist) {
+                    reject(new Error("One or more required object stores are missing. Population cannot proceed. Ensure main app has initialized the DB."));
+                    dbInstance_S.close();
+                    dbInstance_S = null;
+                    return;
+                }
+                resolve(dbInstance_S);
+            };
+            request.onerror = (event) => {
+                console.error("Standalone Populator: IndexedDB error:", event.target.errorCode, event.target.error);
+                reject(new Error("Failed to open IndexedDB for populator: " + (event.target.error ? event.target.error.message : "Unknown error")));
+            };
+        });
+    }
+    function getObjectStoreStandalone(db, storeName, mode) {
+        if (!db) {
+            console.error("getObjectStoreStandalone: DB instance is null.");
+            throw new Error("Database not initialized for standalone operation.");
+        }
+        if (!db.objectStoreNames.contains(storeName)) {
+            console.error(`getObjectStoreStandalone: Store "${storeName}" does not exist.`);
+            throw new Error(`Store "${storeName}" does not exist.`);
+        }
+        const transaction = db.transaction(storeName, mode);
+        return transaction.objectStore(storeName);
+    }
+    function addDataStandalone(db, storeName, data) {
+        return new Promise((resolve, reject) => {
+            try {
+                const store = getObjectStoreStandalone(db, storeName, 'readwrite');
+                const request = store.add(data);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (event) => {
+                    console.error(`Standalone: Error adding data to ${storeName}:`, event.target.error);
+                    reject(event.target.error);
+                };
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+    function putDataStandalone(db, storeName, data) {
+        return new Promise((resolve, reject) => {
+             try {
+                const store = getObjectStoreStandalone(db, storeName, 'readwrite');
+                const request = store.put(data);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (event) => {
+                    console.error(`Standalone: Error putting data to ${storeName}:`, event.target.error);
+                    reject(event.target.error);
+                };
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+    function getAllDataStandalone(db, storeName) {
+        return new Promise((resolve, reject) => {
+            try {
+                const store = getObjectStoreStandalone(db, storeName, 'readonly');
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (event) => {
+                    console.error(`Standalone: Error getting all data from ${storeName}:`, event.target.error);
+                    reject(event.target.error);
+                };
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+
+
+    // --- Helper Functions for Data Generation (using _S suffixed static data) ---
+    const getRandomInt_S = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const getRandomSurah_S = () => getRandomInt_S(1, 114);
+    const getRandomAyah_S = (surahNum) => {
+        if (surahNum < 1 || surahNum > 114 || !surahAyahCounts_S[surahNum]) return 1;
+        return getRandomInt_S(1, surahAyahCounts_S[surahNum]);
+    };
+    const getRandomDate_S = (start, end) => {
+        const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+        return date.toISOString().split('T')[0];
+    };
+
+    // --- URDU Sample Text Data ---
+    const urduSamplePhrases = [
+        "یہ ایک تجرباتی نوٹ ہے۔", "اس آیت میں گہرے معانی پوشیدہ ہیں۔", "اللہ تعالی کی حکمت بے مثال ہے۔",
+        "قرآن مجید ہدایت کا سرچشمہ ہے۔", "ایمان کی مضبوطی ضروری ہے۔", "نماز قائم کرنا فرض ہے۔",
+        "صبر کرنے والوں کے لیے بڑا اجر ہے۔", "جنت متقین کا ٹھکانہ ہے۔", "آخرت کی فکر کرنی چاہیے۔",
+        "حق بات ہمیشہ غالب آتی ہے۔", "علم حاصل کرنا ہر مسلمان پر فرض ہے۔", "اللہ کی رحمت بہت وسیع ہے۔",
+        "نیکی کا بدلہ نیکی ہے۔", "برائی سے بچنا چاہیے۔", "دعا عبادت کا مغز ہے۔", "اللہ پر توکل کامل ہونا چاہیے۔",
+        "تقویٰ اختیار کرنا کامیابی کی کنجی ہے۔", "گناہوں سے توبہ کرنی چاہیے۔", "اسلام سلامتی کا دین ہے۔",
+        "قرآن فہمی وقت کی اہم ضرورت ہے۔", "اس موضوع پر مزید تحقیق کی جاسکتی ہے۔", "یہاں ایک اہم نکتہ بیان ہوا ہے۔",
+        "اس کی تشریح مختلف علماء نے کی ہے۔", "لفظی ترجمہ یہ ہے۔", "سیاق و سباق کو سمجھنا ضروری ہے۔",
+        "یہاں توحید کا درس ملتا ہے۔", "رسالت پر ایمان لانا لازمی ہے۔", "قیامت کے دن حساب ہوگا۔",
+        "اللہ کی نشانیاں ہر طرف موجود ہیں۔", "والدین کا احترام کریں۔"
+    ];
+    const urduSampleWords = ["اللہ", "قرآن", "رسول", "ایمان", "نماز", "زکوٰۃ", "صبر", "جنت", "جہنم", "آخرت", "حق", "نور", "ہدایت", "رحمت", "علم", "حکمت", "کتاب", "آیت", "ذکر", "حمد", "شکر", "دعا", "توکل", "تقویٰ", "مغفرة", "توبہ", "سلام", "برکت", "رب", "رحمن", "رحیم", "مالک", "قدوس", "عزیز", "جبار"];
+
+    const getRandomUrduText = (minPhrases, maxPhrases) => {
+        const numPhrases = getRandomInt_S(minPhrases, maxPhrases);
+        let text = "";
+        for (let i = 0; i < numPhrases; i++) {
+            text += getRandomElement_S(urduSamplePhrases) + " ";
+        }
+        // Add some random words too for variety
+        const numWords = getRandomInt_S(3, 7);
+        for (let i = 0; i < numWords; i++) {
+            text += getRandomElement_S(urduSampleWords) + " ";
+        }
+        return text.trim();
+    };
+    // --- End URDU Sample Text Data ---
+
+
+    const getRandomElement_S = (arr) => {
+        if (!arr || arr.length === 0) return null;
+        return arr[getRandomInt_S(0, arr.length - 1)];
+    };
+    const qaris_S = ['مشاری العفاسی', 'سعد الغامدی', 'عبد الباسط عبد الصمد', 'السدیس و الشریم', 'ابو بکر الشاطری', 'یاسر الدوسری', 'ماہر المعیقلی']; // Urdu names
+    const hifzStatuses_S = ['not-started', 'in-progress', 'memorized'];
+    const sampleRootsList_S = ["ع-ل-م", "ك-ت-ب", "ق-ر-أ", "ن-ص-ر", "ض-ر-ب", "س-م-ع", "ف-ت-ح", "ج-ع-ل", "ر-ز-ق", "ه-د-ى", "ش-ك-ر", "ص-ب-ر", "غ-ف-ر", "ر-ح-م", "خ-ل-ق", "ذ-ك-ر", "ع-ب-د", "أ-م-ن", "ص-د-ق", "ح-ك-م"];
+
+
+    // --- Data Population Functions (Using standalone DB functions & URDU text) ---
+    async function populateTafsirStandalone(db) {
+        console.log("Populating Tafsir (Personal Notes for Ayahs) with URDU text...");
+        const existingTafsir = await getAllDataStandalone(db, STORE_TAFSIR_S);
+        const existingTafsirKeys = new Set(existingTafsir.map(t => `${t.surah}-${t.ayah}`));
+        let count = 0;
+        for (let i = 0; i < NUM_SAMPLES_STANDALONE * 2 && count < NUM_SAMPLES_STANDALONE; i++) {
+            const surah = getRandomSurah_S();
+            const ayah = getRandomAyah_S(surah);
+            const key = `${surah}-${ayah}`;
+            if (existingTafsirKeys.has(key)) continue;
+
+            const notes = `سورہ ${surahNames_S[surah-1]}، آیت ${ayah} کے لیے ذاتی تفسیر: ${getRandomUrduText(2, 4)}`;
+            try {
+                await putDataStandalone(db, STORE_TAFSIR_S, { surah, ayah, notes });
+                existingTafsirKeys.add(key);
+                count++;
+            } catch (e) { console.error(`Standalone: Error adding Tafsir for ${key}:`, e); }
+        }
+        console.log(`Standalone: Added ${count} Tafsir entries.`);
+    }
+
+    async function populateThemesAndLinksStandalone(db) {
+        console.log("Populating Themes (Custom Categories) with URDU text...");
+        const generatedThemeIds = [];
+        for (let i = 0; i < NUM_SAMPLES_STANDALONE; i++) {
+            const name = `تجرباتی موضوع ${i + 1}: ${getRandomElement_S(urduSampleWords)} اور ${getRandomElement_S(urduSampleWords)}`;
+            const description = `اس موضوع کی تفصیلات: ${getRandomUrduText(1, 3)}`;
+            try {
+                const id = await addDataStandalone(db, STORE_THEMES_S, { name, parentId: null, description });
+                generatedThemeIds.push(id);
+            } catch (e) { console.error(`Standalone: Error adding Theme ${name}:`, e); }
+        }
+        console.log(`Standalone: Added ${generatedThemeIds.length} Themes.`);
+
+        if (generatedThemeIds.length > 0) {
+            console.log("Populating Theme-Ayah Links with URDU notes...");
+            let linkCount = 0;
+            for (let i = 0; i < NUM_SAMPLES_STANDALONE; i++) {
+                const themeId = getRandomElement_S(generatedThemeIds);
+                if (!themeId) continue;
+                const surah = getRandomSurah_S();
+                const ayah = getRandomAyah_S(surah);
+                const notes = `ربط کی وضاحت: یہ آیت (${surah}:${ayah}) اس موضوع سے ${getRandomElement_S(["واضح طور پر", "جزوی طور پر", "گہرائی سے"])} متعلق ہے۔ ${getRandomUrduText(1, 2)}`;
+                try {
+                    await addDataStandalone(db, STORE_THEME_AYAHS_S, { themeId, surah, ayah, notes });
+                    linkCount++;
+                } catch (e) { console.error(`Standalone: Error adding Theme-Ayah Link:`, e); }
+            }
+            console.log(`Standalone: Added ${linkCount} Theme-Ayah links.`);
+        }
+    }
+
+    async function populateRootsStandalone(db) {
+        console.log("Populating Root Word Notes with URDU descriptions...");
+        const existingRoots = await getAllDataStandalone(db, STORE_ROOTS_S);
+        const existingRootTerms = new Set(existingRoots.map(r => r.root));
+        let count = 0;
+
+        for (let i = 0; i < NUM_SAMPLES_STANDALONE && count < NUM_SAMPLES_STANDALONE; i++) {
+            let rootTerm = getRandomElement_S(sampleRootsList_S);
+            let attempt = 0;
+            while (existingRootTerms.has(rootTerm) && attempt < sampleRootsList_S.length * 2) {
+                rootTerm = getRandomElement_S(sampleRootsList_S);
+                if (attempt > sampleRootsList_S.length) rootTerm = `${rootTerm}_${getRandomInt_S(1,100)}`;
+                attempt++;
+            }
+            if (existingRootTerms.has(rootTerm)) continue;
+
+            const description = `لسانی جڑ '${rootTerm}' کے بارے میں تفصیلی نوٹس: ${getRandomUrduText(2, 4)} اس میں ممکنہ معانی اور قرآنی مثالیں شامل ہیں۔`;
+            try {
+                await addDataStandalone(db, STORE_ROOTS_S, { root: rootTerm, description });
+                existingRootTerms.add(rootTerm);
+                count++;
+            } catch (e) { console.error(`Standalone: Error adding Root ${rootTerm}:`, e); }
+        }
+        console.log(`Standalone: Added ${count} Root entries.`);
+    }
+
+    async function populateRecitationsStandalone(db) {
+        console.log("Populating Recitations with URDU notes...");
+        let count = 0;
+        for (let i = 0; i < NUM_SAMPLES_STANDALONE; i++) {
+            const surah = getRandomSurah_S();
+            const ayahStart = getRandomAyah_S(surah);
+            const maxEndPossible = surahAyahCounts_S[surah];
+            let ayahEnd = ayahStart + getRandomInt_S(0, Math.min(20, maxEndPossible - ayahStart));
+            if (ayahEnd > maxEndPossible) ayahEnd = maxEndPossible;
+            if (Math.random() < 0.25) ayahEnd = ayahStart;
+
+            const recitation = {
+                surah,
+                ayahStart,
+                ayahEnd: (ayahStart === ayahEnd && Math.random() < 0.5) ? null : ayahEnd,
+                qari: getRandomElement_S(qaris_S),
+                date: getRandomDate_S(new Date(2023, 0, 1), new Date()),
+                notes: `سماعت لاگ ${i + 1}: قاری ${getRandomElement_S(qaris_S)} کی تلاوت۔ ${getRandomUrduText(1, 3)} تجوید اور لہجے پر تبصرہ۔`
+            };
+            try {
+                await addDataStandalone(db, STORE_RECITATIONS_S, recitation);
+                count++;
+            } catch (e) { console.error(`Standalone: Error adding Recitation:`, e); }
+        }
+        console.log(`Standalone: Added ${count} Recitation logs.`);
+    }
+
+    const calculateNextReviewDateForSample_S = (lastReviewDateStr, reviewCount) => {
+        const date = new Date(lastReviewDateStr);
+        const daysToAdd = [1, 2, 4, 7, 14, 30, 60, 90, 120];
+        date.setDate(date.getDate() + (daysToAdd[Math.min(reviewCount, daysToAdd.length - 1)] || 150));
+        return date.toISOString().split('T')[0];
+    };
+
+    async function populateHifzStandalone(db) {
+        console.log("Populating Hifz Data with URDU notes...");
+        const existingHifz = await getAllDataStandalone(db, STORE_HIFZ_S);
+        const existingHifzKeys = new Set(existingHifz.map(h => `${h.surah}-${h.ayah}`));
+        let count = 0;
+        for (let i = 0; i < NUM_SAMPLES_STANDALONE * 2 && count < NUM_SAMPLES_STANDALONE; i++) {
+            const surah = getRandomSurah_S();
+            const ayah = getRandomAyah_S(surah);
+            const key = `${surah}-${ayah}`;
+            if (existingHifzKeys.has(key)) continue;
+
+            const status = getRandomElement_S(hifzStatuses_S);
+            let lastReviewDate = null;
+            let nextReviewDate = null;
+            let reviewCount = 0;
+            let notes = '';
+
+            if (status === 'memorized') {
+                lastReviewDate = getRandomDate_S(new Date(2023, 3, 1), new Date());
+                reviewCount = getRandomInt_S(0, 6);
+                nextReviewDate = calculateNextReviewDateForSample_S(lastReviewDate, reviewCount);
+                notes = `الحمدللہ یہ آیت (${surah}:${ayah}) حفظ ہوگئی۔ ${getRandomUrduText(1,2)} اگلی مراجعہ کی تاریخ: ${nextReviewDate}.`;
+            } else if (status === 'in-progress') {
+                notes = `آیت (${surah}:${ayah}) ابھی زیرِ حفظ ہے۔ ${getRandomUrduText(1,2)} مزید توجہ کی ضرورت ہے۔`;
+            } else {
+                notes = `آیت (${surah}:${ayah}) ابھی شروع نہیں کی۔`;
+            }
+
+            const hifzEntry = {
+                surah,
+                ayah,
+                status,
+                lastReviewDate,
+                nextReviewDate,
+                reviewCount,
+                notes
+            };
+            try {
+                await putDataStandalone(db, STORE_HIFZ_S, hifzEntry);
+                existingHifzKeys.add(key);
+                count++;
+            } catch (e) { console.error(`Standalone: Error adding Hifz for ${key}:`, e); }
+        }
+        console.log(`Standalone: Added ${count} Hifz entries.`);
+    }
+
+    // --- Main Execution ---
+    try {
+        const db = await openDBStandalone();
+        if (!db) {
+            console.error("Standalone: Failed to open DB. Aborting population.");
+            alert("Standalone: Failed to open DB. Aborting population. Check console.");
+            return;
+        }
+
+        await populateTafsirStandalone(db);
+        await populateThemesAndLinksStandalone(db);
+        await populateRootsStandalone(db);
+        await populateRecitationsStandalone(db);
+        await populateHifzStandalone(db);
+
+        console.log("STANDALONE Sample data population (URDU text) complete!");
+        alert("STANDALONE Sample data population (URDU text) finished. Refresh the relevant app sections or reload the page to see the data.");
+
+    } catch (error) {
+        console.error("An error occurred during STANDALONE sample data population:", error);
+        alert("An error occurred during STANDALONE sample data population. Check console for details: " + error.message);
+    } finally {
+        if (dbInstance_S) {
+            // dbInstance_S.close(); // Let browser manage
+            dbInstance_S = null;
+        }
+    }
+}
+
+// --- INSTRUCTIONS FOR USER ---
+// 1. Make sure your Quran application page is loaded in the browser.
+//    The main application MUST have created the IndexedDB database and its object stores.
+// 2. Open the browser's developer console (usually F12).
+// 3. Paste THIS ENTIRE SCRIPT into the console and press Enter.
+// 4. Then, in the console, type:
+//    runStandaloneSampleDataPopulation()
+//    and press Enter.
+// 5. Check the console for progress messages.
+// 6. After completion, refresh your app's UI sections (or reload page) to see new data.
+
+// To run automatically after pasting (optional):
+// runStandaloneSampleDataPopulation();

@@ -289,6 +289,7 @@
             width: 100%;
             max-width: 100%;
             margin-bottom: 10px;
+            font-size: medium;
         }
         .theme-manager,
         .theme-linker {
@@ -774,6 +775,9 @@
         }
         #fsReaderSettingsPanel>div:nth-child(2)>label:nth-child(7) {
             display: none;
+        }
+        span.item-surah-ayah.theme-modal-ayah-link {
+            cursor: pointer;
         }
     </style>
     <!-- Optional: Include fonts if not available locally -->
@@ -2266,11 +2270,11 @@
 
         async function displayThemesList() {
             if (!db) {
-                console.warn('[displayThemesList] DB not ready.');
+                //console.warn('[displayThemesList] DB not ready.');
                 return;
             }
             if (isLoadingThemesListGlobalFlag) {
-                console.warn('[displayThemesList] Already in progress. Call skipped.');
+                //console.warn('[displayThemesList] Already in progress. Call skipped.');
                 return;
             }
 
@@ -2297,7 +2301,7 @@
 
                 if (!themesListElement.parentNode) {
                     // If themesListElement was removed from DOM during await, stop.
-                    console.warn('[displayThemesList] themesListElement no longer in DOM after fetching data.');
+                    //console.warn('[displayThemesList] themesListElement no longer in DOM after fetching data.');
                     isLoadingThemesListGlobalFlag = false;
                     return;
                 }
@@ -3041,11 +3045,11 @@
 
             async function loadRecitationLogs() {
                 if (!db) {
-                    console.warn('[loadRecitationLogs] DB not ready.');
+                    //console.warn('[loadRecitationLogs] DB not ready.');
                     return;
                 }
                 if (isLoadingRecitationLogsGlobalFlag) {
-                    console.warn('[loadRecitationLogs] Already in progress. Call skipped.');
+                    //console.warn('[loadRecitationLogs] Already in progress. Call skipped.');
                     return;
                 }
 
@@ -3072,7 +3076,7 @@
 
                     if (!listEl.parentNode) {
                         // If listEl was removed from DOM during await, stop.
-                        console.warn('[loadRecitationLogs] listEl no longer in DOM after fetching data.');
+                        //console.warn('[loadRecitationLogs] listEl no longer in DOM after fetching data.');
                         isLoadingRecitationLogsGlobalFlag = false;
                         hideLoading();
                         return;
@@ -3166,7 +3170,7 @@
 
         async function loadHifzForSurah(surah) {
             if (!db) {
-                console.warn('[loadHifzForSurah] DB not ready.');
+                //console.warn('[loadHifzForSurah] DB not ready.');
                 return;
             }
 
@@ -3174,7 +3178,7 @@
             // This requires a more nuanced flag if you want to allow switching Surahs rapidly
             // For now, a simple global flag to prevent any concurrent execution.
             if (isLoadingHifzForSurahGlobalFlag) {
-                console.warn('[loadHifzForSurah] Already in progress for a surah. Call skipped for Surah:', surah);
+                //console.warn('[loadHifzForSurah] Already in progress for a surah. Call skipped for Surah:', surah);
                 return;
             }
 
@@ -8107,7 +8111,7 @@ function setupGameModal() {
                 return;
             }
             if (targetElement.style.display === 'none' || getComputedStyle(targetElement).display === 'none') {
-                console.warn(`Fullscreen Targeter: Target element "${elementId}" is not visible. Fullscreen might not work as expected. Ensuring original click handler makes it visible.`);
+                //console.warn(`Fullscreen Targeter: Target element "${elementId}" is not visible. Fullscreen might not work as expected. Ensuring original click handler makes it visible.`);
             }
             if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
                 return;
@@ -8121,7 +8125,7 @@ function setupGameModal() {
             } else if (targetElement.msRequestFullscreen) { // IE11
                 targetElement.msRequestFullscreen();
             } else {
-                console.warn(`Fullscreen Targeter: Browser Fullscreen API not supported for the element "${elementId}".`);
+                //console.warn(`Fullscreen Targeter: Browser Fullscreen API not supported for the element "${elementId}".`);
             }
         }
         function setupLaunchButtonListenerForFullscreen() {
@@ -8133,7 +8137,7 @@ function setupGameModal() {
                     }, 200); // 50ms delay, adjust if needed for your modal's display logic
                 });
             } else {
-                console.warn(`Fullscreen Targeter: Launch button #${GAME_MODAL_LAUNCH_BUTTON_ID} not found after delay. Fullscreen on click will not be enabled.`);
+                //console.warn(`Fullscreen Targeter: Launch button #${GAME_MODAL_LAUNCH_BUTTON_ID} not found after delay. Fullscreen on click will not be enabled.`);
             }
         }
         window.addEventListener('load', () => {
@@ -8912,7 +8916,7 @@ if (!window.originalAppDOMContentLoaded && typeof window.originalDOMContentLoade
      // If no handler was explicitly stored, we might need to create a placeholder
      // or ensure our logic runs after a minimal known setup from the HTML.
      // This part is the most fragile in "patching" without modifying original HTML script block.
-     console.warn("Reporting Patch: Could not identify a specific original DOMContentLoaded handler to chain from. Will attempt to run basic setup.");
+     //console.warn("Reporting Patch: Could not identify a specific original DOMContentLoaded handler to chain from. Will attempt to run basic setup.");
 }
 
 (function() { // IIFE to manage scope and ensure patching happens correctly
@@ -9011,4 +9015,45 @@ if (!window.originalAppDOMContentLoaded && typeof window.originalDOMContentLoade
 
 })();
 // === REPORTING MODULE (ENHANCED WITH FIX) END ===
+
+
+
+
+function detectDirection(text) {
+    const urduPattern = /[\u0600-\u06FF]/;
+    return urduPattern.test(text) ? 'rtl' : 'ltr';
+}
+
+const textarea = document.getElementById('tafsir-notes');
+
+// Wrap the native value property
+(function(watchTextarea) {
+    let _value = watchTextarea.value;
+
+    function updateDirection(val) {
+        const dir = detectDirection(val);
+        watchTextarea.setAttribute('dir', dir);
+    }
+
+    Object.defineProperty(watchTextarea, 'value', {
+        get() {
+            return _value;
+        },
+        set(val) {
+            _value = val;
+            watchTextarea.defaultValue = val; // optional: reflect in DOM
+            updateDirection(val);
+        }
+    });
+
+    // Also respond to manual input
+    watchTextarea.addEventListener('input', () => {
+        _value = watchTextarea.value;
+        updateDirection(_value);
+    });
+
+    // Initial set
+    updateDirection(_value);
+
+})(textarea);
 </script>
