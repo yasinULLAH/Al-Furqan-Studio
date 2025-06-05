@@ -6317,7 +6317,7 @@
         if (contentDiv) {
             contentDiv.addEventListener('scroll', async () => {
                 if (fullScreenReaderViewMode === 'continuous-scroll' && !isLoadingMoreAyahs) {
-                    const scrollThreshold = contentDiv.scrollHeight - contentDiv.clientHeight - 300; // 300px from bottom
+                    const scrollThreshold = contentDiv.scrollHeight - contentDiv.clientHeight - 700; // 300px from bottom
                     if (contentDiv.scrollTop >= scrollThreshold) {
                         await loadMoreAyahsForContinuousScroll();
                     }
@@ -8004,7 +8004,7 @@ function setupSpeechRecognition_Engine() {
     (function () {
         const GAME_MODAL_LAUNCH_BUTTON_ID = 'openGamesModalBtn';
         const TARGET_ELEMENT_FOR_FULLSCREEN_ID = 'quranGameModal'; // The modal itself
-        const INITIALIZATION_DELAY_MS = 300; // Delay after window load to find the button
+        const INITIALIZATION_DELAY_MS = 600; // Delay after window load to find the button
         function requestFullscreenForElement(elementId) {
             const targetElement = document.getElementById(elementId);
             if (!targetElement) {
