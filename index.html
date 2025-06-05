@@ -7582,7 +7582,7 @@ function setupSpeechRecognition_Engine() {
     recitationGame_State.speechRecognition.maxAlternatives = 1;
 
     if (isMobileDevice()) {
-        recitationGame_State.speechRecognition.continuous = false; // More stable for mobile, captures single utterance
+        recitationGame_State.speechRecognition.continuous = true; // More stable for mobile, captures single utterance
         console.log("[RecitationPracticeGame] Mobile device detected: Continuous speech recognition OFF.");
     } else {
         recitationGame_State.speechRecognition.continuous = true;  // Keep for desktop experience
