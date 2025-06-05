@@ -175,7 +175,7 @@
             padding: 7px;
             border-radius: var(--border-radius);
             box-shadow: 0 8px 14px rgb(0 0 0);
-            margin-top: -13px;
+            margin-top: -61px;
         }
         .main-content {
             flex-grow: 1;
@@ -191,7 +191,7 @@
             padding: 5px var(--padding-main);
             box-shadow: 0 2px 5px var(--color-shadow);
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             flex-shrink: 0;
         }
@@ -199,6 +199,7 @@
             margin: 0;
             font-size: 1.8rem;
             color: var(--color-text-primary);
+            margin-right: 16px;
         }
         nav ul {
             list-style: none;
@@ -7549,64 +7550,113 @@
             }
         }
     }
-    function setupSpeechRecognition_Engine() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            console.warn("Speech Recognition API not supported in this browser.");
-            recitationGame_UI.recordingStatusText.textContent = "Speech recognition not supported by your browser.";
-            if (recitationGame_UI.recordButton) recitationGame_UI.recordButton.disabled = true;
-            return;
+    // Helper function to detect mobile devices
+function isMobileDevice() {
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function setupSpeechRecognition_Engine() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        console.warn("Speech Recognition API not supported in this browser.");
+        if (recitationGame_UI.recordingStatusText) { // Check if UI element exists
+             recitationGame_UI.recordingStatusText.textContent = "Speech recognition not supported by your browser.";
         }
-        recitationGame_State.speechRecognition = new SpeechRecognition();
-        recitationGame_State.speechRecognition.lang = 'ar-SA';
-        recitationGame_State.speechRecognition.interimResults = true; // Get interim results for responsiveness (optional, but good for UX)
-        recitationGame_State.speechRecognition.maxAlternatives = 1;
-        recitationGame_State.speechRecognition.continuous = true; // <<< KEY CHANGE HERE
-        let final_transcript = ''; // To accumulate final results
-        recitationGame_State.speechRecognition.onstart = () => {
-            final_transcript = ''; // Reset accumulated transcript on new start
-        };
-        recitationGame_State.speechRecognition.onresult = (event) => {
-            let interim_transcript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    final_transcript += event.results[i][0].transcript;
-                } else {
-                    interim_transcript += event.results[i][0].transcript;
-                }
-            }
-            recitationGame_State.userTranscript = final_transcript.trim() || interim_transcript.trim(); // Fallback to last interim if no final yet
-            console.log("Accumulated/Current SR Transcript:", recitationGame_State.userTranscript);
-        };
-        recitationGame_State.speechRecognition.onerror = (event) => {
-            console.error("Speech Recognition Error:", event.error, event.message);
-            let errorMsg = "Speech recognition error: " + event.error;
-            if (event.error === 'no-speech') {
-                errorMsg = "No speech was detected after a while. Try speaking closer to the mic.";
-            } else if (event.error === 'audio-capture') {
-                errorMsg = "Audio capture error. Ensure microphone is working.";
-            } else if (event.error === 'not-allowed') {
-                errorMsg = "Microphone access not allowed. Please check permissions.";
-            } else if (event.error === 'network') {
-                errorMsg = "Network error for speech recognition. Check connection.";
-            }
-            recitationGame_UI.recordingStatusText.textContent = errorMsg;
-            recitationGame_State.userTranscript = final_transcript.trim(); // Use accumulated
-            recitationGame_State.speechResultReceived = true; // Mark as "resulted" (an error is a form of result)
-            if (event.error === 'not-allowed' || event.error === 'audio-capture') {
-                if (recitationGame_State.isRecording) {
-                    stopUserRecording_Recitation_Engine(); // This will eventually call tryFinalize.
-                }
-            } else {
-            }
-        };
-        recitationGame_State.speechRecognition.onend = () => {
-            console.log("Speech recognition service ended.");
-            recitationGame_State.userTranscript = final_transcript.trim();
-            recitationGame_State.speechResultReceived = true;
-            tryFinalizeAnalysis_Engine();
-        };
+        if (recitationGame_UI.recordButton) recitationGame_UI.recordButton.disabled = true;
+        return;
     }
+
+    // Ensure recitationGame_State is initialized if it's not already
+    if (typeof recitationGame_State === 'undefined') {
+        window.recitationGame_State = {}; // Or initialize it as per your app's structure
+    }
+    // Ensure recitationGame_UI is initialized if it's not already
+    if (typeof recitationGame_UI === 'undefined') {
+        window.recitationGame_UI = {}; // Or initialize it as per your app's structure
+    }
+
+
+    recitationGame_State.speechRecognition = new SpeechRecognition();
+    recitationGame_State.speechRecognition.lang = 'ar-SA';
+    recitationGame_State.speechRecognition.interimResults = true;
+    recitationGame_State.speechRecognition.maxAlternatives = 1;
+
+    if (isMobileDevice()) {
+        recitationGame_State.speechRecognition.continuous = false; // More stable for mobile, captures single utterance
+        console.log("[RecitationPracticeGame] Mobile device detected: Continuous speech recognition OFF.");
+    } else {
+        recitationGame_State.speechRecognition.continuous = true;  // Keep for desktop experience
+        console.log("[RecitationPracticeGame] Desktop device detected: Continuous speech recognition ON.");
+    }
+
+    let final_transcript = ''; // To accumulate final results
+
+    recitationGame_State.speechRecognition.onstart = () => {
+        final_transcript = ''; // Reset accumulated transcript on new start
+        console.log("[RecitationPracticeGame] Speech recognition started.");
+        if (recitationGame_UI.recordingStatusText) { // Check UI element
+            recitationGame_UI.recordingStatusText.textContent = "Listening...";
+        }
+    };
+
+    recitationGame_State.speechRecognition.onresult = (event) => {
+        let interim_transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                final_transcript += event.results[i][0].transcript;
+            } else {
+                interim_transcript += event.results[i][0].transcript;
+            }
+        }
+        // Prioritize final transcript, fallback to interim if continuous=false and it ends quickly
+        recitationGame_State.userTranscript = final_transcript.trim() || interim_transcript.trim();
+        console.log("[RecitationPracticeGame] Speech interim/final result. Current accumulated transcript:", recitationGame_State.userTranscript);
+
+        // If continuous is false (mobile), and we get a final result, the SR will stop soon.
+        // The onend event will handle calling tryFinalizeAnalysis_Engine.
+    };
+
+    recitationGame_State.speechRecognition.onerror = (event) => {
+        console.error("[RecitationPracticeGame] Speech Recognition Error:", event.error, event.message);
+        let errorMsg = "Speech recognition error: " + event.error;
+        if (event.error === 'no-speech') {
+            errorMsg = "No speech was detected. Please try again.";
+        } else if (event.error === 'audio-capture') {
+            errorMsg = "Audio capture error. Ensure microphone is working.";
+        } else if (event.error === 'not-allowed') {
+            errorMsg = "Microphone access not allowed. Please check permissions.";
+        } else if (event.error === 'network') {
+            errorMsg = "Network error for speech recognition. Check connection.";
+        }
+
+        if (recitationGame_UI.recordingStatusText) { // Check UI element
+            recitationGame_UI.recordingStatusText.textContent = errorMsg;
+        }
+
+        recitationGame_State.userTranscript = final_transcript.trim(); // Use whatever was accumulated
+        recitationGame_State.speechResultReceived = true; // Mark as "resulted" (an error is a form of result)
+
+        // If recording was active, the onend event (which fires after error too)
+        // will call tryFinalizeAnalysis_Engine.
+        // We don't need to call stopUserRecording_Recitation_Engine here directly as SR is already stopping.
+    };
+
+    recitationGame_State.speechRecognition.onend = () => {
+        console.log("[RecitationPracticeGame] Speech recognition service ended.");
+        // Ensure the latest transcript is captured
+        if (recitationGame_State.userTranscript === undefined || recitationGame_State.userTranscript.trim() === "") {
+             recitationGame_State.userTranscript = final_transcript.trim();
+        }
+
+        recitationGame_State.speechResultReceived = true;
+        // This is crucial: tryFinalizeAnalysis_Engine will check if media recording also stopped.
+        // For continuous=false, this 'onend' will typically fire right after a single 'onresult'.
+        // For continuous=true, it fires when recognition.stop() is called or it times out.
+        tryFinalizeAnalysis_Engine();
+    };
+}
+
+    
     function tryFinalizeAnalysis_Engine() {
         console.log(`[RecitationGame] tryFinalizeAnalysis_Engine called. analysisTriggered: ${recitationGame_State.analysisTriggeredThisRound}, mediaStopped: ${recitationGame_State.mediaRecordingStopped}, speechReceived: ${recitationGame_State.speechResultReceived}`);
         if (recitationGame_State.analysisTriggeredThisRound) {
