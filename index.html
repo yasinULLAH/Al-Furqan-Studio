@@ -8883,30 +8883,27 @@
         window.showSection = patchedShowSection; // This is now the global showSection
     })();
     function detectDirection(text) {
-        const urduPattern = /[\u0600-\u06FF]/;
-        return urduPattern.test(text) ? 'rtl' : 'ltr';
+        const rtlPattern = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/;
+        return rtlPattern.test(text) ? 'rtl' : 'ltr';
     }
     const textarea = document.getElementById('tafsir-notes');
-    (function (watchTextarea) {
-        let _value = watchTextarea.value;
-        function updateDirection(val) {
+    ['input', 'change', 'keyup', 'paste'].forEach(eventType => {
+        textarea.addEventListener(eventType, () => {
+            const dir = detectDirection(textarea.value);
+            textarea.setAttribute('dir', dir);
+        });
+    });
+    const originalDescriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+    Object.defineProperty(textarea, 'value', {
+        get() {
+            return originalDescriptor.get.call(this);
+        },
+        set(val) {
+            originalDescriptor.set.call(this, val);
             const dir = detectDirection(val);
-            watchTextarea.setAttribute('dir', dir);
+            textarea.setAttribute('dir', dir);
         }
-        Object.defineProperty(watchTextarea, 'value', {
-            get() {
-                return _value;
-            },
-            set(val) {
-                _value = val;
-                watchTextarea.defaultValue = val; // optional: reflect in DOM
-                updateDirection(val);
-            }
-        });
-        watchTextarea.addEventListener('input', () => {
-            _value = watchTextarea.value;
-            updateDirection(_value);
-        });
-        updateDirection(_value);
-    })(textarea);
+    });
+    const initialDir = detectDirection(textarea.value);
+    textarea.setAttribute('dir', initialDir);
 </script>
