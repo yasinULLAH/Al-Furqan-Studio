@@ -2172,7 +2172,6 @@
                     const word_id = wordMetadataEntry.word_id;
                     const translationEntry = await getData(STORE_WORD_TRANSLATIONS, word_id);
                     if (translationEntry) {
-                        console.log(`[handleWordClick] Translation data for word_id ${word_id}:`, translationEntry);
                         wordUrduMeaning = translationEntry.ur_meaning || "N/A";
                         wordEnglishMeaning = translationEntry.en_meaning || "N/A";
                         wordPashtoMeaning = translationEntry.pashto_text || "N/A"; // Get Pashto text
