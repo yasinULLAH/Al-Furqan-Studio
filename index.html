@@ -918,12 +918,12 @@
         }
     </style>
     <!-- Optional: Include fonts if not available locally -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Mada:wght@200..900&display=swap" rel="stylesheet">
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Mirza:wght@700&display=swap');
-</style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mada:wght@200..900&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Mirza:wght@700&display=swap');
+    </style>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jameel+Noori+Nastaleeq&display=swap">
@@ -4647,108 +4647,127 @@
         document.getElementById('gameCurrentScore').textContent = gameScore;
         document.getElementById('gameHighScore').textContent = gameHighScore;
     }
-    async function startWordWhizGame() {
-        activeGame = 'wordWhiz';
-        gameScore = 0;
-        updateScoreDisplay();
-        showGamePlayUI("Word Whiz Challenge");
-        document.getElementById('gamePlayArea').innerHTML = '<p>Loading questions...</p>';
-        try {
-            const allWordMetadata = await getAllData(STORE_WORD_METADATA);
-            const allWordTranslations = await getAllData(STORE_WORD_TRANSLATIONS);
-            if (allWordMetadata.length < 10 || allWordTranslations.length < 10) {
-                document.getElementById('gamePlayArea').innerHTML = '<p>Not enough word data to start the game. Please load Quran data first.</p>';
-                return;
-            }
-            const translationMap = new Map();
-            allWordTranslations.forEach(wt => translationMap.set(wt.word_id, wt));
-            wordWhizQuestions = [];
-            const selectedWordIds = new Set(); // To avoid duplicate questions with same word_id
-            for (let i = 0; i < 10; i++) { // Generate 10 questions
-                let attempt = 0;
-                let randomMetaEntry, quranAyah, wordText, translationEntry;
-                while (attempt < 50) { // Try to find a valid word
-                    randomMetaEntry = allWordMetadata[Math.floor(Math.random() * allWordMetadata.length)];
-                    if (selectedWordIds.has(randomMetaEntry.word_id)) {
-                        attempt++;
-                        continue;
-                    }
-                    translationEntry = translationMap.get(randomMetaEntry.word_id);
-                    if (!translationEntry || (!translationEntry.en_meaning && !translationEntry.ur_meaning && !translationEntry.bn_meaning)) { // Check if any translation exists
-                        attempt++;
-                        continue;
-                    }
-                    quranAyah = await getData(STORE_QURAN, [randomMetaEntry.surah, randomMetaEntry.ayah]);
-                    if (!quranAyah) {
-                        attempt++;
-                        continue;
-                    }
-                    const wordsInAyah = quranAyah.arabic.split(/\s+/);
-                    if (randomMetaEntry.word_position < wordsInAyah.length) {
-                        wordText = wordsInAyah[randomMetaEntry.word_position];
-                        if (wordText && wordText.trim() !== "") break; // Found a valid word
-                    }
-                    attempt++;
-                }
-                if (!wordText) continue; // Skip if no valid word found after attempts
-                selectedWordIds.add(randomMetaEntry.word_id);
-                const selectedTranslationLang = document.getElementById('translation-select').value; // urdu, english, Bangali
-                let correctAnswerText;
-                let fontPreference;
-                if (selectedTranslationLang === 'urdu' && translationEntry.ur_meaning) {
-                    correctAnswerText = translationEntry.ur_meaning;
-                    fontPreference = 'var(--font-urdu)';
-                } else if (selectedTranslationLang === 'english' && translationEntry.en_meaning) {
-                    correctAnswerText = translationEntry.en_meaning;
-                    fontPreference = 'var(--font-english)';
-                } else if (selectedTranslationLang === 'Bangali' && translationEntry.bn_meaning) { // Assuming you add bn_meaning to data5
-                    correctAnswerText = translationEntry.bn_meaning || (translationMap.get(randomMetaEntry.word_id).en_meaning || "No Bengali Translation"); // Fallback
-                    fontPreference = 'var(--font-Bangali)';
-                } else { // Fallback to English or whatever is available
-                    correctAnswerText = translationEntry.en_meaning || translationEntry.ur_meaning || "Meaning N/A";
-                    fontPreference = 'var(--font-english)';
-                }
-                if (correctAnswerText === "Meaning N/A" || correctAnswerText.trim() === "") continue; // Skip if no good answer
-                const options = [correctAnswerText];
-                let distractorCount = 0;
-                while (distractorCount < 3 && options.length < allWordTranslations.length) {
-                    const randomDistractorTrans = allWordTranslations[Math.floor(Math.random() * allWordTranslations.length)];
-                    let distractorText;
-                    if (selectedTranslationLang === 'urdu' && randomDistractorTrans.ur_meaning) {
-                        distractorText = randomDistractorTrans.ur_meaning;
-                    } else if (selectedTranslationLang === 'english' && randomDistractorTrans.en_meaning) {
-                        distractorText = randomDistractorTrans.en_meaning;
-                    } else if (selectedTranslationLang === 'Bangali' && randomDistractorTrans.bn_meaning) {
-                        distractorText = randomDistractorTrans.bn_meaning || randomDistractorTrans.en_meaning;
-                    } else {
-                        distractorText = randomDistractorTrans.en_meaning || randomDistractorTrans.ur_meaning;
-                    }
-                    if (distractorText && distractorText.trim() !== "" && !options.includes(distractorText) && distractorText !== correctAnswerText) {
-                        options.push(distractorText);
-                        distractorCount++;
-                    }
-                }
-                shuffleArray(options); // Randomize options order
-                wordWhizQuestions.push({
-                    word_id: randomMetaEntry.word_id,
-                    arabicWord: wordText,
-                    options: options,
-                    correctAnswer: correctAnswerText,
-                    fontPreference: fontPreference,
-                    translationLangDir: selectedTranslationLang === 'urdu' ? 'rtl' : 'ltr'
-                });
-            }
-            if (wordWhizQuestions.length === 0) {
-                document.getElementById('gamePlayArea').innerHTML = '<p>Could not generate questions. Try again or check data.</p>';
-                return;
-            }
-            currentWordWhizQuestionIndex = 0;
-            displayWordWhizQuestion();
-        } catch (error) {
-            console.error("Error starting WordWhiz game:", error);
-            document.getElementById('gamePlayArea').innerHTML = `<p>Error loading game: ${error.message}</p>`;
-        }
+    function getDynamicLanguageData(entry, langKey) {
+    if (!entry || !langKey || !TRANSLATION_CONFIG[langKey]) {
+        return { meaningText: null, font: 'var(--font-general)', dir: 'ltr' };
     }
+
+    const config = TRANSLATION_CONFIG[langKey];
+    let meaningText = null;
+
+    // This mapping handles the inconsistent data keys (e.g., _meaning vs _text)
+    // It's the only place you'd need to update if you add a new language with a new key format.
+    const keyMap = {
+        'urdu': 'ur_meaning',
+        'english': 'en_meaning',
+        'pashto': 'pashto_text',
+        'Bangali': 'bn_meaning' // Assumes 'bn_meaning' key for Bengali data
+    };
+    
+    const dataKey = keyMap[langKey];
+    if (dataKey && entry[dataKey]) {
+        meaningText = entry[dataKey];
+    }
+
+    // Robust fallback: if the desired language text is missing, find any available translation.
+    if (!meaningText || meaningText.trim() === "") {
+        meaningText = entry.en_meaning || entry.ur_meaning || entry.pashto_text || entry.bn_meaning || null;
+    }
+
+    return {
+        meaningText,
+        font: `var(--font-${langKey})`,
+        dir: config.dir
+    };
+}
+
+
+async function startWordWhizGame() {
+    activeGame = 'wordWhiz';
+    gameScore = 0;
+    updateScoreDisplay();
+    showGamePlayUI("Word Whiz Challenge");
+    document.getElementById('gamePlayArea').innerHTML = '<p>Loading questions...</p>';
+    try {
+        const allWordMetadata = await getAllData(STORE_WORD_METADATA);
+        const allWordTranslations = await getAllData(STORE_WORD_TRANSLATIONS);
+        if (allWordMetadata.length < 10 || allWordTranslations.length < 10) {
+            document.getElementById('gamePlayArea').innerHTML = '<p>Not enough word data to start the game. Please load Quran data first.</p>';
+            return;
+        }
+        const translationMap = new Map();
+        allWordTranslations.forEach(wt => translationMap.set(wt.word_id, wt));
+        wordWhizQuestions = [];
+        const selectedWordIds = new Set();
+        const selectedLangKey = document.getElementById('translation-select').value;
+
+        for (let i = 0; i < 10; i++) {
+            let attempt = 0;
+            let randomMetaEntry, quranAyah, wordText, translationEntry;
+            while (attempt < 50) {
+                randomMetaEntry = allWordMetadata[Math.floor(Math.random() * allWordMetadata.length)];
+                if (selectedWordIds.has(randomMetaEntry.word_id)) {
+                    attempt++; continue;
+                }
+                translationEntry = translationMap.get(randomMetaEntry.word_id);
+                // Check if any translation exists for this entry
+                if (!translationEntry || (!translationEntry.en_meaning && !translationEntry.ur_meaning && !translationEntry.bn_meaning && !translationEntry.pashto_text)) {
+                    attempt++; continue;
+                }
+                quranAyah = await getData(STORE_QURAN, [randomMetaEntry.surah, randomMetaEntry.ayah]);
+                if (!quranAyah) {
+                    attempt++; continue;
+                }
+                const wordsInAyah = quranAyah.arabic.split(/\s+/);
+                if (randomMetaEntry.word_position < wordsInAyah.length) {
+                    wordText = wordsInAyah[randomMetaEntry.word_position];
+                    if (wordText && wordText.trim() !== "") break;
+                }
+                attempt++;
+            }
+            if (!wordText) continue;
+
+            selectedWordIds.add(randomMetaEntry.word_id);
+
+            const { meaningText: correctAnswerText, font: fontPreference, dir: langDir } = getDynamicLanguageData(translationEntry, selectedLangKey);
+            
+            if (!correctAnswerText || correctAnswerText.trim() === "") continue;
+
+            const options = [correctAnswerText];
+            let distractorCount = 0;
+            while (distractorCount < 3 && options.length < allWordTranslations.length) {
+                const randomDistractorTrans = allWordTranslations[Math.floor(Math.random() * allWordTranslations.length)];
+                const { meaningText: distractorText } = getDynamicLanguageData(randomDistractorTrans, selectedLangKey);
+
+                if (distractorText && distractorText.trim() !== "" && !options.includes(distractorText) && distractorText !== correctAnswerText) {
+                    options.push(distractorText);
+                    distractorCount++;
+                }
+            }
+
+            shuffleArray(options);
+            wordWhizQuestions.push({
+                word_id: randomMetaEntry.word_id,
+                arabicWord: wordText,
+                options: options,
+                correctAnswer: correctAnswerText,
+                fontPreference: fontPreference,
+                translationLangDir: langDir
+            });
+        }
+        if (wordWhizQuestions.length === 0) {
+            document.getElementById('gamePlayArea').innerHTML = '<p>Could not generate questions. Try again or check data.</p>';
+            return;
+        }
+        currentWordWhizQuestionIndex = 0;
+        displayWordWhizQuestion();
+    } catch (error) {
+        console.error("Error starting WordWhiz game:", error);
+        document.getElementById('gamePlayArea').innerHTML = `<p>Error loading game: ${error.message}</p>`;
+    }
+}
+
+
     function displayWordWhizQuestion() {
         if (currentWordWhizQuestionIndex >= wordWhizQuestions.length) {
             endWordWhizGame();
@@ -5098,72 +5117,65 @@
         document.head.appendChild(styleSheet);
     }
     async function startFlashcardGame_Suite() {
-        activeGame = 'flashcards_suite'; // Unique game ID
-        showGamePlayUI("Flashcard Frenzy"); // Your global function
-        injectFlashcardGameCSS_Suite();
-        const gamePlayArea = document.getElementById('gamePlayArea');
-        if (!gamePlayArea) { console.error("Flashcard: gamePlayArea not found!"); return; }
-        gamePlayArea.innerHTML = '<p style="text-align:center; padding:20px;">Loading flashcards...</p>';
-        try {
-            const allWordMetadata = await getAllData(STORE_WORD_METADATA);
-            const allWordTranslations = await getAllData(STORE_WORD_TRANSLATIONS);
-            if (!allWordMetadata || allWordMetadata.length < 3 || !allWordTranslations || allWordTranslations.length < 3) {
-                gamePlayArea.innerHTML = '<p style="text-align:center; padding:20px; color:var(--color-error);">Not enough word data for flashcards.</p>';
-                return;
-            }
-            const translationMap = new Map(allWordTranslations.map(wt => [wt.word_id, wt]));
-            flashcardQuestions = [];
-            const selectedWordIds = new Set();
-            const maxCards = 10;
-            for (let i = 0; i < maxCards * 2 && flashcardQuestions.length < maxCards; i++) {
-                let attempt = 0;
-                let randomMetaEntry, quranAyah, wordText, translationEntry;
-                while (attempt < 20) {
-                    randomMetaEntry = allWordMetadata[Math.floor(Math.random() * allWordMetadata.length)];
-                    if (selectedWordIds.has(randomMetaEntry.word_id)) { attempt++; continue; }
-                    translationEntry = translationMap.get(randomMetaEntry.word_id);
-                    if (!translationEntry || (!translationEntry.en_meaning && !translationEntry.ur_meaning && !translationEntry.bn_meaning)) { attempt++; continue; }
-                    quranAyah = await getData(STORE_QURAN, [randomMetaEntry.surah, randomMetaEntry.ayah]);
-                    if (!quranAyah || !quranAyah.arabic) { attempt++; continue; }
-                    const wordsInAyah = quranAyah.arabic.split(/\s+/);
-                    if (randomMetaEntry.word_position < wordsInAyah.length) {
-                        wordText = wordsInAyah[randomMetaEntry.word_position];
-                        if (wordText && wordText.trim() !== "") break;
-                    }
-                    attempt++;
-                }
-                if (!wordText) continue;
-                selectedWordIds.add(randomMetaEntry.word_id);
-                const selectedTranslationKey = document.getElementById('translation-select').value;
-                let meaningText, meaningLangDir = 'ltr', meaningFont = 'var(--font-english)';
-                if (selectedTranslationKey === 'urdu' && translationEntry.ur_meaning) {
-                    meaningText = translationEntry.ur_meaning; meaningLangDir = 'rtl'; meaningFont = 'var(--font-urdu)';
-                } else if (selectedTranslationKey === 'english' && translationEntry.en_meaning) {
-                    meaningText = translationEntry.en_meaning;
-                } else if (selectedTranslationKey === 'Bangali' && translationEntry.bn_meaning) {
-                    meaningText = translationEntry.bn_meaning; meaningFont = 'var(--font-Bangali)';
-                } else {
-                    meaningText = translationEntry.en_meaning || translationEntry.ur_meaning || translationEntry.bn_meaning;
-                    if (translationEntry.en_meaning) { }
-                    else if (translationEntry.ur_meaning) { meaningLangDir = 'rtl'; meaningFont = 'var(--font-urdu)'; }
-                    else if (translationEntry.bn_meaning) { meaningFont = 'var(--font-Bangali)'; }
-                }
-                if (!meaningText || meaningText.trim() === "" || meaningText.trim().toLowerCase() === "n/a") {
-                    selectedWordIds.delete(randomMetaEntry.word_id); continue;
-                }
-                flashcardQuestions.push({ arabicWord: wordText, meaning: meaningText, meaningLangDir, meaningFont });
-            }
-            if (flashcardQuestions.length === 0) {
-                gamePlayArea.innerHTML = '<p style="text-align:center; padding:20px; color:var(--color-error);">Could not generate any flashcards.</p>';
-                return;
-            }
-            currentFlashcardIndex = 0;
-            displayFlashcard_Suite();
-        } catch (error) {
-            console.error("Error starting Flashcard game (Suite):", error);
-            gamePlayArea.innerHTML = `<p style="text-align:center; padding:20px; color:var(--color-error);">Error loading game: ${error.message}.</p>`;
+    activeGame = 'flashcards_suite';
+    showGamePlayUI("Flashcard Frenzy");
+    injectFlashcardGameCSS_Suite();
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    if (!gamePlayArea) { console.error("Flashcard: gamePlayArea not found!"); return; }
+    gamePlayArea.innerHTML = '<p style="text-align:center; padding:20px;">Loading flashcards...</p>';
+    try {
+        const allWordMetadata = await getAllData(STORE_WORD_METADATA);
+        const allWordTranslations = await getAllData(STORE_WORD_TRANSLATIONS);
+        if (!allWordMetadata || allWordMetadata.length < 3 || !allWordTranslations || allWordTranslations.length < 3) {
+            gamePlayArea.innerHTML = '<p style="text-align:center; padding:20px; color:var(--color-error);">Not enough word data for flashcards.</p>';
+            return;
         }
+        const translationMap = new Map(allWordTranslations.map(wt => [wt.word_id, wt]));
+        flashcardQuestions = [];
+        const selectedWordIds = new Set();
+        const maxCards = 10;
+        const selectedLangKey = document.getElementById('translation-select').value;
+
+        for (let i = 0; i < maxCards * 2 && flashcardQuestions.length < maxCards; i++) {
+            let attempt = 0;
+            let randomMetaEntry, quranAyah, wordText, translationEntry;
+            while (attempt < 20) {
+                randomMetaEntry = allWordMetadata[Math.floor(Math.random() * allWordMetadata.length)];
+                if (selectedWordIds.has(randomMetaEntry.word_id)) { attempt++; continue; }
+                translationEntry = translationMap.get(randomMetaEntry.word_id);
+                if (!translationEntry || (!translationEntry.en_meaning && !translationEntry.ur_meaning && !translationEntry.bn_meaning && !translationEntry.pashto_text)) { attempt++; continue; }
+                quranAyah = await getData(STORE_QURAN, [randomMetaEntry.surah, randomMetaEntry.ayah]);
+                if (!quranAyah || !quranAyah.arabic) { attempt++; continue; }
+                const wordsInAyah = quranAyah.arabic.split(/\s+/);
+                if (randomMetaEntry.word_position < wordsInAyah.length) {
+                    wordText = wordsInAyah[randomMetaEntry.word_position];
+                    if (wordText && wordText.trim() !== "") break;
+                }
+                attempt++;
+            }
+            if (!wordText) continue;
+
+            selectedWordIds.add(randomMetaEntry.word_id);
+
+            const { meaningText, meaningLangDir, meaningFont } = getDynamicLanguageData(translationEntry, selectedLangKey);
+
+            if (!meaningText || meaningText.trim() === "" || meaningText.trim().toLowerCase() === "n/a") {
+                selectedWordIds.delete(randomMetaEntry.word_id); continue;
+            }
+            flashcardQuestions.push({ arabicWord: wordText, meaning: meaningText, meaningLangDir, meaningFont });
+        }
+        if (flashcardQuestions.length === 0) {
+            gamePlayArea.innerHTML = '<p style="text-align:center; padding:20px; color:var(--color-error);">Could not generate any flashcards.</p>';
+            return;
+        }
+        currentFlashcardIndex = 0;
+        displayFlashcard_Suite();
+    } catch (error) {
+        console.error("Error starting Flashcard game (Suite):", error);
+        gamePlayArea.innerHTML = `<p style="text-align:center; padding:20px; color:var(--color-error);">Error loading game: ${error.message}.</p>`;
     }
+}
+
     function displayFlashcard_Suite() {
         if (currentFlashcardIndex >= flashcardQuestions.length) {
             endFlashcardGame_Suite();
