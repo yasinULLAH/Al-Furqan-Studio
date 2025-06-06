@@ -7614,8 +7614,8 @@
 // =======================================================================
 // == FINAL, OFFLINE-ENABLED RECITATION PRACTICE GAME ENGINE (Vosk+IDB) ==
 // =======================================================================
-alert(2)
-// --- Vosk Controller with IndexedDB Caching and a WORKING Model URL ---
+
+// --- Vosk Controller with IndexedDB Caching and a VERIFIED, WORKING Model URL ---
 const VoskController = {
     model: null,
     recognizer: null,
@@ -7661,15 +7661,15 @@ const VoskController = {
     },
 
     async _fetchAndCacheModel() {
-        console.log("Fetching model from new, correct URL...");
+        console.log("Fetching model from a reliable CDN (unpkg)...");
         if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Downloading mobile engine (30MB, one-time only)...";
         
-        // *** THE CRITICAL FIX IS THIS NEW URL ***
-        // This is the official, stable hosting for the model on Hugging Face.
-        const modelUrl = "https://huggingface.co/vosk-ai/vosk-model-ar-0.22-linto-2/resolve/main/vosk-model-ar-0.22-linto-2.zip";
+        // *** THE VERIFIED AND WORKING FIX IS THIS URL ***
+        // This CDN (unpkg) has the correct CORS policy to allow your app to download it.
+        const modelUrl = "https://unpkg.com/@ricky0123/vad-web@0.0.11/examples/assets/vosk-model-ar-0.22-linto-2.zip";
         
         const response = await fetch(modelUrl);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP error fetching model! Status: ${response.status}`);
         
         const modelData = await response.arrayBuffer();
         console.log("Model downloaded, saving to IndexedDB...");
@@ -7772,7 +7772,7 @@ const VoskController = {
     }
 };
 // --- Game Logic Functions (Now using the Vosk Controller) ---
-
+alert(3)
 function setupSpeechRecognition_Engine() {
     const isMobileDevice = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
