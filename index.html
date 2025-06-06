@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
         content="An offline-first, client-side Quranic study environment with personal Tafsir, thematic linking, root analysis, Hifz tracking, and advanced search.">
     <script type="text/javascript"
         src="https://cdn.jsdelivr.net/npm/vis-network@latest/dist/vis-network.min.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
     <style>
         :root {
             --color-bg-primary: #e8f5e9;
@@ -31,6 +33,7 @@
             --padding-main: 20px;
             --transition-speed: 0.3s;
         }
+
         body.theme-manuscript {
             --color-bg-primary: #f5f5dc;
             --color-bg-secondary: #fff8dc;
@@ -49,6 +52,7 @@
             --font-english: 'Merriweather', calibri;
             --font-general: 'Merriweather', calibri;
         }
+
         body.theme-holo {
             --color-bg-primary: #0d1a2b;
             --color-bg-secondary: #1a2b3c;
@@ -68,6 +72,7 @@
             --font-general: 'Orbitron', calibri;
             --border-radius: 4px;
         }
+
         *,
         *::before,
         *::after {
@@ -75,6 +80,7 @@
             margin: 0;
             padding: 0;
         }
+
         body {
             font-family: var(--font-general);
             line-height: 1.6;
@@ -86,6 +92,7 @@
             flex-direction: column;
             overflow-y: scroll;
         }
+
         h1,
         h2,
         h3,
@@ -95,6 +102,7 @@
             color: var(--color-text-secondary);
             margin-bottom: 15px;
         }
+
         button,
         input[type="submit"],
         input[type="button"] {
@@ -108,18 +116,21 @@
             transition: background-color var(--transition-speed), opacity var(--transition-speed);
             font-size: 1rem;
         }
+
         button:hover,
         input[type="submit"]:hover,
         input[type="button"]:hover {
             background-color: var(--color-accent-dark);
             opacity: 0.9;
         }
+
         button:focus,
         input[type="submit"]:focus,
         input[type="button"]:focus {
             outline: 2px solid var(--color-accent-dark);
             outline-offset: 2px;
         }
+
         input[type="text"],
         input[type="number"],
         textarea,
@@ -134,6 +145,7 @@
             width: 100%;
             max-width: 400px;
         }
+
         input[type="text"]:focus,
         input[type="number"]:focus,
         textarea:focus,
@@ -141,24 +153,29 @@
             outline: 2px solid var(--color-accent);
             border-color: var(--color-accent);
         }
+
         textarea {
             min-height: 150px;
             resize: vertical;
             max-width: 100%;
         }
+
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
             color: var(--color-text-secondary);
         }
+
         a {
             color: var(--color-accent-dark);
             text-decoration: none;
         }
+
         a:hover {
             text-decoration: underline;
         }
+
         .container {
             display: flex;
             flex-grow: 1;
@@ -167,6 +184,7 @@
             margin: 0 auto;
             width: 100%;
         }
+
         .sidebar {
             width: 250px;
             margin-right: var(--padding-main);
@@ -177,6 +195,7 @@
             box-shadow: 0 8px 14px rgb(0 0 0);
             margin-top: -61px;
         }
+
         .main-content {
             flex-grow: 1;
             background-color: var(--color-bg-secondary);
@@ -185,6 +204,7 @@
             box-shadow: 0 2px 5px var(--color-shadow);
             overflow-y: auto;
         }
+
         header {
             background-color: var(--color-bg-secondary);
             color: var(--color-text-primary);
@@ -195,19 +215,23 @@
             align-items: center;
             flex-shrink: 0;
         }
+
         header h1 {
             margin: 0;
             font-size: 1.8rem;
             color: var(--color-text-primary);
             margin-right: 16px;
         }
+
         nav ul {
             list-style: none;
             padding: 0;
         }
+
         nav ul li {
             margin-bottom: 10px;
         }
+
         nav a {
             display: block;
             padding: 10px;
@@ -216,22 +240,27 @@
             color: var(--color-text-primary);
             transition: background-color var(--transition-speed), color var(--transition-speed);
         }
+
         nav a:hover,
         nav a.active {
             background-color: var(--color-accent);
             color: white;
             text-decoration: none;
         }
+
         .section {
             display: none;
         }
+
         .section.active {
             display: block;
         }
+
         .quran-viewer h2 {
             text-align: center;
             margin-bottom: 20px;
         }
+
         .ayah {
             margin-bottom: 20px;
             padding: 15px;
@@ -240,9 +269,11 @@
             background-color: var(--color-bg-primary);
             transition: background-color var(--transition-speed);
         }
+
         .ayah:hover {
             background-color: var(--color-highlight);
         }
+
         .ayah-number {
             font-weight: bold;
             color: var(--color-accent-dark);
@@ -250,6 +281,7 @@
             display: block;
             text-align: center;
         }
+
         .ayah-arabic {
             font-family: var(--font-arabic);
             font-size: 1.8rem;
@@ -258,40 +290,49 @@
             margin-bottom: 10px;
             line-height: 2.5;
         }
+
         .ayah-arabic span {
             cursor: pointer;
             padding: 2px 4px;
             border-bottom: 1px dashed transparent;
             transition: background-color 0.2s, border-bottom-color 0.2s;
         }
+
         .ayah-arabic span:hover {
             background-color: rgba(var(--color-accent-dark-rgb, 56, 142, 60), 0.2);
             border-bottom-color: var(--color-accent-dark);
         }
+
         :root {
             --color-accent-dark-rgb: 56, 142, 60;
         }
+
         body.theme-manuscript {
             --color-accent-dark-rgb: 251, 140, 0;
         }
+
         body.theme-holo {
             --color-accent-dark-rgb: 0, 131, 143;
         }
+
         .ayah-translation {
             font-size: 1.1rem;
             color: var(--color-text-secondary);
         }
+
         .tafsir-editor {
             margin-top: 20px;
             padding-top: 20px;
             border-top: 1px solid var(--color-border);
         }
+
         .tafsir-editor textarea {
             width: 100%;
             max-width: 100%;
             margin-bottom: 10px;
             font-size: medium;
         }
+
         .theme-manager,
         .theme-linker {
             margin-bottom: 20px;
@@ -300,34 +341,42 @@
             border-radius: var(--border-radius);
             background-color: var(--color-bg-primary);
         }
+
         .theme-list ul {
             list-style: none;
             padding-left: 20px;
         }
+
         .theme-list li {
             margin-bottom: 5px;
         }
+
         .theme-list li span {
             cursor: pointer;
             color: var(--color-text-secondary);
             transition: color var(--transition-speed);
         }
+
         .theme-list li span:hover {
             color: var(--color-accent-dark);
             text-decoration: underline;
         }
+
         .theme-list .theme-actions button {
             padding: 3px 8px;
             font-size: 0.8rem;
             margin-left: 5px;
         }
+
         .root-analyzer-form {
             margin-bottom: 20px;
         }
+
         .root-results ul {
             list-style: none;
             padding: 0;
         }
+
         .root-results li {
             margin-bottom: 10px;
             padding: 10px;
@@ -336,13 +385,16 @@
             background-color: var(--color-bg-primary);
             font-size: 1.5rem;
         }
+
         .recitation-log-form {
             margin-bottom: 20px;
         }
+
         .recitation-list ul {
             list-style: none;
             padding: 0;
         }
+
         .recitation-list li {
             margin-bottom: 10px;
             padding: 10px;
@@ -350,6 +402,7 @@
             border-radius: var(--border-radius);
             background-color: var(--color-bg-primary);
         }
+
         .hifz-ayah-status {
             display: inline-block;
             padding: 5px 10px;
@@ -357,28 +410,34 @@
             font-size: 0.9rem;
             margin-left: 10px;
         }
+
         .status-not-started {
             background-color: #e0e0e0;
             color: #424242;
         }
+
         .status-in-progress {
             background-color: #fff59d;
             color: #fbc02d;
         }
+
         .status-memorized {
             background-color: #a5d6a7;
             color: #388e3c;
         }
+
         .search-options label {
             display: inline-block;
             margin-right: 15px;
             font-weight: normal;
         }
+
         .search-results ul {
             list-style: none;
             padding: 0;
             margin-top: 20px;
         }
+
         .search-results li {
             margin-bottom: 10px;
             padding: 10px;
@@ -386,14 +445,17 @@
             border-radius: var(--border-radius);
             background-color: var(--color-bg-primary);
         }
+
         .search-results .result-context {
             font-size: large;
             color: var(--color-text-secondary);
             margin-top: 5px;
         }
+
         .settings-section {
             margin-bottom: 20px;
         }
+
         .modal {
             display: none;
             position: fixed;
@@ -407,6 +469,7 @@
             justify-content: center;
             align-items: center;
         }
+
         .modal-content {
             background-color: var(--color-bg-secondary);
             padding: 20px;
@@ -416,6 +479,7 @@
             width: 90%;
             position: relative;
         }
+
         .close-button {
             position: absolute;
             top: 10px;
@@ -425,6 +489,7 @@
             font-weight: bold;
             cursor: pointer;
         }
+
         #loading-overlay {
             display: flex;
             position: fixed;
@@ -440,23 +505,29 @@
             z-index: 2000;
             display: none;
         }
+
         .text-center {
             text-align: center;
         }
+
         .mt-20 {
             margin-top: 20px;
         }
+
         .mb-10 {
             margin-bottom: 10px;
         }
+
         .mb-20 {
             margin-bottom: 20px;
         }
+
         .flex-group {
             display: flex;
             gap: 10px;
             align-items: center;
         }
+
         [tabindex="0"]:focus,
         button:focus,
         input:focus,
@@ -466,6 +537,7 @@
             outline: 3px solid var(--color-accent-dark);
             outline-offset: 2px;
         }
+
         .sr-only {
             position: absolute;
             width: 1px;
@@ -476,93 +548,115 @@
             clip: rect(0, 0, 0, 0);
             border: 0;
         }
+
         [dir="rtl"] .ayah-arabic,
         [dir="rtl"] .ayah-translation {
             text-align: right;
         }
+
         [dir="rtl"] .sidebar {
             margin-right: 0;
             margin-left: var(--padding-main);
         }
+
         [dir="rtl"] .theme-list ul {
             padding-left: 0;
             padding-right: 20px;
         }
+
         [dir="rtl"] .theme-list .theme-actions button {
             margin-left: 0;
             margin-right: 5px;
         }
+
         [dir="rtl"] .hifz-ayah-status {
             margin-left: 0;
             margin-right: 10px;
         }
+
         [dir="rtl"] .search-options label {
             margin-right: 0;
             margin-left: 15px;
         }
+
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
                 padding: 10px;
             }
+
             .sidebar {
                 width: 100%;
                 margin-right: 0;
                 margin-bottom: 20px;
             }
+
             [dir="rtl"] .sidebar {
                 margin-left: 0;
                 margin-bottom: 20px;
             }
+
             .main-content {
                 padding: 15px;
             }
+
             header {
                 flex-direction: column;
                 align-items: flex-start;
                 padding: 10px;
             }
+
             header h1 {
                 margin-bottom: 10px;
             }
+
             nav ul {
                 display: flex;
                 flex-wrap: wrap;
                 gap: 5px;
             }
+
             nav ul li {
                 margin-bottom: 0;
             }
+
             nav a {
                 padding: 8px 12px;
                 font-size: 0.9rem;
             }
+
             input[type="text"],
             input[type="number"],
             textarea,
             select {
                 max-width: 100%;
             }
+
             .flex-group {
                 flex-direction: column;
                 gap: 10px;
             }
+
             .flex-group button,
             .flex-group input {
                 width: 100%;
             }
         }
+
         body.theme-holo .ayah:hover {
             background: linear-gradient(90deg, rgba(0, 188, 212, 0.1) 0%, rgba(0, 188, 212, 0.05) 100%);
         }
+
         body.theme-holo .ayah-arabic span:hover {
             background-color: rgba(0, 188, 212, 0.3);
             border-bottom-color: var(--color-highlight);
         }
+
         body.theme-holo nav a.active {
             background-color: var(--color-accent);
             box-shadow: 0 0 8px var(--color-accent);
         }
+
         #loading-overlay {
             display: none;
             position: fixed;
@@ -578,6 +672,7 @@
             text-align: center;
             padding: 20px;
         }
+
         .loading-content {
             background-color: var(--color-bg-secondary, #1a2b3c);
             padding: 30px 40px;
@@ -586,28 +681,34 @@
             max-width: 500px;
             width: 90%;
         }
+
         body.theme-serene .loading-content {
             background-color: var(--color-bg-secondary);
             color: var(--color-text-primary);
         }
+
         body.theme-manuscript .loading-content {
             background-color: var(--color-bg-secondary);
             color: var(--color-text-primary);
         }
+
         body.theme-holo .loading-content {
             background-color: #1a2b3c;
             color: #e0f7fa;
         }
+
         #loading-message-primary {
             font-size: 1.4rem;
             font-weight: bold;
             margin-bottom: 10px;
         }
+
         #loading-message-secondary {
             font-size: 1rem;
             margin-bottom: 20px;
             min-height: 1.6em;
         }
+
         #loading-progress-bar-container {
             width: 100%;
             background-color: var(--color-border, #a5d6a7);
@@ -617,9 +718,11 @@
             margin-bottom: 10px;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
+
         body.theme-holo #loading-progress-bar-container {
             background-color: #26a69a;
         }
+
         #loading-progress-bar {
             height: 100%;
             background-color: var(--color-accent, #4caf50);
@@ -627,50 +730,64 @@
             transition: width 0.3s ease-out;
             border-radius: var(--border-radius, 8px) 0 0 var(--border-radius, 8px);
         }
+
         body.theme-holo #loading-progress-bar {
             background-color: var(--color-accent);
         }
+
         #loading-percentage {
             font-size: 1.1rem;
             font-weight: bold;
         }
+
         #loading-first-time-notice {
             font-size: 0.85em;
             margin-top: 15px;
             opacity: 0.8;
         }
+
         .view-switcher label {
             display: inline-block;
             margin-bottom: 0;
         }
+
         .view-switcher div>label {
             margin-left: 3px;
         }
+
         .root-view-content {
             display: none;
         }
+
         .root-view-content.active-view {
             display: block;
         }
+
         #root-network-graph-container {
             margin-top: 20px;
         }
+
         .view-switcher label {
             display: inline-block;
             margin-bottom: 0;
         }
+
         .view-switcher div>label {
             margin-left: 3px;
         }
+
         .root-view-content {
             display: none;
         }
+
         .root-view-content.active-view {
             display: block;
         }
+
         #root-network-graph-container {
             margin-top: 20px;
         }
+
         .custom-popup#root-node-popup {
             position: absolute;
             background-color: var(--color-bg-secondary);
@@ -682,6 +799,7 @@
             word-wrap: break-word;
             font-size: 1.1rem !important;
         }
+
         .custom-popup#root-node-popup h4 {
             margin-top: 0;
             margin-bottom: 10px;
@@ -689,18 +807,22 @@
             font-family: var(--font-arabic);
             font-size: 1.5rem;
         }
+
         .custom-popup#root-node-popup p {
             margin: 0;
             line-height: 2;
             font-size: 1.3rem;
         }
+
         #root-graph-placeholder {
             text-align: center;
             margin: 20px 0;
         }
+
         body.graph-fullscreen-active {
             overflow: hidden;
         }
+
         #root-network-graph-container.fullscreen-graph {
             position: fixed;
             top: 0;
@@ -716,12 +838,14 @@
             align-items: stretch;
             justify-content: stretch;
         }
+
         #root-network-graph-container.fullscreen-graph #root-network-graph {
             flex-grow: 1;
             border: none;
             width: 100%;
             height: 100%;
         }
+
         .graph-fullscreen-close-btn {
             position: absolute;
             top: 15px;
@@ -735,6 +859,7 @@
             border-radius: var(--border-radius);
             cursor: pointer;
         }
+
         #root-network-graph-container.fullscreen-graph #root-graph-pagination-controls {
             position: absolute;
             bottom: 10px;
@@ -745,15 +870,19 @@
             border-radius: var(--border-radius);
             z-index: 1501;
         }
+
         :root {
             --color-bg-secondary-rgb: 200, 230, 201;
         }
+
         body.theme-manuscript {
             --color-bg-secondary-rgb: 255, 248, 220;
         }
+
         body.theme-holo {
             --color-bg-secondary-rgb: 26, 43, 60;
         }
+
         div#root-node-popup {
             position: fixed !important;
             top: 50% !important;
@@ -764,19 +893,23 @@
             text-align: right !important;
             z-index: 2147483647 !important;
         }
+
         button#launchFullScreenReaderBtnEnhanced {
             position: absolute;
             right: 83px;
             top: 71px;
         }
+
         button#quitGameButton {
             position: fixed;
             bottom: 1px;
             left: 3px;
         }
+
         #fsReaderSettingsPanel>div:nth-child(2)>label:nth-child(7) {
             display: none;
         }
+
         span.item-surah-ayah.theme-modal-ayah-link {
             cursor: pointer;
         }
@@ -789,7 +922,9 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bangali&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap">
+    <script src="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.6/dist/vosk.js"></script>
 </head>
+
 <body dir="ltr"> <!-- Default direction, will be set dynamically if needed -->
     <div id="loading-overlay">
         <div class="loading-content">
@@ -3775,6 +3910,7 @@
         });
     </script>
 </body>
+
 </html>
 <script>
     async function loadDocxJs() {
@@ -7472,348 +7608,351 @@
             }
             await startUserRecording_Recitation_Engine();
         }
-    }
-    async function startUserRecording_Recitation_Engine() {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            alert("Your browser does not support audio recording.");
-            return;
+ }
+
+
+// =======================================================================
+// == NEW, COMPLETE & INTEGRATED RECITATION PRACTICE GAME ENGINE        ==
+// =======================================================================
+
+// --- Vosk Controller for Mobile ---
+const VoskController = {
+    model: null,
+    recognizer: null,
+    audioContext: null,
+    source: null,
+    processor: null,
+
+    async initialize() {
+        if (!window.Vosk) {
+            console.error("Vosk library not loaded!");
+            alert("Speech recognition library for mobile failed to load. Please check your connection and refresh.");
+            return false;
+        }
+        if (this.model) {
+            console.log("Vosk model already initialized.");
+            return true;
         }
         try {
-            recitationGame_State.mediaRecordingStopped = false;
-            recitationGame_State.speechResultReceived = false;
-            recitationGame_State.userTranscript = null;
-            recitationGame_State.audioBlobForAnalysis = null;
-            recitationGame_State.analysisTriggeredThisRound = false;
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            recitationGame_State.userAudioRecorder = new MediaRecorder(stream);
-            recitationGame_State.userAudioChunks = [];
-            recitationGame_State.userAudioRecorder.ondataavailable = event => {
-                recitationGame_State.userAudioChunks.push(event.data);
-            };
-            recitationGame_State.userAudioRecorder.onstop = async () => {
-                const audioBlob = new Blob(recitationGame_State.userAudioChunks, { type: 'audio/wav' });
-                recitationGame_State.audioBlobForAnalysis = audioBlob; // Store the blob
-                recitationGame_State.mediaRecordingStopped = true;
-                stream.getTracks().forEach(track => track.stop()); // Release microphone
-                tryFinalizeAnalysis_Engine(); // Attempt to finalize
-            };
-            recitationGame_State.userAudioRecorder.start();
-            recitationGame_State.isRecording = true;
-            recitationGame_UI.recordButton.textContent = "🛑 Stop Recording";
-            recitationGame_UI.recordButton.classList.add('is-recording');
-            recitationGame_UI.recordingStatusText.textContent = "Recording... Speak now.";
-            recitationGame_UI.referencePlayButton.disabled = true; // Disable play reference while recording
-            recitationGame_UI.analysisFeedbackArea.style.display = 'none';
-            if (recitationGame_State.speechRecognition) {
-                try {
-                    recitationGame_State.speechRecognition.start();
-                } catch (e) {
-                    console.warn("Speech recognition start error (possibly already started):", e.message);
-                    try {
-                        recitationGame_State.speechRecognition.abort(); // Try to abort if it was stuck
-                        recitationGame_State.speechRecognition.start();
-                    } catch (e2) {
-                        console.error("Failed to restart speech recognition:", e2);
-                        recitationGame_UI.recordingStatusText.textContent = "Speech recognition error. Try again.";
-                    }
+            if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Loading mobile engine (first time only)...";
+            // URL for a lightweight Arabic model (around 30MB)
+            const modelUrl = "https://alphacephei.com/vosk/models/vosk-model-ar-0.22-linto-2.zip";
+            this.model = await Vosk.createModel(modelUrl);
+            console.log("Vosk model loaded successfully.");
+
+            this.model.setLogLevel(-1); // Suppress verbose console logs from Vosk
+
+            this.recognizer = new this.model.Recognizer({
+                sampleRate: 44100 // Common sample rate
+            });
+            console.log("Vosk recognizer created.");
+            
+            this.recognizer.on("result", (message) => {
+                const resultText = message.result.text;
+                if (resultText && resultText.length > 0) {
+                     console.log("[Vosk] Partial/Final Result:", resultText);
+                    recitationGame_State.userTranscript = resultText; // Overwrite with the latest full result
                 }
-            }
-        } catch (err) {
-            console.error("Error accessing microphone:", err);
-            alert("Could not access microphone. Please check permissions. " + err.message);
-            recitationGame_UI.recordingStatusText.textContent = "Microphone access denied or error.";
-            recitationGame_State.isRecording = false;
-            if (recitationGame_UI.recordButton) {
-                recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
-                recitationGame_UI.recordButton.classList.remove('is-recording');
-            }
-            if (recitationGame_UI.referencePlayButton && recitationGame_State.targetAyahText) {
-                recitationGame_UI.referencePlayButton.disabled = false;
-            }
+            });
+            
+            // This event gives us the final, confirmed transcript.
+            this.recognizer.on("final_result", (message) => {
+                const finalText = message.result.text;
+                console.log("[Vosk] Final Result:", finalText);
+                recitationGame_State.userTranscript = finalText;
+            });
+            
+            if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Mobile engine ready.";
+            return true;
+
+        } catch (error) {
+            console.error("Error initializing Vosk:", error);
+            alert("Failed to initialize the mobile speech recognition engine. It might be a network issue or your device may not be supported.");
+            return false;
         }
-    }
-    function stopUserRecording_Recitation_Engine() {
-        if (recitationGame_State.userAudioRecorder && recitationGame_State.isRecording) {
-            recitationGame_State.userAudioRecorder.stop(); // This will trigger MediaRecorder.onstop
-            if (recitationGame_State.speechRecognition) {
-                recitationGame_State.speechRecognition.stop(); // Explicitly stop SR. Its onend will fire.
-            }
-            recitationGame_UI.recordingStatusText.textContent = "Processing your recitation...";
-        } else {
-            recitationGame_State.isRecording = false;
-            if (recitationGame_UI.recordButton) {
-                recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
-                recitationGame_UI.recordButton.classList.remove('is-recording');
-            }
-            if (recitationGame_UI.referencePlayButton && recitationGame_State.targetAyahText) {
-                recitationGame_UI.referencePlayButton.disabled = false;
-            }
+    },
+
+    async start() {
+        if (!this.model || !this.recognizer) {
+            const success = await this.initialize();
+            if (!success) return;
         }
+        
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        this.source = this.audioContext.createMediaStreamSource(stream);
+        
+        // Vosk requires a ScriptProcessorNode to get raw audio data.
+        this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+        this.processor.onaudioprocess = (event) => {
+            if (recitationGame_State.isRecording) {
+                this.recognizer.acceptWaveform(event.inputBuffer);
+            }
+        };
+        
+        this.source.connect(this.processor);
+        this.processor.connect(this.audioContext.destination);
+    },
+
+    stop() {
+        if (this.processor) {
+            this.processor.disconnect();
+            this.processor = null;
+        }
+        if (this.source) {
+            this.source.disconnect();
+            this.source.mediaStream.getTracks().forEach(track => track.stop());
+            this.source = null;
+        }
+        if (this.audioContext) {
+            this.audioContext.close();
+            this.audioContext = null;
+        }
+        
+        // This tells the recognizer that the utterance is finished.
+        const finalResult = this.recognizer.finalResult();
+        recitationGame_State.userTranscript = finalResult.text;
+        console.log("[Vosk] Stop called. Final transcript from buffer:", finalResult.text);
     }
-    // Helper function to detect mobile devices
-function isMobileDevice() {
-    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
+};
+
+
+// --- Modified Game Logic Functions ---
 
 function setupSpeechRecognition_Engine() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-        console.warn("Speech Recognition API not supported in this browser.");
-        if (recitationGame_UI.recordingStatusText) { // Check if UI element exists
-             recitationGame_UI.recordingStatusText.textContent = "Speech recognition not supported by your browser.";
-        }
-        if (recitationGame_UI.recordButton) recitationGame_UI.recordButton.disabled = true;
+    // Helper function to detect mobile devices
+    const isMobileDevice = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (isMobileDevice()) {
+        // For mobile, we will use the VoskController.
+        // The initialization is deferred until the user first clicks record.
+        console.log("[RecitationGame] Mobile device detected. Vosk engine will be used.");
         return;
     }
 
-    // Ensure recitationGame_State is initialized if it's not already
-    if (typeof recitationGame_State === 'undefined') {
-        window.recitationGame_State = {}; // Or initialize it as per your app's structure
+    // --- Desktop-only Native API setup ---
+    console.log("[RecitationGame] Desktop device detected. Native SpeechRecognition will be used.");
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert("Speech recognition is not supported in this browser.");
+        if(recitationGame_UI.recordButton) recitationGame_UI.recordButton.disabled = true;
+        return;
     }
-    // Ensure recitationGame_UI is initialized if it's not already
-    if (typeof recitationGame_UI === 'undefined') {
-        window.recitationGame_UI = {}; // Or initialize it as per your app's structure
-    }
-
 
     recitationGame_State.speechRecognition = new SpeechRecognition();
-    recitationGame_State.speechRecognition.lang = 'ar-SA';
-    recitationGame_State.speechRecognition.interimResults = true;
-    recitationGame_State.speechRecognition.maxAlternatives = 1;
+    const recognition = recitationGame_State.speechRecognition;
+    
+    recognition.lang = 'ar-SA';
+    recognition.maxAlternatives = 1;
+    recognition.continuous = true; // Use continuous for desktop multi-ayah
+    recognition.interimResults = true;
+    
+    let final_transcript = '';
 
-    if (isMobileDevice()) {
-        recitationGame_State.speechRecognition.continuous = true; // More stable for mobile, captures single utterance
-        console.log("[RecitationPracticeGame] Mobile device detected: Continuous speech recognition OFF.");
-    } else {
-        recitationGame_State.speechRecognition.continuous = true;  // Keep for desktop experience
-        console.log("[RecitationPracticeGame] Desktop device detected: Continuous speech recognition ON.");
-    }
-
-    let final_transcript = ''; // To accumulate final results
-
-    recitationGame_State.speechRecognition.onstart = () => {
-        final_transcript = ''; // Reset accumulated transcript on new start
-        console.log("[RecitationPracticeGame] Speech recognition started.");
-        if (recitationGame_UI.recordingStatusText) { // Check UI element
-            recitationGame_UI.recordingStatusText.textContent = "Listening...";
-        }
+    recognition.onstart = () => {
+        console.log("[RecitationGame] Native Speech recognition has started.");
+        final_transcript = '';
+        if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Listening...";
     };
 
-    recitationGame_State.speechRecognition.onresult = (event) => {
+    recognition.onresult = (event) => {
         let interim_transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
+        final_transcript = ''; // Reset and rebuild on every result for continuous mode
+        for (let i = 0; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
                 final_transcript += event.results[i][0].transcript;
             } else {
                 interim_transcript += event.results[i][0].transcript;
             }
         }
-        // Prioritize final transcript, fallback to interim if continuous=false and it ends quickly
-        recitationGame_State.userTranscript = final_transcript.trim() || interim_transcript.trim();
-        console.log("[RecitationPracticeGame] Speech interim/final result. Current accumulated transcript:", recitationGame_State.userTranscript);
-
-        // If continuous is false (mobile), and we get a final result, the SR will stop soon.
-        // The onend event will handle calling tryFinalizeAnalysis_Engine.
+        recitationGame_State.userTranscript = final_transcript.trim();
+        console.log(`[RecitationGame] Native result update. Final: "${final_transcript.trim()}"`);
     };
 
-    recitationGame_State.speechRecognition.onerror = (event) => {
-        console.error("[RecitationPracticeGame] Speech Recognition Error:", event.error, event.message);
-        let errorMsg = "Speech recognition error: " + event.error;
-        if (event.error === 'no-speech') {
-            errorMsg = "No speech was detected. Please try again.";
-        } else if (event.error === 'audio-capture') {
-            errorMsg = "Audio capture error. Ensure microphone is working.";
-        } else if (event.error === 'not-allowed') {
-            errorMsg = "Microphone access not allowed. Please check permissions.";
-        } else if (event.error === 'network') {
-            errorMsg = "Network error for speech recognition. Check connection.";
+    recognition.onerror = (event) => {
+        console.error('[RecitationGame] Native Speech recognition error:', event.error, event.message);
+        if(recitationGame_State.isRecording) {
+            stopUserRecording_Recitation_Engine();
         }
-
-        if (recitationGame_UI.recordingStatusText) { // Check UI element
-            recitationGame_UI.recordingStatusText.textContent = errorMsg;
-        }
-
-        recitationGame_State.userTranscript = final_transcript.trim(); // Use whatever was accumulated
-        recitationGame_State.speechResultReceived = true; // Mark as "resulted" (an error is a form of result)
-
-        // If recording was active, the onend event (which fires after error too)
-        // will call tryFinalizeAnalysis_Engine.
-        // We don't need to call stopUserRecording_Recitation_Engine here directly as SR is already stopping.
     };
-
-    recitationGame_State.speechRecognition.onend = () => {
-        console.log("[RecitationPracticeGame] Speech recognition service ended.");
-        // Ensure the latest transcript is captured
-        if (recitationGame_State.userTranscript === undefined || recitationGame_State.userTranscript.trim() === "") {
-             recitationGame_State.userTranscript = final_transcript.trim();
-        }
-
+    
+    recognition.onend = () => {
+        console.log("[RecitationGame] Native Speech recognition service ended.");
         recitationGame_State.speechResultReceived = true;
-        // This is crucial: tryFinalizeAnalysis_Engine will check if media recording also stopped.
-        // For continuous=false, this 'onend' will typically fire right after a single 'onresult'.
-        // For continuous=true, it fires when recognition.stop() is called or it times out.
         tryFinalizeAnalysis_Engine();
     };
 }
 
+
+async function startUserRecording_Recitation_Engine() {
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    // 1. Reset state for a new attempt
+    recitationGame_State.mediaRecordingStopped = false;
+    recitationGame_State.speechResultReceived = false;
+    recitationGame_State.analysisTriggeredThisRound = false;
+    recitationGame_State.userTranscript = "";
+    recitationGame_State.userAudioChunks = [];
+
+    // 2. Update UI
+    recitationGame_UI.recordButton.textContent = "🛑 Stop Recording";
+    recitationGame_UI.recordButton.classList.add('is-recording');
+    recitationGame_UI.recordingStatusText.textContent = isMobile ? "Initializing mobile engine..." : "Starting...";
+    recitationGame_UI.referencePlayButton.disabled = true;
+    recitationGame_UI.analysisFeedbackArea.style.display = 'none';
+
+    recitationGame_State.isRecording = true;
+
+    if (isMobile) {
+        await VoskController.start();
+        if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Listening via mobile engine...";
+    } else {
+        // Desktop uses the native API which is started here
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            recitationGame_State.userAudioRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+            recitationGame_State.userAudioRecorder.onstop = () => {
+                console.log("[RecitationGame] Native MediaRecorder stopped.");
+                recitationGame_State.mediaRecordingStopped = true;
+                stream.getTracks().forEach(track => track.stop());
+                tryFinalizeAnalysis_Engine();
+            };
+            recitationGame_State.userAudioRecorder.ondataavailable = event => {
+                recitationGame_State.userAudioChunks.push(event.data);
+            };
+            
+            recitationGame_State.userAudioRecorder.start();
+            if (recitationGame_State.speechRecognition) {
+                recitationGame_State.speechRecognition.start();
+            }
+        } catch(err) {
+            console.error("Error starting native recording:", err);
+            recitationGame_State.isRecording = false;
+            // reset UI
+        }
+    }
+}
+
+
+function stopUserRecording_Recitation_Engine() {
+    if (!recitationGame_State.isRecording) return;
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    console.log("[RecitationGame] User clicked stop.");
+    recitationGame_State.isRecording = false; // Set state to false immediately
     
-    function tryFinalizeAnalysis_Engine() {
-        console.log(`[RecitationGame] tryFinalizeAnalysis_Engine called. analysisTriggered: ${recitationGame_State.analysisTriggeredThisRound}, mediaStopped: ${recitationGame_State.mediaRecordingStopped}, speechReceived: ${recitationGame_State.speechResultReceived}`);
-        if (recitationGame_State.analysisTriggeredThisRound) {
-            return; // Analysis already started or completed for this round
+    // Update UI
+    recitationGame_UI.recordButton.textContent = "⏳ Processing...";
+    recitationGame_UI.recordButton.disabled = true;
+    recitationGame_UI.recordingStatusText.textContent = "Finalizing...";
+
+    if (isMobile) {
+        VoskController.stop(); // This is synchronous and populates the transcript
+        // Simulate the async flow for the gatekeeper
+        recitationGame_State.mediaRecordingStopped = true;
+        recitationGame_State.speechResultReceived = true;
+        tryFinalizeAnalysis_Engine(); // This will now proceed immediately
+    } else {
+        // Desktop: stop both services. Their event handlers will call the gatekeeper.
+        if (recitationGame_State.userAudioRecorder && recitationGame_State.userAudioRecorder.state === "recording") {
+            recitationGame_State.userAudioRecorder.stop();
         }
-        if (recitationGame_State.mediaRecordingStopped && recitationGame_State.speechResultReceived) {
-            recitationGame_State.analysisTriggeredThisRound = true;
-            const blobToAnalyze = recitationGame_State.audioBlobForAnalysis;
-            if (!blobToAnalyze || blobToAnalyze.size === 0) { // Check blob size as well
-                console.error("[RecitationGame] tryFinalizeAnalysis_Engine: audioBlobForAnalysis is null or empty. Cannot analyze.");
-                if (recitationGame_UI.recordingStatusText) {
-                    recitationGame_UI.recordingStatusText.textContent = "Error: Audio data missing or empty.";
-                }
-                recitationGame_State.analysisTriggeredThisRound = false;
-                recitationGame_State.mediaRecordingStopped = false;
-                recitationGame_State.speechResultReceived = false;
-                if (recitationGame_UI.recordButton) {
-                    recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
-                    recitationGame_UI.recordButton.classList.remove('is-recording');
-                }
-                recitationGame_State.isRecording = false;
-                return;
-            }
-            if (recitationGame_UI.recordingStatusText) {
-                recitationGame_UI.recordingStatusText.textContent = "Processing your recitation...";
-            }
-            if (recitationGame_UI.recordButton) { // Ensure button is reset visually
-                recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
-                recitationGame_UI.recordButton.classList.remove('is-recording');
-            }
-            recitationGame_State.isRecording = false; // Mark recording as definitively over
-            analyzeUserRecitation_Engine(blobToAnalyze);
-        } else {
+        if (recitationGame_State.speechRecognition) {
+            recitationGame_State.speechRecognition.stop();
         }
     }
-    async function analyzeUserRecitation_Engine(audioBlob) {
-        if (!recitationGame_State.gameActive) {
-            console.warn("[RecitationGame] Analysis aborted: game state is not active.");
-            if (recitationGame_UI.recordButton) {
-                recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
-                recitationGame_UI.recordButton.classList.remove('is-recording');
-            }
-            if (recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "";
-            return;
-        }
-        if (recitationGame_UI.recordingStatusText) {
-            recitationGame_UI.recordingStatusText.textContent = "Analyzing...";
-        } else {
-            console.warn("[RecitationGame] analyzeUserRecitation_Engine: recordingStatusText UI element was null.");
-        }
-        if (recitationGame_UI.analysisFeedbackArea) {
-            recitationGame_UI.analysisFeedbackArea.style.display = 'block';
-            recitationGame_UI.analysisFeedbackArea.innerHTML = '<h4>Analysis Feedback</h4><p id="feedbackTextAccuracy_Engine">Accuracy: -</p><p id="feedbackTiming_Engine">Timing: -</p><p id="feedbackRecognizedText_Engine" style="font-family: var(--font-arabic); direction:rtl;"></p>';
-        } else {
-            console.warn("[RecitationGame] analyzeUserRecitation_Engine: analysisFeedbackArea UI element was null.");
-        }
-        const recognizedText = recitationGame_State.userTranscript || "";
-        const targetTextNorm = normalizeArabicForComparison_Engine(recitationGame_State.targetAyahText);
-        const recognizedTextNorm = normalizeArabicForComparison_Engine(recognizedText);
-        const { accuracy, diffHTML } = calculateTextAccuracyAndDiff_Engine(targetTextNorm, recognizedTextNorm);
-        console.log(`[RecitationGame] Calculated Accuracy: ${accuracy}%, Diff HTML generated.`);
-        if (recitationGame_UI.currentScoreDisplay) {
-            recitationGame_UI.currentScoreDisplay.textContent = `${accuracy.toFixed(0)}`;
-        } else {
-            console.warn("[RecitationGame] analyzeUserRecitation_Engine: currentScoreDisplay UI element was null.");
-        }
-        const feedbackTextAccuracyEl = document.getElementById('feedbackTextAccuracy_Engine');
-        if (feedbackTextAccuracyEl) {
-            feedbackTextAccuracyEl.textContent = `Text Accuracy: ${accuracy.toFixed(1)}%`;
-        } else {
-            console.error("[RecitationGame] FAILED to find feedbackTextAccuracy_Engine for update.");
-        }
-        const feedbackRecognizedEl = document.getElementById('feedbackRecognizedText_Engine');
-        if (feedbackRecognizedEl) {
-            if (recognizedTextNorm) {
-                feedbackRecognizedEl.innerHTML = `Recognized (Normalized): ${recognizedTextNorm} <hr> Target (Normalized): ${targetTextNorm} <hr> Visual Diff (what you said vs target):<br>${diffHTML}`;
-            } else {
-                feedbackRecognizedEl.innerHTML = "Could not recognize speech clearly or speech was empty. <hr> Target (Normalized): " + targetTextNorm;
-            }
-        } else {
-            console.error("[RecitationGame] FAILED to find feedbackRecognizedText_Engine for update.");
-        }
-        let timingFeedback = "Timing: N/A"; // Default
-        if (recitationGame_State.referenceAudioDuration > 0 && audioBlob && audioBlob.size > 100) { // Min blob size check
-            const getUserDurationPromise = new Promise((resolve, reject) => {
-                const tempUserAudio = new Audio();
-                const timeoutDuration = 7000; // 7 seconds timeout
-                const timer = setTimeout(() => {
-                    console.warn("[RecitationGame] getUserDuration: Timeout (7s) waiting for onloadedmetadata.");
-                    if (tempUserAudio.src && tempUserAudio.src.startsWith('blob:')) { URL.revokeObjectURL(tempUserAudio.src); }
-                    tempUserAudio.onloadedmetadata = null;
-                    tempUserAudio.onerror = null;
-                    reject(new Error("Timeout loading user audio metadata."));
-                }, timeoutDuration);
-                tempUserAudio.onloadedmetadata = () => {
-                    clearTimeout(timer);
-                    const duration = tempUserAudio.duration;
-                    if (tempUserAudio.src && tempUserAudio.src.startsWith('blob:')) { URL.revokeObjectURL(tempUserAudio.src); }
-                    if (duration === Infinity || isNaN(duration) || duration <= 0) { // also check for duration <= 0
-                        reject(new Error(`Audio duration reported as ${duration}.`));
-                    } else {
-                        resolve(duration);
-                    }
-                };
-                tempUserAudio.onerror = (e) => {
-                    clearTimeout(timer);
-                    let errorDetail = e && e.target && e.target.error ? e.target.error.message : 'Unknown audio error';
-                    if (e && e.target && e.target.error && e.target.error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
-                        errorDetail = "Audio format not supported by browser or corrupted.";
-                    }
-                    console.error("[RecitationGame] getUserDuration: Error loading user audio for duration:", errorDetail);
-                    if (tempUserAudio.src && tempUserAudio.src.startsWith('blob:')) { URL.revokeObjectURL(tempUserAudio.src); }
-                    reject(new Error(`Failed to load user audio metadata: ${errorDetail}`));
-                };
-                try {
-                    if (!audioBlob || audioBlob.size === 0) {
-                        clearTimeout(timer);
-                        reject(new Error("Audio blob is null or empty."));
-                        return;
-                    }
-                    const userAudioUrl = URL.createObjectURL(audioBlob);
-                    tempUserAudio.src = userAudioUrl;
-                } catch (urlError) {
-                    clearTimeout(timer);
-                    console.error("[RecitationGame] getUserDuration: Error creating object URL:", urlError);
-                    reject(new Error("Error creating URL for audio blob."));
-                }
-            });
-            try {
-                const userDuration = await getUserDurationPromise;
-                const diffPercent = ((userDuration - recitationGame_State.referenceAudioDuration) / recitationGame_State.referenceAudioDuration) * 100;
-                timingFeedback = `Timing: Your recitation was ${userDuration.toFixed(1)}s. Reference was ${recitationGame_State.referenceAudioDuration.toFixed(1)}s. `;
-                if (Math.abs(diffPercent) < 15) timingFeedback += "Very similar!";
-                else if (diffPercent > 0) timingFeedback += `(${diffPercent.toFixed(0)}% slower).`;
-                else timingFeedback += `(${Math.abs(diffPercent).toFixed(0)}% faster).`;
-            } catch (err) {
-                console.error("[RecitationGame] Error getting final user duration:", err.message);
-                timingFeedback = `Timing: Error determining your audio duration. (${err.message.substring(0, 100)})`;
-                if (audioBlob) {
-                }
-            }
-        } else if (recitationGame_State.referenceAudioDuration <= 0) {
-        } else {
-            timingFeedback = "Timing: N/A (User audio missing or empty).";
-            console.warn("[RecitationGame] User audio blob was null or too small for duration calculation. Size:", audioBlob ? audioBlob.size : 'null', "Min required > 100");
-        }
-        const feedbackTimingEl = document.getElementById('feedbackTiming_Engine');
-        if (feedbackTimingEl) {
-            feedbackTimingEl.textContent = timingFeedback;
-        } else {
-            console.error("[RecitationGame] FAILED to find feedbackTiming_Engine for update.");
-        }
-        if (recitationGame_UI.recordingStatusText) {
-            recitationGame_UI.recordingStatusText.textContent = "Analysis complete.";
-        }
-        saveScore_Recitation_Engine(accuracy);
+}
+
+
+function tryFinalizeAnalysis_Engine() {
+    console.log(`[RecitationGame] Attempting to finalize. Analysis Triggered: ${recitationGame_State.analysisTriggeredThisRound}, Media Stopped: ${recitationGame_State.mediaRecordingStopped}, Speech Received: ${recitationGame_State.speechResultReceived}`);
+
+    if (recitationGame_State.analysisTriggeredThisRound) return;
+
+    if (recitationGame_State.mediaRecordingStopped && recitationGame_State.speechResultReceived) {
+        recitationGame_State.analysisTriggeredThisRound = true;
+
+        // On mobile, the audio blob isn't captured, but on desktop it is.
+        // We don't need the blob for text analysis, so this is fine.
+        const audioBlob = new Blob(recitationGame_State.userAudioChunks, { type: 'audio/webm' });
+        
+        console.log("[RecitationGame] Gatekeeper open. Analyzing final transcript:", `"${recitationGame_State.userTranscript}"`);
+        
+        // The analyze function remains the same and works for both inputs
+        analyzeUserRecitation_Engine(audioBlob);
+
+        // Reset UI
+        recitationGame_UI.recordButton.disabled = false;
+        recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
+        recitationGame_UI.recordButton.classList.remove('is-recording');
+        recitationGame_UI.referencePlayButton.disabled = false;
     }
+}
+
+ 
+async function analyzeUserRecitation_Engine(audioBlob) {
+    if (!recitationGame_State.gameActive) {
+        return;
+    }
+    
+    if (recitationGame_UI.recordingStatusText) {
+        recitationGame_UI.recordingStatusText.textContent = "Analyzing...";
+    }
+    
+    // --- Start of UI Feedback Enhancement ---
+    const feedbackArea = recitationGame_UI.analysisFeedbackArea;
+    if (feedbackArea) {
+        feedbackArea.style.display = 'block';
+        // Clear previous results and set up structure
+        feedbackArea.innerHTML = `
+            <h4>Analysis Feedback</h4>
+            <p id="feedbackTextAccuracy_Engine">Accuracy: Calculating...</p>
+            <div style="text-align:right; direction:rtl; margin-top:10px; padding-top:10px; border-top: 1px dotted var(--color-border);">
+                <strong>الآية المستهدفة (Target):</strong>
+                <p style="font-family: var(--font-arabic); font-size: 1.2em;">${recitationGame_State.targetAyahText}</p>
+            </div>
+            <div style="text-align:right; direction:rtl; margin-top:10px; padding-top:10px; border-top: 1px dotted var(--color-border);">
+                <strong>ما تم التعرف عليه (Recognized):</strong>
+                <p id="feedbackRecognizedText_Engine" style="font-family: var(--font-arabic); font-size: 1.2em; color: var(--color-accent-dark);">(...)</p>
+            </div>
+             <div style="text-align:right; direction:rtl; margin-top:10px; padding-top:10px; border-top: 1px dotted var(--color-border);">
+                <strong>المقارنة البصرية (Visual Diff):</strong>
+                <p id="feedbackDiff_Engine" style="font-family: var(--font-arabic); font-size: 1.2em;"></p>
+            </div>
+        `;
+    }
+    // --- End of UI Feedback Enhancement ---
+
+    const recognizedText = recitationGame_State.userTranscript || "";
+    const targetTextNorm = normalizeArabicForComparison_Engine(recitationGame_State.targetAyahText);
+    const recognizedTextNorm = normalizeArabicForComparison_Engine(recognizedText);
+
+    const { accuracy, diffHTML } = calculateTextAccuracyAndDiff_Engine(targetTextNorm, recognizedTextNorm);
+    
+    console.log(`[RecitationGame] Calculated Accuracy: ${accuracy}%, Diff HTML generated.`);
+
+    // Update the newly created feedback elements
+    const feedbackAccuracyEl = document.getElementById('feedbackTextAccuracy_Engine');
+    const feedbackRecognizedEl = document.getElementById('feedbackRecognizedText_Engine');
+    const feedbackDiffEl = document.getElementById('feedbackDiff_Engine');
+    
+    if (feedbackAccuracyEl) feedbackAccuracyEl.textContent = `Text Accuracy: ${accuracy.toFixed(1)}%`;
+    if (feedbackRecognizedEl) feedbackRecognizedEl.textContent = recognizedText || "(No speech recognized)";
+    if (feedbackDiffEl) feedbackDiffEl.innerHTML = diffHTML;
+
+    if (recitationGame_UI.currentScoreDisplay) {
+        recitationGame_UI.currentScoreDisplay.textContent = `${accuracy.toFixed(0)}`;
+    }
+    
+    if (recitationGame_UI.recordingStatusText) {
+        recitationGame_UI.recordingStatusText.textContent = "Analysis complete.";
+    }
+
+    saveScore_Recitation_Engine(accuracy);
+}
+
+    
     function normalizeArabicForComparison_Engine(text) {
         if (!text) return "";
         let str = text;
@@ -7826,7 +7965,7 @@ function setupSpeechRecognition_Engine() {
         str = str.replace(/[ة]/g, 'ه');   // Teh Marbuta to Heh (common in spoken informal or for comparison)
         str = str.replace(/[كک]/g, 'ك');  // Persian Kaf to Arabic Kaf
         str = str.replace(/[.,!?:;"'()\[\]{}0-9٠-٩]/g, '');
-        str = str.replace(/\s+/g, ' ').trim();
+        text = text.trim().replace(/\s+/g, ' ');
         return str;
     }
     function levenshteinDistance_Engine(s1, s2) {
@@ -7860,42 +7999,48 @@ function setupSpeechRecognition_Engine() {
         str = str.replace(/\s+/g, ' ').trim();
         return str;
     }
+
     function calculateTextAccuracyAndDiff_Engine(targetNormalized, recognizedNormalized) {
-        if (!targetNormalized) return { accuracy: 0, diffHTML: "<p>(Target text missing or empty after normalization)</p>" };
-        const targetWords = targetNormalized.split(/\s+/).filter(w => w.length > 0);
-        const recognizedWords = recognizedNormalized ? recognizedNormalized.split(/\s+/).filter(w => w.length > 0) : [];
-        let matches = 0;
-        let diffHTML = "";
-        const maxLength = Math.max(targetWords.length, recognizedWords.length);
-        if (targetWords.length === 0 && recognizedWords.length > 0) {
-            recognizedWords.forEach(recWord => {
-                diffHTML += `<span class="diff-incorrect">${recWord}</span> `;
-            });
-            return { accuracy: 0, diffHTML: `(Target was empty) You said: ${diffHTML}` };
+    if (!targetNormalized) return { accuracy: 0, diffHTML: "<p>(Target text was empty)</p>" };
+
+    const targetWords = targetNormalized.split(' ').filter(w => w);
+    const recognizedWords = recognizedNormalized ? recognizedNormalized.split(' ').filter(w => w) : [];
+    
+    // Use the diff-match-patch library logic for a robust comparison
+    const dmp = new diff_match_patch();
+    const diff = dmp.diff_main(recognizedNormalized, targetNormalized);
+    dmp.diff_cleanupSemantic(diff);
+
+    let diffHTML = "";
+    let correctChars = 0;
+    
+    diff.forEach(part => {
+        const operation = part[0]; // 0 for equal, -1 for delete (in recognized), 1 for insert (in target)
+        const text = part[1];
+
+        switch(operation) {
+            case 0: // DIFF_EQUAL
+                diffHTML += `<span class="diff-correct">${text}</span>`;
+                correctChars += text.length;
+                break;
+            case 1: // DIFF_INSERT (Word is in target, but not in recognized -> Missing)
+                diffHTML += `<span class="diff-missing" title="Missing: ${text}">${text}</span>`;
+                break;
+            case -1: // DIFF_DELETE (Word is in recognized, but not in target -> Extra/Incorrect)
+                diffHTML += `<span class="diff-incorrect" title="Incorrect/Extra: ${text}">${text}</span>`;
+                break;
         }
-        if (targetWords.length === 0 && recognizedWords.length === 0) {
-            return { accuracy: 100, diffHTML: "(Both target and recognized are empty)" }; // Or 0, depends on definition
-        }
-        for (let i = 0; i < maxLength; i++) {
-            const targetWord = targetWords[i];
-            const recognizedWord = recognizedWords[i];
-            if (targetWord && recognizedWord) {
-                if (targetWord === recognizedWord) {
-                    matches++;
-                    diffHTML += `<span class="diff-correct">${recognizedWord}</span> `;
-                } else {
-                    diffHTML += `<span class="diff-incorrect" title="You said: ${recognizedWord}\nShould be: ${targetWord}">${recognizedWord}</span> `;
-                }
-            } else if (recognizedWord) { // Extra word in recognized (user said more than target)
-                diffHTML += `<span class="diff-incorrect" title="Extra word: ${recognizedWord}">${recognizedWord}</span> `;
-            } else if (targetWord) { // Missing word in recognized (user said less than target)
-                diffHTML += `<span class="diff-missing" title="Missing: ${targetWord}">(${targetWord})</span> `;
-            }
-        }
-        const accuracy = targetWords.length > 0 ? (matches / targetWords.length) * 100 : (recognizedWords.length === 0 ? 100 : 0);
-        const finalAccuracy = Math.max(0, Math.min(100, accuracy));
-        return { accuracy: finalAccuracy, diffHTML };
-    }
+    });
+    
+    const targetLength = targetNormalized.length;
+    const accuracy = targetLength > 0 ? (correctChars / targetLength) * 100 : 0;
+    
+    return { 
+        accuracy: Math.max(0, Math.min(100, accuracy)), 
+        diffHTML: diffHTML || "(No recognized text to compare)" 
+    };
+}
+    
     async function saveScore_Recitation_Engine(accuracy) {
         if (!recitationGame_State.ayahKey) {
             console.warn("saveScore_Recitation_Engine: Ayah key is not set. Cannot save score.");
