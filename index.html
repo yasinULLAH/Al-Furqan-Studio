@@ -27,7 +27,8 @@
             --color-success: #66bb6a;
             --font-arabic: 'Scheherazade New', 'Lateef', 'Amiri', 'Traditional Arabic', calibri;
             --font-urdu: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Pak Nastaleeq', calibri;
-            --font-pashto: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Pak Nastaleeq', calibri; /* Added for Pashto */
+            --font-pashto: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Pak Nastaleeq', calibri;
+            /* Added for Pashto */
             --font-Bangali: 'Noto Sans Bangali', 'Arial', calibri;
             --font-english: 'Roboto', 'Segoe UI', calibri;
             --font-general: 'Roboto', 'Segoe UI', calibri;
@@ -983,6 +984,7 @@
                         <option value="urdu">Urdu (Included)</option>
                         <option value="english">English (Included)</option>
                         <option value="Bangali">Bangali (Included)</option>
+                        <option value="pashto">Pashto (Included)</option>
                     </select>
                 </div>
                 <div id="quran-display" class="quran-viewer" lang="ar" dir="rtl">
@@ -1377,7 +1379,8 @@
         const TRANSLATION_CONFIG = {
             urdu: { file: 'data new.AM', lang: 'ur', dir: 'rtl', label: 'Urdu' },
             english: { file: 'dataENG.AM', lang: 'en', dir: 'ltr', label: 'English' },
-            Bangali: { file: 'dataBNG.AM', lang: 'bn', dir: 'ltr', label: 'Bangali' }
+            Bangali: { file: 'dataBNG.AM', lang: 'bn', dir: 'ltr', label: 'Bangali' },
+            pashto: { file: 'dataPS.AM', lang: 'ps', dir: 'rtl', label: 'Pashto' }
         };
         function openDB() {
             return new Promise((resolve, reject) => {
@@ -1686,7 +1689,7 @@
                 };
             });
         }
-                async function loadQuranData() {
+        async function loadQuranData() {
             completedProgressUnits = 0;
             totalProgressUnits = 0;
             const WEIGHT_CHECK_SETTINGS = 1;
@@ -1786,7 +1789,7 @@
                                 const mapKey = `${surahNum}-${ayahNum}`;
                                 let entry = allQuranDataMap.get(mapKey);
                                 if (!entry) {
-                                    entry = { surah: surahNum, ayah: ayahNum, arabic: arabicPart, urdu: '', english: '', Bangali: '' };
+                                    entry = { surah: surahNum, ayah: ayahNum, arabic: arabicPart, urdu: '', english: '', Bangali: '', pashto: '' };
                                     allQuranDataMap.set(mapKey, entry);
                                 }
                                 entry[key] = translationPart;
@@ -1973,7 +1976,7 @@
             }
         }
 
-        
+
         function populateSurahAyahSelects() {
             const surahSelect = document.getElementById('surah-select');
             const ayahSelect = document.getElementById('ayah-select');
@@ -2011,6 +2014,13 @@
             ayahSelect.value = currentAyah;
         }
         async function loadAyah(surah, ayah) {
+            const selectedTranslationKey = document.getElementById('translation-select').value;
+            if (selectedTranslationKey === 'pashto' && !localStorage.getItem('pashtoAyahNoticeShown')) {
+                const urduMessage = "پشتو ترجمہ خودکار ترجمہ ہے اور قرآنی معیارات کے مطابق تصدیق شدہ نہیں ہے۔";
+                const pashtoMessage = "پښتو ژباړه اتوماتیکه ژباړه ده او د قرآني معیارونو سره سم نه ده تایید شوې.";
+                alert(`${urduMessage}\n\n${pashtoMessage}`);
+                localStorage.setItem('pashtoAyahNoticeShown', 'true');
+            }
             if (!db) {
                 console.error("Database not open for loadAyah.");
                 document.getElementById('quran-display').innerHTML = `<p class="text-center" style="color: var(--color-error);">Database not ready. Please try again later.</p>`;
@@ -2063,7 +2073,6 @@
                     ayahElement.appendChild(arabicTextElement);
                     const translationText = document.createElement('div');
                     translationText.classList.add('ayah-translation');
-                    const selectedTranslationKey = document.getElementById('translation-select').value;
                     const translationInfo = TRANSLATION_CONFIG[selectedTranslationKey];
                     if (translationInfo) {
                         translationText.setAttribute('lang', translationInfo.lang);
@@ -2106,6 +2115,7 @@
                 hideLoading();
             }
         }
+
         function addWordClickListeners() {
             document.querySelectorAll('.ayah-arabic span').forEach(wordSpan => {
                 wordSpan.removeEventListener('click', handleWordClick);
@@ -2116,10 +2126,10 @@
                 wordSpan.addEventListener('blur', handleWordBlur);
             });
         }
-                async function handleWordClick(event) {
+        async function handleWordClick(event) {
             if (!localStorage.getItem('pashtoNoticeShown')) {
-                const urduMessage = "پشتو ترجمہ گوگل کا خودکار ترجمہ ہے اور قرآنی معیارات کے مطابق تصدیق شدہ نہیں ہے۔";
-                const pashtoMessage = "پښتو ژباړه د ګوګل اتوماتیکه ژباړه ده او د قرآني معیارونو سره سم نه ده تایید شوې.";
+                const urduMessage = "پشتو ترجمہ خودکار ترجمہ ہے اور قرآنی معیارات کے مطابق مکمل تصدیق شدہ نہیں ہے۔";
+                const pashtoMessage = "پښتو ژباړه داتوماتیکه ژباړه ده او د قرآني معیارونو سره مکمل سم نه ده تایید شوې.";
                 alert(`${urduMessage}\n\n${pashtoMessage}`);
                 localStorage.setItem('pashtoNoticeShown', 'true');
             }
@@ -2129,11 +2139,11 @@
             const ayahNum = parseInt(wordSpan.getAttribute('data-ayah'), 10);
             const wordPosition = parseInt(wordSpan.getAttribute('data-word-position'), 10);
             if (!clickedWordActualText || isNaN(surahNum) || isNaN(ayahNum) || isNaN(wordPosition)) {
-                console.warn("[handleWordClick] Clicked word span is missing required data attributes.", wordSpan.dataset);
+                //console.warn("[handleWordClick] Clicked word span is missing required data attributes.", wordSpan.dataset);
                 document.getElementById('word-translation-area').innerHTML = `<p style="color: var(--color-error);">Error: Could not identify clicked word's metadata.</p>`;
                 return;
             }
-            console.log(`[handleWordClick] Clicked: "${clickedWordActualText}" (S:${surahNum}, A:${ayahNum}, Pos:${wordPosition})`);
+            //console.log(`[handleWordClick] Clicked: "${clickedWordActualText}" (S:${surahNum}, A:${ayahNum}, Pos:${wordPosition})`);
             const ayahElement = wordSpan.closest('.ayah');
             const fullAyahTranslationDiv = ayahElement.querySelector('.ayah-translation');
             const fullAyahTranslationText = fullAyahTranslationDiv ? fullAyahTranslationDiv.textContent : 'Full ayah translation not found.';
@@ -2160,7 +2170,7 @@
                 });
                 if (wordMetadataEntry && typeof wordMetadataEntry.word_id !== 'undefined') {
                     const word_id = wordMetadataEntry.word_id;
-                    console.log(`[handleWordClick] Found word_id: ${word_id}`);
+                    //console.log(`[handleWordClick] Found word_id: ${word_id}`);
                     const translationEntry = await getData(STORE_WORD_TRANSLATIONS, word_id);
                     if (translationEntry) {
                         console.log(`[handleWordClick] Translation data for word_id ${word_id}:`, translationEntry);
@@ -2171,13 +2181,13 @@
                         if (translationEntry.en_meaning === "") wordEnglishMeaning = "N/A (empty)";
                         if (translationEntry.pashto_text === "") wordPashtoMeaning = "N/A (empty)"; // Check Pashto
                     } else {
-                        console.warn(`[handleWordClick] No translation entry in '${STORE_WORD_TRANSLATIONS}' for word_id: ${word_id}.`);
+                        //console.warn(`[handleWordClick] No translation entry in '${STORE_WORD_TRANSLATIONS}' for word_id: ${word_id}.`);
                     }
                 } else {
-                    console.warn(`[handleWordClick] No metadata entry in '${STORE_WORD_METADATA}' for S${surahNum}:A${ayahNum}, Pos:${wordPosition}. Word: "${clickedWordActualText}"`);
+                    //console.warn(`[handleWordClick] No metadata entry in '${STORE_WORD_METADATA}' for S${surahNum}:A${ayahNum}, Pos:${wordPosition}. Word: "${clickedWordActualText}"`);
                 }
             } catch (error) {
-                console.error("[handleWordClick] Error during word data lookup:", error);
+                //console.error("[handleWordClick] Error during word data lookup:", error);
                 wordUrduMeaning = "Lookup Error";
                 wordEnglishMeaning = "Lookup Error";
                 wordPashtoMeaning = "Lookup Error";
@@ -2196,7 +2206,7 @@
             wordSpan.style.backgroundColor = 'var(--color-highlight)';
         }
 
-        
+
         function handleWordFocus(event) {
             handleWordClick(event);
         }
@@ -4168,6 +4178,30 @@
             console.warn("FS Doc: Browser Fullscreen API not supported for documentElement.");
         }
     }
+
+            function loadTranslationPreference() {
+            const selectElement = document.getElementById('translation-select');
+            const storageKey = 'selectedTranslation';
+
+            if (!selectElement) {
+                console.error("Translation select element not found.");
+                return;
+            }
+
+            // --- 1. SAVING LOGIC: Add a listener to save the choice when it changes ---
+            selectElement.addEventListener('change', () => {
+                localStorage.setItem(storageKey, selectElement.value);
+            });
+
+            // --- 2. LOADING LOGIC: Load and apply the saved value on page start ---
+            const savedValue = localStorage.getItem(storageKey);
+            if (savedValue) {
+                // Check if the saved option still exists before setting it
+                if (selectElement.querySelector(`option[value="${savedValue}"]`)) {
+                    selectElement.value = savedValue;
+                }
+            }
+        }
     function setupGameModal() {
         const gameModalHTML = `
     <div id="quranGameModal" class="modal game-modal" role="dialog" aria-modal="true" aria-labelledby="gameModalTitle" style="display: none;">
@@ -5006,6 +5040,7 @@
         try {
             await openDB();
             await loadThemePreference();
+            loadTranslationPreference();
             setupEventListeners(); // Your existing listeners
             await loadQuranData();
             displayThemesList();
@@ -8900,4 +8935,6 @@
         });
         updateDirection(_value);
     })(textarea);
+
+    
 </script>
