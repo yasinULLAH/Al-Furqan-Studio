@@ -1975,8 +1975,6 @@
                 alert("Failed to load application data: " + error.message + "\nIf the problem persists, try clearing website data for this page and then refresh.");
             }
         }
-
-
         function populateSurahAyahSelects() {
             const surahSelect = document.getElementById('surah-select');
             const ayahSelect = document.getElementById('ayah-select');
@@ -2115,7 +2113,6 @@
                 hideLoading();
             }
         }
-
         function addWordClickListeners() {
             document.querySelectorAll('.ayah-arabic span').forEach(wordSpan => {
                 wordSpan.removeEventListener('click', handleWordClick);
@@ -2139,11 +2136,9 @@
             const ayahNum = parseInt(wordSpan.getAttribute('data-ayah'), 10);
             const wordPosition = parseInt(wordSpan.getAttribute('data-word-position'), 10);
             if (!clickedWordActualText || isNaN(surahNum) || isNaN(ayahNum) || isNaN(wordPosition)) {
-                //console.warn("[handleWordClick] Clicked word span is missing required data attributes.", wordSpan.dataset);
                 document.getElementById('word-translation-area').innerHTML = `<p style="color: var(--color-error);">Error: Could not identify clicked word's metadata.</p>`;
                 return;
             }
-            //console.log(`[handleWordClick] Clicked: "${clickedWordActualText}" (S:${surahNum}, A:${ayahNum}, Pos:${wordPosition})`);
             const ayahElement = wordSpan.closest('.ayah');
             const fullAyahTranslationDiv = ayahElement.querySelector('.ayah-translation');
             const fullAyahTranslationText = fullAyahTranslationDiv ? fullAyahTranslationDiv.textContent : 'Full ayah translation not found.';
@@ -2170,7 +2165,6 @@
                 });
                 if (wordMetadataEntry && typeof wordMetadataEntry.word_id !== 'undefined') {
                     const word_id = wordMetadataEntry.word_id;
-                    //console.log(`[handleWordClick] Found word_id: ${word_id}`);
                     const translationEntry = await getData(STORE_WORD_TRANSLATIONS, word_id);
                     if (translationEntry) {
                         console.log(`[handleWordClick] Translation data for word_id ${word_id}:`, translationEntry);
@@ -2181,13 +2175,10 @@
                         if (translationEntry.en_meaning === "") wordEnglishMeaning = "N/A (empty)";
                         if (translationEntry.pashto_text === "") wordPashtoMeaning = "N/A (empty)"; // Check Pashto
                     } else {
-                        //console.warn(`[handleWordClick] No translation entry in '${STORE_WORD_TRANSLATIONS}' for word_id: ${word_id}.`);
                     }
                 } else {
-                    //console.warn(`[handleWordClick] No metadata entry in '${STORE_WORD_METADATA}' for S${surahNum}:A${ayahNum}, Pos:${wordPosition}. Word: "${clickedWordActualText}"`);
                 }
             } catch (error) {
-                //console.error("[handleWordClick] Error during word data lookup:", error);
                 wordUrduMeaning = "Lookup Error";
                 wordEnglishMeaning = "Lookup Error";
                 wordPashtoMeaning = "Lookup Error";
@@ -2205,8 +2196,6 @@
             });
             wordSpan.style.backgroundColor = 'var(--color-highlight)';
         }
-
-
         function handleWordFocus(event) {
             handleWordClick(event);
         }
@@ -4178,30 +4167,23 @@
             console.warn("FS Doc: Browser Fullscreen API not supported for documentElement.");
         }
     }
-
-            function loadTranslationPreference() {
-            const selectElement = document.getElementById('translation-select');
-            const storageKey = 'selectedTranslation';
-
-            if (!selectElement) {
-                console.error("Translation select element not found.");
-                return;
-            }
-
-            // --- 1. SAVING LOGIC: Add a listener to save the choice when it changes ---
-            selectElement.addEventListener('change', () => {
-                localStorage.setItem(storageKey, selectElement.value);
-            });
-
-            // --- 2. LOADING LOGIC: Load and apply the saved value on page start ---
-            const savedValue = localStorage.getItem(storageKey);
-            if (savedValue) {
-                // Check if the saved option still exists before setting it
-                if (selectElement.querySelector(`option[value="${savedValue}"]`)) {
-                    selectElement.value = savedValue;
-                }
+    function loadTranslationPreference() {
+        const selectElement = document.getElementById('translation-select');
+        const storageKey = 'selectedTranslation';
+        if (!selectElement) {
+            console.error("Translation select element not found.");
+            return;
+        }
+        selectElement.addEventListener('change', () => {
+            localStorage.setItem(storageKey, selectElement.value);
+        });
+        const savedValue = localStorage.getItem(storageKey);
+        if (savedValue) {
+            if (selectElement.querySelector(`option[value="${savedValue}"]`)) {
+                selectElement.value = savedValue;
             }
         }
+    }
     function setupGameModal() {
         const gameModalHTML = `
     <div id="quranGameModal" class="modal game-modal" role="dialog" aria-modal="true" aria-labelledby="gameModalTitle" style="display: none;">
@@ -8935,6 +8917,4 @@
         });
         updateDirection(_value);
     })(textarea);
-
-    
 </script>
