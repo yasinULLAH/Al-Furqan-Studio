@@ -10,7 +10,8 @@
         content="An offline-first, client-side Quranic study environment with personal Tafsir, thematic linking, root analysis, Hifz tracking, and advanced search.">
     <script type="text/javascript"
         src="https://cdn.jsdelivr.net/npm/vis-network@latest/dist/vis-network.min.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
+    <script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
     <style>
         :root {
             --color-bg-primary: #e8f5e9;
@@ -7608,319 +7609,250 @@
             }
             await startUserRecording_Recitation_Engine();
         }
- }
-
-
-// =======================================================================
-// == FINAL, OFFLINE-ENABLED RECITATION PRACTICE GAME ENGINE (Vosk+IDB) ==
-// =======================================================================
-
-// --- Vosk Controller with IndexedDB Caching and a VERIFIED, WORKING Model URL ---
-const VoskController = {
-    model: null,
-    recognizer: null,
-    audioContext: null,
-    source: null,
-    processor: null,
-    DB_NAME: 'VoskModelDB',
-    STORE_NAME: 'models',
-    MODEL_KEY: 'vosk-model-ar-0.22',
-
-    async _getModelFromDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.DB_NAME, 1);
-            request.onerror = event => reject("DB Error: " + event.target.errorCode);
-            request.onsuccess = event => {
-                const db = event.target.result;
-                const transaction = db.transaction(this.STORE_NAME, 'readonly');
-                const store = transaction.objectStore(this.STORE_NAME);
-                const getRequest = store.get(this.MODEL_KEY);
-                getRequest.onsuccess = () => resolve(getRequest.result);
-                getRequest.onerror = event => reject("DB Get Error: " + event.target.errorCode);
-            };
-            request.onupgradeneeded = event => {
-                const db = event.target.result;
-                db.createObjectStore(this.STORE_NAME);
-            };
-        });
-    },
-
-    async _saveModelToDB(modelData) {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.DB_NAME, 1);
-            request.onerror = event => reject("DB Error: " + event.target.errorCode);
-            request.onsuccess = event => {
-                const db = event.target.result;
-                const transaction = db.transaction(this.STORE_NAME, 'readwrite');
-                const store = transaction.objectStore(this.STORE_NAME);
-                const putRequest = store.put(modelData, this.MODEL_KEY);
-                putRequest.onsuccess = () => resolve();
-                putRequest.onerror = event => reject("DB Put Error: " + event.target.errorCode);
-            };
-        });
-    },
-
-    async _fetchAndCacheModel() {
-        console.log("Fetching model from a reliable CDN (unpkg)...");
-        if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Downloading mobile engine (30MB, one-time only)...";
-        
-        // *** THE VERIFIED AND WORKING FIX IS THIS URL ***
-        // This CDN (unpkg) has the correct CORS policy to allow your app to download it.
-        const modelUrl = "https://unpkg.com/@ricky0123/vad-web@0.0.11/examples/assets/vosk-model-ar-0.22-linto-2.zip";
-        
-        const response = await fetch(modelUrl);
-        if (!response.ok) throw new Error(`HTTP error fetching model! Status: ${response.status}`);
-        
-        const modelData = await response.arrayBuffer();
-        console.log("Model downloaded, saving to IndexedDB...");
-        if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Saving mobile engine to device...";
-        
-        await this._saveModelToDB(modelData);
-        console.log("Model saved to IndexedDB.");
-        return modelData;
-    },
-
-    async initialize() {
-        if (!window.Vosk) {
-            alert("Speech recognition library for mobile failed to load.");
-            return false;
-        }
-        if (this.model) return true;
-
-        try {
-            let modelData = await this._getModelFromDB();
-            if (modelData) {
-                console.log("Found Vosk model in IndexedDB. Loading from DB.");
-                if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Loading mobile engine from device...";
-            } else {
-                console.log("Vosk model not in DB. Fetching from network...");
-                modelData = await this._fetchAndCacheModel();
-            }
-
-            this.model = await Vosk.createModel(modelData);
-            console.log("Vosk model created successfully.");
-            this.model.setLogLevel(-1);
-
-            this.recognizer = new this.model.Recognizer({ sampleRate: 44100 });
-            this.recognizer.on("result", (message) => {
-                if (message.result.text) {
-                    recitationGame_State.userTranscript = message.result.text;
-                }
+    }
+    const VoskController = {
+        model: null,
+        recognizer: null,
+        audioContext: null,
+        source: null,
+        processor: null,
+        DB_NAME: 'VoskModelDB',
+        STORE_NAME: 'models',
+        MODEL_KEY: 'vosk-model-ar-0.22',
+        async _getModelFromDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(this.DB_NAME, 1);
+                request.onerror = event => reject("DB Error: " + event.target.errorCode);
+                request.onsuccess = event => {
+                    const db = event.target.result;
+                    const transaction = db.transaction(this.STORE_NAME, 'readonly');
+                    const store = transaction.objectStore(this.STORE_NAME);
+                    const getRequest = store.get(this.MODEL_KEY);
+                    getRequest.onsuccess = () => resolve(getRequest.result);
+                    getRequest.onerror = event => reject("DB Get Error: " + event.target.errorCode);
+                };
+                request.onupgradeneeded = event => {
+                    const db = event.target.result;
+                    db.createObjectStore(this.STORE_NAME);
+                };
             });
-            this.recognizer.on("final_result", (message) => {
-                if (message.result.text) {
-                    recitationGame_State.userTranscript = message.result.text;
-                }
+        },
+        async _saveModelToDB(modelData) {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(this.DB_NAME, 1);
+                request.onerror = event => reject("DB Error: " + event.target.errorCode);
+                request.onsuccess = event => {
+                    const db = event.target.result;
+                    const transaction = db.transaction(this.STORE_NAME, 'readwrite');
+                    const store = transaction.objectStore(this.STORE_NAME);
+                    const putRequest = store.put(modelData, this.MODEL_KEY);
+                    putRequest.onsuccess = () => resolve();
+                    putRequest.onerror = event => reject("DB Put Error: " + event.target.errorCode);
+                };
             });
-            
-            if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Mobile engine ready.";
-            return true;
-
-        } catch (error) {
-            console.error("Critical Error Initializing Vosk:", error);
-            alert(`Failed to initialize mobile speech engine: ${error.message}. Please check your connection and refresh.`);
-            return false;
-        }
-    },
-
-    async start() {
-        if (!this.model || !this.recognizer) {
-            const success = await this.initialize();
-            if (!success) return;
-        }
-        
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        this.audioContext = new AudioContext();
-        await this.audioContext.resume();
-
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        this.source = this.audioContext.createMediaStreamSource(stream);
-        
-        this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-        this.processor.onaudioprocess = (event) => {
-            if (recitationGame_State.isRecording) {
-                try {
-                    this.recognizer.acceptWaveform(event.inputBuffer);
-                } catch (e) {
-                    console.error("Vosk error accepting waveform:", e);
-                }
+        },
+        async _fetchAndCacheModel() {
+            console.log("Fetching model from a reliable CDN (unpkg)...");
+            if (recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Downloading mobile engine (30MB, one-time only)...";
+            const modelUrl = "https://unpkg.com/@ricky0123/vad-web@0.0.11/examples/assets/vosk-model-ar-0.22-linto-2.zip";
+            const response = await fetch(modelUrl);
+            if (!response.ok) throw new Error(`HTTP error fetching model! Status: ${response.status}`);
+            const modelData = await response.arrayBuffer();
+            console.log("Model downloaded, saving to IndexedDB...");
+            if (recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Saving mobile engine to device...";
+            await this._saveModelToDB(modelData);
+            console.log("Model saved to IndexedDB.");
+            return modelData;
+        },
+        async initialize() {
+            if (!window.Vosk) {
+                alert("Speech recognition library for mobile failed to load.");
+                return false;
             }
+            if (this.model) return true;
+            try {
+                let modelData = await this._getModelFromDB();
+                if (modelData) {
+                    console.log("Found Vosk model in IndexedDB. Loading from DB.");
+                    if (recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Loading mobile engine from device...";
+                } else {
+                    console.log("Vosk model not in DB. Fetching from network...");
+                    modelData = await this._fetchAndCacheModel();
+                }
+                this.model = await Vosk.createModel(modelData);
+                console.log("Vosk model created successfully.");
+                this.model.setLogLevel(-1);
+                this.recognizer = new this.model.Recognizer({ sampleRate: 44100 });
+                this.recognizer.on("result", (message) => {
+                    if (message.result.text) {
+                        recitationGame_State.userTranscript = message.result.text;
+                    }
+                });
+                this.recognizer.on("final_result", (message) => {
+                    if (message.result.text) {
+                        recitationGame_State.userTranscript = message.result.text;
+                    }
+                });
+                if (recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Mobile engine ready.";
+                return true;
+            } catch (error) {
+                console.error("Critical Error Initializing Vosk:", error);
+                alert(`Failed to initialize mobile speech engine: ${error.message}. Please check your connection and refresh.`);
+                return false;
+            }
+        },
+        async start() {
+            if (!this.model || !this.recognizer) {
+                const success = await this.initialize();
+                if (!success) return;
+            }
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.audioContext = new AudioContext();
+            await this.audioContext.resume();
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            this.source = this.audioContext.createMediaStreamSource(stream);
+            this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+            this.processor.onaudioprocess = (event) => {
+                if (recitationGame_State.isRecording) {
+                    try {
+                        this.recognizer.acceptWaveform(event.inputBuffer);
+                    } catch (e) {
+                        console.error("Vosk error accepting waveform:", e);
+                    }
+                }
+            };
+            this.source.connect(this.processor);
+            this.processor.connect(this.audioContext.destination);
+        },
+        stop() {
+            if (this.processor) {
+                this.processor.disconnect();
+                this.processor = null;
+            }
+            if (this.source) {
+                this.source.mediaStream.getTracks().forEach(track => track.stop());
+                this.source.disconnect();
+                this.source = null;
+            }
+            if (this.audioContext && this.audioContext.state !== "closed") {
+                this.audioContext.close();
+                this.audioContext = null;
+            }
+            const finalResult = this.recognizer.finalResult();
+            recitationGame_State.userTranscript = finalResult.text;
+            console.log("[Vosk] Stop called. Final transcript from buffer:", finalResult.text);
+        }
+    };
+    function setupSpeechRecognition_Engine() {
+        const isMobileDevice = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (isMobileDevice()) {
+            return;
+        }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Desktop speech recognition is not supported in this browser.");
+            if (recitationGame_UI.recordButton) recitationGame_UI.recordButton.disabled = true;
+            return;
+        }
+        recitationGame_State.speechRecognition = new SpeechRecognition();
+        const recognition = recitationGame_State.speechRecognition;
+        recognition.lang = 'ar-SA';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onstart = () => {
+            recitationGame_State.userTranscript = '';
+            if (recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Listening...";
         };
-        
-        this.source.connect(this.processor);
-        this.processor.connect(this.audioContext.destination);
-    },
-
-    stop() {
-        if (this.processor) {
-            this.processor.disconnect();
-            this.processor = null;
-        }
-        if (this.source) {
-            this.source.mediaStream.getTracks().forEach(track => track.stop());
-            this.source.disconnect();
-            this.source = null;
-        }
-        if (this.audioContext && this.audioContext.state !== "closed") {
-            this.audioContext.close();
-            this.audioContext = null;
-        }
-        
-        const finalResult = this.recognizer.finalResult();
-        recitationGame_State.userTranscript = finalResult.text;
-        console.log("[Vosk] Stop called. Final transcript from buffer:", finalResult.text);
-    }
-};
-// --- Game Logic Functions (Now using the Vosk Controller) ---
-function setupSpeechRecognition_Engine() {
-    const isMobileDevice = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    if (isMobileDevice()) {
-        console.log("[RecitationGame] Mobile device detected. Vosk engine will be used.");
-        // Initialization is now deferred to the first click of the record button.
-        return;
-    }
-
-    console.log("[RecitationGame] Desktop device detected. Native SpeechRecognition will be used.");
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-        alert("Desktop speech recognition is not supported in this browser.");
-        if(recitationGame_UI.recordButton) recitationGame_UI.recordButton.disabled = true;
-        return;
-    }
-
-    recitationGame_State.speechRecognition = new SpeechRecognition();
-    const recognition = recitationGame_State.speechRecognition;
-    
-    recognition.lang = 'ar-SA';
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    
-    recognition.onstart = () => {
-        console.log("[RecitationGame] Native Speech recognition has started.");
-        recitationGame_State.userTranscript = '';
-        if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Listening...";
-    };
-
-    recognition.onresult = (event) => {
-        let final_transcript = '';
-        for (let i = 0; i < event.results.length; ++i) {
-            final_transcript += event.results[i][0].transcript;
-        }
-        recitationGame_State.userTranscript = final_transcript.trim();
-    };
-
-    recognition.onerror = (event) => {
-        console.error('[RecitationGame] Native Speech recognition error:', event.error);
-        if(recitationGame_State.isRecording) stopUserRecording_Recitation_Engine();
-    };
-    
-    recognition.onend = () => {
-        console.log("[RecitationGame] Native Speech recognition service ended.");
-        recitationGame_State.speechResultReceived = true;
-        tryFinalizeAnalysis_Engine();
-    };
-}
-
-
-async function startUserRecording_Recitation_Engine() {
-    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    recitationGame_State.mediaRecordingStopped = false;
-    recitationGame_State.speechResultReceived = false;
-    recitationGame_State.analysisTriggeredThisRound = false;
-    recitationGame_State.userTranscript = "";
-    recitationGame_State.isRecording = true;
-
-    recitationGame_UI.recordButton.textContent = "🛑 Stop Recording";
-    recitationGame_UI.recordButton.classList.add('is-recording');
-    recitationGame_UI.referencePlayButton.disabled = true;
-    recitationGame_UI.analysisFeedbackArea.style.display = 'none';
-
-    if (isMobile) {
-        await VoskController.start(); // This will auto-initialize if needed
-    } else {
-        // Desktop uses the native API
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            recitationGame_State.userAudioRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-
-            recitationGame_State.userAudioRecorder.onstop = () => {
-                recitationGame_State.mediaRecordingStopped = true;
-                stream.getTracks().forEach(track => track.stop());
-                tryFinalizeAnalysis_Engine();
-            };
-            
-            recitationGame_State.userAudioRecorder.start();
-            if (recitationGame_State.speechRecognition) {
-                recitationGame_State.speechRecognition.start();
+        recognition.onresult = (event) => {
+            let final_transcript = '';
+            for (let i = 0; i < event.results.length; ++i) {
+                final_transcript += event.results[i][0].transcript;
             }
-        } catch(err) {
-            console.error("Error starting native recording:", err);
-            recitationGame_State.isRecording = false;
+            recitationGame_State.userTranscript = final_transcript.trim();
+        };
+        recognition.onerror = (event) => {
+            if (recitationGame_State.isRecording) stopUserRecording_Recitation_Engine();
+        };
+        recognition.onend = () => {
+            recitationGame_State.speechResultReceived = true;
+            tryFinalizeAnalysis_Engine();
+        };
+    }
+    async function startUserRecording_Recitation_Engine() {
+        const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        recitationGame_State.mediaRecordingStopped = false;
+        recitationGame_State.speechResultReceived = false;
+        recitationGame_State.analysisTriggeredThisRound = false;
+        recitationGame_State.userTranscript = "";
+        recitationGame_State.isRecording = true;
+        recitationGame_UI.recordButton.textContent = "🛑 Stop Recording";
+        recitationGame_UI.recordButton.classList.add('is-recording');
+        recitationGame_UI.referencePlayButton.disabled = true;
+        recitationGame_UI.analysisFeedbackArea.style.display = 'none';
+        if (isMobile) {
+            await VoskController.start(); // This will auto-initialize if needed
+        } else {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                recitationGame_State.userAudioRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                recitationGame_State.userAudioRecorder.onstop = () => {
+                    recitationGame_State.mediaRecordingStopped = true;
+                    stream.getTracks().forEach(track => track.stop());
+                    tryFinalizeAnalysis_Engine();
+                };
+                recitationGame_State.userAudioRecorder.start();
+                if (recitationGame_State.speechRecognition) {
+                    recitationGame_State.speechRecognition.start();
+                }
+            } catch (err) {
+                console.error("Error starting native recording:", err);
+                recitationGame_State.isRecording = false;
+            }
         }
     }
-}
-
-
-function stopUserRecording_Recitation_Engine() {
-    if (!recitationGame_State.isRecording) return;
-    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    recitationGame_State.isRecording = false;
-    
-    recitationGame_UI.recordButton.textContent = "⏳ Processing...";
-    recitationGame_UI.recordButton.disabled = true;
-
-    if (isMobile) {
-        VoskController.stop();
-        recitationGame_State.mediaRecordingStopped = true;
-        recitationGame_State.speechResultReceived = true;
-        tryFinalizeAnalysis_Engine();
-    } else {
-        if (recitationGame_State.userAudioRecorder && recitationGame_State.userAudioRecorder.state === "recording") {
-            recitationGame_State.userAudioRecorder.stop();
-        }
-        if (recitationGame_State.speechRecognition) {
-            recitationGame_State.speechRecognition.stop();
+    function stopUserRecording_Recitation_Engine() {
+        if (!recitationGame_State.isRecording) return;
+        const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        recitationGame_State.isRecording = false;
+        recitationGame_UI.recordButton.textContent = "⏳ Processing...";
+        recitationGame_UI.recordButton.disabled = true;
+        if (isMobile) {
+            VoskController.stop();
+            recitationGame_State.mediaRecordingStopped = true;
+            recitationGame_State.speechResultReceived = true;
+            tryFinalizeAnalysis_Engine();
+        } else {
+            if (recitationGame_State.userAudioRecorder && recitationGame_State.userAudioRecorder.state === "recording") {
+                recitationGame_State.userAudioRecorder.stop();
+            }
+            if (recitationGame_State.speechRecognition) {
+                recitationGame_State.speechRecognition.stop();
+            }
         }
     }
-}
-
-
-function tryFinalizeAnalysis_Engine() {
-    if (recitationGame_State.analysisTriggeredThisRound) return;
-
-    if (recitationGame_State.mediaRecordingStopped && recitationGame_State.speechResultReceived) {
-        recitationGame_State.analysisTriggeredThisRound = true;
-
-        const audioBlob = new Blob(recitationGame_State.userAudioChunks, { type: 'audio/webm' });
-        
-        analyzeUserRecitation_Engine(audioBlob);
-
-        recitationGame_UI.recordButton.disabled = false;
-        recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
-        recitationGame_UI.recordButton.classList.remove('is-recording');
-        recitationGame_UI.referencePlayButton.disabled = false;
+    function tryFinalizeAnalysis_Engine() {
+        if (recitationGame_State.analysisTriggeredThisRound) return;
+        if (recitationGame_State.mediaRecordingStopped && recitationGame_State.speechResultReceived) {
+            recitationGame_State.analysisTriggeredThisRound = true;
+            const audioBlob = new Blob(recitationGame_State.userAudioChunks, { type: 'audio/webm' });
+            analyzeUserRecitation_Engine(audioBlob);
+            recitationGame_UI.recordButton.disabled = false;
+            recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
+            recitationGame_UI.recordButton.classList.remove('is-recording');
+            recitationGame_UI.referencePlayButton.disabled = false;
+        }
     }
-}
-
- 
-async function analyzeUserRecitation_Engine(audioBlob) {
-    if (!recitationGame_State.gameActive) {
-        return;
-    }
-    
-    if (recitationGame_UI.recordingStatusText) {
-        recitationGame_UI.recordingStatusText.textContent = "Analyzing...";
-    }
-    
-    // --- Start of UI Feedback Enhancement ---
-    const feedbackArea = recitationGame_UI.analysisFeedbackArea;
-    if (feedbackArea) {
-        feedbackArea.style.display = 'block';
-        // Clear previous results and set up structure
-        feedbackArea.innerHTML = `
+    async function analyzeUserRecitation_Engine(audioBlob) {
+        if (!recitationGame_State.gameActive) {
+            return;
+        }
+        if (recitationGame_UI.recordingStatusText) {
+            recitationGame_UI.recordingStatusText.textContent = "Analyzing...";
+        }
+        const feedbackArea = recitationGame_UI.analysisFeedbackArea;
+        if (feedbackArea) {
+            feedbackArea.style.display = 'block';
+            feedbackArea.innerHTML = `
             <h4>Analysis Feedback</h4>
             <p id="feedbackTextAccuracy_Engine">Accuracy: Calculating...</p>
             <div style="text-align:right; direction:rtl; margin-top:10px; padding-top:10px; border-top: 1px dotted var(--color-border);">
@@ -7936,38 +7868,26 @@ async function analyzeUserRecitation_Engine(audioBlob) {
                 <p id="feedbackDiff_Engine" style="font-family: var(--font-arabic); font-size: 1.2em;"></p>
             </div>
         `;
+        }
+        const recognizedText = recitationGame_State.userTranscript || "";
+        const targetTextNorm = normalizeArabicForComparison_Engine(recitationGame_State.targetAyahText);
+        const recognizedTextNorm = normalizeArabicForComparison_Engine(recognizedText);
+        const { accuracy, diffHTML } = calculateTextAccuracyAndDiff_Engine(targetTextNorm, recognizedTextNorm);
+        console.log(`[RecitationGame] Calculated Accuracy: ${accuracy}%, Diff HTML generated.`);
+        const feedbackAccuracyEl = document.getElementById('feedbackTextAccuracy_Engine');
+        const feedbackRecognizedEl = document.getElementById('feedbackRecognizedText_Engine');
+        const feedbackDiffEl = document.getElementById('feedbackDiff_Engine');
+        if (feedbackAccuracyEl) feedbackAccuracyEl.textContent = `Text Accuracy: ${accuracy.toFixed(1)}%`;
+        if (feedbackRecognizedEl) feedbackRecognizedEl.textContent = recognizedText || "(No speech recognized)";
+        if (feedbackDiffEl) feedbackDiffEl.innerHTML = diffHTML;
+        if (recitationGame_UI.currentScoreDisplay) {
+            recitationGame_UI.currentScoreDisplay.textContent = `${accuracy.toFixed(0)}`;
+        }
+        if (recitationGame_UI.recordingStatusText) {
+            recitationGame_UI.recordingStatusText.textContent = "Analysis complete.";
+        }
+        saveScore_Recitation_Engine(accuracy);
     }
-    // --- End of UI Feedback Enhancement ---
-
-    const recognizedText = recitationGame_State.userTranscript || "";
-    const targetTextNorm = normalizeArabicForComparison_Engine(recitationGame_State.targetAyahText);
-    const recognizedTextNorm = normalizeArabicForComparison_Engine(recognizedText);
-
-    const { accuracy, diffHTML } = calculateTextAccuracyAndDiff_Engine(targetTextNorm, recognizedTextNorm);
-    
-    console.log(`[RecitationGame] Calculated Accuracy: ${accuracy}%, Diff HTML generated.`);
-
-    // Update the newly created feedback elements
-    const feedbackAccuracyEl = document.getElementById('feedbackTextAccuracy_Engine');
-    const feedbackRecognizedEl = document.getElementById('feedbackRecognizedText_Engine');
-    const feedbackDiffEl = document.getElementById('feedbackDiff_Engine');
-    
-    if (feedbackAccuracyEl) feedbackAccuracyEl.textContent = `Text Accuracy: ${accuracy.toFixed(1)}%`;
-    if (feedbackRecognizedEl) feedbackRecognizedEl.textContent = recognizedText || "(No speech recognized)";
-    if (feedbackDiffEl) feedbackDiffEl.innerHTML = diffHTML;
-
-    if (recitationGame_UI.currentScoreDisplay) {
-        recitationGame_UI.currentScoreDisplay.textContent = `${accuracy.toFixed(0)}`;
-    }
-    
-    if (recitationGame_UI.recordingStatusText) {
-        recitationGame_UI.recordingStatusText.textContent = "Analysis complete.";
-    }
-
-    saveScore_Recitation_Engine(accuracy);
-}
-
-    
     function normalizeArabicForComparison_Engine(text) {
         if (!text) return "";
         let str = text;
@@ -8014,48 +7934,38 @@ async function analyzeUserRecitation_Engine(audioBlob) {
         str = str.replace(/\s+/g, ' ').trim();
         return str;
     }
-
     function calculateTextAccuracyAndDiff_Engine(targetNormalized, recognizedNormalized) {
-    if (!targetNormalized) return { accuracy: 0, diffHTML: "<p>(Target text was empty)</p>" };
-
-    const targetWords = targetNormalized.split(' ').filter(w => w);
-    const recognizedWords = recognizedNormalized ? recognizedNormalized.split(' ').filter(w => w) : [];
-    
-    // Use the diff-match-patch library logic for a robust comparison
-    const dmp = new diff_match_patch();
-    const diff = dmp.diff_main(recognizedNormalized, targetNormalized);
-    dmp.diff_cleanupSemantic(diff);
-
-    let diffHTML = "";
-    let correctChars = 0;
-    
-    diff.forEach(part => {
-        const operation = part[0]; // 0 for equal, -1 for delete (in recognized), 1 for insert (in target)
-        const text = part[1];
-
-        switch(operation) {
-            case 0: // DIFF_EQUAL
-                diffHTML += `<span class="diff-correct">${text}</span>`;
-                correctChars += text.length;
-                break;
-            case 1: // DIFF_INSERT (Word is in target, but not in recognized -> Missing)
-                diffHTML += `<span class="diff-missing" title="Missing: ${text}">${text}</span>`;
-                break;
-            case -1: // DIFF_DELETE (Word is in recognized, but not in target -> Extra/Incorrect)
-                diffHTML += `<span class="diff-incorrect" title="Incorrect/Extra: ${text}">${text}</span>`;
-                break;
-        }
-    });
-    
-    const targetLength = targetNormalized.length;
-    const accuracy = targetLength > 0 ? (correctChars / targetLength) * 100 : 0;
-    
-    return { 
-        accuracy: Math.max(0, Math.min(100, accuracy)), 
-        diffHTML: diffHTML || "(No recognized text to compare)" 
-    };
-}
-    
+        if (!targetNormalized) return { accuracy: 0, diffHTML: "<p>(Target text was empty)</p>" };
+        const targetWords = targetNormalized.split(' ').filter(w => w);
+        const recognizedWords = recognizedNormalized ? recognizedNormalized.split(' ').filter(w => w) : [];
+        const dmp = new diff_match_patch();
+        const diff = dmp.diff_main(recognizedNormalized, targetNormalized);
+        dmp.diff_cleanupSemantic(diff);
+        let diffHTML = "";
+        let correctChars = 0;
+        diff.forEach(part => {
+            const operation = part[0]; // 0 for equal, -1 for delete (in recognized), 1 for insert (in target)
+            const text = part[1];
+            switch (operation) {
+                case 0: // DIFF_EQUAL
+                    diffHTML += `<span class="diff-correct">${text}</span>`;
+                    correctChars += text.length;
+                    break;
+                case 1: // DIFF_INSERT (Word is in target, but not in recognized -> Missing)
+                    diffHTML += `<span class="diff-missing" title="Missing: ${text}">${text}</span>`;
+                    break;
+                case -1: // DIFF_DELETE (Word is in recognized, but not in target -> Extra/Incorrect)
+                    diffHTML += `<span class="diff-incorrect" title="Incorrect/Extra: ${text}">${text}</span>`;
+                    break;
+            }
+        });
+        const targetLength = targetNormalized.length;
+        const accuracy = targetLength > 0 ? (correctChars / targetLength) * 100 : 0;
+        return {
+            accuracy: Math.max(0, Math.min(100, accuracy)),
+            diffHTML: diffHTML || "(No recognized text to compare)"
+        };
+    }
     async function saveScore_Recitation_Engine(accuracy) {
         if (!recitationGame_State.ayahKey) {
             console.warn("saveScore_Recitation_Engine: Ayah key is not set. Cannot save score.");
