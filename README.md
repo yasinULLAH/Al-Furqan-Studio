@@ -1,3 +1,5 @@
+---
+
 # 📖 Nur Al-Quran Studio Offline | نور القرآن سٹوڈیو آفلائن 📖
 
 A powerful, offline-first Quranic study environment with advanced annotation, memorization, and thematic analysis tools.
@@ -29,36 +31,48 @@ A powerful, offline-first Quranic study environment with advanced annotation, me
 - 🎨 **Beautiful Themes** | **خوبصورت تھیمز**: Multiple elegant UI themes | متعدد خوبصورت یو آئی تھیمز
 - 📱 **Responsive Design** | **ریسپانسو ڈیزائن**: Works on all screen sizes | تمام اسکرین سائزز پر کام کرتا ہے
 
+<!-- NEW! -->
+- 🎮 **Quranic Games Suite** | **قرآنی گیمز**: Engage with the Quran through interactive games like Word Whiz, Ayah Jumble, and Recitation Practice. | ورڈ وِز، آیت جمبل، اور تلاوت کی مشق جیسے انٹرایکٹو گیمز کے ذریعے قرآن سے جڑیں۔
+- 📖 **Immersive Full-Screen Reader** | **عمیق فل سکرین ریڈر**: A distraction-free, customizable reading mode with audio playback and highlighting. | خلفشار سے پاک، حسب ضرورت پڑھنے کا موڈ جس میں آڈیو پلے بیک اور ہائی لائٹنگ شامل ہے۔
+- 📊 **Reporting & Analytics Dashboard** | **رپورٹنگ اور تجزیاتی ڈیش بورڈ**: Visualize your study habits, memorization progress, and contributions with charts and graphs. | چارٹس اور گراف کے ساتھ اپنے مطالعے کی عادات، حفظ کی پیشرفت، اور شراکتوں کا تصور کریں۔
+- 📄 **DOCX Export for Tafsir** | **تفسیر کے لیے DOCX ایکسپورٹ**: Export all your personal Tafsir notes into a beautifully formatted Microsoft Word document. | اپنے تمام ذاتی تفسیری نوٹس کو ایک خوبصورت فارمیٹ شدہ مائیکروسافٹ ورڈ دستاویز میں ایکسپورٹ کریں۔
+- 🌳 **Visual Root Word Graph** | **بصری جڑ لفظ گراف**: Explore the connections between root words and their occurrences in a dynamic, interactive node graph. | ایک متحرک، انٹرایکٹو نوڈ گراف میں جڑ کے الفاظ اور ان کے استعمال کے مابین روابط کو دریافت کریں۔
+<!-- End NEW! -->
 
 ## 🚀 Core Functionality | کور فنکشنلٹی 🚀
 
 ### 📖 Complete Quran Text | مکمل قرآنی متن 📖
 
 - Full Quran with Arabic text | عربی متن کے ساتھ مکمل قرآن
-- Multiple translations (Urdu, English, Pashto) | متعدد تراجم (اردو، انگریزی، پشتو)
+- Multiple translations (Urdu, English, Bengali) | متعدد تراجم (اردو، انگریزی، بنگالی)
 - Word-by-word translation tool | لفظ بہ لفظ ترجمہ ٹول
-
 
 ### 📝 Personal Tafsir Builder | ذاتی تفسیر بلڈر 📝
 
 - Write extensive notes for every Ayah | ہر آیت کے لیے وسیع نوٹس لکھیں
 - Build your own personal Tafsir over time | وقت کے ساتھ اپنی ذاتی تفسیر بنائیں
 - Organize and review your interpretations | اپنی تشریحات کو منظم کریں اور جائزہ لیں
-
+<!-- NEW! -->
+- Export all Tafsir notes to a formatted `.docx` file for printing or sharing. | پرنٹنگ یا شیئرنگ کے لیے تمام تفسیری نوٹس کو ایک فارمیٹ شدہ `.docx` فائل میں ایکسپورٹ کریں۔
+<!-- End NEW! -->
 
 ### 🔖 Thematic Linker Pro | تھیمیٹک لنکر پرو 🔖
 
 - Create custom themes and sub-themes | اپنے مرضی کے موضوعات اور ذیلی موضوعات بنائیں
 - Link Ayahs to multiple themes | آیات کو متعدد موضوعات سے جوڑیں
 - View all Ayahs related to a specific theme | کسی خاص موضوع سے متعلق تمام آیات دیکھیں
-
+<!-- NEW! -->
+- Includes a list of 40 pre-defined common Quranic themes to get you started. | آپ کو شروع کرنے کے لیے 40 پہلے سے طے شدہ عام قرآنی موضوعات کی فہرست شامل ہے۔
+<!-- End NEW! -->
 
 ### 🔍 Root Word Analysis | جذری لفظ تجزیہ 🔍
 
 - Study Arabic root words | عربی جذری الفاظ کا مطالعہ کریں
 - Find all occurrences across the Quran | پورے قرآن میں تمام مقامات تلاش کریں
 - Add notes on semantic nuances | لفظی معانی پر نوٹس شامل کریں
-
+<!-- NEW! -->
+- **Interactive Graph View**: Visualize the root word as a central node, with each occurrence branching out, showing the word in its context. | **انٹرایکٹو گراف ویو**: جڑ کے لفظ کو ایک مرکزی نوڈ کے طور پر دیکھیں، جس میں ہر واقعہ شاخ کی طرح نکلتا ہے، اور لفظ کو اس کے سیاق و سباق میں دکھاتا ہے۔
+<!-- End NEW! -->
 
 ### 🧠 Memorization System | حفظ کا نظام 🧠
 
@@ -66,6 +80,42 @@ A powerful, offline-first Quranic study environment with advanced annotation, me
 - Spaced repetition scheduling | وقفہ تکرار شیڈیولنگ
 - Visual progress indicators | بصری پیشرفت اشارے
 
+<!-- NEW! -->
+## 🎮 Quranic Games Suite | قرآنی گیمز کا مجموعہ 🎮
+
+Engage with the Quran in a fun and interactive way. All games are designed to work offline.
+قرآن کے ساتھ ایک تفریحی اور انٹرایکٹو انداز میں مشغول ہوں۔ تمام گیمز آف لائن کام کرنے کے لیے ڈیزائن کیے گئے ہیں۔
+
+-   🗣️ **Recitation Practice** | **تلاوت کی مشق**:
+    -   Practice your recitation and get real-time feedback.
+    -   On mobile, uses a powerful offline Vosk engine for accurate recognition.
+    -   On desktop, uses the native browser API for convenience.
+    -   Listen to a reference recitation and compare your timing and accuracy.
+
+-   🗣️ **تلاوت کی مشق**:
+    -   اپنی تلاوت کی مشق کریں اور حقیقی وقت میں فیڈ بیک حاصل کریں۔
+    -   موبائل پر، درست شناخت کے لیے ایک طاقتور آف لائن ووسک انجن استعمال کرتا ہے۔
+    -   ڈیسک ٹاپ پر، سہولت کے لیے مقامی براؤزر API کا استعمال کرتا ہے۔
+    -   حوالہ کی تلاوت سنیں اور اپنی ٹائمنگ اور درستگی کا موازنہ کریں۔
+
+-   ✍️ **Ayah Typing Challenge** | **آیت ٹائپنگ چیلنج**:
+    -   Improve your Arabic typing speed and accuracy by typing out verses from the Quran.
+    -   Measures Words Per Minute (WPM) and accuracy.
+    -   Features a fullscreen, distraction-free typing environment.
+
+-   ✍️ **آیت ٹائپنگ چیلنج**:
+    -   قرآن کی آیات ٹائپ کرکے اپنی عربی ٹائپنگ کی رفتار اور درستگی کو بہتر بنائیں۔
+    -   الفاظ فی منٹ (WPM) اور درستگی کی پیمائش کرتا ہے۔
+    -   ایک فل سکرین، خلفشار سے پاک ٹائپنگ ماحول فراہم کرتا ہے۔
+
+-   🧠 **Flashcard & Memory Match** | **فلیش کارڈ اور میموری میچ**:
+    -   Learn Quranic vocabulary with classic flashcards.
+    -   Reinforce your learning with a fun memory matching game based on the words you just practiced.
+
+-   🧠 **فلیش کارڈ اور میموری میچ**:
+    -   کلاسک فلیش کارڈز کے ساتھ قرآنی الفاظ سیکھیں۔
+    -   جن الفاظ کی آپ نے ابھی مشق کی ہے ان پر مبنی ایک تفریحی میموری میچنگ گیم کے ساتھ اپنی تعلیم کو تقویت دیں۔
+<!-- End NEW! -->
 
 ## 💻 Technical Details | تکنیکی تفصیلات 💻
 
@@ -74,19 +124,25 @@ A powerful, offline-first Quranic study environment with advanced annotation, me
 - 📲 **PWA Ready** | **پی ڈبلیو اے ریڈی**: Can be installed as a progressive web app | پروگریسیو ویب ایپ کے طور پر انسٹال کیا جا سکتا ہے
 - 🔄 **Dynamic Content Loading** | **ڈائنامک کنٹینٹ لوڈنگ**: Loads Quran data on demand | قرآنی ڈیٹا کو ضرورت کے مطابق لوڈ کرتا ہے
 - 🖌️ **RTL Support** | **آر ٹی ایل سپورٹ**: Full right-to-left text support | مکمل دائیں سے بائیں متن کی سپورٹ
-
+<!-- NEW! -->
+-   🔊 **Offline Speech Recognition (Mobile)** | **آف لائن اسپیچ ریکگنیشن (موبائل)**: Uses the **Vosk-Browser** library with an Arabic model cached in IndexedDB, allowing for high-quality, offline voice recognition on mobile devices. | **ووسک-براؤزر** لائبریری کا استعمال کرتا ہے جس میں ایک عربی ماڈل انڈیکسڈی بی میں کیش کیا جاتا ہے، جس سے موبائل آلات پر اعلیٰ معیار کی، آف لائن آواز کی شناخت ممکن ہوتی ہے۔
+<!-- End NEW! -->
 
 ## 📋 Requirements | ضروریات 📋
 
 - 🌐 Modern web browser | جدید ویب براؤزر
 - 💾 Local `data.AM` file with Quran text | مقامی `data.AM` فائل قرآنی متن کے ساتھ
 
-
 ## 🙏 Acknowledgements | اعترافات 🙏
 
 - 🕌 Quran text and translations from multiple sources | قرآنی متن اور تراجم متعدد ذرائع سے
 - 🎨 UI design inspired by both traditional manuscripts and modern interfaces | یو آئی ڈیزائن روایتی مخطوطات اور جدید انٹرفیسز سے متاثر
 - 🧠 SRS algorithm adapted from memory research | ایس آر ایس الگورتھم میموری ریسرچ سے اپنایا گیا
+<!-- NEW! -->
+-   🗣️ **Vosk-Browser** for providing an excellent offline speech recognition library. | بہترین آف لائن اسپیچ ریکگنیشن لائبریری فراہم کرنے کے لیے **ووسک-براؤزر** کا شکریہ۔
+-   📊 **Vis.js** for the dynamic network graph visualization. | متحرک نیٹ ورک گراف ویژولائزیشن کے لیے **Vis.js** کا شکریہ۔
+-   📄 **Docx.js** for the client-side DOCX generation. | کلائنٹ سائڈ DOCX جنریشن کے لیے **Docx.js** کا شکریہ۔
+<!-- End NEW! -->
 
 ---
 
@@ -105,6 +161,9 @@ A powerful, offline-first Quranic study environment with advanced annotation, me
 🔖 Create thematic connections across Ayahs | آیات کے درمیان موضوعاتی روابط بنائیں
 🔍 Analyze Arabic root words | عربی جذری الفاظ کا تجزیہ کریں
 🧠 Track your memorization progress | اپنی حفظ کی پیشرفت کو ٹریک کریں
+<!-- NEW! -->
+🎮 **NEW: Quranic Games!** Practice recitation, test your vocabulary, and improve your Arabic typing, all offline! | **نیا: قرآنی گیمز!** تلاوت کی مشق کریں، اپنے الفاظ کا امتحان لیں، اور اپنی عربی ٹائپنگ کو بہتر بنائیں، سب کچھ آف لائن!
+<!-- End NEW! -->
 
 🛠️ Built with pure HTML/JS/CSS and IndexedDB for offline storage, this app is your personal Quranic research companion. Perfect for students, scholars, and anyone looking to deepen their understanding of the Quran.
 
@@ -115,9 +174,11 @@ A powerful, offline-first Quranic study environment with advanced annotation, me
 🚀 آج ہی استعمال کریں اور اپنے قرآنی مطالعہ کے تجربے کو تبدیل کریں!
 
 \#NurAlQuran \#QuranStudy \#IslamicApp \#DigitalQuran \#قرآن_مجید \#مطالعہ_قرآن \#اسلامی_ایپ \#ڈیجیٹل_قرآن
+<!-- NEW! -->
+\#PWA \#OfflineFirst \#Vosk \#QuranGames
+<!-- End NEW! -->
 
-
-
+---
 
 ____________________ Quran APP PHP Project _____________________________
 
