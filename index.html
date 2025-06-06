@@ -7771,7 +7771,142 @@ const VoskController = {
         console.log("[Vosk] Stop called. Final transcript from buffer:", finalResult.text);
     }
 };
+// --- Game Logic Functions (Now using the Vosk Controller) ---
 
+function setupSpeechRecognition_Engine() {
+    const isMobileDevice = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (isMobileDevice()) {
+        console.log("[RecitationGame] Mobile device detected. Vosk engine will be used.");
+        // Initialization is now deferred to the first click of the record button.
+        return;
+    }
+
+    console.log("[RecitationGame] Desktop device detected. Native SpeechRecognition will be used.");
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert("Desktop speech recognition is not supported in this browser.");
+        if(recitationGame_UI.recordButton) recitationGame_UI.recordButton.disabled = true;
+        return;
+    }
+
+    recitationGame_State.speechRecognition = new SpeechRecognition();
+    const recognition = recitationGame_State.speechRecognition;
+    
+    recognition.lang = 'ar-SA';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    
+    recognition.onstart = () => {
+        console.log("[RecitationGame] Native Speech recognition has started.");
+        recitationGame_State.userTranscript = '';
+        if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Listening...";
+    };
+
+    recognition.onresult = (event) => {
+        let final_transcript = '';
+        for (let i = 0; i < event.results.length; ++i) {
+            final_transcript += event.results[i][0].transcript;
+        }
+        recitationGame_State.userTranscript = final_transcript.trim();
+    };
+
+    recognition.onerror = (event) => {
+        console.error('[RecitationGame] Native Speech recognition error:', event.error);
+        if(recitationGame_State.isRecording) stopUserRecording_Recitation_Engine();
+    };
+    
+    recognition.onend = () => {
+        console.log("[RecitationGame] Native Speech recognition service ended.");
+        recitationGame_State.speechResultReceived = true;
+        tryFinalizeAnalysis_Engine();
+    };
+}
+
+
+async function startUserRecording_Recitation_Engine() {
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    recitationGame_State.mediaRecordingStopped = false;
+    recitationGame_State.speechResultReceived = false;
+    recitationGame_State.analysisTriggeredThisRound = false;
+    recitationGame_State.userTranscript = "";
+    recitationGame_State.isRecording = true;
+
+    recitationGame_UI.recordButton.textContent = "🛑 Stop Recording";
+    recitationGame_UI.recordButton.classList.add('is-recording');
+    recitationGame_UI.referencePlayButton.disabled = true;
+    recitationGame_UI.analysisFeedbackArea.style.display = 'none';
+
+    if (isMobile) {
+        await VoskController.start(); // This will auto-initialize if needed
+    } else {
+        // Desktop uses the native API
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            recitationGame_State.userAudioRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+            recitationGame_State.userAudioRecorder.onstop = () => {
+                recitationGame_State.mediaRecordingStopped = true;
+                stream.getTracks().forEach(track => track.stop());
+                tryFinalizeAnalysis_Engine();
+            };
+            
+            recitationGame_State.userAudioRecorder.start();
+            if (recitationGame_State.speechRecognition) {
+                recitationGame_State.speechRecognition.start();
+            }
+        } catch(err) {
+            console.error("Error starting native recording:", err);
+            recitationGame_State.isRecording = false;
+        }
+    }
+}
+
+
+function stopUserRecording_Recitation_Engine() {
+    if (!recitationGame_State.isRecording) return;
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    recitationGame_State.isRecording = false;
+    
+    recitationGame_UI.recordButton.textContent = "⏳ Processing...";
+    recitationGame_UI.recordButton.disabled = true;
+
+    if (isMobile) {
+        VoskController.stop();
+        recitationGame_State.mediaRecordingStopped = true;
+        recitationGame_State.speechResultReceived = true;
+        tryFinalizeAnalysis_Engine();
+    } else {
+        if (recitationGame_State.userAudioRecorder && recitationGame_State.userAudioRecorder.state === "recording") {
+            recitationGame_State.userAudioRecorder.stop();
+        }
+        if (recitationGame_State.speechRecognition) {
+            recitationGame_State.speechRecognition.stop();
+        }
+    }
+}
+
+
+function tryFinalizeAnalysis_Engine() {
+    if (recitationGame_State.analysisTriggeredThisRound) return;
+
+    if (recitationGame_State.mediaRecordingStopped && recitationGame_State.speechResultReceived) {
+        recitationGame_State.analysisTriggeredThisRound = true;
+
+        const audioBlob = new Blob(recitationGame_State.userAudioChunks, { type: 'audio/webm' });
+        
+        analyzeUserRecitation_Engine(audioBlob);
+
+        recitationGame_UI.recordButton.disabled = false;
+        recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
+        recitationGame_UI.recordButton.classList.remove('is-recording');
+        recitationGame_UI.referencePlayButton.disabled = false;
+    }
+}
+
+ 
 async function analyzeUserRecitation_Engine(audioBlob) {
     if (!recitationGame_State.gameActive) {
         return;
