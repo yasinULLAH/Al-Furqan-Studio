@@ -1,5 +1,3 @@
----
-
 # 📖 Nur Al-Quran Studio Offline | نور القرآن سٹوڈیو آفلائن 📖
 
 A powerful, offline-first Quranic study environment with advanced annotation, memorization, and thematic analysis tools.
