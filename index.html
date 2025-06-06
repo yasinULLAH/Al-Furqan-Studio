@@ -27,6 +27,7 @@
             --color-success: #66bb6a;
             --font-arabic: 'Scheherazade New', 'Lateef', 'Amiri', 'Traditional Arabic', calibri;
             --font-urdu: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Pak Nastaleeq', calibri;
+            --font-pashto: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Pak Nastaleeq', calibri; /* Added for Pashto */
             --font-Bangali: 'Noto Sans Bangali', 'Arial', calibri;
             --font-english: 'Roboto', 'Segoe UI', calibri;
             --font-general: 'Roboto', 'Segoe UI', calibri;
@@ -1685,7 +1686,7 @@
                 };
             });
         }
-        async function loadQuranData() {
+                async function loadQuranData() {
             completedProgressUnits = 0;
             totalProgressUnits = 0;
             const WEIGHT_CHECK_SETTINGS = 1;
@@ -1815,6 +1816,7 @@
                                 const wordIdIndex = headers.indexOf('word_id');
                                 const urMeaningIndex = headers.indexOf('ur_meaning');
                                 const enMeaningIndex = headers.indexOf('en_meaning');
+                                const pashtoTextIndex = headers.indexOf('pashto_text'); // Find Pashto column
                                 if (wordIdIndex === -1) {
                                     console.error(`'word_id' header not found in ${WORD_TRANSLATION_FILE}. Cannot process word translations.`);
                                 } else {
@@ -1826,6 +1828,7 @@
                                             word_id: parseInt(word_id_val, 10),
                                             ur_meaning: urMeaningIndex > -1 && values[urMeaningIndex] ? values[urMeaningIndex].trim() : '',
                                             en_meaning: enMeaningIndex > -1 && values[enMeaningIndex] ? values[enMeaningIndex].trim() : '',
+                                            pashto_text: pashtoTextIndex > -1 && values[pashtoTextIndex] ? values[pashtoTextIndex].trim() : '', // Add Pashto data
                                         };
                                         if (!isNaN(entry.word_id)) {
                                             wordTranslationEntries.push(entry);
@@ -1969,6 +1972,8 @@
                 alert("Failed to load application data: " + error.message + "\nIf the problem persists, try clearing website data for this page and then refresh.");
             }
         }
+
+        
         function populateSurahAyahSelects() {
             const surahSelect = document.getElementById('surah-select');
             const ayahSelect = document.getElementById('ayah-select');
@@ -2111,7 +2116,13 @@
                 wordSpan.addEventListener('blur', handleWordBlur);
             });
         }
-        async function handleWordClick(event) {
+                async function handleWordClick(event) {
+            if (!localStorage.getItem('pashtoNoticeShown')) {
+                const urduMessage = "پشتو ترجمہ گوگل کا خودکار ترجمہ ہے اور قرآنی معیارات کے مطابق تصدیق شدہ نہیں ہے۔";
+                const pashtoMessage = "پښتو ژباړه د ګوګل اتوماتیکه ژباړه ده او د قرآني معیارونو سره سم نه ده تایید شوې.";
+                alert(`${urduMessage}\n\n${pashtoMessage}`);
+                localStorage.setItem('pashtoNoticeShown', 'true');
+            }
             const wordSpan = event.target;
             const clickedWordActualText = wordSpan.getAttribute('data-word-text');
             const surahNum = parseInt(wordSpan.getAttribute('data-surah'), 10);
@@ -2135,6 +2146,7 @@
             const fullTranslationTextAlign = fullTranslationInfo && fullTranslationInfo.dir === 'rtl' ? 'right' : 'left';
             let wordUrduMeaning = "N/A";
             let wordEnglishMeaning = "N/A";
+            let wordPashtoMeaning = "N/A"; // Added for Pashto
             try {
                 const metadataStore = getObjectStore(STORE_WORD_METADATA, 'readonly');
                 const locationIndex = metadataStore.index('location_idx');
@@ -2154,8 +2166,10 @@
                         console.log(`[handleWordClick] Translation data for word_id ${word_id}:`, translationEntry);
                         wordUrduMeaning = translationEntry.ur_meaning || "N/A";
                         wordEnglishMeaning = translationEntry.en_meaning || "N/A";
+                        wordPashtoMeaning = translationEntry.pashto_text || "N/A"; // Get Pashto text
                         if (translationEntry.ur_meaning === "") wordUrduMeaning = "N/A (empty)";
                         if (translationEntry.en_meaning === "") wordEnglishMeaning = "N/A (empty)";
+                        if (translationEntry.pashto_text === "") wordPashtoMeaning = "N/A (empty)"; // Check Pashto
                     } else {
                         console.warn(`[handleWordClick] No translation entry in '${STORE_WORD_TRANSLATIONS}' for word_id: ${word_id}.`);
                     }
@@ -2166,11 +2180,13 @@
                 console.error("[handleWordClick] Error during word data lookup:", error);
                 wordUrduMeaning = "Lookup Error";
                 wordEnglishMeaning = "Lookup Error";
+                wordPashtoMeaning = "Lookup Error";
             }
             const translationArea = document.getElementById('word-translation-area');
             translationArea.innerHTML = `
                 <p><strong>Selected Word:</strong> <span lang="ar" dir="rtl" style="font-family: var(--font-arabic); font-size: 1.2rem;">${clickedWordActualText}</span></p>
                 <p><strong>Urdu Meaning:</strong> <span lang="ur" dir="rtl" style="font-family: var(--font-urdu);">${wordUrduMeaning}</span></p>
+                <p><strong>Pashto Meaning:</strong> <span lang="ps" dir="rtl" style="font-family: var(--font-pashto);">${wordPashtoMeaning}</span></p>
                 <p><strong>English Meaning:</strong> <span lang="en" dir="ltr" style="font-family: var(--font-english);">${wordEnglishMeaning}</span></p>
                 <p><strong>Full Ayah Translation (${surahNum}:${ayahNum}) - ${fullTranslationLabel}:</strong> <span lang="${fullTranslationLang}" dir="${fullTranslationDir}" style="font-family: ${fullTranslationFont}; text-align: ${fullTranslationTextAlign};">${fullAyahTranslationText}</span></p>
             `;
@@ -2179,6 +2195,8 @@
             });
             wordSpan.style.backgroundColor = 'var(--color-highlight)';
         }
+
+        
         function handleWordFocus(event) {
             handleWordClick(event);
         }
