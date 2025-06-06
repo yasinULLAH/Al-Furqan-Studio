@@ -2020,8 +2020,8 @@
         async function loadAyah(surah, ayah) {
             const selectedTranslationKey = document.getElementById('translation-select').value;
             if (selectedTranslationKey === 'pashto' && !localStorage.getItem('pashtoAyahNoticeShown')) {
-                const urduMessage = "پشتو ترجمہ خودکار ترجمہ ہے اور قرآنی معیارات کے مطابق تصدیق شدہ نہیں ہے۔";
-                const pashtoMessage = "پښتو ژباړه اتوماتیکه ژباړه ده او د قرآني معیارونو سره سم نه ده تایید شوې.";
+                const urduMessage = "پشتو ترجمہ خودکار ترجمہ ہے اور قرآنی معیارات کے مطابق مکمل تصدیق شدہ نہیں ہے۔";
+                const pashtoMessage = "پښتو ژباړه اتوماتیکه ژباړه ده او د قرآني معیارونو سره مکمل سم نه ده تایید شوې.";
                 alert(`${urduMessage}\n\n${pashtoMessage}`);
                 localStorage.setItem('pashtoAyahNoticeShown', 'true');
             }
