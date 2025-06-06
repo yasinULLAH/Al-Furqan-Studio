@@ -922,7 +922,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bangali&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap">
-    <script src="vosk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.6/dist/vosk.js"></script>
 </head>
 
 <body dir="ltr"> <!-- Default direction, will be set dynamically if needed -->
@@ -7612,62 +7612,112 @@
 
 
 // =======================================================================
-// == NEW, COMPLETE & INTEGRATED RECITATION PRACTICE GAME ENGINE        ==
+// == FINAL, OFFLINE-ENABLED RECITATION PRACTICE GAME ENGINE (Vosk+IDB) ==
 // =======================================================================
 
-// --- Vosk Controller for Mobile ---
+// --- Vosk Controller with IndexedDB Caching for the Model ---
 const VoskController = {
     model: null,
     recognizer: null,
     audioContext: null,
     source: null,
     processor: null,
+    DB_NAME: 'VoskModelDB',
+    STORE_NAME: 'models',
+    MODEL_KEY: 'vosk-model-ar-0.22',
+
+    async _getModelFromDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.DB_NAME, 1);
+            request.onerror = event => reject("DB Error: " + event.target.errorCode);
+            request.onsuccess = event => {
+                const db = event.target.result;
+                const transaction = db.transaction(this.STORE_NAME, 'readonly');
+                const store = transaction.objectStore(this.STORE_NAME);
+                const getRequest = store.get(this.MODEL_KEY);
+                getRequest.onsuccess = () => resolve(getRequest.result);
+                getRequest.onerror = event => reject("DB Get Error: " + event.target.errorCode);
+            };
+            request.onupgradeneeded = event => {
+                const db = event.target.result;
+                db.createObjectStore(this.STORE_NAME);
+            };
+        });
+    },
+
+    async _saveModelToDB(modelData) {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.DB_NAME, 1);
+            request.onerror = event => reject("DB Error: " + event.target.errorCode);
+            request.onsuccess = event => {
+                const db = event.target.result;
+                const transaction = db.transaction(this.STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(this.STORE_NAME);
+                const putRequest = store.put(modelData, this.MODEL_KEY);
+                putRequest.onsuccess = () => resolve();
+                putRequest.onerror = event => reject("DB Put Error: " + event.target.errorCode);
+            };
+        });
+    },
+
+    async _fetchAndCacheModel() {
+        console.log("Fetching model from network...");
+        if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Downloading mobile engine (30MB, one-time only)...";
+        
+        // Using jsDelivr which has proper CORS headers for this type of fetching
+        const modelUrl = "https://cdn.jsdelivr.net/npm/@alphacephei/vosk-browser@0.0.6/models/vosk-model-ar-0.22-linto-2.zip";
+        
+        const response = await fetch(modelUrl);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const modelData = await response.arrayBuffer();
+        console.log("Model downloaded, saving to IndexedDB...");
+        if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Saving mobile engine to device...";
+        
+        await this._saveModelToDB(modelData);
+        console.log("Model saved to IndexedDB.");
+        return modelData;
+    },
 
     async initialize() {
         if (!window.Vosk) {
-            console.error("Vosk library not loaded!");
-            alert("Speech recognition library for mobile failed to load. Please check your connection and refresh.");
+            alert("Speech recognition library for mobile failed to load.");
             return false;
         }
-        if (this.model) {
-            console.log("Vosk model already initialized.");
-            return true;
-        }
+        if (this.model) return true;
+
         try {
-            if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Loading mobile engine (first time only)...";
-            // URL for a lightweight Arabic model (around 30MB)
-            const modelUrl = "https://alphacephei.com/vosk/models/vosk-model-ar-0.22-linto-2.zip";
-            this.model = await Vosk.createModel(modelUrl);
-            console.log("Vosk model loaded successfully.");
+            let modelData = await this._getModelFromDB();
+            if (modelData) {
+                console.log("Found Vosk model in IndexedDB. Loading from DB.");
+                if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Loading mobile engine from device...";
+            } else {
+                console.log("Vosk model not in DB. Fetching from network...");
+                modelData = await this._fetchAndCacheModel();
+            }
 
-            this.model.setLogLevel(-1); // Suppress verbose console logs from Vosk
+            this.model = await Vosk.createModel(modelData);
+            console.log("Vosk model created successfully.");
+            this.model.setLogLevel(-1);
 
-            this.recognizer = new this.model.Recognizer({
-                sampleRate: 44100 // Common sample rate
-            });
-            console.log("Vosk recognizer created.");
-            
+            this.recognizer = new this.model.Recognizer({ sampleRate: 44100 });
             this.recognizer.on("result", (message) => {
-                const resultText = message.result.text;
-                if (resultText && resultText.length > 0) {
-                     console.log("[Vosk] Partial/Final Result:", resultText);
-                    recitationGame_State.userTranscript = resultText; // Overwrite with the latest full result
+                if (message.result.text) {
+                    recitationGame_State.userTranscript = message.result.text;
                 }
             });
-            
-            // This event gives us the final, confirmed transcript.
             this.recognizer.on("final_result", (message) => {
-                const finalText = message.result.text;
-                console.log("[Vosk] Final Result:", finalText);
-                recitationGame_State.userTranscript = finalText;
+                if (message.result.text) {
+                    recitationGame_State.userTranscript = message.result.text;
+                }
             });
             
             if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Mobile engine ready.";
             return true;
 
         } catch (error) {
-            console.error("Error initializing Vosk:", error);
-            alert("Failed to initialize the mobile speech recognition engine. It might be a network issue or your device may not be supported.");
+            console.error("Critical Error Initializing Vosk:", error);
+            alert(`Failed to initialize mobile speech engine: ${error.message}. Please check your connection and refresh.`);
             return false;
         }
     },
@@ -7678,15 +7728,21 @@ const VoskController = {
             if (!success) return;
         }
         
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.audioContext = new AudioContext();
+        await this.audioContext.resume(); // Important for user-initiated contexts
+
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         this.source = this.audioContext.createMediaStreamSource(stream);
         
-        // Vosk requires a ScriptProcessorNode to get raw audio data.
         this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
         this.processor.onaudioprocess = (event) => {
             if (recitationGame_State.isRecording) {
-                this.recognizer.acceptWaveform(event.inputBuffer);
+                try {
+                    this.recognizer.acceptWaveform(event.inputBuffer);
+                } catch (e) {
+                    console.error("Vosk error accepting waveform:", e);
+                }
             }
         };
         
@@ -7700,41 +7756,36 @@ const VoskController = {
             this.processor = null;
         }
         if (this.source) {
-            this.source.disconnect();
             this.source.mediaStream.getTracks().forEach(track => track.stop());
+            this.source.disconnect();
             this.source = null;
         }
-        if (this.audioContext) {
+        if (this.audioContext && this.audioContext.state !== "closed") {
             this.audioContext.close();
             this.audioContext = null;
         }
         
-        // This tells the recognizer that the utterance is finished.
         const finalResult = this.recognizer.finalResult();
         recitationGame_State.userTranscript = finalResult.text;
         console.log("[Vosk] Stop called. Final transcript from buffer:", finalResult.text);
     }
 };
 
-
-// --- Modified Game Logic Functions ---
+// --- Game Logic Functions (Now using the Vosk Controller) ---
 
 function setupSpeechRecognition_Engine() {
-    // Helper function to detect mobile devices
     const isMobileDevice = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
     if (isMobileDevice()) {
-        // For mobile, we will use the VoskController.
-        // The initialization is deferred until the user first clicks record.
         console.log("[RecitationGame] Mobile device detected. Vosk engine will be used.");
+        // Initialization is now deferred to the first click of the record button.
         return;
     }
 
-    // --- Desktop-only Native API setup ---
     console.log("[RecitationGame] Desktop device detected. Native SpeechRecognition will be used.");
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        alert("Speech recognition is not supported in this browser.");
+        alert("Desktop speech recognition is not supported in this browser.");
         if(recitationGame_UI.recordButton) recitationGame_UI.recordButton.disabled = true;
         return;
     }
@@ -7743,37 +7794,26 @@ function setupSpeechRecognition_Engine() {
     const recognition = recitationGame_State.speechRecognition;
     
     recognition.lang = 'ar-SA';
-    recognition.maxAlternatives = 1;
-    recognition.continuous = true; // Use continuous for desktop multi-ayah
+    recognition.continuous = true;
     recognition.interimResults = true;
     
-    let final_transcript = '';
-
     recognition.onstart = () => {
         console.log("[RecitationGame] Native Speech recognition has started.");
-        final_transcript = '';
+        recitationGame_State.userTranscript = '';
         if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Listening...";
     };
 
     recognition.onresult = (event) => {
-        let interim_transcript = '';
-        final_transcript = ''; // Reset and rebuild on every result for continuous mode
+        let final_transcript = '';
         for (let i = 0; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                final_transcript += event.results[i][0].transcript;
-            } else {
-                interim_transcript += event.results[i][0].transcript;
-            }
+            final_transcript += event.results[i][0].transcript;
         }
         recitationGame_State.userTranscript = final_transcript.trim();
-        console.log(`[RecitationGame] Native result update. Final: "${final_transcript.trim()}"`);
     };
 
     recognition.onerror = (event) => {
-        console.error('[RecitationGame] Native Speech recognition error:', event.error, event.message);
-        if(recitationGame_State.isRecording) {
-            stopUserRecording_Recitation_Engine();
-        }
+        console.error('[RecitationGame] Native Speech recognition error:', event.error);
+        if(recitationGame_State.isRecording) stopUserRecording_Recitation_Engine();
     };
     
     recognition.onend = () => {
@@ -7787,39 +7827,29 @@ function setupSpeechRecognition_Engine() {
 async function startUserRecording_Recitation_Engine() {
     const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    // 1. Reset state for a new attempt
     recitationGame_State.mediaRecordingStopped = false;
     recitationGame_State.speechResultReceived = false;
     recitationGame_State.analysisTriggeredThisRound = false;
     recitationGame_State.userTranscript = "";
-    recitationGame_State.userAudioChunks = [];
+    recitationGame_State.isRecording = true;
 
-    // 2. Update UI
     recitationGame_UI.recordButton.textContent = "🛑 Stop Recording";
     recitationGame_UI.recordButton.classList.add('is-recording');
-    recitationGame_UI.recordingStatusText.textContent = isMobile ? "Initializing mobile engine..." : "Starting...";
     recitationGame_UI.referencePlayButton.disabled = true;
     recitationGame_UI.analysisFeedbackArea.style.display = 'none';
 
-    recitationGame_State.isRecording = true;
-
     if (isMobile) {
-        await VoskController.start();
-        if(recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Listening via mobile engine...";
+        await VoskController.start(); // This will auto-initialize if needed
     } else {
-        // Desktop uses the native API which is started here
+        // Desktop uses the native API
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             recitationGame_State.userAudioRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
 
             recitationGame_State.userAudioRecorder.onstop = () => {
-                console.log("[RecitationGame] Native MediaRecorder stopped.");
                 recitationGame_State.mediaRecordingStopped = true;
                 stream.getTracks().forEach(track => track.stop());
                 tryFinalizeAnalysis_Engine();
-            };
-            recitationGame_State.userAudioRecorder.ondataavailable = event => {
-                recitationGame_State.userAudioChunks.push(event.data);
             };
             
             recitationGame_State.userAudioRecorder.start();
@@ -7829,7 +7859,6 @@ async function startUserRecording_Recitation_Engine() {
         } catch(err) {
             console.error("Error starting native recording:", err);
             recitationGame_State.isRecording = false;
-            // reset UI
         }
     }
 }
@@ -7839,22 +7868,17 @@ function stopUserRecording_Recitation_Engine() {
     if (!recitationGame_State.isRecording) return;
     const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    console.log("[RecitationGame] User clicked stop.");
-    recitationGame_State.isRecording = false; // Set state to false immediately
+    recitationGame_State.isRecording = false;
     
-    // Update UI
     recitationGame_UI.recordButton.textContent = "⏳ Processing...";
     recitationGame_UI.recordButton.disabled = true;
-    recitationGame_UI.recordingStatusText.textContent = "Finalizing...";
 
     if (isMobile) {
-        VoskController.stop(); // This is synchronous and populates the transcript
-        // Simulate the async flow for the gatekeeper
+        VoskController.stop();
         recitationGame_State.mediaRecordingStopped = true;
         recitationGame_State.speechResultReceived = true;
-        tryFinalizeAnalysis_Engine(); // This will now proceed immediately
+        tryFinalizeAnalysis_Engine();
     } else {
-        // Desktop: stop both services. Their event handlers will call the gatekeeper.
         if (recitationGame_State.userAudioRecorder && recitationGame_State.userAudioRecorder.state === "recording") {
             recitationGame_State.userAudioRecorder.stop();
         }
@@ -7866,23 +7890,15 @@ function stopUserRecording_Recitation_Engine() {
 
 
 function tryFinalizeAnalysis_Engine() {
-    console.log(`[RecitationGame] Attempting to finalize. Analysis Triggered: ${recitationGame_State.analysisTriggeredThisRound}, Media Stopped: ${recitationGame_State.mediaRecordingStopped}, Speech Received: ${recitationGame_State.speechResultReceived}`);
-
     if (recitationGame_State.analysisTriggeredThisRound) return;
 
     if (recitationGame_State.mediaRecordingStopped && recitationGame_State.speechResultReceived) {
         recitationGame_State.analysisTriggeredThisRound = true;
 
-        // On mobile, the audio blob isn't captured, but on desktop it is.
-        // We don't need the blob for text analysis, so this is fine.
         const audioBlob = new Blob(recitationGame_State.userAudioChunks, { type: 'audio/webm' });
         
-        console.log("[RecitationGame] Gatekeeper open. Analyzing final transcript:", `"${recitationGame_State.userTranscript}"`);
-        
-        // The analyze function remains the same and works for both inputs
         analyzeUserRecitation_Engine(audioBlob);
 
-        // Reset UI
         recitationGame_UI.recordButton.disabled = false;
         recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
         recitationGame_UI.recordButton.classList.remove('is-recording');
