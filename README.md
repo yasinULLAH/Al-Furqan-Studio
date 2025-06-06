@@ -142,7 +142,6 @@ Engage with the Quran in a fun and interactive way. All games are designed to wo
 -   📄 **Docx.js** for the client-side DOCX generation. | کلائنٹ سائڈ DOCX جنریشن کے لیے **Docx.js** کا شکریہ۔
 <!-- End NEW! -->
 
----
 
 ## 📱 Social Media Post | سوشل میڈیا پوسٹ 📱
 
@@ -176,7 +175,7 @@ Engage with the Quran in a fun and interactive way. All games are designed to wo
 \#PWA \#OfflineFirst \#Vosk \#QuranGames
 <!-- End NEW! -->
 
----
+
 
 ____________________ Quran APP PHP Project _____________________________
 
@@ -388,7 +387,7 @@ This project is released under MIT License, making it free for both commercial a
 - 💬 **Discussion**: Use GitHub Discussions | GitHub Discussions استعمال کریں
 - 📚 **Documentation**: Refer to this README | اس README کا حوالہ دیں
 
----
+
 
 <div align="center">
 
