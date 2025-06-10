@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,7 +35,6 @@
             --padding-main: 20px;
             --transition-speed: 0.3s;
         }
-
         body.theme-manuscript {
             --color-bg-primary: #f5f5dc;
             --color-bg-secondary: #fff8dc;
@@ -55,7 +53,6 @@
             --font-english: 'Merriweather', calibri;
             --font-general: 'Merriweather', calibri;
         }
-
         body.theme-holo {
             --color-bg-primary: #0d1a2b;
             --color-bg-secondary: #1a2b3c;
@@ -75,7 +72,6 @@
             --font-general: 'Orbitron', calibri;
             --border-radius: 4px;
         }
-
         *,
         *::before,
         *::after {
@@ -83,7 +79,6 @@
             margin: 0;
             padding: 0;
         }
-
         body {
             font-family: var(--font-general);
             line-height: 1.6;
@@ -95,7 +90,6 @@
             flex-direction: column;
             overflow-y: scroll;
         }
-
         h1,
         h2,
         h3,
@@ -105,7 +99,6 @@
             color: var(--color-text-secondary);
             margin-bottom: 15px;
         }
-
         button,
         input[type="submit"],
         input[type="button"] {
@@ -119,21 +112,18 @@
             transition: background-color var(--transition-speed), opacity var(--transition-speed);
             font-size: 1rem;
         }
-
         button:hover,
         input[type="submit"]:hover,
         input[type="button"]:hover {
             background-color: var(--color-accent-dark);
             opacity: 0.9;
         }
-
         button:focus,
         input[type="submit"]:focus,
         input[type="button"]:focus {
             outline: 2px solid var(--color-accent-dark);
             outline-offset: 2px;
         }
-
         input[type="text"],
         input[type="number"],
         textarea,
@@ -148,7 +138,6 @@
             width: 100%;
             max-width: 400px;
         }
-
         input[type="text"]:focus,
         input[type="number"]:focus,
         textarea:focus,
@@ -156,29 +145,24 @@
             outline: 2px solid var(--color-accent);
             border-color: var(--color-accent);
         }
-
         textarea {
             min-height: 150px;
             resize: vertical;
             max-width: 100%;
         }
-
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
             color: var(--color-text-secondary);
         }
-
         a {
             color: var(--color-accent-dark);
             text-decoration: none;
         }
-
         a:hover {
             text-decoration: underline;
         }
-
         .container {
             display: flex;
             flex-grow: 1;
@@ -187,7 +171,6 @@
             margin: 0 auto;
             width: 100%;
         }
-
         .sidebar {
             width: 250px;
             margin-right: var(--padding-main);
@@ -198,7 +181,6 @@
             box-shadow: 0 8px 14px rgb(0 0 0);
             margin-top: -61px;
         }
-
         .main-content {
             flex-grow: 1;
             background-color: var(--color-bg-secondary);
@@ -207,7 +189,6 @@
             box-shadow: 0 2px 5px var(--color-shadow);
             overflow-y: auto;
         }
-
         header {
             background-color: var(--color-bg-secondary);
             color: var(--color-text-primary);
@@ -218,23 +199,19 @@
             align-items: center;
             flex-shrink: 0;
         }
-
         header h1 {
             margin: 0;
             font-size: 1.8rem;
             color: var(--color-text-primary);
             margin-right: 16px;
         }
-
         nav ul {
             list-style: none;
             padding: 0;
         }
-
         nav ul li {
             margin-bottom: 10px;
         }
-
         nav a {
             display: block;
             padding: 10px;
@@ -243,27 +220,22 @@
             color: var(--color-text-primary);
             transition: background-color var(--transition-speed), color var(--transition-speed);
         }
-
         nav a:hover,
         nav a.active {
             background-color: var(--color-accent);
             color: white;
             text-decoration: none;
         }
-
         .section {
             display: none;
         }
-
         .section.active {
             display: block;
         }
-
         .quran-viewer h2 {
             text-align: center;
             margin-bottom: 20px;
         }
-
         .ayah {
             margin-bottom: 20px;
             padding: 15px;
@@ -272,11 +244,9 @@
             background-color: var(--color-bg-primary);
             transition: background-color var(--transition-speed);
         }
-
         .ayah:hover {
             background-color: var(--color-highlight);
         }
-
         .ayah-number {
             font-weight: bold;
             color: var(--color-accent-dark);
@@ -284,7 +254,6 @@
             display: block;
             text-align: center;
         }
-
         .ayah-arabic {
             font-family: var(--font-arabic);
             font-size: 1.8rem;
@@ -293,49 +262,40 @@
             margin-bottom: 10px;
             line-height: 2.5;
         }
-
         .ayah-arabic span {
             cursor: pointer;
             padding: 2px 4px;
             border-bottom: 1px dashed transparent;
             transition: background-color 0.2s, border-bottom-color 0.2s;
         }
-
         .ayah-arabic span:hover {
             background-color: rgba(var(--color-accent-dark-rgb, 56, 142, 60), 0.2);
             border-bottom-color: var(--color-accent-dark);
         }
-
         :root {
             --color-accent-dark-rgb: 56, 142, 60;
         }
-
         body.theme-manuscript {
             --color-accent-dark-rgb: 251, 140, 0;
         }
-
         body.theme-holo {
             --color-accent-dark-rgb: 0, 131, 143;
         }
-
         .ayah-translation {
             font-size: 1.3rem;
             color: #3b0aff;
         }
-
         .tafsir-editor {
             margin-top: 20px;
             padding-top: 20px;
             border-top: 1px solid var(--color-border);
         }
-
         .tafsir-editor textarea {
             width: 100%;
             max-width: 100%;
             margin-bottom: 10px;
             font-size: medium;
         }
-
         .theme-manager,
         .theme-linker {
             margin-bottom: 20px;
@@ -344,42 +304,34 @@
             border-radius: var(--border-radius);
             background-color: var(--color-bg-primary);
         }
-
         .theme-list ul {
             list-style: none;
             padding-left: 20px;
         }
-
         .theme-list li {
             margin-bottom: 5px;
         }
-
         .theme-list li span {
             cursor: pointer;
             color: var(--color-text-secondary);
             transition: color var(--transition-speed);
         }
-
         .theme-list li span:hover {
             color: var(--color-accent-dark);
             text-decoration: underline;
         }
-
         .theme-list .theme-actions button {
             padding: 3px 8px;
             font-size: 0.8rem;
             margin-left: 5px;
         }
-
         .root-analyzer-form {
             margin-bottom: 20px;
         }
-
         .root-results ul {
             list-style: none;
             padding: 0;
         }
-
         .root-results li {
             margin-bottom: 10px;
             padding: 10px;
@@ -388,16 +340,13 @@
             background-color: var(--color-bg-primary);
             font-size: 1.5rem;
         }
-
         .recitation-log-form {
             margin-bottom: 20px;
         }
-
         .recitation-list ul {
             list-style: none;
             padding: 0;
         }
-
         .recitation-list li {
             margin-bottom: 10px;
             padding: 10px;
@@ -405,7 +354,6 @@
             border-radius: var(--border-radius);
             background-color: var(--color-bg-primary);
         }
-
         .hifz-ayah-status {
             display: inline-block;
             padding: 5px 10px;
@@ -413,34 +361,28 @@
             font-size: 0.9rem;
             margin-left: 10px;
         }
-
         .status-not-started {
             background-color: #e0e0e0;
             color: #424242;
         }
-
         .status-in-progress {
             background-color: #fff59d;
             color: #fbc02d;
         }
-
         .status-memorized {
             background-color: #a5d6a7;
             color: #388e3c;
         }
-
         .search-options label {
             display: inline-block;
             margin-right: 15px;
             font-weight: normal;
         }
-
         .search-results ul {
             list-style: none;
             padding: 0;
             margin-top: 20px;
         }
-
         .search-results li {
             margin-bottom: 10px;
             padding: 10px;
@@ -448,17 +390,14 @@
             border-radius: var(--border-radius);
             background-color: var(--color-bg-primary);
         }
-
         .search-results .result-context {
             font-size: large;
             color: var(--color-text-secondary);
             margin-top: 5px;
         }
-
         .settings-section {
             margin-bottom: 20px;
         }
-
         .modal {
             display: none;
             position: fixed;
@@ -472,7 +411,6 @@
             justify-content: center;
             align-items: center;
         }
-
         .modal-content {
             background-color: var(--color-bg-secondary);
             padding: 20px;
@@ -482,7 +420,6 @@
             width: 90%;
             position: relative;
         }
-
         .close-button {
             position: absolute;
             top: 10px;
@@ -492,7 +429,6 @@
             font-weight: bold;
             cursor: pointer;
         }
-
         #loading-overlay {
             display: flex;
             position: fixed;
@@ -508,29 +444,23 @@
             z-index: 2000;
             display: none;
         }
-
         .text-center {
             text-align: center;
         }
-
         .mt-20 {
             margin-top: 20px;
         }
-
         .mb-10 {
             margin-bottom: 10px;
         }
-
         .mb-20 {
             margin-bottom: -3px;
         }
-
         .flex-group {
             display: flex;
             gap: 10px;
             align-items: center;
         }
-
         [tabindex="0"]:focus,
         button:focus,
         input:focus,
@@ -540,7 +470,6 @@
             outline: 3px solid var(--color-accent-dark);
             outline-offset: 2px;
         }
-
         .sr-only {
             position: absolute;
             width: 1px;
@@ -551,115 +480,93 @@
             clip: rect(0, 0, 0, 0);
             border: 0;
         }
-
         [dir="rtl"] .ayah-arabic,
         [dir="rtl"] .ayah-translation {
             text-align: right;
         }
-
         [dir="rtl"] .sidebar {
             margin-right: 0;
             margin-left: var(--padding-main);
         }
-
         [dir="rtl"] .theme-list ul {
             padding-left: 0;
             padding-right: 20px;
         }
-
         [dir="rtl"] .theme-list .theme-actions button {
             margin-left: 0;
             margin-right: 5px;
         }
-
         [dir="rtl"] .hifz-ayah-status {
             margin-left: 0;
             margin-right: 10px;
         }
-
         [dir="rtl"] .search-options label {
             margin-right: 0;
             margin-left: 15px;
         }
-
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
                 padding: 10px;
             }
-
             .sidebar {
                 width: 100%;
                 margin-right: 0;
                 margin-bottom: 20px;
             }
-
             [dir="rtl"] .sidebar {
                 margin-left: 0;
                 margin-bottom: 20px;
             }
-
             .main-content {
                 padding: 15px;
             }
-
             header {
                 flex-direction: column;
                 align-items: flex-start;
                 padding: 10px;
             }
-
             header h1 {
                 margin-bottom: 10px;
             }
-
             nav ul {
                 display: flex;
                 flex-wrap: wrap;
                 gap: 5px;
             }
-
             nav ul li {
                 margin-bottom: 0;
             }
-
             nav a {
                 padding: 8px 12px;
                 font-size: 0.9rem;
             }
-
             input[type="text"],
             input[type="number"],
             textarea,
             select {
                 max-width: 100%;
             }
-
             .flex-group {
                 flex-direction: column;
                 gap: 10px;
             }
-
             .flex-group button,
             .flex-group input {
                 width: 100%;
             }
         }
-
         body.theme-holo .ayah:hover {
             background: linear-gradient(90deg, rgba(0, 188, 212, 0.1) 0%, rgba(0, 188, 212, 0.05) 100%);
         }
-
         body.theme-holo .ayah-arabic span:hover {
             background-color: rgba(0, 188, 212, 0.3);
             border-bottom-color: var(--color-highlight);
         }
-
         body.theme-holo nav a.active {
             background-color: var(--color-accent);
             box-shadow: 0 0 8px var(--color-accent);
         }
-
         #loading-overlay {
             display: none;
             position: fixed;
@@ -675,7 +582,6 @@
             text-align: center;
             padding: 20px;
         }
-
         .loading-content {
             background-color: var(--color-bg-secondary, #1a2b3c);
             padding: 30px 40px;
@@ -684,34 +590,28 @@
             max-width: 500px;
             width: 90%;
         }
-
         body.theme-serene .loading-content {
             background-color: var(--color-bg-secondary);
             color: var(--color-text-primary);
         }
-
         body.theme-manuscript .loading-content {
             background-color: var(--color-bg-secondary);
             color: var(--color-text-primary);
         }
-
         body.theme-holo .loading-content {
             background-color: #1a2b3c;
             color: #e0f7fa;
         }
-
         #loading-message-primary {
             font-size: 1.4rem;
             font-weight: bold;
             margin-bottom: 10px;
         }
-
         #loading-message-secondary {
             font-size: 1rem;
             margin-bottom: 20px;
             min-height: 1.6em;
         }
-
         #loading-progress-bar-container {
             width: 100%;
             background-color: var(--color-border, #a5d6a7);
@@ -721,11 +621,9 @@
             margin-bottom: 10px;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-
         body.theme-holo #loading-progress-bar-container {
             background-color: #26a69a;
         }
-
         #loading-progress-bar {
             height: 100%;
             background-color: var(--color-accent, #4caf50);
@@ -733,64 +631,50 @@
             transition: width 0.3s ease-out;
             border-radius: var(--border-radius, 8px) 0 0 var(--border-radius, 8px);
         }
-
         body.theme-holo #loading-progress-bar {
             background-color: var(--color-accent);
         }
-
         #loading-percentage {
             font-size: 1.1rem;
             font-weight: bold;
         }
-
         #loading-first-time-notice {
             font-size: 0.85em;
             margin-top: 15px;
             opacity: 0.8;
         }
-
         .view-switcher label {
             display: inline-block;
             margin-bottom: 0;
         }
-
         .view-switcher div>label {
             margin-left: 3px;
         }
-
         .root-view-content {
             display: none;
         }
-
         .root-view-content.active-view {
             display: block;
         }
-
         #root-network-graph-container {
             margin-top: 20px;
         }
-
         .view-switcher label {
             display: inline-block;
             margin-bottom: 0;
         }
-
         .view-switcher div>label {
             margin-left: 3px;
         }
-
         .root-view-content {
             display: none;
         }
-
         .root-view-content.active-view {
             display: block;
         }
-
         #root-network-graph-container {
             margin-top: 20px;
         }
-
         .custom-popup#root-node-popup {
             position: absolute;
             background-color: var(--color-bg-secondary);
@@ -802,7 +686,6 @@
             word-wrap: break-word;
             font-size: 1.1rem !important;
         }
-
         .custom-popup#root-node-popup h4 {
             margin-top: 0;
             margin-bottom: 10px;
@@ -810,22 +693,18 @@
             font-family: var(--font-arabic);
             font-size: 1.5rem;
         }
-
         .custom-popup#root-node-popup p {
             margin: 0;
             line-height: 2;
             font-size: 1.3rem;
         }
-
         #root-graph-placeholder {
             text-align: center;
             margin: 20px 0;
         }
-
         body.graph-fullscreen-active {
             overflow: hidden;
         }
-
         #root-network-graph-container.fullscreen-graph {
             position: fixed;
             top: 0;
@@ -841,14 +720,12 @@
             align-items: stretch;
             justify-content: stretch;
         }
-
         #root-network-graph-container.fullscreen-graph #root-network-graph {
             flex-grow: 1;
             border: none;
             width: 100%;
             height: 100%;
         }
-
         .graph-fullscreen-close-btn {
             position: absolute;
             top: 15px;
@@ -862,7 +739,6 @@
             border-radius: var(--border-radius);
             cursor: pointer;
         }
-
         #root-network-graph-container.fullscreen-graph #root-graph-pagination-controls {
             position: absolute;
             bottom: 10px;
@@ -873,19 +749,15 @@
             border-radius: var(--border-radius);
             z-index: 1501;
         }
-
         :root {
             --color-bg-secondary-rgb: 200, 230, 201;
         }
-
         body.theme-manuscript {
             --color-bg-secondary-rgb: 255, 248, 220;
         }
-
         body.theme-holo {
             --color-bg-secondary-rgb: 26, 43, 60;
         }
-
         div#root-node-popup {
             position: fixed !important;
             top: 50% !important;
@@ -896,23 +768,19 @@
             text-align: right !important;
             z-index: 2147483647 !important;
         }
-
         button#launchFullScreenReaderBtnEnhanced {
             position: absolute;
             right: 83px;
             top: 71px;
         }
-
         button#quitGameButton {
             position: fixed;
             bottom: 1px;
             left: 3px;
         }
-
         #fsReaderSettingsPanel>div:nth-child(2)>label:nth-child(7) {
             display: none;
         }
-
         span.item-surah-ayah.theme-modal-ayah-link {
             cursor: pointer;
         }
@@ -933,7 +801,6 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap">
     <script src="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.6/dist/vosk.js"></script>
 </head>
-
 <body dir="ltr"> <!-- Default direction, will be set dynamically if needed -->
     <div id="loading-overlay">
         <div class="loading-content">
@@ -3954,7 +3821,6 @@
         style="display:none; position:absolute; background:var(--color-bg-secondary); border:1px solid var(--color-border); padding:10px; border-radius:var(--border-radius); z-index:1001; max-width:300px; pointer-events:none;">
     </div>
 </body>
-
 </html>
 <script>
     async function loadDocxJs() {
@@ -4672,17 +4538,13 @@
     if (!entry || !config) {
         return { meaningText: null, meaningFont: 'var(--font-general)', meaningLangDir: 'ltr' };
     }
-
     const keyMap = {
         'urdu': 'ur_meaning',
         'english': 'en_meaning',
         'pashto': 'pashto_text',
         'Bangali': 'bn_meaning'
     };
-
     let meaningText = null;
-
-    // Check for the user's PREFERRED language first, exactly like the old code.
     if (langKey === 'urdu' && entry.ur_meaning) {
         meaningText = entry.ur_meaning;
     } else if (langKey === 'english' && entry.en_meaning) {
@@ -4692,24 +4554,17 @@
     } else if (langKey === 'Bangali' && entry.bn_meaning) {
         meaningText = entry.bn_meaning;
     } else {
-        // Only if the preferred language is explicitly missing, then try a fallback.
-        // This prevents showing English when Urdu is just an empty string.
         meaningText = entry.en_meaning || entry.ur_meaning || entry.pashto_text || entry.bn_meaning || null;
     }
-
-    // Final check: If the resulting text is empty or just whitespace, treat it as null.
-    // This will cause the game to skip this invalid word, which is correct.
     if (meaningText && meaningText.trim() === "") {
         meaningText = null;
     }
-
     return {
         meaningText,
         meaningFont: config.font,
         meaningLangDir: config.dir
     };
 }
-
     async function startWordWhizGame() {
         activeGame = 'wordWhiz';
         gameScore = 0;
@@ -8924,4 +8779,418 @@
     });
     const initialDir = detectDirection(textarea.value);
     textarea.setAttribute('dir', initialDir);
+let jigsawState = {
+    difficulty: 'easy', // 'easy', 'medium', 'hard'
+    piecesCorrect: 0,
+    totalPieces: 0,
+    currentAyahRef: '',
+    draggedPiece: null,
+};
+function injectVerseJigsawCSS_Engine() {
+    const cssId = "verseJigsawGameStylesEngine";
+    if (document.getElementById(cssId)) return;
+    const styles = `
+        .jigsaw-game-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; padding: 5px; box-sizing: border-box; }
+        .jigsaw-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 10px; width: 100%; flex-wrap: wrap; }
+        .jigsaw-controls label { font-size: 0.9em; }
+        .jigsaw-main-area { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; }
+        #jigsawBoard_Engine {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 10px;
+            width: 95%;
+            min-height: 100px;
+            border: 2px solid var(--color-accent-dark);
+            border-radius: var(--border-radius);
+            background-color: var(--color-bg-primary);
+            direction: rtl;
+        }
+        .jigsaw-slot {
+            flex-grow: 1;
+            min-width: 80px;
+            height: 60px;
+            border: 1px dashed var(--color-border);
+            background-color: var(--color-bg-secondary);
+            transition: background-color 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: var(--font-arabic);
+            font-size: 1.8rem;
+        }
+        .jigsaw-slot.over { background-color: var(--color-highlight); }
+        .jigsaw-slot.filled { border-style: solid; background-color: var(--color-success); color: white; }
+        #jigsawPieceTray_Engine {
+            display: flex; flex-wrap: wrap; gap: 8px;
+            width: 95%;
+            padding: 10px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            background-color: var(--color-bg-secondary);
+            justify-content: center;
+            min-height: 70px;
+        }
+        .jigsaw-piece {
+            padding: 8px 12px;
+            border: 1px solid var(--color-accent);
+            border-radius: var(--border-radius);
+            background-color: var(--color-bg-primary);
+            cursor: grab;
+            transition: opacity 0.2s;
+            font-family: var(--font-arabic);
+            font-size: 1.8rem;
+            direction: rtl;
+            user-select: none;
+        }
+        .jigsaw-piece.dragging { opacity: 0.4; cursor: grabbing; }
+        #jigsawCompletionMessage_Engine {
+            text-align: center; margin-top: 15px; font-size: 1.2rem; color: var(--color-success); font-weight: bold;
+        }
+    `;
+    const styleSheet = document.createElement("style");
+    styleSheet.id = cssId; styleSheet.type = "text/css";
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+}
+function startVerseJigsawGame_Engine() {
+    activeGame = 'verseJigsaw_engine';
+    showGamePlayUI("Verse Jigsaw Puzzle");
+    injectVerseJigsawCSS_Engine();
+    const gamePlayArea = document.getElementById('gamePlayArea');
+    gamePlayArea.innerHTML = `
+        <div class="jigsaw-game-wrapper">
+            <div class="jigsaw-controls">
+                <label for="jigsawDifficultySelect">Ayah Length:</label>
+                <select id="jigsawDifficultySelect">
+                    <option value="easy">Short (4-6 Words)</option>
+                    <option value="medium">Medium (7-10 Words)</option>
+                    <option value="hard">Long (11-15 Words)</option>
+                </select>
+                <button id="newJigsawPuzzleBtn">New Puzzle</button>
+            </div>
+            <p id="jigsawAyahRef" style="text-align:center; font-style:italic; color:var(--color-text-secondary);"></p>
+            <div class="jigsaw-main-area">
+                <div id="jigsawPieceTray_Engine"><p>Loading Puzzle...</p></div>
+                <div id="jigsawBoard_Engine"></div>
+            </div>
+            <div id="jigsawCompletionMessage_Engine"></div>
+        </div>
+    `;
+    document.getElementById('jigsawDifficultySelect').addEventListener('change', (e) => {
+        jigsawState.difficulty = e.target.value;
+        generateNewJigsawPuzzle_Engine();
+    });
+    document.getElementById('newJigsawPuzzleBtn').addEventListener('click', generateNewJigsawPuzzle_Engine);
+    generateNewJigsawPuzzle_Engine();
+}
+async function generateNewJigsawPuzzle_Engine() {
+    const tray = document.getElementById('jigsawPieceTray_Engine');
+    const board = document.getElementById('jigsawBoard_Engine');
+    const msg = document.getElementById('jigsawCompletionMessage_Engine');
+    const ref = document.getElementById('jigsawAyahRef');
+    tray.innerHTML = '<p>Searching for a suitable Ayah...</p>';
+    board.innerHTML = '';
+    msg.textContent = '';
+    ref.textContent = '';
+    const difficultyMap = {
+        easy: { min: 4, max: 6 },
+        medium: { min: 7, max: 10 },
+        hard: { min: 11, max: 15 }
+    };
+    const { min, max } = difficultyMap[jigsawState.difficulty];
+    let attempts = 0;
+    let words = [];
+    let ayahData;
+    try {
+        while (attempts < 50) {
+            const randomSurah = Math.floor(Math.random() * 114) + 1;
+            const randomAyahNum = Math.floor(Math.random() * surahAyahCounts[randomSurah]) + 1;
+            const fetchedData = await getData(STORE_QURAN, [randomSurah, randomAyahNum]);
+            if (fetchedData && fetchedData.arabic) {
+                const fetchedWords = fetchedData.arabic.trim().split(/\s+/).filter(w => w);
+                if (fetchedWords.length >= min && fetchedWords.length <= max) {
+                    words = fetchedWords;
+                    ayahData = fetchedData;
+                    break;
+                }
+            }
+            attempts++;
+        }
+    } catch (err) {
+        board.innerHTML = `<p style='color:red'>Error accessing database.</p>`;
+        return;
+    }
+    if (words.length === 0) {
+        tray.innerHTML = `<p style='color:red'>Could not find a suitable Ayah. Please try another difficulty.</p>`;
+        return;
+    }
+    jigsawState.totalPieces = words.length;
+    jigsawState.piecesCorrect = 0;
+    jigsawState.currentAyahRef = `Surah ${ayahData.surah}:${ayahData.ayah}`;
+    ref.textContent = `Assemble the verse from: ${jigsawState.currentAyahRef}`;
+    tray.innerHTML = '';
+    let pieces = [];
+    for (let i = 0; i < words.length; i++) {
+        const slot = document.createElement('div');
+        slot.classList.add('jigsaw-slot');
+        slot.dataset.slotIndex = i;
+        board.appendChild(slot);
+        const piece = document.createElement('div');
+        piece.id = `piece-${i}`;
+        piece.dataset.wordIndex = i;
+        piece.classList.add('jigsaw-piece');
+        piece.draggable = true;
+        piece.textContent = words[i];
+        pieces.push(piece);
+    }
+    shuffleArray(pieces).forEach(p => tray.appendChild(p));
+    addJigsawDragDropListeners_Engine();
+}
+function addJigsawDragDropListeners_Engine() {
+    document.querySelectorAll('.jigsaw-piece').forEach(piece => {
+        piece.addEventListener('dragstart', e => {
+            jigsawState.draggedPiece = e.target;
+            setTimeout(() => e.target.classList.add('dragging'), 0);
+        });
+        piece.addEventListener('dragend', e => e.target.classList.remove('dragging'));
+    });
+    document.querySelectorAll('.jigsaw-slot').forEach(slot => {
+        slot.addEventListener('dragover', e => {
+            e.preventDefault();
+            if (!slot.hasChildNodes()) slot.classList.add('over');
+        });
+        slot.addEventListener('dragleave', () => slot.classList.remove('over'));
+        slot.addEventListener('drop', e => {
+            e.preventDefault();
+            slot.classList.remove('over');
+            if (jigsawState.draggedPiece && !slot.hasChildNodes() && slot.dataset.slotIndex === jigsawState.draggedPiece.dataset.wordIndex) {
+                slot.textContent = ''; // Clear any placeholder text
+                slot.appendChild(jigsawState.draggedPiece);
+                jigsawState.draggedPiece.draggable = false;
+                jigsawState.draggedPiece.style.cursor = 'default';
+                slot.classList.add('filled');
+                jigsawState.draggedPiece = null;
+                jigsawState.piecesCorrect++;
+                if (jigsawState.piecesCorrect === jigsawState.totalPieces) {
+                    document.getElementById('jigsawCompletionMessage_Engine').textContent = "Masha'Allah! Verse Assembled!";
+                }
+            }
+        });
+    });
+}
+function addVerseJigsawGameButtonToModal() {
+    const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
+    const buttonId = 'startVerseJigsawBtn';
+    if (gameSelectionArea && !document.getElementById(buttonId)) {
+        const jigsawButton = document.createElement('button');
+        jigsawButton.id = buttonId;
+        jigsawButton.className = 'game-select-btn';
+        jigsawButton.textContent = 'Verse Jigsaw';
+        jigsawButton.addEventListener('click', startVerseJigsawGame_Engine);
+        const existingButtons = gameSelectionArea.querySelectorAll('.game-select-btn');
+        if (existingButtons.length > 0) {
+            existingButtons[existingButtons.length - 1].insertAdjacentElement('afterend', jigsawButton);
+        } else {
+            gameSelectionArea.appendChild(jigsawButton);
+        }
+    }
+}
+if (typeof setupGameModal.isPatchedForJigsaw === 'undefined') {
+    const originalSetupGameModal = setupGameModal;
+    setupGameModal = function() {
+        originalSetupGameModal.apply(this, arguments);
+        addVerseJigsawGameButtonToModal(); // Add our new game button
+    };
+    setupGameModal.isPatchedForJigsaw = true;
+}
+(function() {
+    'use strict';
+    let ayahmatState = { // State for Ayah-Match game
+        currentQuestion: null, totalQuestions: 5, currentQuestionIndex: 0, score: 0,
+    };
+    function injectAyahMatchCSS_Engine() {
+        const cssId = "ayahMatchGameStylesEngine";
+        if (document.getElementById(cssId)) return;
+        const styles = `
+            .ayah-match-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 10px; text-align: center; }
+            .ayah-match-question-arabic {
+                font-size: 2rem; line-height: 2.5; margin: 20px 0; padding: 20px;
+                background-color: var(--color-bg-primary); border-radius: var(--border-radius);
+                color: var(--color-text-primary); border: 1px solid var(--color-border);
+                font-family: var(--font-arabic); direction: rtl;
+            }
+            .ayah-match-options-container { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 600px; margin: 0 auto; }
+            .ayah-match-option-btn {
+                padding: 15px; font-size: 1.2rem; text-align: left; line-height: 1.6;
+            }
+            .ayah-match-option-btn.correct { background-color: var(--color-success) !important; color: white !important; }
+            .ayah-match-option-btn.incorrect { background-color: var(--color-error) !important; color: white !important; }
+            .ayah-match-feedback { margin-top: 15px; font-weight: bold; min-height: 1.5em; }
+            .ayah-match-controls button { margin-top: 10px; }
+        `;
+        const styleSheet = document.createElement("style");
+        styleSheet.id = cssId; styleSheet.type = "text/css"; styleSheet.innerText = styles;
+        document.head.appendChild(styleSheet);
+    }
+    async function startAyahMatchGame_Engine() {
+        activeGame = 'ayahMatch_engine';
+        showGamePlayUI("Ayah-Translation Match");
+        injectAyahMatchCSS_Engine();
+        ayahmatState.currentQuestionIndex = 0;
+        ayahmatState.score = 0;
+        updateScoreDisplay();
+        const gamePlayArea = document.getElementById('gamePlayArea');
+        gamePlayArea.innerHTML = `<div class="ayah-match-wrapper"><p>Loading a new question...</p></div>`;
+        await displayNextAyahMatchQuestion();
+    }
+    async function displayNextAyahMatchQuestion() {
+        const gamePlayArea = document.getElementById('gamePlayArea');
+        if (ayahmatState.currentQuestionIndex >= ayahmatState.totalQuestions) {
+            endAyahMatchGame_Engine();
+            return;
+        }
+        gamePlayArea.innerHTML = `<div class="ayah-match-wrapper"><p>Searching for a suitable Ayah...</p></div>`;
+        const question = await fetchAyahMatchQuestion_Engine();
+        if (!question) {
+            gamePlayArea.innerHTML = `<div class="ayah-match-wrapper"><p style="color:red;">Could not generate a question. Please try again.</p><div class="ayah-match-controls"><button id="ayahMatchNextBtn">Try Again</button></div></div>`;
+            document.getElementById('ayahMatchNextBtn').addEventListener('click', displayNextAyahMatchQuestion);
+            return;
+        }
+        ayahmatState.currentQuestion = question;
+        let optionsHTML = '';
+        question.options.forEach(opt => {
+            optionsHTML += `<button class="ayah-match-option-btn" data-answer="${opt.translation}" style="font-family:${opt.font}; direction:${opt.dir}; text-align:${opt.textAlign};">${opt.translation}</button>`;
+        });
+        gamePlayArea.innerHTML = `
+            <div class="ayah-match-wrapper">
+                <p>Which is the correct translation for the following Ayah?</p>
+                <div class="ayah-match-question-arabic">${question.arabicQuestion}</div>
+                <div class="ayah-match-options-container">${optionsHTML}</div>
+                <div class="ayah-match-feedback"></div>
+                <div class="ayah-match-controls"><button id="ayahMatchNextBtn" style="display:none;">Next Question</button></div>
+            </div>`;
+        document.querySelectorAll('.ayah-match-option-btn').forEach(btn => btn.addEventListener('click', handleAyahMatchAnswer_Engine));
+        document.getElementById('ayahMatchNextBtn').addEventListener('click', displayNextAyahMatchQuestion);
+    }
+    async function fetchAyahMatchQuestion_Engine() {
+        let attempts = 0;
+        console.log("[AyahMatch v9] Starting robust search for question set...");
+        while (attempts < 100) { // High attempt count to ensure success
+            attempts++;
+            try {
+                let candidateAyahs = [];
+                let seenKeys = new Set();
+                while (candidateAyahs.length < 3) {
+                    const rSurah = Math.floor(Math.random() * 114) + 1;
+                    const rAyah = Math.floor(Math.random() * (surahAyahCounts[rSurah] || 1)) + 1;
+                    const key = `${rSurah}:${rAyah}`;
+                    if (seenKeys.has(key)) continue;
+                    const ayahData = await getData(STORE_QURAN, [rSurah, rAyah]);
+                    seenKeys.add(key);
+                    if (!ayahData || !ayahData.arabic || ayahData.arabic.trim() === "") continue;
+                    const hasTranslation = ['english', 'urdu', 'Bangali', 'pashto'].some(lang => ayahData[lang] && ayahData[lang].trim() !== "");
+                    if (!hasTranslation) continue;
+                    candidateAyahs.push(ayahData);
+                }
+                const correctAnswerRecord = candidateAyahs[0];
+                const distractor1Record = candidateAyahs[1];
+                const distractor2Record = candidateAyahs[2];
+                const getDisplayTranslation = (record) => {
+                    const selectedLangKey = document.getElementById('translation-select').value;
+                    const fallbackOrder = ['english', 'urdu', 'Bangali', 'pashto'];
+                    const prioritizedOrder = [selectedLangKey, ...fallbackOrder.filter(k => k !== selectedLangKey)];
+                    for (const lang of prioritizedOrder) {
+                        if (record[lang] && record[lang].trim() !== "") {
+                            return { translation: record[lang], config: getTranslationConfig(lang) };
+                        }
+                    }
+                    return null; // Should not happen due to our earlier check
+                };
+                const correctAnswerOption = getDisplayTranslation(correctAnswerRecord);
+                const distractor1Option = getDisplayTranslation(distractor1Record);
+                const distractor2Option = getDisplayTranslation(distractor2Record);
+                if (!correctAnswerOption || !distractor1Option || !distractor2Option) {
+                    console.error("[AyahMatch] Failed to get display translations even after validation. Retrying.");
+                    continue;
+                }
+                const options = [
+                    { translation: correctAnswerOption.translation, font: correctAnswerOption.config.font, dir: correctAnswerOption.config.dir, textAlign: correctAnswerOption.config.dir === 'rtl' ? 'right' : 'left' },
+                    { translation: distractor1Option.translation, font: distractor1Option.config.font, dir: distractor1Option.config.dir, textAlign: distractor1Option.config.dir === 'rtl' ? 'right' : 'left' },
+                    { translation: distractor2Option.translation, font: distractor2Option.config.font, dir: distractor2Option.config.dir, textAlign: distractor2Option.config.dir === 'rtl' ? 'right' : 'left' },
+                ];
+                console.log(`[AyahMatch v9] SUCCESS! Generated a valid question from S${correctAnswerRecord.surah}:A${correctAnswerRecord.ayah}.`);
+                return {
+                    arabicQuestion: correctAnswerRecord.arabic,
+                    options: shuffleArray(options),
+                    correctAnswer: correctAnswerOption.translation,
+                };
+            } catch (error) {
+                console.warn(`[AyahMatch] Error during attempt ${attempts}:`, error);
+            }
+        }
+        console.error("[AyahMatch v9] CRITICAL FAILURE: Failed to generate a question after all attempts.");
+        return null;
+    }
+    function handleAyahMatchAnswer_Engine(event) {
+        const selectedButton = event.target;
+        const selectedAnswer = selectedButton.dataset.answer;
+        const correctAnswer = ayahmatState.currentQuestion.correctAnswer;
+        const feedbackEl = document.querySelector('.ayah-match-feedback');
+        document.querySelectorAll('.ayah-match-option-btn').forEach(btn => {
+            btn.disabled = true;
+            if (btn.dataset.answer === correctAnswer) {
+                btn.classList.add('correct');
+            }
+        });
+        if (selectedAnswer === correctAnswer) {
+            feedbackEl.textContent = "Correct! Masha'Allah!";
+            feedbackEl.style.color = 'var(--color-success)';
+            ayahmatState.score += 10;
+            gameScore = ayahmatState.score;
+            if (gameScore > gameHighScore) gameHighScore = gameScore;
+            updateScoreDisplay();
+        } else {
+            selectedButton.classList.add('incorrect');
+            feedbackEl.textContent = "Not quite. The correct translation is highlighted in green.";
+            feedbackEl.style.color = 'var(--color-error)';
+        }
+        ayahmatState.currentQuestionIndex++;
+        document.getElementById('ayahMatchNextBtn').style.display = 'inline-block';
+    }
+    function endAyahMatchGame_Engine() {
+        const gamePlayArea = document.getElementById('gamePlayArea');
+        gamePlayArea.innerHTML = `
+            <div class="ayah-match-wrapper">
+                <h3>Game Over!</h3>
+                <p>Your final score: ${ayahmatState.score} / ${ayahmatState.totalQuestions * 10}</p>
+                <div class="ayah-match-controls"><button id="playAyahMatchAgainBtn">Play Again</button></div>
+            </div>`;
+        document.getElementById('playAyahMatchAgainBtn').addEventListener('click', startAyahMatchGame_Engine);
+        activeGame = null;
+    }
+    function addAyahMatchGameButtonToModal() {
+        const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
+        const oldButton = document.getElementById('startContextualCluesBtn');
+        if (oldButton) oldButton.remove();
+        const buttonId = 'startAyahMatchBtn';
+        if (gameSelectionArea && !document.getElementById(buttonId)) {
+            const matchButton = document.createElement('button');
+            matchButton.id = buttonId;
+            matchButton.className = 'game-select-btn';
+            matchButton.textContent = 'Ayah-Translation Match'; // New Name
+            matchButton.addEventListener('click', startAyahMatchGame_Engine);
+            gameSelectionArea.appendChild(matchButton);
+        }
+    }
+    if (typeof setupGameModal !== 'undefined' && typeof setupGameModal.isPatchedForAyahMatch_v9 === 'undefined') {
+        const originalSetupGameModal = setupGameModal;
+        window.setupGameModal = function() {
+            originalSetupGameModal.apply(this, arguments);
+            addAyahMatchGameButtonToModal();
+        };
+        window.setupGameModal.isPatchedForAyahMatch_v9 = true;
+        console.log("RUNTIME PATCH: 'setupGameModal' is now patched to include 'Ayah-Translation Match' game (v9).");
+    }
+})(); // End of self-contained patch
 </script>
