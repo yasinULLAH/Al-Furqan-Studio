@@ -5266,15 +5266,40 @@
     let fullScreenReaderAudioQueue = []; // For continuous play
     let fullScreenReaderIsPlayingAudio = false;
     let fullScreenReaderContinuousAudioMode = false; // New setting
-    let fullScreenReaderSettings = {
-        arabicFont: 'Scheherazade New',
-        fontSize: '2.5rem', // Base size, applied to a container
-        linesPerPage: 15, // For paged view estimation
-        showTransliteration: false,
-        autoScrollAudio: true, // For highlighting and view adjustment
-        highlightColor: 'rgba(255, 255, 150, 0.4)', // Lighter yellow
-        continuousAudio: false // New: User setting for continuous play
-    };
+    function getQuranAudioUrl(languageCode) {
+  let edition, bitrate;
+  if (languageCode === 'en') {
+    edition = 'en.walk';
+    bitrate = 192;
+  } else if (languageCode === 'ur') {
+    edition = 'ur.khan';
+    bitrate = 64;
+  } else {
+    throw new Error("Invalid languageCode: must be 'en' or 'ur'");
+  }
+  return function(ayahNumber) {
+    if (
+      typeof ayahNumber !== 'number' ||
+      !Number.isInteger(ayahNumber) ||
+      ayahNumber <= 0
+    ) {
+      throw new Error('Ayah number must be a positive integer');
+    }
+    return `https://cdn.islamic.network/quran/audio/${bitrate}/${edition}/${ayahNumber}.mp3`;
+  };
+}
+
+// Add the new property to your settings object
+let fullScreenReaderSettings = {
+    arabicFont: 'Scheherazade New',
+    fontSize: '2.5rem',
+    linesPerPage: 15,
+    showTransliteration: false,
+    autoScrollAudio: true,
+    highlightColor: 'rgba(255, 255, 150, 0.4)',
+    continuousAudio: false,
+    audioSource: 'quran' // 'quran', 'en', 'ur'
+};
     const TAJ_COMPANY_PAGES = 604;
     let tajMushafPageData = []; // Populated by loadTajMushafPageData()
     let continuousScrollNextSurahToLoad = 1;
@@ -5422,8 +5447,14 @@
                 </div>
                 <label><input type="checkbox" id="fsShowTransliterationCheck"> Show Transliteration</label>
             </div>
-            <div class="panel-section">
+                        <div class="panel-section">
                 <h5>Audio</h5>
+                <label for="fsAudioSourceSelect">Audio Source:</label>
+                <select id="fsAudioSourceSelect">
+                    <option value="quran">Quran Recitation (Alafasy)</option>
+                    <option value="en">English Translation (Ibrahim Walk)</option>
+                    <option value="ur">Urdu Translation (Fateh Jalandhri)</option>
+                </select>
                 <label><input type="checkbox" id="fsContinuousAudioCheck"> Continuous Audio Playback</label>
                 <label><input type="checkbox" id="fsAutoScrollAudioCheck"> Auto-scroll with Audio</label>
                 <label for="fsHighlightColorPicker">Highlight Color:</label>
@@ -5980,6 +6011,8 @@
                 }
             } catch (e) { console.error("Error parsing saved reader settings", e); }
         }
+        const audioSourceSelect = document.getElementById('fsAudioSourceSelect');
+        if (audioSourceSelect) audioSourceSelect.value = fullScreenReaderSettings.audioSource;
         const fontSelect = document.getElementById('fsArabicFontSelect');
         const sizeSlider = document.getElementById('fsFontSizeSlider');
         const sizeValueEl = document.getElementById('fsFontSizeValue');
@@ -6062,58 +6095,70 @@
         }));
     }
     async function playAudioForAyahEnhanced(surah, ayah) {
-        const sNum = parseInt(surah);
-        const aNum = parseInt(ayah);
-        if (isNaN(sNum) || isNaN(aNum) || sNum < 1 || sNum > 114 || aNum < 1 ||
-            (surahAyahCounts[sNum] && aNum > surahAyahCounts[sNum])) {
-            console.error(`playAudioForAyahEnhanced: Invalid input S:${surah} A:${ayah}. Aborting.`);
-            if (fullScreenReaderIsPlayingAudio) stopAndClearAudio();
-            return;
+    const sNum = parseInt(surah);
+    const aNum = parseInt(ayah);
+    if (isNaN(sNum) || isNaN(aNum) || sNum < 1 || sNum > 114 || aNum < 1 ||
+        (surahAyahCounts[sNum] && aNum > surahAyahCounts[sNum])) {
+        if (fullScreenReaderIsPlayingAudio) stopAndClearAudio();
+        return;
+    }
+    stopAndClearAudio();
+
+    let audioSrc;
+    const audioSourceMode = fullScreenReaderSettings.audioSource || 'quran';
+
+    if (audioSourceMode === 'en' || audioSourceMode === 'ur') {
+        let absoluteAyahNum = 0;
+        for (let i = 1; i < sNum; i++) {
+            absoluteAyahNum += surahAyahCounts[i];
         }
-        stopAndClearAudio();
+        absoluteAyahNum += aNum;
+        audioSrc = getQuranAudioUrl(audioSourceMode)(absoluteAyahNum);
+    } else { // Default to Quran Recitation
         const surahPadded = String(sNum).padStart(3, '0');
         const ayahPadded = String(aNum).padStart(3, '0');
-        const audioSrc = `https://everyayah.com/data/Alafasy_128kbps/${surahPadded}${ayahPadded}.mp3`;
-        fullScreenReaderAudioPlayer = new Audio(audioSrc);
-        fullScreenReaderAudioPlayer.currentSrcAyahS = sNum;
-        fullScreenReaderAudioPlayer.currentSrcAyahA = aNum;
-        try {
-            await fullScreenReaderAudioPlayer.play();
-            fullScreenReaderIsPlayingAudio = true;
-            const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
-            if (playPauseBtn) playPauseBtn.textContent = '❚❚';
-            highlightAyahEnhanced(sNum, aNum);
-            fullScreenReaderAudioPlayer.onended = async () => {
-                fullScreenReaderIsPlayingAudio = false;
-                const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
-                if (playPauseBtn) playPauseBtn.textContent = '🔊';
-                if (fullScreenReaderSettings.continuousAudio) {
-                    let nextS = sNum; // Use sNum from the current closure
-                    let nextA = aNum + 1; // Use aNum from the current closure
-                    if (surahAyahCounts[nextS] && nextA > surahAyahCounts[nextS]) {
-                        if (nextS < 114) {
-                            nextS++;
-                            nextA = 1;
-                        } else {
-                            removeHighlightEnhanced();
-                            return;
-                        }
-                    } else if (!surahAyahCounts[nextS]) {
-                        removeHighlightEnhanced(); return;
-                    }
-                    fullScreenReaderCurrentSurah = nextS; // Update global state for the *next* one
-                    fullScreenReaderCurrentAyah = nextA;
-                    updateReaderHeaderInfo();
-                    playAudioForAyahEnhanced(nextS, nextA);
-                } else {
-                    removeHighlightEnhanced();
-                }
-            };
-            fullScreenReaderAudioPlayer.onerror = (e) => {
-            };
-        } catch (err) {
-        }
+        audioSrc = `https://everyayah.com/data/Alafasy_128kbps/${surahPadded}${ayahPadded}.mp3`;
     }
+
+    fullScreenReaderAudioPlayer = new Audio(audioSrc);
+    fullScreenReaderAudioPlayer.currentSrcAyahS = sNum;
+    fullScreenReaderAudioPlayer.currentSrcAyahA = aNum;
+    try {
+        await fullScreenReaderAudioPlayer.play();
+        fullScreenReaderIsPlayingAudio = true;
+        const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
+        if (playPauseBtn) playPauseBtn.textContent = '❚❚';
+        highlightAyahEnhanced(sNum, aNum);
+        fullScreenReaderAudioPlayer.onended = async () => {
+            fullScreenReaderIsPlayingAudio = false;
+            const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
+            if (playPauseBtn) playPauseBtn.textContent = '🔊';
+            if (fullScreenReaderSettings.continuousAudio) {
+                let nextS = sNum;
+                let nextA = aNum + 1;
+                if (surahAyahCounts[nextS] && nextA > surahAyahCounts[nextS]) {
+                    if (nextS < 114) {
+                        nextS++;
+                        nextA = 1;
+                    } else {
+                        removeHighlightEnhanced();
+                        return;
+                    }
+                } else if (!surahAyahCounts[nextS]) {
+                    removeHighlightEnhanced(); return;
+                }
+                fullScreenReaderCurrentSurah = nextS;
+                fullScreenReaderCurrentAyah = nextA;
+                updateReaderHeaderInfo();
+                playAudioForAyahEnhanced(nextS, nextA);
+            } else {
+                removeHighlightEnhanced();
+            }
+        };
+        fullScreenReaderAudioPlayer.onerror = (e) => { /* existing error handling */ };
+    } catch (err) { /* existing error handling */ }
+}
+    
     function toggleAudioPlaybackEnhanced() {
         const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
         if (!fullScreenReaderAudioPlayer || fullScreenReaderAudioPlayer.src === '' || fullScreenReaderAudioPlayer.src === window.location.href || fullScreenReaderAudioPlayer.ended) {
@@ -6216,6 +6261,14 @@
         const contentDiv = document.getElementById('fsReaderContent'); // Main content area
         const headerDiv = document.getElementById('fsReaderHeader');
         const footerDiv = document.getElementById('fsReaderFooter');
+        const audioSourceSelect = document.getElementById('fsAudioSourceSelect');
+        if (audioSourceSelect) {
+            audioSourceSelect.addEventListener('change', (e) => {
+                fullScreenReaderSettings.audioSource = e.target.value;
+                stopAndClearAudio(); // Stop current audio when source changes
+                saveFullScreenReaderSettings();
+            });
+        }
         const scrubSlider = document.getElementById('fsReaderScrubSlider'); // For enabling/disabling
         if (closeBtn) closeBtn.addEventListener('click', closeFullScreenQuranReaderEnhanced);
         if (nextBtn) nextBtn.addEventListener('click', goToNextEnhanced);
