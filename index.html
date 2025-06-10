@@ -985,6 +985,11 @@
                     <select id="ayah-select" aria-label="Select Ayah"></select>
                 </div>
                 <div class="quran-controls flex-group mb-20">
+                    <label>View Mode:</label>
+                    <label><input type="radio" name="quran-view-mode" value="single" checked> Single Ayah</label>
+                    <label><input type="radio" name="quran-view-mode" value="continuous"> Continuous</label>
+                </div>
+                <div class="quran-controls flex-group mb-20">
                     <label for="translation-select" class="sr-only">Select Translation</label>
                     <select id="translation-select" aria-label="Select Translation">
                         <option value="urdu">Urdu (Included)</option>
@@ -997,6 +1002,7 @@
                     <!-- Quran Ayahs will be loaded here -->
                     <p class="text-center">Select a Surah and Ayah to start.</p>
                 </div>
+                <div id="quran-continuous-display" class="quran-viewer" style="display:none;" lang="ar" dir="rtl"></div>
                 <div id="word-translation-area" class="mt-20">
                     <!-- Word translation or full ayah translation on word click -->
                     <p class="text-center">Click on an Arabic word to see its translation.</p>
@@ -1382,12 +1388,6 @@
             13, 14, 11, 11, 18, 12, 12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25, 22, 17, 19, 26, 30,
             20, 15, 21, 11, 8, 5, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4, 5, 6
         ];
-        const TRANSLATION_CONFIG = {
-            urdu: { file: 'data new.AM', lang: 'ur', dir: 'rtl', label: 'Urdu' },
-            english: { file: 'dataENG.AM', lang: 'en', dir: 'ltr', label: 'English' },
-            Bangali: { file: 'dataBNG.AM', lang: 'bn', dir: 'ltr', label: 'Bangali' },
-            pashto: { file: 'dataPS.AM', lang: 'ps', dir: 'rtl', label: 'Pashto' }
-        };
         function openDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -1695,290 +1695,188 @@
                 };
             });
         }
+        async function handleOnDemandLoad(config) {
+            if (confirm(`Translation '${config.label}' is not loaded. Download and install now?`)) {
+                showLoading(`Downloading ${config.label}...`);
+                try {
+                    await processDataFile(config);
+                    const localManifest = await getLocalManifest();
+                    localManifest[config.key] = { version: config.version };
+                    await putData(STORE_SETTINGS, { name: SETTINGS_KEY_VERSIONS, value: localManifest });
+                    await populateTranslationSelect(await fetchRemoteManifest(), localManifest);
+                    document.getElementById('translation-select').value = config.key;
+                    await loadAyah(currentSurah, currentAyah);
+                } catch (error) {
+                    alert(`Failed to load ${config.label}: ${error.message}`);
+                } finally {
+                    hideLoading();
+                }
+            }
+        }
+        const MANIFEST_URL = 'info.csv';
+        const SETTINGS_KEY_VERSIONS = 'data_versions';
+        window.appManifest = []; // Global manifest to replace TRANSLATION_CONFIG
+        function getTranslationConfig(key) {
+            const config = window.appManifest.find(item => item.key === key && item.file_type === 'quran_translation');
+            if (!config) return { key: 'english', lang: 'en', dir: 'ltr', label: 'English', font: 'var(--font-english)' };
+            return {
+                key: config.key, // The key used for storing data (e.g., 'Bangali')
+                lang: config.lang_code,
+                dir: config.direction,
+                label: config.label,
+                font: `var(--font-${config.key})`
+            };
+        }
+        function isNewDay() {
+            const lastCheck = localStorage.getItem('lastUpdateCheck');
+            if (!lastCheck) return true;
+            return new Date(lastCheck).toDateString() !== new Date().toDateString();
+        }
+        async function getLocalManifest() {
+            const versions = await getData(STORE_SETTINGS, SETTINGS_KEY_VERSIONS).catch(() => null);
+            return versions ? versions.value : {};
+        }
+        async function populateTranslationSelect(localManifest) {
+            const select = document.getElementById('translation-select');
+            const quranTranslations = window.appManifest.filter(f => f.file_type === 'quran_translation');
+            const previouslySelected = select.value || 'urdu';
+            select.innerHTML = '';
+            quranTranslations.forEach(config => {
+                const option = document.createElement('option');
+                option.value = config.key;
+                const isLoaded = !!localManifest[config.key];
+                option.textContent = isLoaded ? config.label : `${config.label} (Click to Load)`;
+                option.dataset.isLoaded = isLoaded;
+                option.dataset.config = JSON.stringify(config);
+                select.appendChild(option);
+            });
+            if (select.querySelector(`option[value="${previouslySelected}"]`)) {
+                select.value = previouslySelected;
+            } else {
+                select.value = 'urdu';
+            }
+        }
+        async function processDataFile(config, progressCallback) {
+            const response = await fetch(config.url, { cache: "no-store" });
+            if (!response.ok) throw new Error(`HTTP error ${response.status} for ${config.url}`);
+            const text = await response.text();
+            const lines = text.split('\n').filter(line => line.trim());
+            const totalLines = lines.length;
+            let processedLines = 0;
+            const storeNameMap = {
+                'quran_translation': STORE_QURAN,
+                'word_translation': STORE_WORD_TRANSLATIONS,
+                'word_metadata': STORE_WORD_METADATA
+            };
+            const storeName = storeNameMap[config.file_type];
+            if (!storeName) throw new Error(`Unknown file type: ${config.file_type}`);
+            const transaction = db.transaction(storeName, 'readwrite');
+            const store = transaction.objectStore(storeName);
+            if (config.file_type !== 'quran_translation') {
+                await new Promise(res => store.clear().onsuccess = res); // Clear for word data
+            }
+            let headers = [];
+            if (config.file_type !== 'quran_translation') {
+                headers = lines.shift().split(',').map(h => h.trim());
+            }
+            for (const line of lines) {
+                if (config.file_type === 'quran_translation') {
+                    const parts = line.split(' ترجمہ: ');
+                    if (parts.length < 2) continue;
+                    const metaMatch = parts[1].match(/<br\/>\s*(?:s|س)\s*\.?\s*(\d{1,3})\s*(?:a|آ)\s*\.?\s*(\d{1,3})\s*$/i);
+                    if (!metaMatch) continue;
+                    const surah = parseInt(metaMatch[1], 10), ayah = parseInt(metaMatch[2], 10);
+                    const entry = await new Promise(r => store.get([surah, ayah]).onsuccess = e => r(e.target.result)) || { surah, ayah, arabic: parts[0].trim() };
+                    entry[config.key] = parts[1].substring(0, metaMatch.index).trim();
+                    store.put(entry);
+                } else { // Word data
+                    const values = line.split(',');
+                    let entry = headers.reduce((obj, h, i) => ({ ...obj, [h]: values[i] ? values[i].trim() : '' }), {});
+                    Object.keys(entry).forEach(k => {
+                        if (!isNaN(entry[k]) && entry[k] !== '') entry[k] = parseInt(entry[k], 10);
+                    });
+                    store.put(entry);
+                }
+                processedLines++;
+                if (processedLines % 100 === 0) { // Update progress every 100 lines
+                    progressCallback(processedLines / totalLines);
+                }
+            }
+            await new Promise(resolve => transaction.oncomplete = resolve);
+        }
+        let isUpdateCheckInProgress = false;
         async function loadQuranData() {
-            completedProgressUnits = 0;
-            totalProgressUnits = 0;
-            const WEIGHT_CHECK_SETTINGS = 1;
-            const WEIGHT_FETCH_FILE = 2;
-            const WEIGHT_PARSE_QURAN_FILE = 8; // Per full Quran text file
-            const WEIGHT_PARSE_WORD_FILE = 12; // Per word data file (translations or metadata)
-            const WEIGHT_DB_TRANSACTION_SETUP = 2;
-            const WEIGHT_DB_TRANSACTION_ITEM = 0.01; // Small weight per item stored
-            const WEIGHT_DB_TRANSACTION_COMPLETE = 5;
+            if (isUpdateCheckInProgress) {
+                console.log("Update check already running, skipping duplicate call.");
+                return;
+            }
+            isUpdateCheckInProgress = true;
+            showLoading("Initializing...", "Checking for app updates...", 0);
+            totalProgressUnits = 100;
+            completedProgressUnits = 5;
+            updateLoadingProgress(0, "Fetching manifest...");
             try {
-                const settingsLoadedQuran = await getData(STORE_SETTINGS, 'quranDataLoaded').catch(() => null);
-                const settingsLoadedWordTranslations = await getData(STORE_SETTINGS, 'wordTranslationsLoaded').catch(() => null);
-                const settingsLoadedWordMetadata = await getData(STORE_SETTINGS, 'wordMetadataLoaded').catch(() => null);
-                const lastLoadedVersionEntry = await getData(STORE_SETTINGS, 'lastLoadedDBVersion').catch(() => null);
-                const lastLoadedVersion = lastLoadedVersionEntry ? lastLoadedVersionEntry.value : 0;
-                const currentDBVersionForCheck = DB_VERSION; // Use the global DB_VERSION
-                const needsUpdateDueToVersion = DB_VERSION > lastLoadedVersion;
-                const shouldLoadQuran = !(settingsLoadedQuran && settingsLoadedQuran.value === true && !needsUpdateDueToVersion && DB_VERSION >= 2);
-                const shouldLoadWordTranslations = !(settingsLoadedWordTranslations && settingsLoadedWordTranslations.value === true && !needsUpdateDueToVersion && DB_VERSION >= currentDBVersionForCheck);
-                const shouldLoadWordMetadata = !(settingsLoadedWordMetadata && settingsLoadedWordMetadata.value === true && !needsUpdateDueToVersion && DB_VERSION >= currentDBVersionForCheck);
-                totalProgressUnits += WEIGHT_CHECK_SETTINGS;
-                if (shouldLoadQuran) {
-                    totalProgressUnits += Object.keys(TRANSLATION_CONFIG).length * (WEIGHT_FETCH_FILE + WEIGHT_PARSE_QURAN_FILE);
-                    totalProgressUnits += 6236 * WEIGHT_DB_TRANSACTION_ITEM;
+                window.appManifest = await fetch(MANIFEST_URL, { cache: "no-store" })
+                    .then(res => res.ok ? res.text() : Promise.reject('Could not fetch manifest.'))
+                    .then(text => {
+                        const lines = text.trim().split('\n');
+                        const headers = lines.shift().trim().split(',');
+                        return lines.map(line => {
+                            const values = line.trim().split(',');
+                            return headers.reduce((obj, h, i) => ({ ...obj, [h.trim()]: values[i] ? values[i].trim() : '' }), {});
+                        });
+                    });
+                completedProgressUnits = 10;
+                updateLoadingProgress(0, "Checking local data versions...");
+                const localManifest = await getLocalManifest();
+                await populateTranslationSelect(localManifest);
+                let updates = [];
+                if (isNewDay()) {
+                    updates = window.appManifest.filter(remote => {
+                        const local = localManifest[remote.key];
+                        return !local || parseFloat(remote.version) > parseFloat(local.version);
+                    });
                 }
-                if (shouldLoadWordTranslations) {
-                    totalProgressUnits += WEIGHT_FETCH_FILE + WEIGHT_PARSE_WORD_FILE;
-                    totalProgressUnits += 80000 * WEIGHT_DB_TRANSACTION_ITEM;
-                }
-                if (shouldLoadWordMetadata) {
-                    totalProgressUnits += WEIGHT_FETCH_FILE + WEIGHT_PARSE_WORD_FILE;
-                    totalProgressUnits += 80000 * WEIGHT_DB_TRANSACTION_ITEM;
-                }
-                if (shouldLoadQuran || shouldLoadWordTranslations || shouldLoadWordMetadata) {
-                    totalProgressUnits += WEIGHT_DB_TRANSACTION_SETUP + WEIGHT_DB_TRANSACTION_COMPLETE;
-                }
-                if (totalProgressUnits <= WEIGHT_CHECK_SETTINGS && !shouldLoadQuran && !shouldLoadWordTranslations && !shouldLoadWordMetadata) {
-                    console.log("All necessary Quran, word translation, and word metadata already loaded and up-to-date.");
-                    quranDataLoaded = true;
-                    await populateSurahAyahSelects();
-                    await loadAyah(currentSurah, currentAyah);
-                    return;
-                }
-                let primaryLoadingMessage = "Setting up Quran Studio for the first time...";
-                if (lastLoadedVersion > 0) { // Not the very first time
-                    if (needsUpdateDueToVersion) {
-                        primaryLoadingMessage = "Updating Quran Studio data for a new version...";
-                    } else {
-                        primaryLoadingMessage = "Verifying Quran Studio data...";
-                    }
-                }
-                showLoading(primaryLoadingMessage, "Checking existing data...", 0);
-                updateLoadingProgress(WEIGHT_CHECK_SETTINGS, "Checked local data status.");
-                if (!shouldLoadQuran && !shouldLoadWordTranslations && !shouldLoadWordMetadata) {
-                    console.log("All necessary Quran, word translation, and word metadata already loaded.");
-                    quranDataLoaded = true;
-                    await populateSurahAyahSelects();
-                    await loadAyah(currentSurah, currentAyah);
-                    updateLoadingProgress(totalProgressUnits - completedProgressUnits, "Data verified. Launching Studio..."); // Complete progress
-                    setTimeout(hideLoading, 500); // Brief pause before hiding
-                    return;
-                }
-                const storesToAccessInTransaction = [STORE_SETTINGS];
-                if (shouldLoadQuran) storesToAccessInTransaction.push(STORE_QURAN);
-                if (shouldLoadWordTranslations) storesToAccessInTransaction.push(STORE_WORD_TRANSLATIONS);
-                if (shouldLoadWordMetadata) storesToAccessInTransaction.push(STORE_WORD_METADATA);
-                const allQuranDataMap = new Map();
-                let wordTranslationEntries = [];
-                let wordMetadataEntries = [];
-                if (shouldLoadQuran) {
-                    console.log("Fetching full Quran ayah texts and translations...");
-                    for (const key in TRANSLATION_CONFIG) {
-                        const config = TRANSLATION_CONFIG[key];
+                if (updates.length > 0 && confirm(`Updates available for: ${updates.map(u => u.label).join(', ')}. Download now?`)) {
+                    const progressStep = (100 - completedProgressUnits) / updates.length;
+                    const successfullyUpdatedFiles = []; // Track successful updates
+                    for (let i = 0; i < updates.length; i++) {
+                        const fileConfig = updates[i];
+                        updateLoadingProgress(0, `Updating ${fileConfig.label}... (${i + 1}/${updates.length})`);
                         try {
-                            updateLoadingProgress(0, `Fetching ${config.label} text (${config.file.substring(0, 15)})...`);
-                            const response = await fetch(config.file);
-                            updateLoadingProgress(WEIGHT_FETCH_FILE, `Processing ${config.label} (${config.file.substring(0, 15)})...`);
-                            if (!response.ok) {
-                                console.warn(`HTTP error! status: ${response.status} for ${config.file}. Skipping.`);
-                                updateLoadingProgress(WEIGHT_PARSE_QURAN_FILE, `Skipped ${config.label} due to error.`);
-                                continue;
-                            }
-                            const text = await response.text();
-                            console.log(`${config.label} data fetched (${config.file}). Parsing...`);
-                            const lines = text.split('\n').filter(line => line.trim() !== '');
-                            for (const line of lines) {
-                                const parts = line.split(' ترجمہ: ');
-                                if (parts.length < 2) continue;
-                                const arabicPart = parts[0].trim();
-                                const rest = parts[1];
-                                const metaMatch = rest.match(/<br\/>\s*(?:s|س)\s*\.?\s*(\d{1,3})\s*(?:a|آ)\s*\.?\s*(\d{1,3})\s*$/i);
-                                if (!metaMatch) continue;
-                                const translationPart = rest.substring(0, metaMatch.index).trim();
-                                const surahNum = parseInt(metaMatch[1], 10);
-                                const ayahNum = parseInt(metaMatch[2], 10);
-                                if (isNaN(surahNum) || isNaN(ayahNum) || surahNum < 1 || surahNum > 114 || ayahNum < 1) continue;
-                                const mapKey = `${surahNum}-${ayahNum}`;
-                                let entry = allQuranDataMap.get(mapKey);
-                                if (!entry) {
-                                    entry = { surah: surahNum, ayah: ayahNum, arabic: arabicPart, urdu: '', english: '', Bangali: '', pashto: '' };
-                                    allQuranDataMap.set(mapKey, entry);
-                                }
-                                entry[key] = translationPart;
-                            }
-                            updateLoadingProgress(WEIGHT_PARSE_QURAN_FILE, `Processed ${config.label} data.`);
-                        } catch (fetchError) {
-                            console.error(`Error fetching/parsing ${config.file}:`, fetchError);
-                            updateLoadingProgress(WEIGHT_PARSE_QURAN_FILE, `Error with ${config.label}.`);
+                            await processDataFile(fileConfig, () => { });
+                            localManifest[fileConfig.key] = { version: fileConfig.version };
+                            await putData(STORE_SETTINGS, { name: SETTINGS_KEY_VERSIONS, value: localManifest });
+                            successfullyUpdatedFiles.push(fileConfig.label);
+                        } catch (error) {
+                            alert(`Failed to update ${fileConfig.label}: ${error.message}`);
                         }
+                        completedProgressUnits += progressStep;
+                        updateLoadingProgress(0, `Finished ${fileConfig.label}.`);
                     }
-                    console.log(`Parsed ${allQuranDataMap.size} unique full ayahs.`);
-                }
-                if (shouldLoadWordTranslations) {
-                    console.log(`Fetching word translations from ${WORD_TRANSLATION_FILE}...`);
-                    try {
-                        updateLoadingProgress(0, `Fetching word translations (${WORD_TRANSLATION_FILE.substring(0, 15)})...`);
-                        const response = await fetch(WORD_TRANSLATION_FILE);
-                        updateLoadingProgress(WEIGHT_FETCH_FILE, `Processing word translations (${WORD_TRANSLATION_FILE.substring(0, 15)})...`);
-                        if (!response.ok) {
-                            console.warn(`Failed to fetch ${WORD_TRANSLATION_FILE}: ${response.status}`);
-                            updateLoadingProgress(WEIGHT_PARSE_WORD_FILE, `Skipped word translations due to error.`);
-                        } else {
-                            const csvText = await response.text();
-                            const lines = csvText.split('\n').filter(line => line.trim() !== '');
-                            if (lines.length > 0) {
-                                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-                                const wordIdIndex = headers.indexOf('word_id');
-                                const urMeaningIndex = headers.indexOf('ur_meaning');
-                                const enMeaningIndex = headers.indexOf('en_meaning');
-                                const pashtoTextIndex = headers.indexOf('pashto_text'); // Find Pashto column
-                                if (wordIdIndex === -1) {
-                                    console.error(`'word_id' header not found in ${WORD_TRANSLATION_FILE}. Cannot process word translations.`);
-                                } else {
-                                    for (let i = 1; i < lines.length; i++) {
-                                        const values = lines[i].split(',');
-                                        const word_id_val = values[wordIdIndex] ? values[wordIdIndex].trim() : null;
-                                        if (!word_id_val) continue;
-                                        const entry = {
-                                            word_id: parseInt(word_id_val, 10),
-                                            ur_meaning: urMeaningIndex > -1 && values[urMeaningIndex] ? values[urMeaningIndex].trim() : '',
-                                            en_meaning: enMeaningIndex > -1 && values[enMeaningIndex] ? values[enMeaningIndex].trim() : '',
-                                            pashto_text: pashtoTextIndex > -1 && values[pashtoTextIndex] ? values[pashtoTextIndex].trim() : '', // Add Pashto data
-                                        };
-                                        if (!isNaN(entry.word_id)) {
-                                            wordTranslationEntries.push(entry);
-                                        }
-                                    }
-                                    console.log(`Parsed ${wordTranslationEntries.length} word translation entries from ${WORD_TRANSLATION_FILE}.`);
-                                }
-                            }
-                            updateLoadingProgress(WEIGHT_PARSE_WORD_FILE, `Processed ${wordTranslationEntries.length} word translations.`);
-                        }
-                    } catch (fetchError) {
-                        console.error(`Error fetching/parsing ${WORD_TRANSLATION_FILE}:`, fetchError);
-                        updateLoadingProgress(WEIGHT_PARSE_WORD_FILE, `Error with word translations.`);
-                    }
-                }
-                if (shouldLoadWordMetadata) {
-                    console.log(`Fetching word metadata from ${WORD_METADATA_FILE}...`);
-                    try {
-                        updateLoadingProgress(0, `Fetching word metadata (${WORD_METADATA_FILE.substring(0, 15)})...`);
-                        const response = await fetch(WORD_METADATA_FILE);
-                        updateLoadingProgress(WEIGHT_FETCH_FILE, `Processing word metadata (${WORD_METADATA_FILE.substring(0, 15)})...`);
-                        if (!response.ok) {
-                            console.warn(`Failed to fetch ${WORD_METADATA_FILE}: ${response.status}`);
-                            updateLoadingProgress(WEIGHT_PARSE_WORD_FILE, `Skipped word metadata due to error.`);
-                        } else {
-                            const csvText = await response.text();
-                            const lines = csvText.split('\n').filter(line => line.trim() !== '');
-                            if (lines.length > 0) {
-                                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-                                const wordIdIndex = headers.indexOf('word_id');
-                                const surahIndex = headers.indexOf('surah');
-                                const ayahIndex = headers.indexOf('ayah');
-                                const positionIndex = headers.indexOf('word_postion');
-                                if (wordIdIndex === -1 || surahIndex === -1 || ayahIndex === -1 || positionIndex === -1) {
-                                    console.error(`One or more required headers not found in ${WORD_METADATA_FILE}.`);
-                                } else {
-                                    for (let i = 1; i < lines.length; i++) {
-                                        const values = lines[i].split(',');
-                                        const entry = {
-                                            word_id: parseInt(values[wordIdIndex] ? values[wordIdIndex].trim() : '', 10),
-                                            surah: parseInt(values[surahIndex] ? values[surahIndex].trim() : '', 10),
-                                            ayah: parseInt(values[ayahIndex] ? values[ayahIndex].trim() : '', 10),
-                                            word_position: parseInt(values[positionIndex] ? values[positionIndex].trim() : '', 10)
-                                        };
-                                        if (!isNaN(entry.word_id) && !isNaN(entry.surah) && !isNaN(entry.ayah) && !isNaN(entry.word_position)) {
-                                            wordMetadataEntries.push(entry);
-                                        }
-                                    }
-                                    console.log(`Parsed ${wordMetadataEntries.length} word metadata entries from ${WORD_METADATA_FILE}.`);
-                                }
-                            }
-                            updateLoadingProgress(WEIGHT_PARSE_WORD_FILE, `Processed ${wordMetadataEntries.length} word metadata entries.`);
-                        }
-                    } catch (fetchError) {
-                        console.error(`Error fetching/parsing ${WORD_METADATA_FILE}:`, fetchError);
-                        updateLoadingProgress(WEIGHT_PARSE_WORD_FILE, `Error with word metadata.`);
-                    }
-                }
-                if (storesToAccessInTransaction.length > 1 && (shouldLoadQuran || shouldLoadWordTranslations || shouldLoadWordMetadata)) {
-                    updateLoadingProgress(WEIGHT_DB_TRANSACTION_SETUP, "Preparing to save data to local database...");
-                    const transaction = db.transaction(storesToAccessInTransaction, 'readwrite');
-                    transaction.oncomplete = async () => {
-                        console.log("Data loading/storing transaction complete.");
-                        if (shouldLoadQuran) await putData(STORE_SETTINGS, { name: 'quranDataLoaded', value: true }).catch(console.error);
-                        if (shouldLoadWordTranslations) await putData(STORE_SETTINGS, { name: 'wordTranslationsLoaded', value: true }).catch(console.error);
-                        if (shouldLoadWordMetadata) await putData(STORE_SETTINGS, { name: 'wordMetadataLoaded', value: true }).catch(console.error);
-                        await putData(STORE_SETTINGS, { name: 'lastLoadedDBVersion', value: DB_VERSION }).catch(console.error);
-                        updateLoadingProgress(WEIGHT_DB_TRANSACTION_COMPLETE, "All data saved locally!");
-                        const finalRemaining = totalProgressUnits - completedProgressUnits;
-                        if (finalRemaining > 0) updateLoadingProgress(finalRemaining, "Finalizing setup...");
-                        quranDataLoaded = true;
-                        await populateSurahAyahSelects();
-                        await loadAyah(currentSurah, currentAyah);
-                        setTimeout(hideLoading, 500); // Give a moment for user to see "complete"
-                    };
-                    transaction.onerror = (event) => {
-                        console.error("Transaction failed during initial data load:", event.target.error);
-                        updateLoadingProgress(WEIGHT_DB_TRANSACTION_COMPLETE, "Error saving data. Please try refreshing.");
-                        alert("Failed to store initial data: " + event.target.error.message + "\nPlease clear website data (cache and site data for this page) and refresh.");
-                    };
-                    if (shouldLoadQuran && allQuranDataMap.size > 0) {
-                        updateLoadingProgress(0, `Saving ${allQuranDataMap.size} Ayahs to database...`);
-                        const quranStore = transaction.objectStore(STORE_QURAN);
-                        if (needsUpdateDueToVersion || !(settingsLoadedQuran && settingsLoadedQuran.value === true)) { // Clear only if new load or version update
-                            await new Promise(resolve => quranStore.clear().onsuccess = resolve); // Clear before repopulating
-                        }
-                        let count = 0;
-                        for (const entry of allQuranDataMap.values()) {
-                            quranStore.put(entry);
-                            count++;
-                            if (count % 500 === 0) updateLoadingProgress(500 * WEIGHT_DB_TRANSACTION_ITEM, `Saved ${count} Ayahs...`);
-                        }
-                        updateLoadingProgress((allQuranDataMap.size % 500) * WEIGHT_DB_TRANSACTION_ITEM, `Finished saving Ayahs.`);
-                    }
-                    if (shouldLoadWordTranslations && wordTranslationEntries.length > 0) {
-                        updateLoadingProgress(0, `Saving ${wordTranslationEntries.length} word translations...`);
-                        const store = transaction.objectStore(STORE_WORD_TRANSLATIONS);
-                        if (needsUpdateDueToVersion || !(settingsLoadedWordTranslations && settingsLoadedWordTranslations.value === true)) {
-                            await new Promise(resolve => store.clear().onsuccess = resolve);
-                        }
-                        let count = 0;
-                        for (const entry of wordTranslationEntries) {
-                            store.put(entry);
-                            count++;
-                            if (count % 2000 === 0) updateLoadingProgress(2000 * WEIGHT_DB_TRANSACTION_ITEM, `Saved ${count} word translations...`);
-                        }
-                        updateLoadingProgress((wordTranslationEntries.length % 2000) * WEIGHT_DB_TRANSACTION_ITEM, `Finished saving word translations.`);
-                    }
-                    if (shouldLoadWordMetadata && wordMetadataEntries.length > 0) {
-                        updateLoadingProgress(0, `Saving ${wordMetadataEntries.length} word metadata entries...`);
-                        const store = transaction.objectStore(STORE_WORD_METADATA);
-                        if (needsUpdateDueToVersion || !(settingsLoadedWordMetadata && settingsLoadedWordMetadata.value === true)) {
-                            await new Promise(resolve => store.clear().onsuccess = resolve);
-                        }
-                        let count = 0;
-                        for (const entry of wordMetadataEntries) {
-                            store.put(entry);
-                            count++;
-                            if (count % 2000 === 0) updateLoadingProgress(2000 * WEIGHT_DB_TRANSACTION_ITEM, `Saved ${count} word metadata entries...`);
-                        }
-                        updateLoadingProgress((wordMetadataEntries.length % 2000) * WEIGHT_DB_TRANSACTION_ITEM, `Finished saving word metadata.`);
+                    await populateTranslationSelect(localManifest);
+                    if (successfullyUpdatedFiles.length > 0) {
+                        alert(`App data updated successfully for: ${successfullyUpdatedFiles.join(', ')}.`);
                     }
                 } else {
-                    console.log("No new data needed to be fetched and stored. Initializing UI.");
-                    quranDataLoaded = true;
-                    await populateSurahAyahSelects();
-                    await loadAyah(currentSurah, currentAyah);
-                    const remainingUnits = totalProgressUnits - completedProgressUnits;
-                    if (remainingUnits > 0) updateLoadingProgress(remainingUnits, "Data verification complete.");
-                    setTimeout(hideLoading, 500);
+                    console.log("Data is up-to-date or check not needed today.");
                 }
-            } catch (error) {
-                console.error("Error in loadQuranData:", error);
-                if (document.getElementById('loading-overlay').style.display === 'none') {
-                    showLoading("Application Error", "An error occurred during initialization.", 100);
-                } else {
-                    updateLoadingProgress(0, "Critical error during setup.");
-                }
-                document.getElementById('loading-message-secondary').textContent = `Error: ${error.message}. Please try refreshing.`;
-                document.getElementById('loading-message-secondary').style.color = 'var(--color-error, red)';
-                alert("Failed to load application data: " + error.message + "\nIf the problem persists, try clearing website data for this page and then refresh.");
+                localStorage.setItem('lastUpdateCheck', new Date().toISOString());
+                await populateSurahAyahSelects();
+                await loadAyah(currentSurah, currentAyah);
+            } catch (e) {
+                alert("Failed to load app manifest. Please check your internet connection and refresh.");
+            } finally {
+                hideLoading();
+                isUpdateCheckInProgress = false;
+            }
+        }
+        function showPashtoNoticeOnce() {
+            if (!localStorage.getItem('pashtoNoticeShown')) {
+                const urduMessage = "پشتو ترجمہ خودکار ترجمہ ہے اور قرآنی معیارات کے مطابق مکمل تصدیق شدہ نہیں ہے۔";
+                const pashtoMessage = "پښتو ژباړه اتوماتیکه ژباړه ده او د قرآني معیارونو سره مکمل سم نه ده تایید شوې.";
+                alert(`${urduMessage}\n\n${pashtoMessage}`);
+                localStorage.setItem('pashtoNoticeShown', 'true');
             }
         }
         function populateSurahAyahSelects() {
@@ -2019,11 +1917,8 @@
         }
         async function loadAyah(surah, ayah) {
             const selectedTranslationKey = document.getElementById('translation-select').value;
-            if (selectedTranslationKey === 'pashto' && !localStorage.getItem('pashtoAyahNoticeShown')) {
-                const urduMessage = "پشتو ترجمہ خودکار ترجمہ ہے اور قرآنی معیارات کے مطابق مکمل تصدیق شدہ نہیں ہے۔";
-                const pashtoMessage = "پښتو ژباړه اتوماتیکه ژباړه ده او د قرآني معیارونو سره مکمل سم نه ده تایید شوې.";
-                alert(`${urduMessage}\n\n${pashtoMessage}`);
-                localStorage.setItem('pashtoAyahNoticeShown', 'true');
+            if (selectedTranslationKey === 'pashto') {
+                showPashtoNoticeIfNeeded();
             }
             if (!db) {
                 console.error("Database not open for loadAyah.");
@@ -2033,85 +1928,21 @@
             showLoading(`Loading Ayah ${surah}:${ayah}...`);
             try {
                 const quran = await getData(STORE_QURAN, [surah, ayah]);
-                const tafsir = await getData(STORE_TAFSIR, [surah, ayah]);
-                const displayArea = document.getElementById('quran-display');
-                const tafsirAyahDisplay = document.getElementById('current-ayah-tafsir');
-                const themeAyahDisplay = document.getElementById('current-ayah-theme-text');
-                const tafsirNotes = document.getElementById('tafsir-notes');
-                displayArea.innerHTML = '';
-                tafsirAyahDisplay.innerHTML = '';
-                themeAyahDisplay.innerHTML = '';
-                tafsirNotes.value = '';
                 if (quran) {
                     currentSurah = surah;
                     currentAyah = ayah;
+                    updateAyahSelect(surah); // Ensure selects are updated
                     document.getElementById('surah-select').value = surah;
                     document.getElementById('ayah-select').value = ayah;
-                    document.getElementById('rec-surah-select').value = surah;
-                    document.getElementById('hifz-surah-select').value = surah;
-                    updateAyahSelect(surah);
-                    const ayahElement = document.createElement('div');
-                    ayahElement.classList.add('ayah');
-                    ayahElement.setAttribute('data-surah', surah);
-                    ayahElement.setAttribute('data-ayah', ayah);
-                    const ayahNumber = document.createElement('div');
-                    ayahNumber.classList.add('ayah-number');
-                    ayahNumber.textContent = `Surah ${surah}:${ayah} (${surahNames[surah - 1]})`;
-                    ayahElement.appendChild(ayahNumber);
-                    const arabicTextElement = document.createElement('div');
-                    arabicTextElement.classList.add('ayah-arabic');
-                    arabicTextElement.setAttribute('lang', 'ar');
-                    arabicTextElement.setAttribute('dir', 'rtl');
-                    const words = quran.arabic.split(/\s+/).filter(w => w.trim() !== '');
-                    words.forEach((wordText, index) => {
-                        const span = document.createElement('span');
-                        span.textContent = wordText + ' ';
-                        span.setAttribute('data-word-text', wordText.trim());
-                        span.setAttribute('data-word-position', index);
-                        span.setAttribute('data-surah', surah);
-                        span.setAttribute('data-ayah', ayah);
-                        span.setAttribute('tabindex', '0');
-                        span.setAttribute('role', 'button');
-                        arabicTextElement.appendChild(span);
-                    });
-                    ayahElement.appendChild(arabicTextElement);
-                    const translationText = document.createElement('div');
-                    translationText.classList.add('ayah-translation');
-                    const translationInfo = TRANSLATION_CONFIG[selectedTranslationKey];
-                    if (translationInfo) {
-                        translationText.setAttribute('lang', translationInfo.lang);
-                        translationText.setAttribute('dir', translationInfo.dir);
-                        translationText.style.fontFamily = `var(--font-${selectedTranslationKey})`;
-                        translationText.style.textAlign = translationInfo.dir === 'rtl' ? 'right' : 'left';
-                        translationText.textContent = quran[selectedTranslationKey] || "Translation not available.";
+                    if (currentQuranView === 'single') {
+                        await renderSingleAyahView(surah, ayah);
                     } else {
-                        translationText.textContent = "Translation configuration error.";
+                        await renderContinuousView(surah, ayah);
                     }
-                    ayahElement.appendChild(translationText);
-                    displayArea.appendChild(ayahElement);
-                    const tafsirAyahElement = ayahElement.cloneNode(true);
-                    tafsirAyahElement.querySelector('.ayah-number').textContent = `Tafsir for Surah ${surah}:${ayah}`;
-                    tafsirAyahElement.querySelectorAll('.ayah-arabic span').forEach(span => span.outerHTML = span.textContent);
-                    tafsirAyahDisplay.innerHTML = '';
-                    tafsirAyahDisplay.appendChild(tafsirAyahElement);
-                    tafsirNotes.value = tafsir ? tafsir.notes : '';
-                    const themeAyahElement = ayahElement.cloneNode(true);
-                    themeAyahElement.querySelector('.ayah-number').textContent = `Ayah for Linking: Surah ${surah}:${ayah}`;
-                    themeAyahElement.querySelectorAll('.ayah-arabic span').forEach(span => span.outerHTML = span.textContent);
-                    themeAyahDisplay.innerHTML = '';
-                    themeAyahDisplay.appendChild(themeAyahElement);
-                    document.getElementById('current-ayah-theme-ref').textContent = `${surah}:${ayah}`;
-                    await populateThemeSelects();
-                    await displayLinkedAyahsForCurrentTheme();
-                    addWordClickListeners();
+                    await updateTafsirAndThemeViews();
                 } else {
-                    displayArea.innerHTML = `<p class="text-center" style="color: var(--color-error);">Ayah ${surah}:${ayah} not found in data.</p>`;
-                    tafsirAyahDisplay.innerHTML = `<p class="text-center">Navigate to a valid Ayah to add Tafsir.</p>`;
-                    themeAyahDisplay.innerHTML = `<p class="text-center">Navigate to a valid Ayah to link themes.</p>`;
-                    document.getElementById('current-ayah-theme-ref').textContent = 'N/A';
-                    tafsirNotes.value = '';
+                    document.getElementById('quran-display').innerHTML = `<p class="text-center" style="color: var(--color-error);">Ayah ${surah}:${ayah} not found in data.</p>`;
                 }
-                document.getElementById('word-translation-area').innerHTML = '<p class="text-center">Click on an Arabic word to see its translation.</p>';
             } catch (error) {
                 console.error("Error loading ayah:", error);
                 document.getElementById('quran-display').innerHTML = `<p class="text-center" style="color: var(--color-error);">Error loading Ayah: ${error.message}</p>`;
@@ -2129,77 +1960,53 @@
                 wordSpan.addEventListener('blur', handleWordBlur);
             });
         }
+        async function getWordTranslationById(wordId) {
+            if (isNaN(wordId)) return { ur: "N/A", en: "N/A", ps: "N/A" };
+            try {
+                const trans = await getData(STORE_WORD_TRANSLATIONS, wordId);
+                return {
+                    ur: trans?.ur_meaning || "N/A",
+                    en: trans?.en_meaning || "N/A",
+                    ps: trans?.pashto_text || "N/A"
+                };
+            } catch (e) {
+                console.error("Error fetching translation for word_id:", wordId, e);
+                return { ur: "Error", en: "Error", ps: "Error" };
+            }
+        }
         async function handleWordClick(event) {
-            if (!localStorage.getItem('pashtoNoticeShown')) {
-                const urduMessage = "پشتو ترجمہ خودکار ترجمہ ہے اور قرآنی معیارات کے مطابق مکمل تصدیق شدہ نہیں ہے۔";
-                const pashtoMessage = "پښتو ژباړه داتوماتیکه ژباړه ده او د قرآني معیارونو سره مکمل سم نه ده تایید شوې.";
-                alert(`${urduMessage}\n\n${pashtoMessage}`);
-                localStorage.setItem('pashtoNoticeShown', 'true');
+            if (document.getElementById('translation-select').value === 'pashto') {
+                showPashtoNoticeOnce();
             }
             const wordSpan = event.target;
-            const clickedWordActualText = wordSpan.getAttribute('data-word-text');
-            const surahNum = parseInt(wordSpan.getAttribute('data-surah'), 10);
-            const ayahNum = parseInt(wordSpan.getAttribute('data-ayah'), 10);
-            const wordPosition = parseInt(wordSpan.getAttribute('data-word-position'), 10);
-            if (!clickedWordActualText || isNaN(surahNum) || isNaN(ayahNum) || isNaN(wordPosition)) {
-                document.getElementById('word-translation-area').innerHTML = `<p style="color: var(--color-error);">Error: Could not identify clicked word's metadata.</p>`;
+            const wordId = parseInt(wordSpan.dataset.wordId, 10);
+            document.querySelectorAll('.ayah-arabic span, #quran-continuous-display .arabic-word').forEach(span => span.style.backgroundColor = 'transparent');
+            wordSpan.style.backgroundColor = 'var(--color-highlight)';
+            if (isNaN(wordId)) {
+                document.getElementById('word-translation-area').innerHTML = `<p>Translation not available for this word.</p>`;
                 return;
             }
-            const ayahElement = wordSpan.closest('.ayah');
-            const fullAyahTranslationDiv = ayahElement.querySelector('.ayah-translation');
-            const fullAyahTranslationText = fullAyahTranslationDiv ? fullAyahTranslationDiv.textContent : 'Full ayah translation not found.';
-            const selectedFullTranslationKey = document.getElementById('translation-select').value;
-            const fullTranslationInfo = TRANSLATION_CONFIG[selectedFullTranslationKey];
-            const fullTranslationLabel = fullTranslationInfo ? fullTranslationInfo.label : 'Selected Translation';
-            const fullTranslationLang = fullTranslationInfo ? fullTranslationInfo.lang : 'en';
-            const fullTranslationDir = fullTranslationInfo ? fullTranslationInfo.dir : 'ltr';
-            const fullTranslationFont = fullTranslationInfo ? `var(--font-${selectedFullTranslationKey})` : `var(--font-general)`;
-            const fullTranslationTextAlign = fullTranslationInfo && fullTranslationInfo.dir === 'rtl' ? 'right' : 'left';
-            let wordUrduMeaning = "N/A";
-            let wordEnglishMeaning = "N/A";
-            let wordPashtoMeaning = "N/A"; // Added for Pashto
             try {
-                const metadataStore = getObjectStore(STORE_WORD_METADATA, 'readonly');
-                const locationIndex = metadataStore.index('location_idx');
-                const metadataRequest = locationIndex.get([surahNum, ayahNum, wordPosition]);
-                const wordMetadataEntry = await new Promise((resolve, reject) => {
-                    metadataRequest.onsuccess = () => resolve(metadataRequest.result);
-                    metadataRequest.onerror = (e) => {
-                        console.error("Error fetching from word_metadata:", e.target.error);
-                        reject(e.target.error);
-                    };
-                });
-                if (wordMetadataEntry && typeof wordMetadataEntry.word_id !== 'undefined') {
-                    const word_id = wordMetadataEntry.word_id;
-                    const translationEntry = await getData(STORE_WORD_TRANSLATIONS, word_id);
-                    if (translationEntry) {
-                        wordUrduMeaning = translationEntry.ur_meaning || "N/A";
-                        wordEnglishMeaning = translationEntry.en_meaning || "N/A";
-                        wordPashtoMeaning = translationEntry.pashto_text || "N/A"; // Get Pashto text
-                        if (translationEntry.ur_meaning === "") wordUrduMeaning = "N/A (empty)";
-                        if (translationEntry.en_meaning === "") wordEnglishMeaning = "N/A (empty)";
-                        if (translationEntry.pashto_text === "") wordPashtoMeaning = "N/A (empty)"; // Check Pashto
-                    } else {
-                    }
-                } else {
-                }
+                const trans = await getData(STORE_WORD_TRANSLATIONS, wordId);
+                const translations = {
+                    ur: trans?.ur_meaning || "N/A",
+                    en: trans?.en_meaning || "N/A",
+                    ps: trans?.pashto_text || "N/A"
+                };
+                const translationArea = document.getElementById('word-translation-area');
+                const fullAyahTranslation = wordSpan.closest('.ayah').querySelector('.ayah-translation').textContent;
+                const fullTranslationInfo = getTranslationConfig(document.getElementById('translation-select').value);
+                translationArea.innerHTML = `
+            <p><strong>Selected Word:</strong> <span lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${wordSpan.dataset.wordText}</span></p>
+            <p><strong>Urdu Meaning:</strong> <span lang="ur" dir="rtl" style="font-family: var(--font-urdu);">${translations.ur}</span></p>
+            <p><strong>Pashto Meaning:</strong> <span lang="ps" dir="rtl" style="font-family: var(--font-pashto);">${translations.ps}</span></p>
+            <p><strong>English Meaning:</strong> <span lang="en" dir="ltr" style="font-family: var(--font-english);">${translations.en}</span></p>
+            <p><strong>Full Ayah Translation:</strong> <span lang="${fullTranslationInfo.lang}" dir="${fullTranslationInfo.dir}" style="font-family: ${fullTranslationInfo.font};">${fullAyahTranslation}</span></p>
+        `;
             } catch (error) {
-                wordUrduMeaning = "Lookup Error";
-                wordEnglishMeaning = "Lookup Error";
-                wordPashtoMeaning = "Lookup Error";
+                console.error("Error handling word click:", error);
+                document.getElementById('word-translation-area').innerHTML = `<p style="color: var(--color-error);">Error fetching word details.</p>`;
             }
-            const translationArea = document.getElementById('word-translation-area');
-            translationArea.innerHTML = `
-                <p><strong>Selected Word:</strong> <span lang="ar" dir="rtl" style="font-family: var(--font-arabic); font-size: 1.2rem;">${clickedWordActualText}</span></p>
-                <p><strong>Urdu Meaning:</strong> <span lang="ur" dir="rtl" style="font-family: var(--font-urdu);">${wordUrduMeaning}</span></p>
-                <p><strong>Pashto Meaning:</strong> <span lang="ps" dir="rtl" style="font-family: var(--font-pashto);">${wordPashtoMeaning}</span></p>
-                <p><strong>English Meaning:</strong> <span lang="en" dir="ltr" style="font-family: var(--font-english);">${wordEnglishMeaning}</span></p>
-                <p><strong>Full Ayah Translation (${surahNum}:${ayahNum}) - ${fullTranslationLabel}:</strong> <span lang="${fullTranslationLang}" dir="${fullTranslationDir}" style="font-family: ${fullTranslationFont}; text-align: ${fullTranslationTextAlign};">${fullAyahTranslationText}</span></p>
-            `;
-            document.querySelectorAll('.ayah-arabic span').forEach(span => {
-                span.style.backgroundColor = 'transparent';
-            });
-            wordSpan.style.backgroundColor = 'var(--color-highlight)';
         }
         function handleWordFocus(event) {
             handleWordClick(event);
@@ -2216,7 +2023,7 @@
             if (activeSection) {
                 activeSection.classList.add('active');
                 activeSection.setAttribute('aria-hidden', 'false');
-                activeSection.focus(); // For accessibility, focus the new section
+                activeSection.focus();
             }
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active');
@@ -2227,7 +2034,9 @@
                 activeLink.classList.add('active');
                 activeLink.setAttribute('aria-current', 'page');
             }
-            if (sectionId === 'themes') {
+            if (sectionId === 'tafsir' || sectionId === 'themes') {
+                updateTafsirAndThemeViews();
+            } else if (sectionId === 'themes') {
                 populateThemeSelects();
                 displayLinkedAyahsForCurrentTheme();
             } else if (sectionId === 'recitation') {
@@ -3713,6 +3522,15 @@
             }
         }
         function setupEventListeners() {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const sectionId = event.currentTarget.dataset.section;
+                    if (sectionId && typeof showSection === 'function') {
+                        showSection(sectionId);
+                    }
+                });
+            });
             document.getElementById('surah-select').addEventListener('change', (event) => {
                 currentSurah = parseInt(event.target.value, 10);
                 updateAyahSelect(currentSurah);
@@ -3722,12 +3540,19 @@
                 currentAyah = parseInt(event.target.value, 10);
                 loadAyah(currentSurah, currentAyah);
             });
-            document.getElementById('translation-select').addEventListener('change', () => loadAyah(currentSurah, currentAyah));
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    showSection(event.target.getAttribute('data-section'));
-                });
+            document.getElementById('translation-select').addEventListener('change', async (event) => {
+                const selectedKey = event.target.value;
+                if (selectedKey === 'pashto') {
+                    showPashtoNoticeOnce();
+                }
+                const selectedOption = event.target.selectedOptions[0];
+                const isLoaded = selectedOption.dataset.isLoaded === 'true';
+                if (!isLoaded) {
+                    const config = JSON.parse(selectedOption.dataset.config);
+                    await handleOnDemandLoad(config);
+                } else {
+                    await loadAyah(currentSurah, currentAyah);
+                }
             });
             document.getElementById('save-tafsir-btn').addEventListener('click', saveTafsir);
             document.getElementById('add-theme-btn').addEventListener('click', addTheme);
@@ -3918,20 +3743,216 @@
             try {
                 await openDB();
                 await loadThemePreference();
-                setupEventListeners(); // Setup listeners after DB is open
-                await loadQuranData(); // This populates selects and loads initial ayah
+                loadTranslationPreference();
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        const sectionId = event.currentTarget.dataset.section;
+                        if (sectionId && typeof showSection === 'function') {
+                            showSection(sectionId);
+                        }
+                    });
+                });
+                setupEventListeners();
+                await loadQuranData();
                 displayThemesList();
+                setupTafsirDocxButton();
+                setupGameModal();
+                initializeReportingModule_Enhanced(); // Your reporting module init
+                window.rootNodePopupEl = document.getElementById('root-node-popup');
+                if (!window.rootNodePopupEl) {
+                    console.error("CRITICAL: Popup element #root-node-popup not found!");
+                }
             } catch (error) {
                 console.error("App initialization failed:", error);
                 hideLoading();
-                alert("Failed to initialize: " + error.message + "\nPlease clear website data and refresh. Check console for details.");
-            }
-            rootNodePopupEl = document.getElementById('root-node-popup');
-            if (!rootNodePopupEl) {
-                console.error("CRITICAL: Popup element #root-node-popup not found in the DOM!");
+                alert("Failed to initialize: " + error.message + "\nPlease clear website data and refresh.");
             }
         });
+        let currentQuranView = 'single';
+        let tooltipTimeout;
+        function setupQuranViewSwitcher() {
+            document.querySelectorAll('input[name="quran-view-mode"]').forEach(radio => {
+                radio.addEventListener('change', function () {
+                    currentQuranView = this.value;
+                    document.getElementById('quran-display').style.display = (currentQuranView === 'single') ? 'block' : 'none';
+                    document.getElementById('quran-continuous-display').style.display = (currentQuranView === 'continuous') ? 'block' : 'none';
+                    document.getElementById('word-translation-area').style.display = (currentQuranView === 'single') ? 'block' : 'none';
+                    loadAyah(currentSurah, currentAyah);
+                });
+            });
+        }
+        async function updateTafsirAndThemeViews() {
+            if (!db || !currentSurah || !currentAyah) return;
+            const tafsirAyahDisplay = document.getElementById('current-ayah-tafsir');
+            const themeAyahDisplay = document.getElementById('current-ayah-theme-text');
+            const tafsirNotes = document.getElementById('tafsir-notes');
+            const themeAyahRef = document.getElementById('current-ayah-theme-ref');
+            try {
+                const quran = await getData(STORE_QURAN, [currentSurah, currentAyah]);
+                const tafsir = await getData(STORE_TAFSIR, [currentSurah, currentAyah]);
+                if (quran) {
+                    const ayahElement = document.createElement('div');
+                    ayahElement.classList.add('ayah');
+                    ayahElement.innerHTML = `
+                <div class="ayah-number">Surah ${currentSurah}:${currentAyah} (${surahNames[currentSurah - 1]})</div>
+                <div class="ayah-arabic">${quran.arabic}</div>
+            `;
+                    tafsirAyahDisplay.innerHTML = '';
+                    tafsirAyahDisplay.appendChild(ayahElement.cloneNode(true));
+                    tafsirNotes.value = tafsir ? tafsir.notes : '';
+                    themeAyahDisplay.innerHTML = '';
+                    themeAyahDisplay.appendChild(ayahElement.cloneNode(true));
+                    themeAyahRef.textContent = `${currentSurah}:${currentAyah}`;
+                    await displayLinkedAyahsForCurrentTheme();
+                }
+            } catch (error) {
+                console.error("Error updating secondary views:", error);
+            }
+        }
+        async function loadAyah(surah, ayah) {
+            const selectedTranslationKey = document.getElementById('translation-select').value;
+            if (selectedTranslationKey === 'pashto') {
+                showPashtoNoticeOnce();
+            }
+            if (!db) {
+                console.error("Database not open for loadAyah.");
+                document.getElementById('quran-display').innerHTML = `<p class="text-center" style="color: var(--color-error);">Database not ready. Please try again later.</p>`;
+                return;
+            }
+            showLoading(`Loading Ayah ${surah}:${ayah}...`);
+            try {
+                const quran = await getData(STORE_QURAN, [surah, ayah]);
+                if (quran) {
+                    currentSurah = surah;
+                    currentAyah = ayah;
+                    updateAyahSelect(surah);
+                    document.getElementById('surah-select').value = surah;
+                    document.getElementById('ayah-select').value = ayah;
+                    if (currentQuranView === 'single') {
+                        await renderSingleAyahView(surah, ayah);
+                    } else {
+                        await renderContinuousView(surah, ayah);
+                    }
+                    await updateTafsirAndThemeViews();
+                } else {
+                    document.getElementById('quran-display').innerHTML = `<p class="text-center" style="color: var(--color-error);">Ayah ${surah}:${ayah} not found in data.</p>`;
+                }
+            } catch (error) {
+                console.error("Error loading ayah:", error);
+                document.getElementById('quran-display').innerHTML = `<p class="text-center" style="color: var(--color-error);">Error loading Ayah: ${error.message}</p>`;
+            } finally {
+                hideLoading();
+            }
+        }
+        function getAllDataInRange(storeName, range, indexName) {
+            return new Promise((resolve, reject) => {
+                const source = indexName ? getObjectStore(storeName, 'readonly').index(indexName) : getObjectStore(storeName, 'readonly');
+                const request = source.getAll(range);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+        async function renderSingleAyahView(surah, ayah) {
+            const displayArea = document.getElementById('quran-display');
+            showLoading(`Loading Ayah ${surah}:${ayah}...`);
+            try {
+                const quran = await getData(STORE_QURAN, [surah, ayah]);
+                if (!quran) { /* ... error handling ... */ return; }
+                const words = quran.arabic.split(/\s+/).filter(w => w.trim());
+                const wordMetadata = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([surah, ayah, 0], [surah, ayah, Infinity]), 'location_idx');
+                const metadataMap = new Map(wordMetadata.map(m => [m.word_position, m.word_id]));
+                let wordsHTML = words.map((word, index) => {
+                    const wordId = metadataMap.get(index) || 'null'; // Get ID from map using index
+                    return `<span class="arabic-word" data-word-text="${word.trim()}" data-word-id="${wordId}" tabindex="0" role="button">${word}</span>`;
+                }).join(' ');
+                currentSurah = surah; currentAyah = ayah;
+                document.getElementById('surah-select').value = surah;
+                updateAyahSelect(surah);
+                document.getElementById('ayah-select').value = ayah;
+                const translationInfo = getTranslationConfig(document.getElementById('translation-select').value);
+                displayArea.innerHTML = `
+            <div class="ayah" data-surah="${surah}" data-ayah="${ayah}">
+                <div class="ayah-number">Surah ${surah}:${ayah} (${surahNames[surah - 1]})</div>
+                <div class="ayah-arabic">${wordsHTML}</div>
+                <div class="ayah-translation" lang="${translationInfo.lang}" dir="${translationInfo.dir}" style="font-family:${translationInfo.font}">${quran[translationInfo.key] || "Translation not available."}</div>
+            </div>`;
+                addWordClickListeners();
+            } catch (e) { console.error(e); } finally { hideLoading(); }
+        }
+        async function renderContinuousView(surah, targetAyah) {
+            const displayArea = document.getElementById('quran-continuous-display');
+            showLoading(`Loading Surah ${surah}...`);
+            displayArea.innerHTML = '';
+            try {
+                const allAyahsInSurah = await getAllDataInRange(STORE_QURAN, IDBKeyRange.bound([surah, 1], [surah, surahAyahCounts[surah]]));
+                const allMetadataForSurah = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([surah, 1, 0], [surah, surahAyahCounts[surah], Infinity]), 'location_idx');
+                const translationInfo = getTranslationConfig(document.getElementById('translation-select').value);
+                allAyahsInSurah.forEach(quran => {
+                    const words = quran.arabic.split(/\s+/).filter(w => w.trim());
+                    const metadataMap = new Map(allMetadataForSurah.filter(m => m.ayah === quran.ayah).map(m => [m.word_position, m.word_id]));
+                    let wordsHTML = words.map((word, index) => {
+                        const wordId = metadataMap.get(index) || 'null';
+                        return `<span class="arabic-word" data-word-text="${word.trim()}" data-word-id="${wordId}">${word}</span>`;
+                    }).join(' ');
+                    const ayahDiv = document.createElement('div');
+                    ayahDiv.id = `s${quran.surah}a${quran.ayah}`;
+                    ayahDiv.className = 'ayah';
+                    ayahDiv.innerHTML = `
+                <div class="ayah-number">Surah ${quran.surah}:${quran.ayah}</div>
+                <div class="ayah-arabic">${wordsHTML}</div>
+                <div class="ayah-translation" lang="${translationInfo.lang}" dir="${translationInfo.dir}" style="font-family:${translationInfo.font}">${quran[translationInfo.key] || "Translation not available."}</div>
+            `;
+                    displayArea.appendChild(ayahDiv);
+                });
+                addWordTooltipListeners();
+                const targetElement = document.getElementById(`s${surah}a${targetAyah}`);
+                if (targetElement) targetElement.scrollIntoView({ behavior: 'auto', block: 'center' });
+            } catch (e) { console.error(e); } finally { hideLoading(); }
+        }
+        function addWordTooltipListeners() {
+            document.querySelectorAll('#quran-continuous-display .arabic-word').forEach(span => {
+                span.addEventListener('mouseenter', showWordTooltip);
+                span.addEventListener('mouseleave', hideWordTooltip);
+                span.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showWordTooltip(e, true);
+                });
+            });
+        }
+        async function showWordTooltip(event, isClick = false) {
+            clearTimeout(tooltipTimeout);
+            const span = event.target;
+            const tooltip = document.getElementById('word-tooltip');
+            const wordId = parseInt(span.dataset.wordId, 10);
+            if (isNaN(wordId)) {
+                tooltip.innerHTML = 'No translation data.';
+            } else {
+                const trans = await getData(STORE_WORD_TRANSLATIONS, wordId);
+                tooltip.innerHTML = `
+            <strong lang="ar" dir="rtl">${span.dataset.wordText}</strong><br>
+            <span lang="ur" dir="rtl">Urdu: ${trans?.ur_meaning || "N/A"}</span><br>
+            <span lang="ps" dir="rtl">Pashto: ${trans?.pashto_text || "N/A"}</span><br>
+            <span lang="en" dir="ltr">English: ${trans?.en_meaning || "N/A"}</span>
+        `;
+            }
+            tooltip.style.left = `${event.pageX + 10}px`;
+            tooltip.style.top = `${event.pageY + 10}px`;
+            tooltip.style.display = 'block';
+            if (isClick) {
+                tooltipTimeout = setTimeout(() => { tooltip.style.display = 'none'; }, 2000);
+            }
+        }
+        function hideWordTooltip() {
+            tooltipTimeout = setTimeout(() => {
+                document.getElementById('word-tooltip').style.display = 'none';
+            }, 300);
+        }
+        setupQuranViewSwitcher();
     </script>
+    <div id="word-tooltip"
+        style="display:none; position:absolute; background:var(--color-bg-secondary); border:1px solid var(--color-border); padding:10px; border-radius:var(--border-radius); z-index:1001; max-width:300px; pointer-events:none;">
+    </div>
 </body>
 
 </html>
@@ -4647,30 +4668,48 @@
         document.getElementById('gameHighScore').textContent = gameHighScore;
     }
     function getDynamicLanguageData(entry, langKey) {
-        if (!entry || !langKey || !TRANSLATION_CONFIG[langKey]) {
-            return { meaningText: null, font: 'var(--font-general)', dir: 'ltr' };
-        }
-        const config = TRANSLATION_CONFIG[langKey];
-        let meaningText = null;
-        const keyMap = {
-            'urdu': 'ur_meaning',
-            'english': 'en_meaning',
-            'pashto': 'pashto_text',
-            'Bangali': 'bn_meaning' // Assumes 'bn_meaning' key for Bengali data
-        };
-        const dataKey = keyMap[langKey];
-        if (dataKey && entry[dataKey]) {
-            meaningText = entry[dataKey];
-        }
-        if (!meaningText || meaningText.trim() === "") {
-            meaningText = entry.en_meaning || entry.ur_meaning || entry.pashto_text || entry.bn_meaning || null;
-        }
-        return {
-            meaningText,
-            font: `var(--font-${langKey})`,
-            dir: config.dir
-        };
+    const config = getTranslationConfig(langKey);
+    if (!entry || !config) {
+        return { meaningText: null, meaningFont: 'var(--font-general)', meaningLangDir: 'ltr' };
     }
+
+    const keyMap = {
+        'urdu': 'ur_meaning',
+        'english': 'en_meaning',
+        'pashto': 'pashto_text',
+        'Bangali': 'bn_meaning'
+    };
+
+    let meaningText = null;
+
+    // Check for the user's PREFERRED language first, exactly like the old code.
+    if (langKey === 'urdu' && entry.ur_meaning) {
+        meaningText = entry.ur_meaning;
+    } else if (langKey === 'english' && entry.en_meaning) {
+        meaningText = entry.en_meaning;
+    } else if (langKey === 'pashto' && entry.pashto_text) {
+        meaningText = entry.pashto_text;
+    } else if (langKey === 'Bangali' && entry.bn_meaning) {
+        meaningText = entry.bn_meaning;
+    } else {
+        // Only if the preferred language is explicitly missing, then try a fallback.
+        // This prevents showing English when Urdu is just an empty string.
+        meaningText = entry.en_meaning || entry.ur_meaning || entry.pashto_text || entry.bn_meaning || null;
+    }
+
+    // Final check: If the resulting text is empty or just whitespace, treat it as null.
+    // This will cause the game to skip this invalid word, which is correct.
+    if (meaningText && meaningText.trim() === "") {
+        meaningText = null;
+    }
+
+    return {
+        meaningText,
+        meaningFont: config.font,
+        meaningLangDir: config.dir
+    };
+}
+
     async function startWordWhizGame() {
         activeGame = 'wordWhiz';
         gameScore = 0;
@@ -4714,7 +4753,7 @@
                 }
                 if (!wordText) continue;
                 selectedWordIds.add(randomMetaEntry.word_id);
-                const { meaningText: correctAnswerText, font: fontPreference, dir: langDir } = getDynamicLanguageData(translationEntry, selectedLangKey);
+                const { meaningText: correctAnswerText, meaningFont: fontPreference, meaningLangDir: langDir } = getDynamicLanguageData(translationEntry, selectedLangKey);
                 if (!correctAnswerText || correctAnswerText.trim() === "") continue;
                 const options = [correctAnswerText];
                 let distractorCount = 0;
@@ -5022,27 +5061,6 @@
         }
         return array;
     }
-    document.addEventListener('DOMContentLoaded', async () => {
-        try {
-            await openDB();
-            await loadThemePreference();
-            loadTranslationPreference();
-            setupEventListeners(); // Your existing listeners
-            await loadQuranData();
-            displayThemesList();
-            setupTafsirDocxButton(); // Your existing function for docx
-            setTimeout(setupGameModal, 200);
-        } catch (error) {
-            console.error("App initialization failed:", error);
-            const loadingOverlay = document.getElementById('loading-overlay');
-            if (loadingOverlay && loadingOverlay.style.display !== 'none') {
-                document.getElementById('loading-message-primary').textContent = "Initialization Error";
-                document.getElementById('loading-message-secondary').textContent = `Critical error: ${error.message}. Please refresh or clear site data.`;
-            } else {
-                alert("Failed to initialize: " + error.message + "\nPlease clear website data and refresh. Check console for details.");
-            }
-        }
-    });
     let flashcardQuestions = [];
     let currentFlashcardIndex = 0;
     let flashcardShowAnswer = false;
