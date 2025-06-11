@@ -894,7 +894,7 @@
             font-family: var(--font-arabic) !important;
             direction: rtl !important;
             text-align: right !important;
-            z-index: 2147483647 !important;
+            z-index: 214748364799999999999999999999999999999999999999999999999999999999999999 !important;
         }
 
         button#launchFullScreenReaderBtnEnhanced {
@@ -997,6 +997,10 @@
             body.sidebar-open #sidebar-overlay {
                 display: block !important;
             }
+        }
+
+        button#fsReaderBookmarkBtn {
+            margin-left: 2px;
         }
     </style>
     <!-- Optional: Include fonts if not available locally -->
@@ -1471,6 +1475,12 @@
             13, 14, 11, 11, 18, 12, 12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25, 22, 17, 19, 26, 30,
             20, 15, 21, 11, 8, 5, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4, 5, 6
         ];
+        const TRANSLATION_CONFIG = {
+            urdu: { file: 'data new.AM', lang: 'ur', dir: 'rtl', label: 'Urdu' },
+            english: { file: 'dataENG.AM', lang: 'en', dir: 'ltr', label: 'English' },
+            Bangali: { file: 'dataBNG.AM', lang: 'bn', dir: 'ltr', label: 'Bangali' },
+            pashto: { file: 'dataPS.AM', lang: 'ps', dir: 'rtl', label: 'Pashto' }
+        };
         function openDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -2863,12 +2873,13 @@
                 console.error("Graph container #root-network-graph not found!");
                 return;
             }
-            container.innerHTML = ''; // Clear previous graph or placeholder
+            container.innerHTML = '';
             if (rootNetwork) {
                 rootNetwork.destroy();
                 rootNetwork = null;
             }
-            if (rootNodePopupEl) rootNodePopupEl.style.display = 'none';
+            const popupEl = document.getElementById('root-node-popup');
+            if (popupEl) popupEl.style.display = 'none';
             activeRootNodeIdForPopup = null;
             if (occurrences.length === 0 && rootTerm !== 'N/A' && rootTerm.trim() !== '') {
                 container.innerHTML = `<p class="text-center" style="padding:20px;">No occurrences for "${rootTerm}" on this page.</p>`;
@@ -2895,7 +2906,7 @@
                 color: { background: accentDarkColor, border: accentColorVar, highlight: { background: accentColorVar, border: accentDarkColor } },
                 shape: 'ellipse', size: 35, margin: { top: 15, right: 15, bottom: 15, left: 15 },
                 fixed: false,
-                isCentralRoot: true // Custom property
+                isCentralRoot: true
             });
             occurrences.forEach((occ, index) => {
                 const pageSpecificIndex = ((currentRootGraphPage - 1) * rootGraphItemsPerPage) + index;
@@ -2903,7 +2914,7 @@
                 visNodes.add({
                     id: nodeId,
                     label: `${occ.word} (S${occ.surah}:A${occ.ayah})`,
-                    details_context: occ.context, // CRITICAL: For popup content
+                    details_context: occ.context,
                     details_surah: occ.surah,
                     details_ayah: occ.ayah,
                     details_word: occ.word,
@@ -2911,7 +2922,7 @@
                     color: { background: bgSecondaryColor, border: accentColorVar, highlight: { background: highlightBgColor, border: accentDarkColor } },
                     margin: { top: 8, right: 8, bottom: 8, left: 8 }, widthConstraint: { maximum: 300 }, heightConstraint: { minimum: 40 },
                     shape: 'box',
-                    isCentralRoot: false // Custom property
+                    isCentralRoot: false
                 });
                 visEdges.add({
                     from: centralRootNodeId, to: nodeId, arrows: 'to',
@@ -2943,7 +2954,8 @@
             }
             rootNetwork.on("click", function (params) {
                 activeRootNodeIdForPopup = null;
-                if (rootNodePopupEl) rootNodePopupEl.style.display = 'none';
+                const clickPopupEl = document.getElementById('root-node-popup');
+                if (clickPopupEl) clickPopupEl.style.display = 'none';
                 if (params.nodes.length > 0) {
                     const clickedNodeId = params.nodes[0];
                     activeRootNodeIdForPopup = clickedNodeId;
@@ -2952,7 +2964,8 @@
                 }
             });
             const updatePopupOnMoveOrZoom = () => {
-                if (activeRootNodeIdForPopup !== null && rootNodePopupEl && rootNodePopupEl.style.display === 'block') {
+                const movePopupEl = document.getElementById('root-node-popup');
+                if (activeRootNodeIdForPopup !== null && movePopupEl && movePopupEl.style.display === 'block') {
                     positionRootNodePopupElement(activeRootNodeIdForPopup);
                 }
             };
@@ -2965,13 +2978,14 @@
             });
         }
         function positionRootNodePopupElement(nodeId) {
-            if (!rootNetwork || !rootNodePopupEl) {
-                console.warn("positionRootNodePopupElement: rootNetwork or rootNodePopupEl not available.");
-                if (rootNodePopupEl) rootNodePopupEl.style.display = 'none';
+            const popupEl = document.getElementById('root-node-popup'); // Get the element directly
+            if (!rootNetwork || !popupEl) {
+                console.warn("positionRootNodePopupElement: rootNetwork or popupEl not available.");
+                if (popupEl) popupEl.style.display = 'none';
                 return;
             }
             if (nodeId === null) { // Call this to hide the popup
-                rootNodePopupEl.style.display = 'none';
+                popupEl.style.display = 'none';
                 activeRootNodeIdForPopup = null; // Reset active node ID
                 return;
             }
@@ -2979,46 +2993,46 @@
             const clickedNodeData = visNodesDataSet.get(nodeId);
             if (!clickedNodeData) {
                 console.warn("Node data not found for ID:", nodeId, "in vis.DataSet. Hiding popup.");
-                rootNodePopupEl.style.display = 'none';
+                popupEl.style.display = 'none';
                 activeRootNodeIdForPopup = null;
                 return;
             }
             let popupHTML = "";
             const arabicFont = getCssVar('--font-arabic');
             const accentDarkColor = getCssVar('--color-accent-dark');
-            const textPrimaryColor = getCssVar('--color-text-primary'); // For general text if needed
+            const textPrimaryColor = getCssVar('--color-text-primary');
             const generalFontSize = '1.1rem';
             const arabicContextFontSize = '1.6rem';
             const generalLineHeight = '1.8';
             const arabicContextLineHeight = '2';
             if (clickedNodeData.isCentralRoot) {
-                const rootDescriptionText = document.getElementById('root-description').value; // Get live value
+                const rootDescriptionText = document.getElementById('root-description').value;
                 popupHTML = `
-                        <h4 style="font-family: ${arabicFont}; font-size: 1.5rem; color: ${accentDarkColor}; margin-top:0; margin-bottom:10px;">Root: ${clickedNodeData.label}</h4>
-                        <p style="margin:0; line-height: ${generalLineHeight}; font-size: ${generalFontSize}; color: ${textPrimaryColor};">
-                            ${rootDescriptionText.trim() !== "" ? rootDescriptionText.replace(/\n/g, '<br>') : "No description available for this root."}
-                        </p>`;
-            } else { // This is for the occurrence nodes (Ayah context)
+                <h4 style="font-family: ${arabicFont}; font-size: 1.5rem; color: ${accentDarkColor}; margin-top:0; margin-bottom:10px;">Root: ${clickedNodeData.label}</h4>
+                <p style="margin:0; line-height: ${generalLineHeight}; font-size: ${generalFontSize}; color: ${textPrimaryColor};">
+                    ${rootDescriptionText.trim() !== "" ? rootDescriptionText.replace(/\n/g, '<br>') : "No description available for this root."}
+                </p>`;
+            } else {
                 const wordDisplay = clickedNodeData.details_word || clickedNodeData.label.split(' (S')[0];
                 popupHTML = `
-                        <h4 style="font-family: ${arabicFont}; font-size: 1.5rem; color: ${accentDarkColor}; margin-top:0; margin-bottom:10px;">
-                            ${wordDisplay} (S${clickedNodeData.details_surah || '?'}:A${clickedNodeData.details_ayah || '?'})
-                        </h4>
-                        <p style="margin:0; line-height: ${arabicContextLineHeight}; font-size: ${arabicContextFontSize}; font-family: ${arabicFont}; direction: rtl; text-align: right; color: ${textPrimaryColor};">
-                            ${clickedNodeData.details_context || "Full Ayah context not available."}
-                        </p>`;
+                <h4 style="font-family: ${arabicFont}; font-size: 1.5rem; color: ${accentDarkColor}; margin-top:0; margin-bottom:10px;">
+                    ${wordDisplay} (S${clickedNodeData.details_surah || '?'}:A${clickedNodeData.details_ayah || '?'})
+                </h4>
+                <p style="margin:0; line-height: ${arabicContextLineHeight}; font-size: ${arabicContextFontSize}; font-family: ${arabicFont}; direction: rtl; text-align: right; color: ${textPrimaryColor};">
+                    ${clickedNodeData.details_context || "Full Ayah context not available."}
+                </p>`;
             }
-            rootNodePopupEl.innerHTML = popupHTML;
+            popupEl.innerHTML = popupHTML;
             try {
                 const nodePosition = rootNetwork.getPositions([nodeId])[nodeId];
                 if (!nodePosition) {
-                    rootNodePopupEl.style.display = 'none'; return;
+                    popupEl.style.display = 'none'; return;
                 }
                 const domPosition = rootNetwork.canvasToDOM(nodePosition);
-                rootNodePopupEl.style.display = 'block'; // Make it visible to measure
+                popupEl.style.display = 'block';
                 let popupLeft = domPosition.x + 25;
-                let popupTop = domPosition.y - (rootNodePopupEl.offsetHeight / 2);
-                const popupRect = rootNodePopupEl.getBoundingClientRect();
+                let popupTop = domPosition.y - (popupEl.offsetHeight / 2);
+                const popupRect = popupEl.getBoundingClientRect();
                 const vw = window.innerWidth;
                 const vh = window.innerHeight;
                 if (popupLeft + popupRect.width > vw - 15) {
@@ -3033,11 +3047,11 @@
                 if (popupTop < 15) {
                     popupTop = 15;
                 }
-                rootNodePopupEl.style.left = popupLeft + 'px';
-                rootNodePopupEl.style.top = popupTop + 'px';
+                popupEl.style.left = popupLeft + 'px';
+                popupEl.style.top = popupTop + 'px';
             } catch (e) {
                 console.warn("Could not get node position for popup:", e);
-                if (rootNodePopupEl) rootNodePopupEl.style.display = 'none';
+                if (popupEl) popupEl.style.display = 'none';
             }
         }
         let isLoadingRecitationLogsGlobalFlag = false;
@@ -3341,15 +3355,18 @@
                         let translationSource = '';
                         let allTranslationsContext = [];
                         if (searchScopes.includes('quran-translation')) {
-                            for (const langKey in TRANSLATION_CONFIG) {
+                            const translationConfigs = window.appManifest.filter(f => f.file_type === 'quran_translation');
+                            translationConfigs.forEach(config => {
+                                const langKey = config.key;
+                                const label = config.label;
                                 if (ayah[langKey] && ayah[langKey].toLowerCase().replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g, "").includes(normalizedSearchTerm)) {
                                     matchTranslation = true;
-                                    translationSource = TRANSLATION_CONFIG[langKey].label; // Get human-readable label
+                                    translationSource = label; // Use the label from the manifest
                                 }
                                 if (ayah[langKey]) {
-                                    allTranslationsContext.push(`${TRANSLATION_CONFIG[langKey].label}: ${ayah[langKey]}`);
+                                    allTranslationsContext.push(`${label}: ${ayah[langKey]}`);
                                 }
-                            }
+                            });
                         }
                         if (matchArabic || matchTranslation) {
                             results.push({
@@ -3462,11 +3479,11 @@
                     results.forEach(result => {
                         const li = document.createElement('li');
                         li.innerHTML = `
-                             <strong>${result.type}: ${result.ref}</strong> (${result.source})
-                             <div class="result-context">${highlightMatch(result.context, searchTerm)}</div>
-                             ${(result.type === 'Quran' || result.type === 'Tafsir' || result.type === 'Hifz') ?
+                     <strong>${result.type}: ${result.ref}</strong> (${result.source})
+                     <div class="result-context">${highlightMatch(result.context, searchTerm)}</div>
+                     ${(result.type === 'Quran' || result.type === 'Tafsir' || result.type === 'Hifz') ?
                                 `<button data-surah="${result.surah}" data-ayah="${result.ayah}" class="go-to-ayah-btn" style="margin-top: 5px; padding: 3px 8px; font-size: 0.8rem;">Go to Ayah</button>` : ''}
-                         `;
+                 `;
                         searchResultsList.appendChild(li);
                     });
                     searchResultsList.querySelectorAll('.go-to-ayah-btn').forEach(button => {
@@ -3834,6 +3851,7 @@
                     }
                 }
             });
+            window.addEventListener('beforeunload', handlePageUnload);
             eventListenersInitialized = true;
         }
         document.addEventListener('DOMContentLoaded', async () => {
@@ -5488,7 +5506,45 @@
             }
         }
     }
+    function updateVisualReadingProgress(currentS, currentA) {
+        if (!visualReadingSession.active) return;
+        const sessionEndS = parseInt(visualReadingSession.endSurah);
+        const sessionEndA = parseInt(visualReadingSession.endAyah);
+        const newS = parseInt(currentS);
+        const newA = parseInt(currentA);
+        if (newS > sessionEndS) {
+            visualReadingSession.endSurah = newS;
+            visualReadingSession.endAyah = newA;
+        } else if (newS === sessionEndS && newA > sessionEndA) {
+            visualReadingSession.endAyah = newA;
+        }
+    }
+    async function logVisualReadingSession() {
+        if (!visualReadingSession.active) return;
+        const { startSurah, startAyah, endSurah, endAyah } = visualReadingSession;
+        if (startSurah === endSurah && startAyah === endAyah) {
+            visualReadingSession.active = false; // Reset for next time
+            return;
+        }
+        const logEntry = {
+            surah: startSurah,
+            ayahStart: startAyah,
+            ayahEnd: endAyah || startAyah, // Fallback if endAyah is null
+            qari: "Visual/Self Reading", // Differentiates from audio logs
+            date: new Date().toISOString().split('T')[0],
+            notes: `Auto-logged reading session from S${startSurah}:${startAyah} to S${endSurah}:${endAyah}.`
+        };
+        try {
+            await addData(STORE_RECITATIONS, logEntry);
+            console.log("Auto-logged visual reading session:", logEntry);
+        } catch (error) {
+            console.error("Failed to auto-log visual reading session:", error);
+        }
+        visualReadingSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
+    }
     let isFullScreenReaderActive = false;
+    let isDailyReadingSessionActive = false;
+    let visualReadingSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
     let fullScreenReaderCurrentPage = 1; // For 15-line Taj Company style pages
     let fullScreenReaderCurrentSurah = 1;
     let fullScreenReaderCurrentAyah = 1;
@@ -5628,11 +5684,11 @@
     }
     async function launchFullScreenQuranReaderEnhanced() {
         if (isFullScreenReaderActive) return;
+        isDailyReadingSessionActive = false;
         isFullScreenReaderActive = true;
         document.body.style.overflow = 'hidden';
         injectEnhancedFullScreenReaderCSS();
-        await loadTajMushafPageDataIfNeeded(); // Ensure page data is loaded
-        loadFullScreenReaderSettings(); // Load user preferences
+        await loadTajMushafPageDataIfNeeded();
         const overlay = document.createElement('div');
         overlay.id = 'fullScreenReaderOverlay';
         overlay.innerHTML = `
@@ -5643,6 +5699,7 @@
                 <div id="fsReaderPageInfo" class="page-info">Page ...</div>
             </div>
             <button id="fsReaderSettingsToggleBtn" title="Settings">⚙️</button>
+            <button id="fsReaderBookmarkBtn" title="Go to your daily reading spot (Ctrl+Click to set current spot)">🔖</button>
         </div>
         <div id="fsReaderContent" style="font-size: ${fullScreenReaderSettings.fontSize};">
             <p>Loading Quran content...</p>
@@ -5676,7 +5733,7 @@
                 </div>
                 <label><input type="checkbox" id="fsShowTransliterationCheck"> Show Transliteration</label>
             </div>
-                        <div class="panel-section">
+            <div class="panel-section">
                 <h5>Audio</h5>
                 <label for="fsAudioSourceSelect">Audio Source:</label>
                 <select id="fsAudioSourceSelect">
@@ -5722,16 +5779,22 @@
         </div>
     `;
         document.body.appendChild(overlay);
+        loadLastReadPosition();
+        loadFullScreenReaderSettings();
+        visualReadingSession = {
+            active: true,
+            startSurah: fullScreenReaderCurrentSurah,
+            startAyah: fullScreenReaderCurrentAyah,
+            endSurah: fullScreenReaderCurrentSurah,
+            endAyah: fullScreenReaderCurrentAyah
+        };
         setupEnhancedFullScreenReaderEventListeners();
         populateIndexLists();
-        loadLastReadPosition(); // Load last position, then render
         if (fullScreenReaderViewMode === 'paged') {
             document.getElementById('fsLinesPerPageSettingDiv').style.display = 'block';
             await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
         } else {
             document.getElementById('fsLinesPerPageSettingDiv').style.display = 'none';
-            continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah; // Start loading from current
-            continuousScrollNextAyahToLoad = fullScreenReaderCurrentAyah;
             await initializeContinuousScroll();
         }
         updateReaderHeaderInfo();
@@ -5744,9 +5807,13 @@
         }
         document.body.style.overflow = 'auto';
         isFullScreenReaderActive = false;
-        stopAndClearAudio(); // Your existing function
-        saveLastReadPosition(); // Your existing function
-        saveFullScreenReaderSettings(); // Save any last minute changes
+        if (isDailyReadingSessionActive) {
+            saveLastReadPosition();
+            logVisualReadingSession();
+        }
+        stopAndClearAudio();
+        saveLastReadPosition();
+        saveFullScreenReaderSettings();
     }
     async function loadTajMushafPageDataIfNeeded() {
         if (tajMushafPageData.length > 0) return;
@@ -6112,16 +6179,22 @@
             if (firstVisibleAyah) {
                 let sFromDOM = parseInt(firstVisibleAyah.dataset.surah);
                 let aFromDOM = parseInt(firstVisibleAyah.dataset.ayah);
-                if (!isNaN(sFromDOM) && sFromDOM >= 1 && sFromDOM <= 114) displayS = sFromDOM;
+                if (!isNaN(sFromDOM) && sFromDOM >= 1 && sFromDOM <= 114) {
+                    displayS = sFromDOM;
+                    fullScreenReaderCurrentSurah = sFromDOM; // Update global state
+                }
                 const maxAyahsForDomS = (sFromDOM >= 1 && sFromDOM <= 114 && surahAyahCounts[sFromDOM]) ? surahAyahCounts[sFromDOM] : 0;
-                if (!isNaN(aFromDOM) && aFromDOM >= 1 && (maxAyahsForDomS > 0 && aFromDOM <= maxAyahsForDomS)) displayA = aFromDOM;
+                if (!isNaN(aFromDOM) && aFromDOM >= 1 && (maxAyahsForDomS > 0 && aFromDOM <= maxAyahsForDomS)) {
+                    displayA = aFromDOM;
+                    fullScreenReaderCurrentAyah = aFromDOM; // Update global state
+                }
             }
         } else if (fullScreenReaderViewMode === 'paged') {
             const pageData = tajMushafPageData.find(p => p.page === displayPage);
             if (pageData) {
                 displayS = pageData.startSurah;
                 displayA = pageData.startAyah;
-            } else { // Page data not found, default gracefully
+            } else {
                 displayS = 1; displayA = 1; displayPage = 1;
             }
         }
@@ -6129,7 +6202,7 @@
         if (isNaN(displayJuz) || displayJuz < 1 || displayJuz > 30) displayJuz = 1;
         const surahNameText = (displayS >= 1 && displayS <= 114 && surahNames[displayS - 1])
             ? surahNames[displayS - 1]
-            : `Surah ${displayS}`; // Fallback if surahNames is not right
+            : `Surah ${displayS}`;
         surahTitleEl.textContent = `Surah ${displayS}: ${surahNameText}`;
         let pageText = `Juz ${displayJuz}`;
         if (fullScreenReaderViewMode === 'paged') {
@@ -6138,6 +6211,16 @@
             pageText = `(S:${displayS} A:${displayA}) Juz ${displayJuz}`;
         }
         pageInfoEl.textContent = pageText;
+        updateVisualReadingProgress(displayS, displayA);
+    }
+    function handlePageUnload() {
+        if (isFullScreenReaderActive) {
+            if (isDailyReadingSessionActive) {
+                saveLastReadPosition();
+                logVisualReadingSession();
+            }
+            logAutoRecitationSession();
+        }
     }
     function findFirstVisibleAyah() {
         const contentDiv = document.getElementById('fsReaderContent');
@@ -6331,7 +6414,18 @@
             if (fullScreenReaderIsPlayingAudio) stopAndClearAudio();
             return;
         }
+        if (!fullScreenReaderSettings.continuousAudio) {
+            await logAutoRecitationSession();
+        }
         stopAndClearAudio();
+        if (!autoLogSession.active) {
+            autoLogSession.active = true;
+            autoLogSession.startSurah = sNum;
+            autoLogSession.startAyah = aNum;
+        } else {
+            autoLogSession.endSurah = sNum;
+            autoLogSession.endAyah = aNum;
+        }
         let audioSrc;
         const audioSourceMode = fullScreenReaderSettings.audioSource || 'quran';
         if (audioSourceMode === 'en' || audioSourceMode === 'ur') {
@@ -6341,7 +6435,7 @@
             }
             absoluteAyahNum += aNum;
             audioSrc = getQuranAudioUrl(audioSourceMode)(absoluteAyahNum);
-        } else { // Default to Quran Recitation
+        } else {
             const surahPadded = String(sNum).padStart(3, '0');
             const ayahPadded = String(aNum).padStart(3, '0');
             audioSrc = `https://everyayah.com/data/Alafasy_128kbps/${surahPadded}${ayahPadded}.mp3`;
@@ -6368,10 +6462,13 @@
                             nextA = 1;
                         } else {
                             removeHighlightEnhanced();
+                            await logAutoRecitationSession(); // Log session at the very end of Quran
                             return;
                         }
                     } else if (!surahAyahCounts[nextS]) {
-                        removeHighlightEnhanced(); return;
+                        removeHighlightEnhanced();
+                        await logAutoRecitationSession(); // Log session if data is invalid
+                        return;
                     }
                     fullScreenReaderCurrentSurah = nextS;
                     fullScreenReaderCurrentAyah = nextA;
@@ -6379,10 +6476,17 @@
                     playAudioForAyahEnhanced(nextS, nextA);
                 } else {
                     removeHighlightEnhanced();
+                    await logAutoRecitationSession(); // Log after single ayah playback
                 }
             };
-            fullScreenReaderAudioPlayer.onerror = (e) => { };
-        } catch (err) { }
+            fullScreenReaderAudioPlayer.onerror = (e) => {
+                console.error("Audio playback error", e);
+                logAutoRecitationSession(); // Log what was played before the error
+            };
+        } catch (err) {
+            console.error("Could not play audio:", err);
+            logAutoRecitationSession(); // Log on failure to play
+        }
     }
     function toggleAudioPlaybackEnhanced() {
         const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
@@ -6431,12 +6535,13 @@
         }
     }
     function stopAndClearAudio() {
+        logAutoRecitationSession();
         if (fullScreenReaderAudioPlayer) {
             fullScreenReaderAudioPlayer.pause();
-            fullScreenReaderAudioPlayer.onended = null; // Remove onended listener
-            fullScreenReaderAudioPlayer.onerror = null; // Remove onerror listener
+            fullScreenReaderAudioPlayer.onended = null;
+            fullScreenReaderAudioPlayer.onerror = null;
             fullScreenReaderAudioPlayer.src = '';
-            fullScreenReaderAudioPlayer.load(); // Important to release resources
+            fullScreenReaderAudioPlayer.load();
             fullScreenReaderAudioPlayer = null;
         }
         fullScreenReaderIsPlayingAudio = false;
@@ -6492,6 +6597,34 @@
                 fullScreenReaderSettings.audioSource = e.target.value;
                 stopAndClearAudio(); // Stop current audio when source changes
                 saveFullScreenReaderSettings();
+            });
+        }
+        const bookmarkBtn = document.getElementById('fsReaderBookmarkBtn');
+        if (bookmarkBtn) {
+            bookmarkBtn.addEventListener('click', async (event) => {
+                if (event.ctrlKey || event.metaKey) {
+                    saveLastReadPosition();
+                    event.target.style.transition = 'transform 0.2s';
+                    event.target.style.transform = 'scale(1.4)';
+                    setTimeout(() => { event.target.style.transform = 'scale(1)'; }, 250);
+                } else {
+                    isDailyReadingSessionActive = true; // ACTIVATE AUTO-SAVE MODE!
+                    visualReadingSession = {
+                        active: true,
+                        startSurah: fullScreenReaderCurrentSurah,
+                        startAyah: fullScreenReaderCurrentAyah,
+                        endSurah: fullScreenReaderCurrentSurah,
+                        endAyah: fullScreenReaderCurrentAyah
+                    };
+                    event.target.style.backgroundColor = 'var(--color-success)';
+                    setTimeout(() => { event.target.style.backgroundColor = ''; }, 1000);
+                    loadLastReadPosition(); // Jumps to your saved spot
+                    if (fullScreenReaderViewMode === 'paged') {
+                        await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+                    } else {
+                        await initializeContinuousScroll();
+                    }
+                }
             });
         }
         const scrubSlider = document.getElementById('fsReaderScrubSlider'); // For enabling/disabling
@@ -6641,6 +6774,81 @@
             });
         }
         setupKeyboardAndTapNavigation();
+    }
+    let autoLogSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
+    function saveDailyBookmarkPosition() {
+        const bookmark = {
+            surah: fullScreenReaderCurrentSurah,
+            ayah: fullScreenReaderCurrentAyah,
+            page: fullScreenReaderCurrentPage,
+            viewMode: fullScreenReaderViewMode
+        };
+        localStorage.setItem('fsReaderDailyBookmark', JSON.stringify(bookmark));
+        const btn = document.getElementById('fsReaderBookmarkBtn');
+        if (btn) {
+            btn.style.transition = 'transform 0.2s ease-out';
+            btn.style.transform = 'scale(1.4)';
+            setTimeout(() => { btn.style.transform = 'scale(1)'; }, 250);
+        }
+    }
+    async function loadAndGoToDailyBookmark() {
+        const saved = localStorage.getItem('fsReaderDailyBookmark');
+        if (!saved) {
+            console.warn("Daily bookmark not set. Use Ctrl+Click on the bookmark icon to set it.");
+            const btn = document.getElementById('fsReaderBookmarkBtn');
+            if (btn) { // Give feedback that it's not set
+                btn.style.transition = 'transform 0.1s ease-in-out';
+                btn.style.transform = 'translateX(-3px)';
+                setTimeout(() => { btn.style.transform = 'translateX(3px)'; }, 100);
+                setTimeout(() => { btn.style.transform = 'translateX(0px)'; }, 200);
+            }
+            return;
+        }
+        await logAutoRecitationSession(); // Log any pending session before jumping
+        stopAndClearAudio();
+        const bookmark = JSON.parse(saved);
+        fullScreenReaderCurrentSurah = bookmark.surah;
+        fullScreenReaderCurrentAyah = bookmark.ayah;
+        fullScreenReaderCurrentPage = bookmark.page;
+        fullScreenReaderViewMode = bookmark.viewMode;
+        const viewModeSelect = document.getElementById('fsViewModeSelect');
+        if (viewModeSelect) viewModeSelect.value = fullScreenReaderViewMode;
+        if (fullScreenReaderViewMode === 'paged') {
+            document.getElementById('fsLinesPerPageSettingDiv').style.display = 'block';
+            await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+        } else {
+            document.getElementById('fsLinesPerPageSettingDiv').style.display = 'none';
+            await initializeContinuousScroll();
+        }
+        updateReaderHeaderInfo();
+        updateScrubSliderRangeAndValue();
+    }
+    async function logAutoRecitationSession() {
+        if (!autoLogSession.active) return;
+        const { startSurah, startAyah, endSurah, endAyah } = autoLogSession;
+        const finalEndAyah = endAyah || startAyah;
+        const finalEndSurah = endSurah || startSurah;
+        const qariMap = {
+            'quran': 'Mishary Alafasy (FS Reader)',
+            'en': 'Ibrahim Walk (FS Reader)',
+            'ur': 'Fateh Jalandhri (FS Reader)'
+        };
+        const qariName = qariMap[fullScreenReaderSettings.audioSource] || 'FS Reader';
+        const logEntry = {
+            surah: startSurah,
+            ayahStart: startAyah,
+            ayahEnd: finalEndAyah,
+            qari: qariName,
+            date: new Date().toISOString().split('T')[0],
+            notes: `Auto-logged from full-screen reader. Listened to S${startSurah}:${startAyah} through S${finalEndSurah}:${finalEndAyah}.`
+        };
+        try {
+            await addData(STORE_RECITATIONS, logEntry);
+            console.log("Auto-logged recitation session:", logEntry);
+        } catch (error) {
+            console.error("Failed to auto-log recitation session:", error);
+        }
+        autoLogSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
     }
     function toggleReaderChromeVisibility(forceShow) {
         const headerDiv = document.getElementById('fsReaderHeader');
@@ -7795,18 +8003,15 @@
             if (recitationGame_UI.recordButton) recitationGame_UI.recordButton.disabled = true;
             return;
         }
-
         recitationGame_State.speechRecognition = new SpeechRecognition();
         const recognition = recitationGame_State.speechRecognition;
         recognition.lang = 'ar-SA';
         recognition.continuous = true;
         recognition.interimResults = true;
-
         recognition.onstart = () => {
             recitationGame_State.userTranscript = '';
             if (recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Listening...";
         };
-
         recognition.onresult = (event) => {
             let final_transcript = '';
             for (let i = 0; i < event.results.length; ++i) {
@@ -7814,7 +8019,6 @@
             }
             recitationGame_State.userTranscript = final_transcript.trim();
         };
-
         recognition.onerror = (event) => {
             console.error("Speech Recognition Error:", event.error);
             if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
@@ -7824,13 +8028,11 @@
             }
             if (recitationGame_State.isRecording) stopUserRecording_Recitation_Engine();
         };
-
         recognition.onend = () => {
             recitationGame_State.speechResultReceived = true;
             tryFinalizeAnalysis_Engine();
         };
     }
-
     async function startUserRecording_Recitation_Engine() {
         recitationGame_State.mediaRecordingStopped = false;
         recitationGame_State.speechResultReceived = false;
@@ -7841,7 +8043,6 @@
         recitationGame_UI.recordButton.classList.add('is-recording');
         recitationGame_UI.referencePlayButton.disabled = true;
         recitationGame_UI.analysisFeedbackArea.style.display = 'none';
-
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             recitationGame_State.userAudioRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
@@ -7863,25 +8064,20 @@
             recitationGame_UI.referencePlayButton.disabled = false;
         }
     }
-
     function stopUserRecording_Recitation_Engine() {
         if (!recitationGame_State.isRecording) return;
-
         recitationGame_State.isRecording = false;
         recitationGame_UI.recordButton.textContent = "⏳ Processing...";
         recitationGame_UI.recordButton.disabled = true;
-
         if (recitationGame_State.userAudioRecorder && recitationGame_State.userAudioRecorder.state === "recording") {
             recitationGame_State.userAudioRecorder.stop();
         }
         if (recitationGame_State.speechRecognition) {
-            // Stop recognition after a short delay to catch the last words
             setTimeout(() => {
                 recitationGame_State.speechRecognition.stop();
             }, 300);
         }
     }
-
     function tryFinalizeAnalysis_Engine() {
         if (recitationGame_State.analysisTriggeredThisRound) return;
         if (recitationGame_State.mediaRecordingStopped && recitationGame_State.speechResultReceived) {
