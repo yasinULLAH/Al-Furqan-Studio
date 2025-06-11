@@ -5776,11 +5776,11 @@
                 <h5>Appearance</h5>
                 <label for="fsArabicFontSelect">Arabic Font:</label>
                 <select id="fsArabicFontSelect">
-                    <option value="Scheherazade New">Scheherazade New</option>
+                    <option value="Scheherazade New" data-google-font="Scheherazade+New:wght@400;700">Scheherazade New</option>
                     <option value="KFGQPC Uthman Taha Naskh">KFGQPC Uthman Naskh</option>
-                    <option value="Amiri">Amiri</option>
-                    <option value="Lateef">Lateef</option>
-                    <option value="Noto Naskh Arabic">Noto Naskh Arabic</option>
+                    <option value="Amiri" data-google-font="Amiri:wght@400;700">Amiri</option>
+                    <option value="Lateef" data-google-font="Lateef">Lateef</option>
+                    <option value="Noto Naskh Arabic" data-google-font="Noto+Naskh+Arabic:wght@400;700">Noto Naskh Arabic</option>
                     <option value="var(--font-arabic)">App Default Arabic</option>
                 </select>
                 <label for="fsFontSizeSlider">Base Font Size (<span id="fsFontSizeValue">${fullScreenReaderSettings.fontSize}</span>):</label>
@@ -5857,6 +5857,8 @@
         updateReaderHeaderInfo();
         updateScrubSliderRangeAndValue();
     }
+
+    
     function closeFullScreenQuranReaderEnhanced() {
         const overlay = document.getElementById('fullScreenReaderOverlay');
         if (overlay) {
@@ -6721,10 +6723,41 @@
                 applyFullScreenReaderSettingsChanges();
             });
         }
-        if (arabicFontSelect) arabicFontSelect.addEventListener('change', (e) => {
-            fullScreenReaderSettings.arabicFont = e.target.value;
-            applyFullScreenReaderSettingsChanges();
-        });
+        if (arabicFontSelect) {
+            arabicFontSelect.addEventListener('change', (e) => {
+                const selectedOption = e.target.selectedOptions[0];
+                const fontValue = selectedOption.value;
+                const googleFontQuery = selectedOption.dataset.googleFont;
+                if (!googleFontQuery) {
+                    fullScreenReaderSettings.arabicFont = fontValue;
+                    applyFullScreenReaderSettingsChanges();
+                    return;
+                }
+                const linkId = `dynamic-font-${googleFontQuery.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                if (document.getElementById(linkId)) {
+                    fullScreenReaderSettings.arabicFont = fontValue;
+                    applyFullScreenReaderSettingsChanges();
+                    return;
+                }
+                const settingsPanel = document.getElementById('fsReaderSettingsPanel');
+                if (settingsPanel) settingsPanel.style.cursor = 'wait';
+                const link = document.createElement('link');
+                link.id = linkId;
+                link.rel = 'stylesheet';
+                link.href = `https://fonts.googleapis.com/css2?family=${googleFontQuery}&display=swap`;
+                link.onload = () => {
+                    fullScreenReaderSettings.arabicFont = fontValue;
+                    applyFullScreenReaderSettingsChanges();
+                    if (settingsPanel) settingsPanel.style.cursor = 'default';
+                };
+                link.onerror = () => {
+                    console.error(`Failed to load font: ${fontValue}`);
+                    alert(`Could not load the font "${fontValue}". Please check your internet connection.`);
+                    if (settingsPanel) settingsPanel.style.cursor = 'default';
+                };
+                document.head.appendChild(link);
+            });
+        }
         if (fontSizeSlider && fontSizeValueEl) {
             fontSizeSlider.addEventListener('input', (e) => {
                 fullScreenReaderSettings.fontSize = `${e.target.value}rem`;
@@ -6826,6 +6859,7 @@
         }
         setupKeyboardAndTapNavigation();
     }
+    
     let autoLogSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
     function saveDailyBookmarkPosition() {
         const bookmark = {
