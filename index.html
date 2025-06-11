@@ -5858,7 +5858,7 @@
         updateScrubSliderRangeAndValue();
     }
 
-    
+
     function closeFullScreenQuranReaderEnhanced() {
         const overlay = document.getElementById('fullScreenReaderOverlay');
         if (overlay) {
@@ -6359,7 +6359,7 @@
     function saveFullScreenReaderSettings() { // Unchanged, ensure it saves all relevant settings
         localStorage.setItem('fsReaderSettingsEnhanced', JSON.stringify(fullScreenReaderSettings));
     }
-    function loadFullScreenReaderSettings() { // Revised to load into new structure
+    function loadFullScreenReaderSettings() {
         const saved = localStorage.getItem('fsReaderSettingsEnhanced');
         if (saved) {
             try {
@@ -6371,8 +6371,10 @@
                 }
             } catch (e) { console.error("Error parsing saved reader settings", e); }
         }
+
         const audioSourceSelect = document.getElementById('fsAudioSourceSelect');
         if (audioSourceSelect) audioSourceSelect.value = fullScreenReaderSettings.audioSource;
+
         const fontSelect = document.getElementById('fsArabicFontSelect');
         const sizeSlider = document.getElementById('fsFontSizeSlider');
         const sizeValueEl = document.getElementById('fsFontSizeValue');
@@ -6383,6 +6385,7 @@
         const autoScrollCheck = document.getElementById('fsAutoScrollAudioCheck');
         const highlightPicker = document.getElementById('fsHighlightColorPicker');
         const viewModeSelect = document.getElementById('fsViewModeSelect');
+
         if (fontSelect) fontSelect.value = fullScreenReaderSettings.arabicFont;
         if (sizeSlider && sizeValueEl) {
             sizeSlider.value = parseFloat(fullScreenReaderSettings.fontSize);
@@ -6397,11 +6400,15 @@
         if (autoScrollCheck) autoScrollCheck.checked = fullScreenReaderSettings.autoScrollAudio;
         if (highlightPicker) {
             highlightPicker.value = fullScreenReaderSettings.highlightColor.startsWith('rgba') ?
-                rgbToHex(fullScreenReaderSettings.highlightColor) : // Convert RGBA to Hex for picker
+                rgbToHex(fullScreenReaderSettings.highlightColor) :
                 fullScreenReaderSettings.highlightColor;
         }
-        if (viewModeSelect) viewModeSelect.value = fullScreenReaderViewMode; // From loaded last read pos
+        if (viewModeSelect) viewModeSelect.value = fullScreenReaderViewMode;
+        loadAndApplyDynamicFont(fullScreenReaderSettings.arabicFont).catch(err => {
+            alert(`Could not load saved font "${fullScreenReaderSettings.arabicFont}". Please check your connection or select another font.`);
+        });
     }
+
     function rgbToHex(rgba) {
         if (rgba.startsWith('#')) return rgba; // Already hex
         const parts = rgba.substring(rgba.indexOf('(') + 1, rgba.lastIndexOf(')')).split(/,\s*/);
@@ -6724,38 +6731,16 @@
             });
         }
         if (arabicFontSelect) {
-            arabicFontSelect.addEventListener('change', (e) => {
-                const selectedOption = e.target.selectedOptions[0];
-                const fontValue = selectedOption.value;
-                const googleFontQuery = selectedOption.dataset.googleFont;
-                if (!googleFontQuery) {
-                    fullScreenReaderSettings.arabicFont = fontValue;
-                    applyFullScreenReaderSettingsChanges();
-                    return;
-                }
-                const linkId = `dynamic-font-${googleFontQuery.replace(/[^a-zA-Z0-9]/g, '-')}`;
-                if (document.getElementById(linkId)) {
-                    fullScreenReaderSettings.arabicFont = fontValue;
-                    applyFullScreenReaderSettingsChanges();
-                    return;
-                }
+            arabicFontSelect.addEventListener('change', async (e) => {
                 const settingsPanel = document.getElementById('fsReaderSettingsPanel');
                 if (settingsPanel) settingsPanel.style.cursor = 'wait';
-                const link = document.createElement('link');
-                link.id = linkId;
-                link.rel = 'stylesheet';
-                link.href = `https://fonts.googleapis.com/css2?family=${googleFontQuery}&display=swap`;
-                link.onload = () => {
-                    fullScreenReaderSettings.arabicFont = fontValue;
-                    applyFullScreenReaderSettingsChanges();
+                try {
+                    await loadAndApplyDynamicFont(e.target.value);
+                } catch (error) {
+                    alert(error.message);
+                } finally {
                     if (settingsPanel) settingsPanel.style.cursor = 'default';
-                };
-                link.onerror = () => {
-                    console.error(`Failed to load font: ${fontValue}`);
-                    alert(`Could not load the font "${fontValue}". Please check your internet connection.`);
-                    if (settingsPanel) settingsPanel.style.cursor = 'default';
-                };
-                document.head.appendChild(link);
+                }
             });
         }
         if (fontSizeSlider && fontSizeValueEl) {
@@ -6859,7 +6844,52 @@
         }
         setupKeyboardAndTapNavigation();
     }
-    
+    async function loadAndApplyDynamicFont(fontValue) {
+        return new Promise((resolve, reject) => {
+            const select = document.getElementById('fsArabicFontSelect');
+            if (!select) return reject('Font selector not found');
+
+            const selectedOption = select.querySelector(`option[value="${fontValue}"]`);
+            if (!selectedOption) {
+                console.warn(`Font option for value "${fontValue}" not found.`);
+                fullScreenReaderSettings.arabicFont = 'var(--font-arabic)';
+                applyFullScreenReaderSettingsChanges();
+                return resolve();
+            }
+
+            const googleFontQuery = selectedOption.dataset.googleFont;
+            if (!googleFontQuery) {
+                fullScreenReaderSettings.arabicFont = fontValue;
+                applyFullScreenReaderSettingsChanges();
+                return resolve();
+            }
+
+            const linkId = `dynamic-font-${googleFontQuery.replace(/[^a-zA-Z0-9]/g, '-')}`;
+            if (document.getElementById(linkId)) {
+                fullScreenReaderSettings.arabicFont = fontValue;
+                applyFullScreenReaderSettingsChanges();
+                return resolve();
+            }
+
+            const link = document.createElement('link');
+            link.id = linkId;
+            link.rel = 'stylesheet';
+            link.href = `https://fonts.googleapis.com/css2?family=${googleFontQuery}&display=swap`;
+
+            link.onload = () => {
+                fullScreenReaderSettings.arabicFont = fontValue;
+                applyFullScreenReaderSettingsChanges();
+                resolve();
+            };
+
+            link.onerror = (err) => {
+                console.error(`Failed to load font: ${fontValue}`, err);
+                reject(new Error(`Could not load font: ${fontValue}`));
+            };
+
+            document.head.appendChild(link);
+        });
+    }
     let autoLogSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
     function saveDailyBookmarkPosition() {
         const bookmark = {
