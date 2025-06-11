@@ -554,7 +554,7 @@
 
         [dir="rtl"] .ayah-arabic,
         [dir="rtl"] .ayah-translation {
-            text-align: right;
+            /* text-align: right; */
         }
 
         [dir="rtl"] .sidebar {
@@ -4316,8 +4316,8 @@
             <h2 id="gameModalTitle">Quranic Games</h2>
             <div class="game-selection-area"> <!-- Using class here -->
                 <p>Choose a game to play:</p>
-                <button id="startGameWordWhiz" class="game-select-btn">Word Whiz (Vocabulary)</button>
-                <button id="startGameAyahJumble" class="game-select-btn">Ayah Jumble (Order)</button>
+                <button id="startGameWordWhiz" class="game-select-btn">Lughat-ul-Nur</button>
+                <button id="startGameAyahJumble" class="game-select-btn">Nazm-ul-Ayah</button>
             </div>
             <div id="gamePlayArea" class="game-play-area" style="display: none;">
                 <!-- Game content will be loaded here -->
@@ -9265,7 +9265,7 @@
             const jigsawButton = document.createElement('button');
             jigsawButton.id = buttonId;
             jigsawButton.className = 'game-select-btn';
-            jigsawButton.textContent = 'Verse Jigsaw';
+            jigsawButton.textContent = 'Takmil al-Ayah';
             jigsawButton.addEventListener('click', startVerseJigsawGame_Engine);
             const existingButtons = gameSelectionArea.querySelectorAll('.game-select-btn');
             if (existingButtons.length > 0) {
