@@ -7789,159 +7789,25 @@
             await startUserRecording_Recitation_Engine();
         }
     }
-    const VoskController = {
-        model: null,
-        recognizer: null,
-        audioContext: null,
-        source: null,
-        processor: null,
-        DB_NAME: 'VoskModelDB',
-        STORE_NAME: 'models',
-        MODEL_KEY: 'vosk-model-ar-0.22',
-        async _getModelFromDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(this.DB_NAME, 1);
-                request.onerror = event => reject("DB Error: " + event.target.errorCode);
-                request.onsuccess = event => {
-                    const db = event.target.result;
-                    const transaction = db.transaction(this.STORE_NAME, 'readonly');
-                    const store = transaction.objectStore(this.STORE_NAME);
-                    const getRequest = store.get(this.MODEL_KEY);
-                    getRequest.onsuccess = () => resolve(getRequest.result);
-                    getRequest.onerror = event => reject("DB Get Error: " + event.target.errorCode);
-                };
-                request.onupgradeneeded = event => {
-                    const db = event.target.result;
-                    db.createObjectStore(this.STORE_NAME);
-                };
-            });
-        },
-        async _saveModelToDB(modelData) {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(this.DB_NAME, 1);
-                request.onerror = event => reject("DB Error: " + event.target.errorCode);
-                request.onsuccess = event => {
-                    const db = event.target.result;
-                    const transaction = db.transaction(this.STORE_NAME, 'readwrite');
-                    const store = transaction.objectStore(this.STORE_NAME);
-                    const putRequest = store.put(modelData, this.MODEL_KEY);
-                    putRequest.onsuccess = () => resolve();
-                    putRequest.onerror = event => reject("DB Put Error: " + event.target.errorCode);
-                };
-            });
-        },
-        async _fetchAndCacheModel() {
-            console.log("Fetching model from a reliable CDN (unpkg)...");
-            if (recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Downloading mobile engine (30MB, one-time only)...";
-            const modelUrl = "https://unpkg.com/@ricky0123/vad-web@0.0.11/examples/assets/vosk-model-ar-0.22-linto-2.zip";
-            const response = await fetch(modelUrl);
-            if (!response.ok) throw new Error(`HTTP error fetching model! Status: ${response.status}`);
-            const modelData = await response.arrayBuffer();
-            console.log("Model downloaded, saving to IndexedDB...");
-            if (recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Saving mobile engine to device...";
-            await this._saveModelToDB(modelData);
-            console.log("Model saved to IndexedDB.");
-            return modelData;
-        },
-        async initialize() {
-            if (!window.Vosk) {
-                alert("Speech recognition library for mobile failed to load.");
-                return false;
-            }
-            if (this.model) return true;
-            try {
-                let modelData = await this._getModelFromDB();
-                if (modelData) {
-                    console.log("Found Vosk model in IndexedDB. Loading from DB.");
-                    if (recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Loading mobile engine from device...";
-                } else {
-                    console.log("Vosk model not in DB. Fetching from network...");
-                    modelData = await this._fetchAndCacheModel();
-                }
-                this.model = await Vosk.createModel(modelData);
-                console.log("Vosk model created successfully.");
-                this.model.setLogLevel(-1);
-                this.recognizer = new this.model.Recognizer({ sampleRate: 44100 });
-                this.recognizer.on("result", (message) => {
-                    if (message.result.text) {
-                        recitationGame_State.userTranscript = message.result.text;
-                    }
-                });
-                this.recognizer.on("final_result", (message) => {
-                    if (message.result.text) {
-                        recitationGame_State.userTranscript = message.result.text;
-                    }
-                });
-                if (recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Mobile engine ready.";
-                return true;
-            } catch (error) {
-                console.error("Critical Error Initializing Vosk:", error);
-                alert(`Failed to initialize mobile speech engine: ${error.message}. Please check your connection and refresh.`);
-                return false;
-            }
-        },
-        async start() {
-            if (!this.model || !this.recognizer) {
-                const success = await this.initialize();
-                if (!success) return;
-            }
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            this.audioContext = new AudioContext();
-            await this.audioContext.resume();
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            this.source = this.audioContext.createMediaStreamSource(stream);
-            this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-            this.processor.onaudioprocess = (event) => {
-                if (recitationGame_State.isRecording) {
-                    try {
-                        this.recognizer.acceptWaveform(event.inputBuffer);
-                    } catch (e) {
-                        console.error("Vosk error accepting waveform:", e);
-                    }
-                }
-            };
-            this.source.connect(this.processor);
-            this.processor.connect(this.audioContext.destination);
-        },
-        stop() {
-            if (this.processor) {
-                this.processor.disconnect();
-                this.processor = null;
-            }
-            if (this.source) {
-                this.source.mediaStream.getTracks().forEach(track => track.stop());
-                this.source.disconnect();
-                this.source = null;
-            }
-            if (this.audioContext && this.audioContext.state !== "closed") {
-                this.audioContext.close();
-                this.audioContext = null;
-            }
-            const finalResult = this.recognizer.finalResult();
-            recitationGame_State.userTranscript = finalResult.text;
-            console.log("[Vosk] Stop called. Final transcript from buffer:", finalResult.text);
-        }
-    };
     function setupSpeechRecognition_Engine() {
-        const isMobileDevice = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-        if (isMobileDevice()) {
-            return;
-        }
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            alert("Desktop speech recognition is not supported in this browser.");
+            alert("Desktop speech recognition is not supported in this browser. Please try Google Chrome or Microsoft Edge.");
             if (recitationGame_UI.recordButton) recitationGame_UI.recordButton.disabled = true;
             return;
         }
+
         recitationGame_State.speechRecognition = new SpeechRecognition();
         const recognition = recitationGame_State.speechRecognition;
         recognition.lang = 'ar-SA';
         recognition.continuous = true;
         recognition.interimResults = true;
+
         recognition.onstart = () => {
             recitationGame_State.userTranscript = '';
             if (recitationGame_UI.recordingStatusText) recitationGame_UI.recordingStatusText.textContent = "Listening...";
         };
+
         recognition.onresult = (event) => {
             let final_transcript = '';
             for (let i = 0; i < event.results.length; ++i) {
@@ -7949,16 +7815,24 @@
             }
             recitationGame_State.userTranscript = final_transcript.trim();
         };
+
         recognition.onerror = (event) => {
+            console.error("Speech Recognition Error:", event.error);
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                alert("Microphone access was denied. Please allow microphone access in your browser settings to use this feature.");
+            } else {
+                alert(`An error occurred during speech recognition: ${event.error}`);
+            }
             if (recitationGame_State.isRecording) stopUserRecording_Recitation_Engine();
         };
+
         recognition.onend = () => {
             recitationGame_State.speechResultReceived = true;
             tryFinalizeAnalysis_Engine();
         };
     }
+
     async function startUserRecording_Recitation_Engine() {
-        const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         recitationGame_State.mediaRecordingStopped = false;
         recitationGame_State.speechResultReceived = false;
         recitationGame_State.analysisTriggeredThisRound = false;
@@ -7968,47 +7842,47 @@
         recitationGame_UI.recordButton.classList.add('is-recording');
         recitationGame_UI.referencePlayButton.disabled = true;
         recitationGame_UI.analysisFeedbackArea.style.display = 'none';
-        if (isMobile) {
-            await VoskController.start(); // This will auto-initialize if needed
-        } else {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                recitationGame_State.userAudioRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-                recitationGame_State.userAudioRecorder.onstop = () => {
-                    recitationGame_State.mediaRecordingStopped = true;
-                    stream.getTracks().forEach(track => track.stop());
-                    tryFinalizeAnalysis_Engine();
-                };
-                recitationGame_State.userAudioRecorder.start();
-                if (recitationGame_State.speechRecognition) {
-                    recitationGame_State.speechRecognition.start();
-                }
-            } catch (err) {
-                console.error("Error starting native recording:", err);
-                recitationGame_State.isRecording = false;
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            recitationGame_State.userAudioRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            recitationGame_State.userAudioRecorder.onstop = () => {
+                recitationGame_State.mediaRecordingStopped = true;
+                stream.getTracks().forEach(track => track.stop());
+                tryFinalizeAnalysis_Engine();
+            };
+            recitationGame_State.userAudioRecorder.start();
+            if (recitationGame_State.speechRecognition) {
+                recitationGame_State.speechRecognition.start();
             }
+        } catch (err) {
+            console.error("Error starting native recording:", err);
+            alert("Could not start recording. Please grant microphone permission and try again.");
+            recitationGame_State.isRecording = false;
+            recitationGame_UI.recordButton.textContent = "🎤 Record My Recitation";
+            recitationGame_UI.recordButton.classList.remove('is-recording');
+            recitationGame_UI.referencePlayButton.disabled = false;
         }
     }
+
     function stopUserRecording_Recitation_Engine() {
         if (!recitationGame_State.isRecording) return;
-        const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
         recitationGame_State.isRecording = false;
         recitationGame_UI.recordButton.textContent = "⏳ Processing...";
         recitationGame_UI.recordButton.disabled = true;
-        if (isMobile) {
-            VoskController.stop();
-            recitationGame_State.mediaRecordingStopped = true;
-            recitationGame_State.speechResultReceived = true;
-            tryFinalizeAnalysis_Engine();
-        } else {
-            if (recitationGame_State.userAudioRecorder && recitationGame_State.userAudioRecorder.state === "recording") {
-                recitationGame_State.userAudioRecorder.stop();
-            }
-            if (recitationGame_State.speechRecognition) {
+
+        if (recitationGame_State.userAudioRecorder && recitationGame_State.userAudioRecorder.state === "recording") {
+            recitationGame_State.userAudioRecorder.stop();
+        }
+        if (recitationGame_State.speechRecognition) {
+            // Stop recognition after a short delay to catch the last words
+            setTimeout(() => {
                 recitationGame_State.speechRecognition.stop();
-            }
+            }, 300);
         }
     }
+
     function tryFinalizeAnalysis_Engine() {
         if (recitationGame_State.analysisTriggeredThisRound) return;
         if (recitationGame_State.mediaRecordingStopped && recitationGame_State.speechResultReceived) {
