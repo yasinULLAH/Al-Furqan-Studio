@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,6 +36,7 @@
             --padding-main: 20px;
             --transition-speed: 0.3s;
         }
+
         body.theme-manuscript {
             --color-bg-primary: #f5f5dc;
             --color-bg-secondary: #fff8dc;
@@ -53,6 +55,7 @@
             --font-english: 'Merriweather', calibri;
             --font-general: 'Merriweather', calibri;
         }
+
         body.theme-holo {
             --color-bg-primary: #0d1a2b;
             --color-bg-secondary: #1a2b3c;
@@ -72,6 +75,7 @@
             --font-general: 'Orbitron', calibri;
             --border-radius: 4px;
         }
+
         *,
         *::before,
         *::after {
@@ -79,6 +83,7 @@
             margin: 0;
             padding: 0;
         }
+
         body {
             font-family: var(--font-general);
             line-height: 1.6;
@@ -90,6 +95,7 @@
             flex-direction: column;
             overflow-y: scroll;
         }
+
         h1,
         h2,
         h3,
@@ -99,6 +105,7 @@
             color: var(--color-text-secondary);
             margin-bottom: 15px;
         }
+
         button,
         input[type="submit"],
         input[type="button"] {
@@ -112,18 +119,21 @@
             transition: background-color var(--transition-speed), opacity var(--transition-speed);
             font-size: 1rem;
         }
+
         button:hover,
         input[type="submit"]:hover,
         input[type="button"]:hover {
             background-color: var(--color-accent-dark);
             opacity: 0.9;
         }
+
         button:focus,
         input[type="submit"]:focus,
         input[type="button"]:focus {
             outline: 2px solid var(--color-accent-dark);
             outline-offset: 2px;
         }
+
         input[type="text"],
         input[type="number"],
         textarea,
@@ -138,6 +148,7 @@
             width: 100%;
             max-width: 400px;
         }
+
         input[type="text"]:focus,
         input[type="number"]:focus,
         textarea:focus,
@@ -145,24 +156,29 @@
             outline: 2px solid var(--color-accent);
             border-color: var(--color-accent);
         }
+
         textarea {
             min-height: 150px;
             resize: vertical;
             max-width: 100%;
         }
+
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
             color: var(--color-text-secondary);
         }
+
         a {
             color: var(--color-accent-dark);
             text-decoration: none;
         }
+
         a:hover {
             text-decoration: underline;
         }
+
         .container {
             display: flex;
             flex-grow: 1;
@@ -171,6 +187,7 @@
             margin: 0 auto;
             width: 100%;
         }
+
         .sidebar {
             width: 250px;
             margin-right: var(--padding-main);
@@ -181,6 +198,7 @@
             box-shadow: 0 8px 14px rgb(0 0 0);
             margin-top: -61px;
         }
+
         .main-content {
             flex-grow: 1;
             background-color: var(--color-bg-secondary);
@@ -189,6 +207,7 @@
             box-shadow: 0 2px 5px var(--color-shadow);
             overflow-y: auto;
         }
+
         header {
             background-color: var(--color-bg-secondary);
             color: var(--color-text-primary);
@@ -199,19 +218,23 @@
             align-items: center;
             flex-shrink: 0;
         }
+
         header h1 {
             margin: 0;
             font-size: 1.8rem;
             color: var(--color-text-primary);
             margin-right: 16px;
         }
+
         nav ul {
             list-style: none;
             padding: 0;
         }
+
         nav ul li {
             margin-bottom: 10px;
         }
+
         nav a {
             display: block;
             padding: 10px;
@@ -220,22 +243,27 @@
             color: var(--color-text-primary);
             transition: background-color var(--transition-speed), color var(--transition-speed);
         }
+
         nav a:hover,
         nav a.active {
             background-color: var(--color-accent);
             color: white;
             text-decoration: none;
         }
+
         .section {
             display: none;
         }
+
         .section.active {
             display: block;
         }
+
         .quran-viewer h2 {
             text-align: center;
             margin-bottom: 20px;
         }
+
         .ayah {
             margin-bottom: 20px;
             padding: 15px;
@@ -244,9 +272,11 @@
             background-color: var(--color-bg-primary);
             transition: background-color var(--transition-speed);
         }
+
         .ayah:hover {
             background-color: var(--color-highlight);
         }
+
         .ayah-number {
             font-weight: bold;
             color: var(--color-accent-dark);
@@ -254,6 +284,7 @@
             display: block;
             text-align: center;
         }
+
         .ayah-arabic {
             font-family: var(--font-arabic);
             font-size: 1.8rem;
@@ -262,40 +293,49 @@
             margin-bottom: 10px;
             line-height: 2.5;
         }
+
         .ayah-arabic span {
             cursor: pointer;
             padding: 2px 4px;
             border-bottom: 1px dashed transparent;
             transition: background-color 0.2s, border-bottom-color 0.2s;
         }
+
         .ayah-arabic span:hover {
             background-color: rgba(var(--color-accent-dark-rgb, 56, 142, 60), 0.2);
             border-bottom-color: var(--color-accent-dark);
         }
+
         :root {
             --color-accent-dark-rgb: 56, 142, 60;
         }
+
         body.theme-manuscript {
             --color-accent-dark-rgb: 251, 140, 0;
         }
+
         body.theme-holo {
             --color-accent-dark-rgb: 0, 131, 143;
         }
+
         .ayah-translation {
             font-size: 1.3rem;
             color: #3b0aff;
         }
+
         .tafsir-editor {
             margin-top: 20px;
             padding-top: 20px;
             border-top: 1px solid var(--color-border);
         }
+
         .tafsir-editor textarea {
             width: 100%;
             max-width: 100%;
             margin-bottom: 10px;
             font-size: medium;
         }
+
         .theme-manager,
         .theme-linker {
             margin-bottom: 20px;
@@ -304,34 +344,42 @@
             border-radius: var(--border-radius);
             background-color: var(--color-bg-primary);
         }
+
         .theme-list ul {
             list-style: none;
             padding-left: 20px;
         }
+
         .theme-list li {
             margin-bottom: 5px;
         }
+
         .theme-list li span {
             cursor: pointer;
             color: var(--color-text-secondary);
             transition: color var(--transition-speed);
         }
+
         .theme-list li span:hover {
             color: var(--color-accent-dark);
             text-decoration: underline;
         }
+
         .theme-list .theme-actions button {
             padding: 3px 8px;
             font-size: 0.8rem;
             margin-left: 5px;
         }
+
         .root-analyzer-form {
             margin-bottom: 20px;
         }
+
         .root-results ul {
             list-style: none;
             padding: 0;
         }
+
         .root-results li {
             margin-bottom: 10px;
             padding: 10px;
@@ -340,13 +388,16 @@
             background-color: var(--color-bg-primary);
             font-size: 1.5rem;
         }
+
         .recitation-log-form {
             margin-bottom: 20px;
         }
+
         .recitation-list ul {
             list-style: none;
             padding: 0;
         }
+
         .recitation-list li {
             margin-bottom: 10px;
             padding: 10px;
@@ -354,6 +405,7 @@
             border-radius: var(--border-radius);
             background-color: var(--color-bg-primary);
         }
+
         .hifz-ayah-status {
             display: inline-block;
             padding: 5px 10px;
@@ -361,28 +413,34 @@
             font-size: 0.9rem;
             margin-left: 10px;
         }
+
         .status-not-started {
             background-color: #e0e0e0;
             color: #424242;
         }
+
         .status-in-progress {
             background-color: #fff59d;
             color: #fbc02d;
         }
+
         .status-memorized {
             background-color: #a5d6a7;
             color: #388e3c;
         }
+
         .search-options label {
             display: inline-block;
             margin-right: 15px;
             font-weight: normal;
         }
+
         .search-results ul {
             list-style: none;
             padding: 0;
             margin-top: 20px;
         }
+
         .search-results li {
             margin-bottom: 10px;
             padding: 10px;
@@ -390,14 +448,17 @@
             border-radius: var(--border-radius);
             background-color: var(--color-bg-primary);
         }
+
         .search-results .result-context {
             font-size: large;
             color: var(--color-text-secondary);
             margin-top: 5px;
         }
+
         .settings-section {
             margin-bottom: 20px;
         }
+
         .modal {
             display: none;
             position: fixed;
@@ -411,6 +472,7 @@
             justify-content: center;
             align-items: center;
         }
+
         .modal-content {
             background-color: var(--color-bg-secondary);
             padding: 20px;
@@ -420,6 +482,7 @@
             width: 90%;
             position: relative;
         }
+
         .close-button {
             position: absolute;
             top: 10px;
@@ -429,6 +492,7 @@
             font-weight: bold;
             cursor: pointer;
         }
+
         #loading-overlay {
             display: flex;
             position: fixed;
@@ -444,23 +508,29 @@
             z-index: 2000;
             display: none;
         }
+
         .text-center {
             text-align: center;
         }
+
         .mt-20 {
             margin-top: 20px;
         }
+
         .mb-10 {
             margin-bottom: 10px;
         }
+
         .mb-20 {
             margin-bottom: -3px;
         }
+
         .flex-group {
             display: flex;
             gap: 10px;
             align-items: center;
         }
+
         [tabindex="0"]:focus,
         button:focus,
         input:focus,
@@ -470,6 +540,7 @@
             outline: 3px solid var(--color-accent-dark);
             outline-offset: 2px;
         }
+
         .sr-only {
             position: absolute;
             width: 1px;
@@ -480,93 +551,115 @@
             clip: rect(0, 0, 0, 0);
             border: 0;
         }
+
         [dir="rtl"] .ayah-arabic,
         [dir="rtl"] .ayah-translation {
             text-align: right;
         }
+
         [dir="rtl"] .sidebar {
             margin-right: 0;
             margin-left: var(--padding-main);
         }
+
         [dir="rtl"] .theme-list ul {
             padding-left: 0;
             padding-right: 20px;
         }
+
         [dir="rtl"] .theme-list .theme-actions button {
             margin-left: 0;
             margin-right: 5px;
         }
+
         [dir="rtl"] .hifz-ayah-status {
             margin-left: 0;
             margin-right: 10px;
         }
+
         [dir="rtl"] .search-options label {
             margin-right: 0;
             margin-left: 15px;
         }
+
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
                 padding: 10px;
             }
+
             .sidebar {
                 width: 100%;
                 margin-right: 0;
                 margin-bottom: 20px;
             }
+
             [dir="rtl"] .sidebar {
                 margin-left: 0;
                 margin-bottom: 20px;
             }
+
             .main-content {
                 padding: 15px;
             }
+
             header {
                 flex-direction: column;
                 align-items: flex-start;
                 padding: 10px;
             }
+
             header h1 {
                 margin-bottom: 10px;
             }
+
             nav ul {
                 display: flex;
                 flex-wrap: wrap;
                 gap: 5px;
             }
+
             nav ul li {
                 margin-bottom: 0;
             }
+
             nav a {
                 padding: 8px 12px;
                 font-size: 0.9rem;
             }
+
             input[type="text"],
             input[type="number"],
             textarea,
             select {
                 max-width: 100%;
             }
+
             .flex-group {
                 flex-direction: column;
                 gap: 10px;
             }
+
             .flex-group button,
             .flex-group input {
                 width: 100%;
             }
         }
+
         body.theme-holo .ayah:hover {
             background: linear-gradient(90deg, rgba(0, 188, 212, 0.1) 0%, rgba(0, 188, 212, 0.05) 100%);
         }
+
         body.theme-holo .ayah-arabic span:hover {
             background-color: rgba(0, 188, 212, 0.3);
             border-bottom-color: var(--color-highlight);
         }
+
         body.theme-holo nav a.active {
             background-color: var(--color-accent);
             box-shadow: 0 0 8px var(--color-accent);
         }
+
         #loading-overlay {
             display: none;
             position: fixed;
@@ -582,6 +675,7 @@
             text-align: center;
             padding: 20px;
         }
+
         .loading-content {
             background-color: var(--color-bg-secondary, #1a2b3c);
             padding: 30px 40px;
@@ -590,28 +684,34 @@
             max-width: 500px;
             width: 90%;
         }
+
         body.theme-serene .loading-content {
             background-color: var(--color-bg-secondary);
             color: var(--color-text-primary);
         }
+
         body.theme-manuscript .loading-content {
             background-color: var(--color-bg-secondary);
             color: var(--color-text-primary);
         }
+
         body.theme-holo .loading-content {
             background-color: #1a2b3c;
             color: #e0f7fa;
         }
+
         #loading-message-primary {
             font-size: 1.4rem;
             font-weight: bold;
             margin-bottom: 10px;
         }
+
         #loading-message-secondary {
             font-size: 1rem;
             margin-bottom: 20px;
             min-height: 1.6em;
         }
+
         #loading-progress-bar-container {
             width: 100%;
             background-color: var(--color-border, #a5d6a7);
@@ -621,9 +721,11 @@
             margin-bottom: 10px;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
+
         body.theme-holo #loading-progress-bar-container {
             background-color: #26a69a;
         }
+
         #loading-progress-bar {
             height: 100%;
             background-color: var(--color-accent, #4caf50);
@@ -631,50 +733,64 @@
             transition: width 0.3s ease-out;
             border-radius: var(--border-radius, 8px) 0 0 var(--border-radius, 8px);
         }
+
         body.theme-holo #loading-progress-bar {
             background-color: var(--color-accent);
         }
+
         #loading-percentage {
             font-size: 1.1rem;
             font-weight: bold;
         }
+
         #loading-first-time-notice {
             font-size: 0.85em;
             margin-top: 15px;
             opacity: 0.8;
         }
+
         .view-switcher label {
             display: inline-block;
             margin-bottom: 0;
         }
+
         .view-switcher div>label {
             margin-left: 3px;
         }
+
         .root-view-content {
             display: none;
         }
+
         .root-view-content.active-view {
             display: block;
         }
+
         #root-network-graph-container {
             margin-top: 20px;
         }
+
         .view-switcher label {
             display: inline-block;
             margin-bottom: 0;
         }
+
         .view-switcher div>label {
             margin-left: 3px;
         }
+
         .root-view-content {
             display: none;
         }
+
         .root-view-content.active-view {
             display: block;
         }
+
         #root-network-graph-container {
             margin-top: 20px;
         }
+
         .custom-popup#root-node-popup {
             position: absolute;
             background-color: var(--color-bg-secondary);
@@ -686,6 +802,7 @@
             word-wrap: break-word;
             font-size: 1.1rem !important;
         }
+
         .custom-popup#root-node-popup h4 {
             margin-top: 0;
             margin-bottom: 10px;
@@ -693,18 +810,22 @@
             font-family: var(--font-arabic);
             font-size: 1.5rem;
         }
+
         .custom-popup#root-node-popup p {
             margin: 0;
             line-height: 2;
             font-size: 1.3rem;
         }
+
         #root-graph-placeholder {
             text-align: center;
             margin: 20px 0;
         }
+
         body.graph-fullscreen-active {
             overflow: hidden;
         }
+
         #root-network-graph-container.fullscreen-graph {
             position: fixed;
             top: 0;
@@ -720,12 +841,14 @@
             align-items: stretch;
             justify-content: stretch;
         }
+
         #root-network-graph-container.fullscreen-graph #root-network-graph {
             flex-grow: 1;
             border: none;
             width: 100%;
             height: 100%;
         }
+
         .graph-fullscreen-close-btn {
             position: absolute;
             top: 15px;
@@ -739,6 +862,7 @@
             border-radius: var(--border-radius);
             cursor: pointer;
         }
+
         #root-network-graph-container.fullscreen-graph #root-graph-pagination-controls {
             position: absolute;
             bottom: 10px;
@@ -749,15 +873,19 @@
             border-radius: var(--border-radius);
             z-index: 1501;
         }
+
         :root {
             --color-bg-secondary-rgb: 200, 230, 201;
         }
+
         body.theme-manuscript {
             --color-bg-secondary-rgb: 255, 248, 220;
         }
+
         body.theme-holo {
             --color-bg-secondary-rgb: 26, 43, 60;
         }
+
         div#root-node-popup {
             position: fixed !important;
             top: 50% !important;
@@ -768,21 +896,107 @@
             text-align: right !important;
             z-index: 2147483647 !important;
         }
+
         button#launchFullScreenReaderBtnEnhanced {
             position: absolute;
             right: 83px;
             top: 71px;
         }
+
         button#quitGameButton {
             position: fixed;
             bottom: 1px;
             left: 3px;
         }
+
         #fsReaderSettingsPanel>div:nth-child(2)>label:nth-child(7) {
             display: none;
         }
+
         span.item-surah-ayah.theme-modal-ayah-link {
             cursor: pointer;
+        }
+
+        /* ========================================================= */
+        /* --- FINAL HAMBURGER MENU & SIDEBAR STYLES --- */
+        /* ========================================================= */
+        /* --- Default Hamburger Icon State (Hidden on Desktop) --- */
+        #hamburger-btn {
+            display: none;
+            position: relative;
+            width: 30px;
+            height: 22px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            z-index: 1010;
+            margin-right: 15px;
+        }
+
+        #hamburger-btn span {
+            display: block;
+            position: absolute;
+            height: 3px;
+            width: 100%;
+            background: var(--color-text-primary);
+            border-radius: 2px;
+            left: 0;
+        }
+
+        #hamburger-btn span:nth-child(1) {
+            top: 0px;
+        }
+
+        #hamburger-btn span:nth-child(2) {
+            top: 9px;
+        }
+
+        #hamburger-btn span:nth-child(3) {
+            top: 18px;
+        }
+
+        /* --- Hidden Overlay --- */
+        #sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        /* --- Mobile-Only Overrides --- */
+        @media (max-width: 768px) {
+            #hamburger-btn {
+                display: block !important;
+            }
+
+            /* By default on mobile, HIDE the sidebar completely */
+            .sidebar {
+                display: none !important;
+            }
+
+            /* When body.sidebar-open is active, FORCE the sidebar to appear */
+            body.sidebar-open .sidebar {
+                display: block !important;
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 280px;
+                height: 100%;
+                z-index: 1000;
+                margin: 0;
+                overflow-y: auto;
+                box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+                background-color: var(--color-bg-secondary);
+            }
+
+            /* Show the overlay when the sidebar is open */
+            body.sidebar-open #sidebar-overlay {
+                display: block !important;
+            }
         }
     </style>
     <!-- Optional: Include fonts if not available locally -->
@@ -801,7 +1015,9 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap">
     <script src="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.6/dist/vosk.js"></script>
 </head>
+
 <body dir="ltr"> <!-- Default direction, will be set dynamically if needed -->
+    <div id="sidebar-overlay"></div>
     <div id="loading-overlay">
         <div class="loading-content">
             <div id="loading-message-primary">Loading Quran data...</div>
@@ -817,6 +1033,7 @@
         </div>
     </div>
     <header>
+        <button id="hamburger-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
         <h1>Nur Al-Quran Studio Offline</h1>
         <div class="header-controls">
             <label for="theme-switcher" class="sr-only">Choose Theme</label>
@@ -3388,16 +3605,29 @@
                 document.getElementById('theme-switcher').value = 'serene'; applyTheme('serene');
             }
         }
+        let eventListenersInitialized = false;
         function setupEventListeners() {
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    const sectionId = event.currentTarget.dataset.section;
-                    if (sectionId && typeof showSection === 'function') {
-                        showSection(sectionId);
+            if (eventListenersInitialized) {
+                return;
+            }
+            const hamburgerBtn = document.getElementById('hamburger-btn');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const body = document.body;
+            if (hamburgerBtn && sidebar && overlay && body) {
+                const toggleSidebar = () => {
+                    const isOpening = !body.classList.contains('sidebar-open');
+                    body.classList.toggle('sidebar-open');
+                    hamburgerBtn.setAttribute('aria-expanded', isOpening);
+                };
+                hamburgerBtn.addEventListener('click', toggleSidebar);
+                overlay.addEventListener('click', toggleSidebar);
+                sidebar.addEventListener('click', (e) => {
+                    if (e.target.matches('a.nav-link') && body.classList.contains('sidebar-open')) {
+                        toggleSidebar();
                     }
                 });
-            });
+            }
             document.getElementById('surah-select').addEventListener('change', (event) => {
                 currentSurah = parseInt(event.target.value, 10);
                 updateAyahSelect(currentSurah);
@@ -3455,7 +3685,7 @@
             window.addEventListener('click', (event) => {
                 document.querySelectorAll('.modal').forEach(modal => { if (event.target === modal) modal.style.display = 'none'; });
             });
-            window.addEventListener('keydown', (event) => { // Close modals with Escape key
+            window.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape') {
                     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
                 }
@@ -3467,26 +3697,26 @@
                     const rootContents = document.querySelectorAll('.root-view-content');
                     rootContents.forEach(el => {
                         el.classList.remove('active-view');
-                        el.style.display = 'none'; // Explicitly hide all first
+                        el.style.display = 'none';
                     });
                     document.getElementById('root-graph-placeholder').style.display = 'none';
                     const paginationControls = document.getElementById('root-graph-pagination-controls');
                     const occurrencesListElement = document.getElementById('root-occurrences-list');
-                    const graphContainerWrapper = document.getElementById('root-network-graph-container'); // The wrapper
-                    const graphContainer = document.getElementById('root-network-graph'); // The vis.js target
+                    const graphContainerWrapper = document.getElementById('root-network-graph-container');
+                    const graphContainer = document.getElementById('root-network-graph');
                     const analyzedRootTerm = document.getElementById('analyzed-root-term').textContent;
                     if (newViewMode === 'list') {
                         occurrencesListElement.classList.add('active-view');
-                        occurrencesListElement.style.display = 'block'; // Explicitly show
+                        occurrencesListElement.style.display = 'block';
                         paginationControls.style.display = 'none';
                         if (analyzedRootTerm !== 'N/A' && allRootOccurrencesCache.length > 0) {
                             occurrencesListElement.innerHTML = '';
                             allRootOccurrencesCache.forEach(occ => {
                                 const li = document.createElement('li');
                                 li.innerHTML = `
-                                <strong>Surah ${occ.surah}:${occ.ayah}</strong> - Word: <span lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.word}</span>
-                                <div class="result-context" lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.context}</div>
-                            `;
+                        <strong>Surah ${occ.surah}:${occ.ayah}</strong> - Word: <span lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.word}</span>
+                        <div class="result-context" lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.context}</div>
+                    `;
                                 occurrencesListElement.appendChild(li);
                             });
                         } else if (analyzedRootTerm === 'N/A') {
@@ -3496,13 +3726,13 @@
                         }
                     } else if (newViewMode === 'tree') {
                         graphContainerWrapper.classList.add('active-view');
-                        graphContainerWrapper.style.display = 'block'; // CRITICAL: Make wrapper visible BEFORE graph update
+                        graphContainerWrapper.style.display = 'block';
                         occurrencesListElement.innerHTML = '<li>Graph view active. Results may be paginated below if applicable.</li>';
                         if (analyzedRootTerm !== 'N/A' && allRootOccurrencesCache.length > 0) {
-                            updateRootGraphView(); // Now this will find a visible container
+                            updateRootGraphView();
                             paginationControls.style.display = (allRootOccurrencesCache.length > rootGraphItemsPerPage) ? 'flex' : 'none';
                         } else if (analyzedRootTerm !== 'N/A' && allRootOccurrencesCache.length === 0 && graphContainer.children.length === 0) {
-                            analyzeRoot(); // analyzeRoot itself will handle calling updateRootGraphView
+                            analyzeRoot();
                         } else if (analyzedRootTerm === 'N/A') {
                             graphContainer.innerHTML = '';
                             document.getElementById('root-graph-placeholder').style.display = 'block';
@@ -3527,16 +3757,16 @@
             }
             document.getElementById('prev-root-graph-page-btn').addEventListener('click', goToPrevRootGraphPage);
             document.getElementById('next-root-graph-page-btn').addEventListener('click', goToNextRootGraphPage);
-            let graphCloseButton = null; // Keep a reference to the close button
+            let graphCloseButton = null;
             document.querySelectorAll('input[name="root-view-mode"]').forEach(radio => {
                 radio.addEventListener('change', function () {
                     const newViewMode = this.value;
                     const rootSection = document.getElementById('roots');
                     const graphContainerWrapper = document.getElementById('root-network-graph-container');
                     const occurrencesListElement = document.getElementById('root-occurrences-list');
-                    const mainContent = document.querySelector('.main-content'); // For restoring scroll
-                    const header = document.querySelector('header'); // To hide/show
-                    const sidebar = document.querySelector('.sidebar'); // To hide/show
+                    const mainContent = document.querySelector('.main-content');
+                    const header = document.querySelector('header');
+                    const sidebar = document.querySelector('.sidebar');
                     if (graphCloseButton && graphCloseButton.parentNode) {
                         graphCloseButton.parentNode.removeChild(graphCloseButton);
                         graphCloseButton = null;
@@ -3548,22 +3778,22 @@
                         graphContainerWrapper.classList.add('fullscreen-graph');
                         if (header) header.style.display = 'none';
                         if (sidebar) sidebar.style.display = 'none';
-                        mainContent.style.overflowY = 'hidden'; // Prevent main content from scrolling
+                        mainContent.style.overflowY = 'hidden';
                         occurrencesListElement.classList.remove('active-view');
                         occurrencesListElement.style.display = 'none';
                         graphContainerWrapper.classList.add('active-view');
-                        graphContainerWrapper.style.display = 'flex'; // Changed to flex for alignment
+                        graphContainerWrapper.style.display = 'flex';
                         graphCloseButton = document.createElement('button');
                         graphCloseButton.textContent = 'Close Graph (Esc)';
                         graphCloseButton.classList.add('graph-fullscreen-close-btn');
                         graphCloseButton.onclick = () => {
-                            document.getElementById('root-view-list').click(); // Simulate click on list view radio
+                            document.getElementById('root-view-list').click();
                         };
                         graphContainerWrapper.appendChild(graphCloseButton);
                         if (allRootOccurrencesCache.length > 0 || document.getElementById('analyzed-root-term').textContent !== 'N/A') {
-                            updateRootGraphView(); // This should call renderRootTreeGraph
+                            updateRootGraphView();
                         } else {
-                            document.getElementById('root-network-graph').innerHTML = ''; // Clear
+                            document.getElementById('root-network-graph').innerHTML = '';
                             document.getElementById('root-graph-placeholder').textContent = 'Analyze a root to see the graph.';
                             document.getElementById('root-graph-placeholder').style.display = 'block';
                         }
@@ -3571,10 +3801,10 @@
                         if (paginationControls) {
                             paginationControls.style.display = (allRootOccurrencesCache.length > rootGraphItemsPerPage) ? 'flex' : 'none';
                         }
-                    } else { // newViewMode === 'list'
+                    } else {
                         document.body.classList.remove('graph-fullscreen-active');
                         graphContainerWrapper.classList.remove('fullscreen-graph');
-                        if (header) header.style.display = ''; // Or 'flex' depending on its default
+                        if (header) header.style.display = '';
                         if (sidebar) sidebar.style.display = '';
                         mainContent.style.overflowY = 'auto';
                         graphContainerWrapper.classList.remove('active-view');
@@ -3584,7 +3814,7 @@
                         document.getElementById('root-graph-pagination-controls').style.display = 'none';
                         const analyzedRootTermText = document.getElementById('analyzed-root-term').textContent;
                         if (analyzedRootTermText !== 'N/A' && allRootOccurrencesCache.length > 0) {
-                            occurrencesListElement.innerHTML = ''; // Clear previous
+                            occurrencesListElement.innerHTML = '';
                             allRootOccurrencesCache.forEach(occ => {
                                 const li = document.createElement('li');
                                 li.innerHTML = `<strong>Surah ${occ.surah}:${occ.ayah}</strong> - Word: <span lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.word}</span><div class="result-context" lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${occ.context}</div>`;
@@ -3601,10 +3831,11 @@
             window.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape' && document.body.classList.contains('graph-fullscreen-active')) {
                     if (graphCloseButton) {
-                        graphCloseButton.click(); // Trigger the close button's logic
+                        graphCloseButton.click();
                     }
                 }
             });
+            eventListenersInitialized = true;
         }
         document.addEventListener('DOMContentLoaded', async () => {
             try {
@@ -3821,6 +4052,7 @@
         style="display:none; position:absolute; background:var(--color-bg-secondary); border:1px solid var(--color-border); padding:10px; border-radius:var(--border-radius); z-index:1001; max-width:300px; pointer-events:none;">
     </div>
 </body>
+
 </html>
 <script>
     async function loadDocxJs() {
@@ -4534,37 +4766,37 @@
         document.getElementById('gameHighScore').textContent = gameHighScore;
     }
     function getDynamicLanguageData(entry, langKey) {
-    const config = getTranslationConfig(langKey);
-    if (!entry || !config) {
-        return { meaningText: null, meaningFont: 'var(--font-general)', meaningLangDir: 'ltr' };
+        const config = getTranslationConfig(langKey);
+        if (!entry || !config) {
+            return { meaningText: null, meaningFont: 'var(--font-general)', meaningLangDir: 'ltr' };
+        }
+        const keyMap = {
+            'urdu': 'ur_meaning',
+            'english': 'en_meaning',
+            'pashto': 'pashto_text',
+            'Bangali': 'bn_meaning'
+        };
+        let meaningText = null;
+        if (langKey === 'urdu' && entry.ur_meaning) {
+            meaningText = entry.ur_meaning;
+        } else if (langKey === 'english' && entry.en_meaning) {
+            meaningText = entry.en_meaning;
+        } else if (langKey === 'pashto' && entry.pashto_text) {
+            meaningText = entry.pashto_text;
+        } else if (langKey === 'Bangali' && entry.bn_meaning) {
+            meaningText = entry.bn_meaning;
+        } else {
+            meaningText = entry.en_meaning || entry.ur_meaning || entry.pashto_text || entry.bn_meaning || null;
+        }
+        if (meaningText && meaningText.trim() === "") {
+            meaningText = null;
+        }
+        return {
+            meaningText,
+            meaningFont: config.font,
+            meaningLangDir: config.dir
+        };
     }
-    const keyMap = {
-        'urdu': 'ur_meaning',
-        'english': 'en_meaning',
-        'pashto': 'pashto_text',
-        'Bangali': 'bn_meaning'
-    };
-    let meaningText = null;
-    if (langKey === 'urdu' && entry.ur_meaning) {
-        meaningText = entry.ur_meaning;
-    } else if (langKey === 'english' && entry.en_meaning) {
-        meaningText = entry.en_meaning;
-    } else if (langKey === 'pashto' && entry.pashto_text) {
-        meaningText = entry.pashto_text;
-    } else if (langKey === 'Bangali' && entry.bn_meaning) {
-        meaningText = entry.bn_meaning;
-    } else {
-        meaningText = entry.en_meaning || entry.ur_meaning || entry.pashto_text || entry.bn_meaning || null;
-    }
-    if (meaningText && meaningText.trim() === "") {
-        meaningText = null;
-    }
-    return {
-        meaningText,
-        meaningFont: config.font,
-        meaningLangDir: config.dir
-    };
-}
     async function startWordWhizGame() {
         activeGame = 'wordWhiz';
         gameScore = 0;
@@ -5267,39 +5499,37 @@
     let fullScreenReaderIsPlayingAudio = false;
     let fullScreenReaderContinuousAudioMode = false; // New setting
     function getQuranAudioUrl(languageCode) {
-  let edition, bitrate;
-  if (languageCode === 'en') {
-    edition = 'en.walk';
-    bitrate = 192;
-  } else if (languageCode === 'ur') {
-    edition = 'ur.khan';
-    bitrate = 64;
-  } else {
-    throw new Error("Invalid languageCode: must be 'en' or 'ur'");
-  }
-  return function(ayahNumber) {
-    if (
-      typeof ayahNumber !== 'number' ||
-      !Number.isInteger(ayahNumber) ||
-      ayahNumber <= 0
-    ) {
-      throw new Error('Ayah number must be a positive integer');
+        let edition, bitrate;
+        if (languageCode === 'en') {
+            edition = 'en.walk';
+            bitrate = 192;
+        } else if (languageCode === 'ur') {
+            edition = 'ur.khan';
+            bitrate = 64;
+        } else {
+            throw new Error("Invalid languageCode: must be 'en' or 'ur'");
+        }
+        return function (ayahNumber) {
+            if (
+                typeof ayahNumber !== 'number' ||
+                !Number.isInteger(ayahNumber) ||
+                ayahNumber <= 0
+            ) {
+                throw new Error('Ayah number must be a positive integer');
+            }
+            return `https://cdn.islamic.network/quran/audio/${bitrate}/${edition}/${ayahNumber}.mp3`;
+        };
     }
-    return `https://cdn.islamic.network/quran/audio/${bitrate}/${edition}/${ayahNumber}.mp3`;
-  };
-}
-
-// Add the new property to your settings object
-let fullScreenReaderSettings = {
-    arabicFont: 'Scheherazade New',
-    fontSize: '2.5rem',
-    linesPerPage: 15,
-    showTransliteration: false,
-    autoScrollAudio: true,
-    highlightColor: 'rgba(255, 255, 150, 0.4)',
-    continuousAudio: false,
-    audioSource: 'quran' // 'quran', 'en', 'ur'
-};
+    let fullScreenReaderSettings = {
+        arabicFont: 'Scheherazade New',
+        fontSize: '2.5rem',
+        linesPerPage: 15,
+        showTransliteration: false,
+        autoScrollAudio: true,
+        highlightColor: 'rgba(255, 255, 150, 0.4)',
+        continuousAudio: false,
+        audioSource: 'quran' // 'quran', 'en', 'ur'
+    };
     const TAJ_COMPANY_PAGES = 604;
     let tajMushafPageData = []; // Populated by loadTajMushafPageData()
     let continuousScrollNextSurahToLoad = 1;
@@ -6095,70 +6325,66 @@ let fullScreenReaderSettings = {
         }));
     }
     async function playAudioForAyahEnhanced(surah, ayah) {
-    const sNum = parseInt(surah);
-    const aNum = parseInt(ayah);
-    if (isNaN(sNum) || isNaN(aNum) || sNum < 1 || sNum > 114 || aNum < 1 ||
-        (surahAyahCounts[sNum] && aNum > surahAyahCounts[sNum])) {
-        if (fullScreenReaderIsPlayingAudio) stopAndClearAudio();
-        return;
-    }
-    stopAndClearAudio();
-
-    let audioSrc;
-    const audioSourceMode = fullScreenReaderSettings.audioSource || 'quran';
-
-    if (audioSourceMode === 'en' || audioSourceMode === 'ur') {
-        let absoluteAyahNum = 0;
-        for (let i = 1; i < sNum; i++) {
-            absoluteAyahNum += surahAyahCounts[i];
+        const sNum = parseInt(surah);
+        const aNum = parseInt(ayah);
+        if (isNaN(sNum) || isNaN(aNum) || sNum < 1 || sNum > 114 || aNum < 1 ||
+            (surahAyahCounts[sNum] && aNum > surahAyahCounts[sNum])) {
+            if (fullScreenReaderIsPlayingAudio) stopAndClearAudio();
+            return;
         }
-        absoluteAyahNum += aNum;
-        audioSrc = getQuranAudioUrl(audioSourceMode)(absoluteAyahNum);
-    } else { // Default to Quran Recitation
-        const surahPadded = String(sNum).padStart(3, '0');
-        const ayahPadded = String(aNum).padStart(3, '0');
-        audioSrc = `https://everyayah.com/data/Alafasy_128kbps/${surahPadded}${ayahPadded}.mp3`;
-    }
-
-    fullScreenReaderAudioPlayer = new Audio(audioSrc);
-    fullScreenReaderAudioPlayer.currentSrcAyahS = sNum;
-    fullScreenReaderAudioPlayer.currentSrcAyahA = aNum;
-    try {
-        await fullScreenReaderAudioPlayer.play();
-        fullScreenReaderIsPlayingAudio = true;
-        const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
-        if (playPauseBtn) playPauseBtn.textContent = '❚❚';
-        highlightAyahEnhanced(sNum, aNum);
-        fullScreenReaderAudioPlayer.onended = async () => {
-            fullScreenReaderIsPlayingAudio = false;
-            const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
-            if (playPauseBtn) playPauseBtn.textContent = '🔊';
-            if (fullScreenReaderSettings.continuousAudio) {
-                let nextS = sNum;
-                let nextA = aNum + 1;
-                if (surahAyahCounts[nextS] && nextA > surahAyahCounts[nextS]) {
-                    if (nextS < 114) {
-                        nextS++;
-                        nextA = 1;
-                    } else {
-                        removeHighlightEnhanced();
-                        return;
-                    }
-                } else if (!surahAyahCounts[nextS]) {
-                    removeHighlightEnhanced(); return;
-                }
-                fullScreenReaderCurrentSurah = nextS;
-                fullScreenReaderCurrentAyah = nextA;
-                updateReaderHeaderInfo();
-                playAudioForAyahEnhanced(nextS, nextA);
-            } else {
-                removeHighlightEnhanced();
+        stopAndClearAudio();
+        let audioSrc;
+        const audioSourceMode = fullScreenReaderSettings.audioSource || 'quran';
+        if (audioSourceMode === 'en' || audioSourceMode === 'ur') {
+            let absoluteAyahNum = 0;
+            for (let i = 1; i < sNum; i++) {
+                absoluteAyahNum += surahAyahCounts[i];
             }
-        };
-        fullScreenReaderAudioPlayer.onerror = (e) => { /* existing error handling */ };
-    } catch (err) { /* existing error handling */ }
-}
-    
+            absoluteAyahNum += aNum;
+            audioSrc = getQuranAudioUrl(audioSourceMode)(absoluteAyahNum);
+        } else { // Default to Quran Recitation
+            const surahPadded = String(sNum).padStart(3, '0');
+            const ayahPadded = String(aNum).padStart(3, '0');
+            audioSrc = `https://everyayah.com/data/Alafasy_128kbps/${surahPadded}${ayahPadded}.mp3`;
+        }
+        fullScreenReaderAudioPlayer = new Audio(audioSrc);
+        fullScreenReaderAudioPlayer.currentSrcAyahS = sNum;
+        fullScreenReaderAudioPlayer.currentSrcAyahA = aNum;
+        try {
+            await fullScreenReaderAudioPlayer.play();
+            fullScreenReaderIsPlayingAudio = true;
+            const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
+            if (playPauseBtn) playPauseBtn.textContent = '❚❚';
+            highlightAyahEnhanced(sNum, aNum);
+            fullScreenReaderAudioPlayer.onended = async () => {
+                fullScreenReaderIsPlayingAudio = false;
+                const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
+                if (playPauseBtn) playPauseBtn.textContent = '🔊';
+                if (fullScreenReaderSettings.continuousAudio) {
+                    let nextS = sNum;
+                    let nextA = aNum + 1;
+                    if (surahAyahCounts[nextS] && nextA > surahAyahCounts[nextS]) {
+                        if (nextS < 114) {
+                            nextS++;
+                            nextA = 1;
+                        } else {
+                            removeHighlightEnhanced();
+                            return;
+                        }
+                    } else if (!surahAyahCounts[nextS]) {
+                        removeHighlightEnhanced(); return;
+                    }
+                    fullScreenReaderCurrentSurah = nextS;
+                    fullScreenReaderCurrentAyah = nextA;
+                    updateReaderHeaderInfo();
+                    playAudioForAyahEnhanced(nextS, nextA);
+                } else {
+                    removeHighlightEnhanced();
+                }
+            };
+            fullScreenReaderAudioPlayer.onerror = (e) => { };
+        } catch (err) { }
+    }
     function toggleAudioPlaybackEnhanced() {
         const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
         if (!fullScreenReaderAudioPlayer || fullScreenReaderAudioPlayer.src === '' || fullScreenReaderAudioPlayer.src === window.location.href || fullScreenReaderAudioPlayer.ended) {
@@ -8832,17 +9058,17 @@ let fullScreenReaderSettings = {
     });
     const initialDir = detectDirection(textarea.value);
     textarea.setAttribute('dir', initialDir);
-let jigsawState = {
-    difficulty: 'easy', // 'easy', 'medium', 'hard'
-    piecesCorrect: 0,
-    totalPieces: 0,
-    currentAyahRef: '',
-    draggedPiece: null,
-};
-function injectVerseJigsawCSS_Engine() {
-    const cssId = "verseJigsawGameStylesEngine";
-    if (document.getElementById(cssId)) return;
-    const styles = `
+    let jigsawState = {
+        difficulty: 'easy', // 'easy', 'medium', 'hard'
+        piecesCorrect: 0,
+        totalPieces: 0,
+        currentAyahRef: '',
+        draggedPiece: null,
+    };
+    function injectVerseJigsawCSS_Engine() {
+        const cssId = "verseJigsawGameStylesEngine";
+        if (document.getElementById(cssId)) return;
+        const styles = `
         .jigsaw-game-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; padding: 5px; box-sizing: border-box; }
         .jigsaw-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 10px; width: 100%; flex-wrap: wrap; }
         .jigsaw-controls label { font-size: 0.9em; }
@@ -8901,17 +9127,17 @@ function injectVerseJigsawCSS_Engine() {
             text-align: center; margin-top: 15px; font-size: 1.2rem; color: var(--color-success); font-weight: bold;
         }
     `;
-    const styleSheet = document.createElement("style");
-    styleSheet.id = cssId; styleSheet.type = "text/css";
-    styleSheet.innerText = styles;
-    document.head.appendChild(styleSheet);
-}
-function startVerseJigsawGame_Engine() {
-    activeGame = 'verseJigsaw_engine';
-    showGamePlayUI("Verse Jigsaw Puzzle");
-    injectVerseJigsawCSS_Engine();
-    const gamePlayArea = document.getElementById('gamePlayArea');
-    gamePlayArea.innerHTML = `
+        const styleSheet = document.createElement("style");
+        styleSheet.id = cssId; styleSheet.type = "text/css";
+        styleSheet.innerText = styles;
+        document.head.appendChild(styleSheet);
+    }
+    function startVerseJigsawGame_Engine() {
+        activeGame = 'verseJigsaw_engine';
+        showGamePlayUI("Verse Jigsaw Puzzle");
+        injectVerseJigsawCSS_Engine();
+        const gamePlayArea = document.getElementById('gamePlayArea');
+        gamePlayArea.innerHTML = `
         <div class="jigsaw-game-wrapper">
             <div class="jigsaw-controls">
                 <label for="jigsawDifficultySelect">Ayah Length:</label>
@@ -8930,142 +9156,142 @@ function startVerseJigsawGame_Engine() {
             <div id="jigsawCompletionMessage_Engine"></div>
         </div>
     `;
-    document.getElementById('jigsawDifficultySelect').addEventListener('change', (e) => {
-        jigsawState.difficulty = e.target.value;
+        document.getElementById('jigsawDifficultySelect').addEventListener('change', (e) => {
+            jigsawState.difficulty = e.target.value;
+            generateNewJigsawPuzzle_Engine();
+        });
+        document.getElementById('newJigsawPuzzleBtn').addEventListener('click', generateNewJigsawPuzzle_Engine);
         generateNewJigsawPuzzle_Engine();
-    });
-    document.getElementById('newJigsawPuzzleBtn').addEventListener('click', generateNewJigsawPuzzle_Engine);
-    generateNewJigsawPuzzle_Engine();
-}
-async function generateNewJigsawPuzzle_Engine() {
-    const tray = document.getElementById('jigsawPieceTray_Engine');
-    const board = document.getElementById('jigsawBoard_Engine');
-    const msg = document.getElementById('jigsawCompletionMessage_Engine');
-    const ref = document.getElementById('jigsawAyahRef');
-    tray.innerHTML = '<p>Searching for a suitable Ayah...</p>';
-    board.innerHTML = '';
-    msg.textContent = '';
-    ref.textContent = '';
-    const difficultyMap = {
-        easy: { min: 4, max: 6 },
-        medium: { min: 7, max: 10 },
-        hard: { min: 11, max: 15 }
-    };
-    const { min, max } = difficultyMap[jigsawState.difficulty];
-    let attempts = 0;
-    let words = [];
-    let ayahData;
-    try {
-        while (attempts < 50) {
-            const randomSurah = Math.floor(Math.random() * 114) + 1;
-            const randomAyahNum = Math.floor(Math.random() * surahAyahCounts[randomSurah]) + 1;
-            const fetchedData = await getData(STORE_QURAN, [randomSurah, randomAyahNum]);
-            if (fetchedData && fetchedData.arabic) {
-                const fetchedWords = fetchedData.arabic.trim().split(/\s+/).filter(w => w);
-                if (fetchedWords.length >= min && fetchedWords.length <= max) {
-                    words = fetchedWords;
-                    ayahData = fetchedData;
-                    break;
+    }
+    async function generateNewJigsawPuzzle_Engine() {
+        const tray = document.getElementById('jigsawPieceTray_Engine');
+        const board = document.getElementById('jigsawBoard_Engine');
+        const msg = document.getElementById('jigsawCompletionMessage_Engine');
+        const ref = document.getElementById('jigsawAyahRef');
+        tray.innerHTML = '<p>Searching for a suitable Ayah...</p>';
+        board.innerHTML = '';
+        msg.textContent = '';
+        ref.textContent = '';
+        const difficultyMap = {
+            easy: { min: 4, max: 6 },
+            medium: { min: 7, max: 10 },
+            hard: { min: 11, max: 15 }
+        };
+        const { min, max } = difficultyMap[jigsawState.difficulty];
+        let attempts = 0;
+        let words = [];
+        let ayahData;
+        try {
+            while (attempts < 50) {
+                const randomSurah = Math.floor(Math.random() * 114) + 1;
+                const randomAyahNum = Math.floor(Math.random() * surahAyahCounts[randomSurah]) + 1;
+                const fetchedData = await getData(STORE_QURAN, [randomSurah, randomAyahNum]);
+                if (fetchedData && fetchedData.arabic) {
+                    const fetchedWords = fetchedData.arabic.trim().split(/\s+/).filter(w => w);
+                    if (fetchedWords.length >= min && fetchedWords.length <= max) {
+                        words = fetchedWords;
+                        ayahData = fetchedData;
+                        break;
+                    }
                 }
+                attempts++;
             }
-            attempts++;
+        } catch (err) {
+            board.innerHTML = `<p style='color:red'>Error accessing database.</p>`;
+            return;
         }
-    } catch (err) {
-        board.innerHTML = `<p style='color:red'>Error accessing database.</p>`;
-        return;
+        if (words.length === 0) {
+            tray.innerHTML = `<p style='color:red'>Could not find a suitable Ayah. Please try another difficulty.</p>`;
+            return;
+        }
+        jigsawState.totalPieces = words.length;
+        jigsawState.piecesCorrect = 0;
+        jigsawState.currentAyahRef = `Surah ${ayahData.surah}:${ayahData.ayah}`;
+        ref.textContent = `Assemble the verse from: ${jigsawState.currentAyahRef}`;
+        tray.innerHTML = '';
+        let pieces = [];
+        for (let i = 0; i < words.length; i++) {
+            const slot = document.createElement('div');
+            slot.classList.add('jigsaw-slot');
+            slot.dataset.slotIndex = i;
+            board.appendChild(slot);
+            const piece = document.createElement('div');
+            piece.id = `piece-${i}`;
+            piece.dataset.wordIndex = i;
+            piece.classList.add('jigsaw-piece');
+            piece.draggable = true;
+            piece.textContent = words[i];
+            pieces.push(piece);
+        }
+        shuffleArray(pieces).forEach(p => tray.appendChild(p));
+        addJigsawDragDropListeners_Engine();
     }
-    if (words.length === 0) {
-        tray.innerHTML = `<p style='color:red'>Could not find a suitable Ayah. Please try another difficulty.</p>`;
-        return;
-    }
-    jigsawState.totalPieces = words.length;
-    jigsawState.piecesCorrect = 0;
-    jigsawState.currentAyahRef = `Surah ${ayahData.surah}:${ayahData.ayah}`;
-    ref.textContent = `Assemble the verse from: ${jigsawState.currentAyahRef}`;
-    tray.innerHTML = '';
-    let pieces = [];
-    for (let i = 0; i < words.length; i++) {
-        const slot = document.createElement('div');
-        slot.classList.add('jigsaw-slot');
-        slot.dataset.slotIndex = i;
-        board.appendChild(slot);
-        const piece = document.createElement('div');
-        piece.id = `piece-${i}`;
-        piece.dataset.wordIndex = i;
-        piece.classList.add('jigsaw-piece');
-        piece.draggable = true;
-        piece.textContent = words[i];
-        pieces.push(piece);
-    }
-    shuffleArray(pieces).forEach(p => tray.appendChild(p));
-    addJigsawDragDropListeners_Engine();
-}
-function addJigsawDragDropListeners_Engine() {
-    document.querySelectorAll('.jigsaw-piece').forEach(piece => {
-        piece.addEventListener('dragstart', e => {
-            jigsawState.draggedPiece = e.target;
-            setTimeout(() => e.target.classList.add('dragging'), 0);
+    function addJigsawDragDropListeners_Engine() {
+        document.querySelectorAll('.jigsaw-piece').forEach(piece => {
+            piece.addEventListener('dragstart', e => {
+                jigsawState.draggedPiece = e.target;
+                setTimeout(() => e.target.classList.add('dragging'), 0);
+            });
+            piece.addEventListener('dragend', e => e.target.classList.remove('dragging'));
         });
-        piece.addEventListener('dragend', e => e.target.classList.remove('dragging'));
-    });
-    document.querySelectorAll('.jigsaw-slot').forEach(slot => {
-        slot.addEventListener('dragover', e => {
-            e.preventDefault();
-            if (!slot.hasChildNodes()) slot.classList.add('over');
-        });
-        slot.addEventListener('dragleave', () => slot.classList.remove('over'));
-        slot.addEventListener('drop', e => {
-            e.preventDefault();
-            slot.classList.remove('over');
-            if (jigsawState.draggedPiece && !slot.hasChildNodes() && slot.dataset.slotIndex === jigsawState.draggedPiece.dataset.wordIndex) {
-                slot.textContent = ''; // Clear any placeholder text
-                slot.appendChild(jigsawState.draggedPiece);
-                jigsawState.draggedPiece.draggable = false;
-                jigsawState.draggedPiece.style.cursor = 'default';
-                slot.classList.add('filled');
-                jigsawState.draggedPiece = null;
-                jigsawState.piecesCorrect++;
-                if (jigsawState.piecesCorrect === jigsawState.totalPieces) {
-                    document.getElementById('jigsawCompletionMessage_Engine').textContent = "Masha'Allah! Verse Assembled!";
+        document.querySelectorAll('.jigsaw-slot').forEach(slot => {
+            slot.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (!slot.hasChildNodes()) slot.classList.add('over');
+            });
+            slot.addEventListener('dragleave', () => slot.classList.remove('over'));
+            slot.addEventListener('drop', e => {
+                e.preventDefault();
+                slot.classList.remove('over');
+                if (jigsawState.draggedPiece && !slot.hasChildNodes() && slot.dataset.slotIndex === jigsawState.draggedPiece.dataset.wordIndex) {
+                    slot.textContent = ''; // Clear any placeholder text
+                    slot.appendChild(jigsawState.draggedPiece);
+                    jigsawState.draggedPiece.draggable = false;
+                    jigsawState.draggedPiece.style.cursor = 'default';
+                    slot.classList.add('filled');
+                    jigsawState.draggedPiece = null;
+                    jigsawState.piecesCorrect++;
+                    if (jigsawState.piecesCorrect === jigsawState.totalPieces) {
+                        document.getElementById('jigsawCompletionMessage_Engine').textContent = "Masha'Allah! Verse Assembled!";
+                    }
                 }
-            }
+            });
         });
-    });
-}
-function addVerseJigsawGameButtonToModal() {
-    const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
-    const buttonId = 'startVerseJigsawBtn';
-    if (gameSelectionArea && !document.getElementById(buttonId)) {
-        const jigsawButton = document.createElement('button');
-        jigsawButton.id = buttonId;
-        jigsawButton.className = 'game-select-btn';
-        jigsawButton.textContent = 'Verse Jigsaw';
-        jigsawButton.addEventListener('click', startVerseJigsawGame_Engine);
-        const existingButtons = gameSelectionArea.querySelectorAll('.game-select-btn');
-        if (existingButtons.length > 0) {
-            existingButtons[existingButtons.length - 1].insertAdjacentElement('afterend', jigsawButton);
-        } else {
-            gameSelectionArea.appendChild(jigsawButton);
+    }
+    function addVerseJigsawGameButtonToModal() {
+        const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
+        const buttonId = 'startVerseJigsawBtn';
+        if (gameSelectionArea && !document.getElementById(buttonId)) {
+            const jigsawButton = document.createElement('button');
+            jigsawButton.id = buttonId;
+            jigsawButton.className = 'game-select-btn';
+            jigsawButton.textContent = 'Verse Jigsaw';
+            jigsawButton.addEventListener('click', startVerseJigsawGame_Engine);
+            const existingButtons = gameSelectionArea.querySelectorAll('.game-select-btn');
+            if (existingButtons.length > 0) {
+                existingButtons[existingButtons.length - 1].insertAdjacentElement('afterend', jigsawButton);
+            } else {
+                gameSelectionArea.appendChild(jigsawButton);
+            }
         }
     }
-}
-if (typeof setupGameModal.isPatchedForJigsaw === 'undefined') {
-    const originalSetupGameModal = setupGameModal;
-    setupGameModal = function() {
-        originalSetupGameModal.apply(this, arguments);
-        addVerseJigsawGameButtonToModal(); // Add our new game button
-    };
-    setupGameModal.isPatchedForJigsaw = true;
-}
-(function() {
-    'use strict';
-    let ayahmatState = { // State for Ayah-Match game
-        currentQuestion: null, totalQuestions: 5, currentQuestionIndex: 0, score: 0,
-    };
-    function injectAyahMatchCSS_Engine() {
-        const cssId = "ayahMatchGameStylesEngine";
-        if (document.getElementById(cssId)) return;
-        const styles = `
+    if (typeof setupGameModal.isPatchedForJigsaw === 'undefined') {
+        const originalSetupGameModal = setupGameModal;
+        setupGameModal = function () {
+            originalSetupGameModal.apply(this, arguments);
+            addVerseJigsawGameButtonToModal(); // Add our new game button
+        };
+        setupGameModal.isPatchedForJigsaw = true;
+    }
+    (function () {
+        'use strict';
+        let ayahmatState = { // State for Ayah-Match game
+            currentQuestion: null, totalQuestions: 5, currentQuestionIndex: 0, score: 0,
+        };
+        function injectAyahMatchCSS_Engine() {
+            const cssId = "ayahMatchGameStylesEngine";
+            if (document.getElementById(cssId)) return;
+            const styles = `
             .ayah-match-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 10px; text-align: center; }
             .ayah-match-question-arabic {
                 font-size: 2rem; line-height: 2.5; margin: 20px 0; padding: 20px;
@@ -9082,40 +9308,40 @@ if (typeof setupGameModal.isPatchedForJigsaw === 'undefined') {
             .ayah-match-feedback { margin-top: 15px; font-weight: bold; min-height: 1.5em; }
             .ayah-match-controls button { margin-top: 10px; }
         `;
-        const styleSheet = document.createElement("style");
-        styleSheet.id = cssId; styleSheet.type = "text/css"; styleSheet.innerText = styles;
-        document.head.appendChild(styleSheet);
-    }
-    async function startAyahMatchGame_Engine() {
-        activeGame = 'ayahMatch_engine';
-        showGamePlayUI("Ayah-Translation Match");
-        injectAyahMatchCSS_Engine();
-        ayahmatState.currentQuestionIndex = 0;
-        ayahmatState.score = 0;
-        updateScoreDisplay();
-        const gamePlayArea = document.getElementById('gamePlayArea');
-        gamePlayArea.innerHTML = `<div class="ayah-match-wrapper"><p>Loading a new question...</p></div>`;
-        await displayNextAyahMatchQuestion();
-    }
-    async function displayNextAyahMatchQuestion() {
-        const gamePlayArea = document.getElementById('gamePlayArea');
-        if (ayahmatState.currentQuestionIndex >= ayahmatState.totalQuestions) {
-            endAyahMatchGame_Engine();
-            return;
+            const styleSheet = document.createElement("style");
+            styleSheet.id = cssId; styleSheet.type = "text/css"; styleSheet.innerText = styles;
+            document.head.appendChild(styleSheet);
         }
-        gamePlayArea.innerHTML = `<div class="ayah-match-wrapper"><p>Searching for a suitable Ayah...</p></div>`;
-        const question = await fetchAyahMatchQuestion_Engine();
-        if (!question) {
-            gamePlayArea.innerHTML = `<div class="ayah-match-wrapper"><p style="color:red;">Could not generate a question. Please try again.</p><div class="ayah-match-controls"><button id="ayahMatchNextBtn">Try Again</button></div></div>`;
-            document.getElementById('ayahMatchNextBtn').addEventListener('click', displayNextAyahMatchQuestion);
-            return;
+        async function startAyahMatchGame_Engine() {
+            activeGame = 'ayahMatch_engine';
+            showGamePlayUI("Ayah-Translation Match");
+            injectAyahMatchCSS_Engine();
+            ayahmatState.currentQuestionIndex = 0;
+            ayahmatState.score = 0;
+            updateScoreDisplay();
+            const gamePlayArea = document.getElementById('gamePlayArea');
+            gamePlayArea.innerHTML = `<div class="ayah-match-wrapper"><p>Loading a new question...</p></div>`;
+            await displayNextAyahMatchQuestion();
         }
-        ayahmatState.currentQuestion = question;
-        let optionsHTML = '';
-        question.options.forEach(opt => {
-            optionsHTML += `<button class="ayah-match-option-btn" data-answer="${opt.translation}" style="font-family:${opt.font}; direction:${opt.dir}; text-align:${opt.textAlign};">${opt.translation}</button>`;
-        });
-        gamePlayArea.innerHTML = `
+        async function displayNextAyahMatchQuestion() {
+            const gamePlayArea = document.getElementById('gamePlayArea');
+            if (ayahmatState.currentQuestionIndex >= ayahmatState.totalQuestions) {
+                endAyahMatchGame_Engine();
+                return;
+            }
+            gamePlayArea.innerHTML = `<div class="ayah-match-wrapper"><p>Searching for a suitable Ayah...</p></div>`;
+            const question = await fetchAyahMatchQuestion_Engine();
+            if (!question) {
+                gamePlayArea.innerHTML = `<div class="ayah-match-wrapper"><p style="color:red;">Could not generate a question. Please try again.</p><div class="ayah-match-controls"><button id="ayahMatchNextBtn">Try Again</button></div></div>`;
+                document.getElementById('ayahMatchNextBtn').addEventListener('click', displayNextAyahMatchQuestion);
+                return;
+            }
+            ayahmatState.currentQuestion = question;
+            let optionsHTML = '';
+            question.options.forEach(opt => {
+                optionsHTML += `<button class="ayah-match-option-btn" data-answer="${opt.translation}" style="font-family:${opt.font}; direction:${opt.dir}; text-align:${opt.textAlign};">${opt.translation}</button>`;
+            });
+            gamePlayArea.innerHTML = `
             <div class="ayah-match-wrapper">
                 <p>Which is the correct translation for the following Ayah?</p>
                 <div class="ayah-match-question-arabic">${question.arabicQuestion}</div>
@@ -9123,127 +9349,126 @@ if (typeof setupGameModal.isPatchedForJigsaw === 'undefined') {
                 <div class="ayah-match-feedback"></div>
                 <div class="ayah-match-controls"><button id="ayahMatchNextBtn" style="display:none;">Next Question</button></div>
             </div>`;
-        document.querySelectorAll('.ayah-match-option-btn').forEach(btn => btn.addEventListener('click', handleAyahMatchAnswer_Engine));
-        document.getElementById('ayahMatchNextBtn').addEventListener('click', displayNextAyahMatchQuestion);
-    }
-    async function fetchAyahMatchQuestion_Engine() {
-        let attempts = 0;
-        console.log("[AyahMatch v9] Starting robust search for question set...");
-        while (attempts < 100) { // High attempt count to ensure success
-            attempts++;
-            try {
-                let candidateAyahs = [];
-                let seenKeys = new Set();
-                while (candidateAyahs.length < 3) {
-                    const rSurah = Math.floor(Math.random() * 114) + 1;
-                    const rAyah = Math.floor(Math.random() * (surahAyahCounts[rSurah] || 1)) + 1;
-                    const key = `${rSurah}:${rAyah}`;
-                    if (seenKeys.has(key)) continue;
-                    const ayahData = await getData(STORE_QURAN, [rSurah, rAyah]);
-                    seenKeys.add(key);
-                    if (!ayahData || !ayahData.arabic || ayahData.arabic.trim() === "") continue;
-                    const hasTranslation = ['english', 'urdu', 'Bangali', 'pashto'].some(lang => ayahData[lang] && ayahData[lang].trim() !== "");
-                    if (!hasTranslation) continue;
-                    candidateAyahs.push(ayahData);
-                }
-                const correctAnswerRecord = candidateAyahs[0];
-                const distractor1Record = candidateAyahs[1];
-                const distractor2Record = candidateAyahs[2];
-                const getDisplayTranslation = (record) => {
-                    const selectedLangKey = document.getElementById('translation-select').value;
-                    const fallbackOrder = ['english', 'urdu', 'Bangali', 'pashto'];
-                    const prioritizedOrder = [selectedLangKey, ...fallbackOrder.filter(k => k !== selectedLangKey)];
-                    for (const lang of prioritizedOrder) {
-                        if (record[lang] && record[lang].trim() !== "") {
-                            return { translation: record[lang], config: getTranslationConfig(lang) };
-                        }
+            document.querySelectorAll('.ayah-match-option-btn').forEach(btn => btn.addEventListener('click', handleAyahMatchAnswer_Engine));
+            document.getElementById('ayahMatchNextBtn').addEventListener('click', displayNextAyahMatchQuestion);
+        }
+        async function fetchAyahMatchQuestion_Engine() {
+            let attempts = 0;
+            console.log("[AyahMatch v9] Starting robust search for question set...");
+            while (attempts < 100) { // High attempt count to ensure success
+                attempts++;
+                try {
+                    let candidateAyahs = [];
+                    let seenKeys = new Set();
+                    while (candidateAyahs.length < 3) {
+                        const rSurah = Math.floor(Math.random() * 114) + 1;
+                        const rAyah = Math.floor(Math.random() * (surahAyahCounts[rSurah] || 1)) + 1;
+                        const key = `${rSurah}:${rAyah}`;
+                        if (seenKeys.has(key)) continue;
+                        const ayahData = await getData(STORE_QURAN, [rSurah, rAyah]);
+                        seenKeys.add(key);
+                        if (!ayahData || !ayahData.arabic || ayahData.arabic.trim() === "") continue;
+                        const hasTranslation = ['english', 'urdu', 'Bangali', 'pashto'].some(lang => ayahData[lang] && ayahData[lang].trim() !== "");
+                        if (!hasTranslation) continue;
+                        candidateAyahs.push(ayahData);
                     }
-                    return null; // Should not happen due to our earlier check
-                };
-                const correctAnswerOption = getDisplayTranslation(correctAnswerRecord);
-                const distractor1Option = getDisplayTranslation(distractor1Record);
-                const distractor2Option = getDisplayTranslation(distractor2Record);
-                if (!correctAnswerOption || !distractor1Option || !distractor2Option) {
-                    console.error("[AyahMatch] Failed to get display translations even after validation. Retrying.");
-                    continue;
+                    const correctAnswerRecord = candidateAyahs[0];
+                    const distractor1Record = candidateAyahs[1];
+                    const distractor2Record = candidateAyahs[2];
+                    const getDisplayTranslation = (record) => {
+                        const selectedLangKey = document.getElementById('translation-select').value;
+                        const fallbackOrder = ['english', 'urdu', 'Bangali', 'pashto'];
+                        const prioritizedOrder = [selectedLangKey, ...fallbackOrder.filter(k => k !== selectedLangKey)];
+                        for (const lang of prioritizedOrder) {
+                            if (record[lang] && record[lang].trim() !== "") {
+                                return { translation: record[lang], config: getTranslationConfig(lang) };
+                            }
+                        }
+                        return null; // Should not happen due to our earlier check
+                    };
+                    const correctAnswerOption = getDisplayTranslation(correctAnswerRecord);
+                    const distractor1Option = getDisplayTranslation(distractor1Record);
+                    const distractor2Option = getDisplayTranslation(distractor2Record);
+                    if (!correctAnswerOption || !distractor1Option || !distractor2Option) {
+                        console.error("[AyahMatch] Failed to get display translations even after validation. Retrying.");
+                        continue;
+                    }
+                    const options = [
+                        { translation: correctAnswerOption.translation, font: correctAnswerOption.config.font, dir: correctAnswerOption.config.dir, textAlign: correctAnswerOption.config.dir === 'rtl' ? 'right' : 'left' },
+                        { translation: distractor1Option.translation, font: distractor1Option.config.font, dir: distractor1Option.config.dir, textAlign: distractor1Option.config.dir === 'rtl' ? 'right' : 'left' },
+                        { translation: distractor2Option.translation, font: distractor2Option.config.font, dir: distractor2Option.config.dir, textAlign: distractor2Option.config.dir === 'rtl' ? 'right' : 'left' },
+                    ];
+                    console.log(`[AyahMatch v9] SUCCESS! Generated a valid question from S${correctAnswerRecord.surah}:A${correctAnswerRecord.ayah}.`);
+                    return {
+                        arabicQuestion: correctAnswerRecord.arabic,
+                        options: shuffleArray(options),
+                        correctAnswer: correctAnswerOption.translation,
+                    };
+                } catch (error) {
+                    console.warn(`[AyahMatch] Error during attempt ${attempts}:`, error);
                 }
-                const options = [
-                    { translation: correctAnswerOption.translation, font: correctAnswerOption.config.font, dir: correctAnswerOption.config.dir, textAlign: correctAnswerOption.config.dir === 'rtl' ? 'right' : 'left' },
-                    { translation: distractor1Option.translation, font: distractor1Option.config.font, dir: distractor1Option.config.dir, textAlign: distractor1Option.config.dir === 'rtl' ? 'right' : 'left' },
-                    { translation: distractor2Option.translation, font: distractor2Option.config.font, dir: distractor2Option.config.dir, textAlign: distractor2Option.config.dir === 'rtl' ? 'right' : 'left' },
-                ];
-                console.log(`[AyahMatch v9] SUCCESS! Generated a valid question from S${correctAnswerRecord.surah}:A${correctAnswerRecord.ayah}.`);
-                return {
-                    arabicQuestion: correctAnswerRecord.arabic,
-                    options: shuffleArray(options),
-                    correctAnswer: correctAnswerOption.translation,
-                };
-            } catch (error) {
-                console.warn(`[AyahMatch] Error during attempt ${attempts}:`, error);
             }
+            console.error("[AyahMatch v9] CRITICAL FAILURE: Failed to generate a question after all attempts.");
+            return null;
         }
-        console.error("[AyahMatch v9] CRITICAL FAILURE: Failed to generate a question after all attempts.");
-        return null;
-    }
-    function handleAyahMatchAnswer_Engine(event) {
-        const selectedButton = event.target;
-        const selectedAnswer = selectedButton.dataset.answer;
-        const correctAnswer = ayahmatState.currentQuestion.correctAnswer;
-        const feedbackEl = document.querySelector('.ayah-match-feedback');
-        document.querySelectorAll('.ayah-match-option-btn').forEach(btn => {
-            btn.disabled = true;
-            if (btn.dataset.answer === correctAnswer) {
-                btn.classList.add('correct');
+        function handleAyahMatchAnswer_Engine(event) {
+            const selectedButton = event.target;
+            const selectedAnswer = selectedButton.dataset.answer;
+            const correctAnswer = ayahmatState.currentQuestion.correctAnswer;
+            const feedbackEl = document.querySelector('.ayah-match-feedback');
+            document.querySelectorAll('.ayah-match-option-btn').forEach(btn => {
+                btn.disabled = true;
+                if (btn.dataset.answer === correctAnswer) {
+                    btn.classList.add('correct');
+                }
+            });
+            if (selectedAnswer === correctAnswer) {
+                feedbackEl.textContent = "Correct! Masha'Allah!";
+                feedbackEl.style.color = 'var(--color-success)';
+                ayahmatState.score += 10;
+                gameScore = ayahmatState.score;
+                if (gameScore > gameHighScore) gameHighScore = gameScore;
+                updateScoreDisplay();
+            } else {
+                selectedButton.classList.add('incorrect');
+                feedbackEl.textContent = "Not quite. The correct translation is highlighted in green.";
+                feedbackEl.style.color = 'var(--color-error)';
             }
-        });
-        if (selectedAnswer === correctAnswer) {
-            feedbackEl.textContent = "Correct! Masha'Allah!";
-            feedbackEl.style.color = 'var(--color-success)';
-            ayahmatState.score += 10;
-            gameScore = ayahmatState.score;
-            if (gameScore > gameHighScore) gameHighScore = gameScore;
-            updateScoreDisplay();
-        } else {
-            selectedButton.classList.add('incorrect');
-            feedbackEl.textContent = "Not quite. The correct translation is highlighted in green.";
-            feedbackEl.style.color = 'var(--color-error)';
+            ayahmatState.currentQuestionIndex++;
+            document.getElementById('ayahMatchNextBtn').style.display = 'inline-block';
         }
-        ayahmatState.currentQuestionIndex++;
-        document.getElementById('ayahMatchNextBtn').style.display = 'inline-block';
-    }
-    function endAyahMatchGame_Engine() {
-        const gamePlayArea = document.getElementById('gamePlayArea');
-        gamePlayArea.innerHTML = `
+        function endAyahMatchGame_Engine() {
+            const gamePlayArea = document.getElementById('gamePlayArea');
+            gamePlayArea.innerHTML = `
             <div class="ayah-match-wrapper">
                 <h3>Game Over!</h3>
                 <p>Your final score: ${ayahmatState.score} / ${ayahmatState.totalQuestions * 10}</p>
                 <div class="ayah-match-controls"><button id="playAyahMatchAgainBtn">Play Again</button></div>
             </div>`;
-        document.getElementById('playAyahMatchAgainBtn').addEventListener('click', startAyahMatchGame_Engine);
-        activeGame = null;
-    }
-    function addAyahMatchGameButtonToModal() {
-        const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
-        const oldButton = document.getElementById('startContextualCluesBtn');
-        if (oldButton) oldButton.remove();
-        const buttonId = 'startAyahMatchBtn';
-        if (gameSelectionArea && !document.getElementById(buttonId)) {
-            const matchButton = document.createElement('button');
-            matchButton.id = buttonId;
-            matchButton.className = 'game-select-btn';
-            matchButton.textContent = 'Ayah-Translation Match'; // New Name
-            matchButton.addEventListener('click', startAyahMatchGame_Engine);
-            gameSelectionArea.appendChild(matchButton);
+            document.getElementById('playAyahMatchAgainBtn').addEventListener('click', startAyahMatchGame_Engine);
+            activeGame = null;
         }
-    }
-    if (typeof setupGameModal !== 'undefined' && typeof setupGameModal.isPatchedForAyahMatch_v9 === 'undefined') {
-        const originalSetupGameModal = setupGameModal;
-        window.setupGameModal = function() {
-            originalSetupGameModal.apply(this, arguments);
-            addAyahMatchGameButtonToModal();
-        };
-        window.setupGameModal.isPatchedForAyahMatch_v9 = true;
-        console.log("RUNTIME PATCH: 'setupGameModal' is now patched to include 'Ayah-Translation Match' game (v9).");
-    }
-})(); // End of self-contained patch
+        function addAyahMatchGameButtonToModal() {
+            const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
+            const oldButton = document.getElementById('startContextualCluesBtn');
+            if (oldButton) oldButton.remove();
+            const buttonId = 'startAyahMatchBtn';
+            if (gameSelectionArea && !document.getElementById(buttonId)) {
+                const matchButton = document.createElement('button');
+                matchButton.id = buttonId;
+                matchButton.className = 'game-select-btn';
+                matchButton.textContent = 'Ayah-Translation Match'; // New Name
+                matchButton.addEventListener('click', startAyahMatchGame_Engine);
+                gameSelectionArea.appendChild(matchButton);
+            }
+        }
+        if (typeof setupGameModal !== 'undefined' && typeof setupGameModal.isPatchedForAyahMatch_v9 === 'undefined') {
+            const originalSetupGameModal = setupGameModal;
+            window.setupGameModal = function () {
+                originalSetupGameModal.apply(this, arguments);
+                addAyahMatchGameButtonToModal();
+            };
+            window.setupGameModal.isPatchedForAyahMatch_v9 = true;
+        }
+    })(); // End of self-contained patch
 </script>
