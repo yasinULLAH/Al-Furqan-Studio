@@ -1000,7 +1000,65 @@
         }
 
         button#fsReaderBookmarkBtn {
-            margin-left: 2px;
+            margin-right: 3px;
+        }
+
+        .tajweed.ham_wasl,
+        .tajweed.slnt,
+        .tajweed.laam_shamsiyah {
+            color: #AAAAAA;
+        }
+
+        .tajweed.madda_normal {
+            color: #537FFF;
+        }
+
+        .tajweed.madda_permissible {
+            color: #4050FF;
+        }
+
+        .tajweed.madda_necessary {
+            color: #0000FF;
+        }
+
+        .tajweed.qalqalah {
+            color: #DD0000;
+        }
+
+        .tajweed.madda_obligatory {
+            color: #FF0000;
+        }
+
+        .tajweed.ikhafa_shafawi {
+            color: #D500B4;
+        }
+
+        .tajweed.ikhafa {
+            color: #9400A8;
+        }
+
+        .tajweed.idgham_shafawi {
+            color: #58B800;
+        }
+
+        .tajweed.idgham_wo_ghunnah {
+            color: #169200;
+        }
+
+        .tajweed.idgham_ghunnah {
+            color: #169200;
+        }
+
+        .tajweed.iqlab {
+            color: #26BFFD;
+        }
+
+        .tajweed.ghunnah {
+            color: #FF7D7D;
+        }
+
+        span.end {
+            display: none;
         }
     </style>
     <!-- Optional: Include fonts if not available locally -->
@@ -5583,7 +5641,8 @@
         autoScrollAudio: true,
         highlightColor: 'rgba(255, 255, 150, 0.4)',
         continuousAudio: false,
-        audioSource: 'quran' // 'quran', 'en', 'ur'
+        audioSource: 'quran',
+        showTajweedColors: false,
     };
     const TAJ_COMPANY_PAGES = 604;
     let tajMushafPageData = []; // Populated by loadTajMushafPageData()
@@ -5698,8 +5757,8 @@
                 <div id="fsReaderSurahTitle" class="title">Loading...</div>
                 <div id="fsReaderPageInfo" class="page-info">Page ...</div>
             </div>
-            <button id="fsReaderSettingsToggleBtn" title="Settings">⚙️</button>
             <button id="fsReaderBookmarkBtn" title="Go to your daily reading spot (Ctrl+Click to set current spot)">🔖</button>
+            <button id="fsReaderSettingsToggleBtn" title="Settings">⚙️</button>
         </div>
         <div id="fsReaderContent" style="font-size: ${fullScreenReaderSettings.fontSize};">
             <p>Loading Quran content...</p>
@@ -5711,7 +5770,6 @@
             <button id="fsReaderPlayPauseBtn" title="Play/Pause">🔊</button>
             <button id="fsReaderCloseBtnEnhanced" title="Close Reader">✕</button>
         </div>
-        <!-- Settings Panel -->
         <div id="fsReaderSettingsPanel" class="fsReaderSlidingPanel">
             <h4>Reader Settings</h4>
             <div class="panel-section">
@@ -5732,6 +5790,7 @@
                     <input type="range" id="fsLinesPerPageSlider" min="10" max="20" step="1" value="${fullScreenReaderSettings.linesPerPage}">
                 </div>
                 <label><input type="checkbox" id="fsShowTransliterationCheck"> Show Transliteration</label>
+                <label><input type="checkbox" id="fsShowTajweedCheck"> Show Tajweed Colors</label>
             </div>
             <div class="panel-section">
                 <h5>Audio</h5>
@@ -5755,7 +5814,6 @@
                 </select>
             </div>
         </div>
-        <!-- Index Panel -->
         <div id="fsReaderIndexPanel" class="fsReaderSlidingPanel">
             <h4>Index</h4>
             <div class="index-tabs">
@@ -5773,7 +5831,6 @@
                  <input type="text" id="fsThematicIndexSearchInput" placeholder="Search themes..." style="width:100%; margin-bottom:10px;">
                 <ul class="index-list" id="fsIndexThemeList">
                     <li><a href="#" data-s="2" data-a="255">Ayat al-Kursi</a></li>
-                    <!-- Add more themes -->
                 </ul>
             </div>
         </div>
@@ -5854,7 +5911,6 @@
     async function renderQuranPageEnhanced(pageNumber) {
         const contentDiv = document.getElementById('fsReaderContent');
         if (!contentDiv || !tajMushafPageData.length) {
-            console.error("renderQuranPageEnhanced: Content div or page data missing.");
             if (contentDiv) contentDiv.innerHTML = "<p style='color:red;text-align:center;'>Error rendering page.</p>";
             return;
         }
@@ -5867,11 +5923,11 @@
             return;
         }
         fullScreenReaderCurrentPage = pageNumber;
-        fullScreenReaderCurrentSurah = pageData.startSurah; // Set global current S/A to page start
-        fullScreenReaderCurrentAyah = pageData.startAyah;  // for header and play button context
+        fullScreenReaderCurrentSurah = pageData.startSurah;
+        fullScreenReaderCurrentAyah = pageData.startAyah;
         const pageDiv = document.createElement('div');
         pageDiv.className = 'fsReaderPage';
-        let currentS_loop_var = pageData.startSurah; // Use loop-specific variables
+        let currentS_loop_var = pageData.startSurah;
         let currentA_loop_var = pageData.startAyah;
         let lineCountApproximation = 0;
         while (true) {
@@ -5879,13 +5935,13 @@
                 break;
             }
             if (currentS_loop_var > 114) break;
-            const ayahData = await getData(STORE_QURAN, [currentS_loop_var, currentA_loop_var]);
-            if (ayahData && ayahData.arabic) {
+            const ayahHTML = await getAyahHTML(currentS_loop_var, currentA_loop_var);
+            if (ayahHTML) {
                 if (currentA_loop_var === 1 && currentS_loop_var !== 1 && currentS_loop_var !== 9) {
                     const bismDiv = document.createElement('div');
                     bismDiv.className = 'bismillahText';
                     bismDiv.style.fontFamily = fullScreenReaderSettings.arabicFont;
-                    bismDiv.textContent = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+                    bismDiv.textContent = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
                     pageDiv.appendChild(bismDiv);
                     lineCountApproximation++;
                 }
@@ -5894,9 +5950,9 @@
                 ayahSpan.dataset.surah = currentS_loop_var;
                 ayahSpan.dataset.ayah = currentA_loop_var;
                 ayahSpan.style.fontFamily = fullScreenReaderSettings.arabicFont;
-                ayahSpan.textContent = ayahData.arabic.trim();
-                const s_for_click = currentS_loop_var; // Capture for closure
-                const a_for_click = currentA_loop_var; // Capture for closure
+                ayahSpan.innerHTML = ayahHTML;
+                const s_for_click = currentS_loop_var;
+                const a_for_click = currentA_loop_var;
                 ayahSpan.addEventListener('click', () => {
                     handleAyahSpanClick(s_for_click, a_for_click);
                 });
@@ -5915,7 +5971,6 @@
                     }
                 }
                 lineCountApproximation++;
-            } else if (!ayahData) {
             }
             currentA_loop_var++;
             if (currentA_loop_var > surahAyahCounts[currentS_loop_var]) {
@@ -6012,7 +6067,7 @@
                         const bismDiv = document.createElement('div');
                         bismDiv.className = 'bismillahText';
                         bismDiv.style.fontFamily = fullScreenReaderSettings.arabicFont;
-                        bismDiv.textContent = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+                        bismDiv.textContent = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
                         surahBlockDiv.appendChild(bismDiv);
                     }
                     continuousScrollSurahContainer.appendChild(surahBlockDiv);
@@ -6021,24 +6076,15 @@
             if (!surahBlockDiv || !document.body.contains(surahBlockDiv)) {
                 isLoadingMoreAyahs = false; return;
             }
-            const ayahData = await getData(STORE_QURAN, [s_loop, a_loop]);
-            if (!surahBlockDiv || !document.body.contains(surahBlockDiv) || !continuousScrollSurahContainer || !document.body.contains(continuousScrollSurahContainer)) {
-                isLoadingMoreAyahs = false; return;
-            }
+            const ayahHTML = await getAyahHTML(s_loop, a_loop);
             const ayahSpan = document.createElement('span');
             ayahSpan.className = 'fsReaderAyah';
             ayahSpan.dataset.surah = s_loop;
             ayahSpan.dataset.ayah = a_loop;
             ayahSpan.style.fontFamily = fullScreenReaderSettings.arabicFont;
-            if (ayahData && ayahData.arabic && ayahData.arabic.trim() !== "") {
-                ayahSpan.textContent = ayahData.arabic.trim();
-            } else {
-                ayahSpan.textContent = "[No Text]";
-                ayahSpan.style.color = "red";
-                ayahSpan.style.fontStyle = "italic";
-            }
-            const s_for_click = s_loop; // Capture for closure
-            const a_for_click = a_loop; // Capture for closure
+            ayahSpan.innerHTML = ayahHTML;
+            const s_for_click = s_loop;
+            const a_for_click = a_loop;
             ayahSpan.addEventListener('click', () => {
                 handleAyahSpanClick(s_for_click, a_for_click);
             });
@@ -6048,7 +6094,7 @@
             ayahNumSpan.textContent = arabicNumber(a_loop);
             surahBlockDiv.appendChild(ayahNumSpan);
             ayahsLoadedInBatch++;
-            if (fullScreenReaderSettings.showTransliteration && ayahData) {
+            if (fullScreenReaderSettings.showTransliteration) {
                 const translitText = await getAyahTransliteration(s_loop, a_loop);
                 if (translitText) {
                     const translitSpan = document.createElement('span');
@@ -6061,7 +6107,7 @@
             const maxAyahsThisSurah = (s_loop >= 1 && s_loop <= 114 && surahAyahCounts[s_loop]) ? surahAyahCounts[s_loop] : 0;
             if (maxAyahsThisSurah > 0 && continuousScrollNextAyahToLoad > maxAyahsThisSurah) {
                 if (s_loop < 114) {
-                    continuousScrollNextSurahToLoad = s_loop + 1; // This should be next surah
+                    continuousScrollNextSurahToLoad = s_loop + 1;
                     continuousScrollNextAyahToLoad = 1;
                 } else {
                     continuousScrollNextSurahToLoad = 115;
@@ -6588,14 +6634,14 @@
         const indexToggleBtn = document.getElementById('fsReaderIndexToggleBtn');
         const settingsPanel = document.getElementById('fsReaderSettingsPanel');
         const indexPanel = document.getElementById('fsReaderIndexPanel');
-        const contentDiv = document.getElementById('fsReaderContent'); // Main content area
+        const contentDiv = document.getElementById('fsReaderContent');
         const headerDiv = document.getElementById('fsReaderHeader');
         const footerDiv = document.getElementById('fsReaderFooter');
         const audioSourceSelect = document.getElementById('fsAudioSourceSelect');
         if (audioSourceSelect) {
             audioSourceSelect.addEventListener('change', (e) => {
                 fullScreenReaderSettings.audioSource = e.target.value;
-                stopAndClearAudio(); // Stop current audio when source changes
+                stopAndClearAudio();
                 saveFullScreenReaderSettings();
             });
         }
@@ -6608,7 +6654,7 @@
                     event.target.style.transform = 'scale(1.4)';
                     setTimeout(() => { event.target.style.transform = 'scale(1)'; }, 250);
                 } else {
-                    isDailyReadingSessionActive = true; // ACTIVATE AUTO-SAVE MODE!
+                    isDailyReadingSessionActive = true;
                     visualReadingSession = {
                         active: true,
                         startSurah: fullScreenReaderCurrentSurah,
@@ -6618,7 +6664,7 @@
                     };
                     event.target.style.backgroundColor = 'var(--color-success)';
                     setTimeout(() => { event.target.style.backgroundColor = ''; }, 1000);
-                    loadLastReadPosition(); // Jumps to your saved spot
+                    loadLastReadPosition();
                     if (fullScreenReaderViewMode === 'paged') {
                         await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
                     } else {
@@ -6627,7 +6673,7 @@
                 }
             });
         }
-        const scrubSlider = document.getElementById('fsReaderScrubSlider'); // For enabling/disabling
+        const scrubSlider = document.getElementById('fsReaderScrubSlider');
         if (closeBtn) closeBtn.addEventListener('click', closeFullScreenQuranReaderEnhanced);
         if (nextBtn) nextBtn.addEventListener('click', goToNextEnhanced);
         if (prevBtn) prevBtn.addEventListener('click', goToPrevEnhanced);
@@ -6636,17 +6682,14 @@
             settingsToggleBtn.addEventListener('click', () => {
                 const isSettingsVisible = settingsPanel.style.display === 'block';
                 settingsPanel.style.display = isSettingsVisible ? 'none' : 'block';
-                indexPanel.style.display = 'none'; // Always close index panel when settings is toggled
-                if (isSettingsVisible) { // i.e., settings panel was open and is now closing
-                } else {
-                }
+                indexPanel.style.display = 'none';
             });
         }
         if (indexToggleBtn && indexPanel && settingsPanel) {
             indexToggleBtn.addEventListener('click', () => {
                 const isIndexVisible = indexPanel.style.display === 'block';
                 indexPanel.style.display = isIndexVisible ? 'none' : 'block';
-                settingsPanel.style.display = 'none'; // Always close settings panel
+                settingsPanel.style.display = 'none';
             });
         }
         if (contentDiv && headerDiv && footerDiv && settingsPanel && indexPanel) {
@@ -6670,6 +6713,14 @@
         const autoScrollAudioCheck = document.getElementById('fsAutoScrollAudioCheck');
         const highlightColorPicker = document.getElementById('fsHighlightColorPicker');
         const viewModeSelect = document.getElementById('fsViewModeSelect');
+        const showTajweedCheck = document.getElementById('fsShowTajweedCheck');
+        if (showTajweedCheck) {
+            showTajweedCheck.checked = fullScreenReaderSettings.showTajweedColors;
+            showTajweedCheck.addEventListener('change', (e) => {
+                fullScreenReaderSettings.showTajweedColors = e.target.checked;
+                applyFullScreenReaderSettingsChanges();
+            });
+        }
         if (arabicFontSelect) arabicFontSelect.addEventListener('change', (e) => {
             fullScreenReaderSettings.arabicFont = e.target.value;
             applyFullScreenReaderSettingsChanges();
@@ -6681,7 +6732,7 @@
                 const contentDiv = document.getElementById('fsReaderContent');
                 if (contentDiv) contentDiv.style.fontSize = fullScreenReaderSettings.fontSize;
             });
-            fontSizeSlider.addEventListener('change', applyFullScreenReaderSettingsChanges); // Save and re-render if needed
+            fontSizeSlider.addEventListener('change', applyFullScreenReaderSettingsChanges);
         }
         if (linesPerPageSlider && linesPerPageValueEl) {
             linesPerPageSlider.addEventListener('input', (e) => {
@@ -6696,22 +6747,22 @@
         });
         if (continuousAudioCheck) continuousAudioCheck.addEventListener('change', (e) => {
             fullScreenReaderSettings.continuousAudio = e.target.checked;
-            saveFullScreenReaderSettings(); // Save immediately
+            saveFullScreenReaderSettings();
         });
         if (autoScrollAudioCheck) autoScrollAudioCheck.addEventListener('change', (e) => {
             fullScreenReaderSettings.autoScrollAudio = e.target.checked;
-            saveFullScreenReaderSettings(); // Save immediately
+            saveFullScreenReaderSettings();
         });
         if (highlightColorPicker) highlightColorPicker.addEventListener('change', (e) => {
             fullScreenReaderSettings.highlightColor = e.target.value;
-            saveFullScreenReaderSettings(); // Save immediately
+            saveFullScreenReaderSettings();
         });
         if (viewModeSelect) {
             viewModeSelect.addEventListener('change', async (e) => {
                 fullScreenReaderViewMode = e.target.value;
-                saveFullScreenReaderSettings(); // Save new view mode
+                saveFullScreenReaderSettings();
                 document.getElementById('fsLinesPerPageSettingDiv').style.display = (fullScreenReaderViewMode === 'paged') ? 'block' : 'none';
-                stopAndClearAudio(); // Stop audio when changing view mode
+                stopAndClearAudio();
                 if (fullScreenReaderViewMode === 'paged') {
                     fullScreenReaderCurrentPage = surahToPageEnhanced(fullScreenReaderCurrentSurah, fullScreenReaderCurrentAyah);
                     await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
@@ -6736,12 +6787,12 @@
             scrubSlider.addEventListener('input', () => {
                 if (fullScreenReaderViewMode === 'paged') {
                     const page = parseInt(scrubSlider.value, 10);
-                    const pageData = tajMushhafPageData.find(p => p.page === page);
+                    const pageData = tajMushafPageData.find(p => p.page === page);
                     if (pageData) {
                         document.getElementById('fsReaderSurahTitle').textContent = `Surah ${pageData.startSurah}: ${surahNames[pageData.startSurah - 1]}`;
                         document.getElementById('fsReaderPageInfo').textContent = `Page ${page}/${TAJ_COMPANY_PAGES} (Juz ${pageData.juz || getJuzFromSurahAyah(pageData.startSurah, pageData.startAyah)})`;
                     }
-                } else { // Continuous scroll, slider represents Surah
+                } else {
                     const surah = parseInt(scrubSlider.value, 10);
                     document.getElementById('fsReaderSurahTitle').textContent = `Surah ${surah}: ${surahNames[surah - 1]}`;
                     document.getElementById('fsReaderPageInfo').textContent = `Juz ${getJuzFromSurahAyah(surah, 1)}`;
@@ -6752,20 +6803,20 @@
                 if (fullScreenReaderViewMode === 'paged') {
                     fullScreenReaderCurrentPage = parseInt(scrubSlider.value, 10);
                     await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
-                } else { // Continuous scroll, jump to Surah
+                } else {
                     fullScreenReaderCurrentSurah = parseInt(scrubSlider.value, 10);
-                    fullScreenReaderCurrentAyah = 1; // Always start from Ayah 1 of the selected Surah
+                    fullScreenReaderCurrentAyah = 1;
                     continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
                     continuousScrollNextAyahToLoad = 1;
                     await initializeContinuousScroll();
                 }
-                updateReaderHeaderInfo(); // Ensure final update
+                updateReaderHeaderInfo();
             });
         }
         if (contentDiv) {
             contentDiv.addEventListener('scroll', async () => {
                 if (fullScreenReaderViewMode === 'continuous-scroll' && !isLoadingMoreAyahs) {
-                    const scrollThreshold = contentDiv.scrollHeight - contentDiv.clientHeight - 700; // 300px from bottom
+                    const scrollThreshold = contentDiv.scrollHeight - contentDiv.clientHeight - 700;
                     if (contentDiv.scrollTop >= scrollThreshold) {
                         await loadMoreAyahsForContinuousScroll();
                     }
@@ -6790,6 +6841,35 @@
             btn.style.transform = 'scale(1.4)';
             setTimeout(() => { btn.style.transform = 'scale(1)'; }, 250);
         }
+    }
+    async function getAyahHTML(surah, ayah) {
+        if (fullScreenReaderSettings.showTajweedColors) {
+            try {
+                const response = await fetch(`https://api.quran.com/api/v4/quran/verses/uthmani_tajweed?verse_key=${surah}:${ayah}`);
+                if (!response.ok) {
+                    throw new Error(`API fetch failed with status ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.verses && data.verses.length > 0) {
+                    const originalHtml = data.verses[0].text_uthmani_tajweed;
+                    const htmlWithoutVerseNumber = originalHtml.replace(/\s*﴿[٠-٩]+﴾\s*/g, '');
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = htmlWithoutVerseNumber;
+                    const tajweedElements = tempDiv.querySelectorAll('tajweed');
+                    tajweedElements.forEach(el => {
+                        const span = document.createElement('span');
+                        span.className = `tajweed ${el.getAttribute('class')}`;
+                        span.innerHTML = el.innerHTML;
+                        el.parentNode.replaceChild(span, el);
+                    });
+                    return tempDiv.innerHTML;
+                }
+            } catch (error) {
+                console.warn(`Tajweed API fetch failed for ${surah}:${ayah}. Falling back to plain text.`, error);
+            }
+        }
+        const ayahData = await getData(STORE_QURAN, [surah, ayah]);
+        return ayahData ? ayahData.arabic.trim() : `[Ayah ${surah}:${ayah} not found]`;
     }
     async function loadAndGoToDailyBookmark() {
         const saved = localStorage.getItem('fsReaderDailyBookmark');
