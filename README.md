@@ -86,7 +86,6 @@ Engage with the Quran in a fun and interactive way. All games are designed to wo
 
 -   🗣️ **Recitation Practice** | **تلاوت کی مشق**:
     -   Practice your recitation and get real-time feedback.
-    -   On mobile, uses a powerful offline Vosk engine for accurate recognition.
     -   On desktop, uses the native browser API for convenience.
     -   Listen to a reference recitation and compare your timing and accuracy.
 
@@ -122,9 +121,6 @@ Engage with the Quran in a fun and interactive way. All games are designed to wo
 - 📲 **PWA Ready** | **پی ڈبلیو اے ریڈی**: Can be installed as a progressive web app | پروگریسیو ویب ایپ کے طور پر انسٹال کیا جا سکتا ہے
 - 🔄 **Dynamic Content Loading** | **ڈائنامک کنٹینٹ لوڈنگ**: Loads Quran data on demand | قرآنی ڈیٹا کو ضرورت کے مطابق لوڈ کرتا ہے
 - 🖌️ **RTL Support** | **آر ٹی ایل سپورٹ**: Full right-to-left text support | مکمل دائیں سے بائیں متن کی سپورٹ
-<!-- NEW! -->
--   🔊 **Offline Speech Recognition (Mobile)** | **آف لائن اسپیچ ریکگنیشن (موبائل)**: Uses the **Vosk-Browser** library with an Arabic model cached in IndexedDB, allowing for high-quality, offline voice recognition on mobile devices. | **ووسک-براؤزر** لائبریری کا استعمال کرتا ہے جس میں ایک عربی ماڈل انڈیکسڈی بی میں کیش کیا جاتا ہے، جس سے موبائل آلات پر اعلیٰ معیار کی، آف لائن آواز کی شناخت ممکن ہوتی ہے۔
-<!-- End NEW! -->
 
 ## 📋 Requirements | ضروریات 📋
 
@@ -136,8 +132,6 @@ Engage with the Quran in a fun and interactive way. All games are designed to wo
 - 🕌 Quran text and translations from multiple sources | قرآنی متن اور تراجم متعدد ذرائع سے
 - 🎨 UI design inspired by both traditional manuscripts and modern interfaces | یو آئی ڈیزائن روایتی مخطوطات اور جدید انٹرفیسز سے متاثر
 - 🧠 SRS algorithm adapted from memory research | ایس آر ایس الگورتھم میموری ریسرچ سے اپنایا گیا
-<!-- NEW! -->
--   🗣️ **Vosk-Browser** for providing an excellent offline speech recognition library. | بہترین آف لائن اسپیچ ریکگنیشن لائبریری فراہم کرنے کے لیے **ووسک-براؤزر** کا شکریہ۔
 -   📊 **Vis.js** for the dynamic network graph visualization. | متحرک نیٹ ورک گراف ویژولائزیشن کے لیے **Vis.js** کا شکریہ۔
 -   📄 **Docx.js** for the client-side DOCX generation. | کلائنٹ سائڈ DOCX جنریشن کے لیے **Docx.js** کا شکریہ۔
 <!-- End NEW! -->
@@ -172,7 +166,7 @@ Engage with the Quran in a fun and interactive way. All games are designed to wo
 
 \#NurAlQuran \#QuranStudy \#IslamicApp \#DigitalQuran \#قرآن_مجید \#مطالعہ_قرآن \#اسلامی_ایپ \#ڈیجیٹل_قرآن
 <!-- NEW! -->
-\#PWA \#OfflineFirst \#Vosk \#QuranGames
+\#PWA \#OfflineFirst \#QuranGames
 <!-- End NEW! -->
 
 
