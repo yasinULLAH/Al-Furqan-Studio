@@ -1606,7 +1606,7 @@
                         const wordMetadataStore = db.createObjectStore(STORE_WORD_METADATA, { keyPath: 'word_id' });
                         wordMetadataStore.createIndex('location_idx', ['surah', 'ayah', 'word_position'], { unique: true });
                     }
-                        if (!db.objectStoreNames.contains('goals')) {
+                    if (!db.objectStoreNames.contains('goals')) {
                         console.log("Creating new 'goals' object store.");
                         const goalsStore = db.createObjectStore('goals', { keyPath: 'id', autoIncrement: true });
                         goalsStore.createIndex('type', 'type', { unique: false });
@@ -5753,7 +5753,6 @@
         isFullScreenReaderActive = true;
         document.body.style.overflow = 'hidden';
         injectEnhancedFullScreenReaderCSS();
-        await loadTajMushafPageDataIfNeeded();
         const overlay = document.createElement('div');
         overlay.id = 'fullScreenReaderOverlay';
         overlay.innerHTML = `
@@ -5844,6 +5843,7 @@
         document.body.appendChild(overlay);
         loadLastReadPosition();
         loadFullScreenReaderSettings();
+        await loadTajMushafPageDataIfNeeded();
         visualReadingSession = {
             active: true,
             startSurah: fullScreenReaderCurrentSurah,
@@ -5863,8 +5863,6 @@
         updateReaderHeaderInfo();
         updateScrubSliderRangeAndValue();
     }
-
-
     function closeFullScreenQuranReaderEnhanced() {
         const overlay = document.getElementById('fullScreenReaderOverlay');
         if (overlay) {
@@ -5881,41 +5879,46 @@
         saveFullScreenReaderSettings();
     }
     async function loadTajMushafPageDataIfNeeded() {
-        if (tajMushafPageData.length > 0) return;
         tajMushafPageData = [];
         let currentS = 1, currentA = 1;
         let currentJuz = 1;
-        const pagePerJuzApprox = TAJ_COMPANY_PAGES / 30;
+
         for (let page = 1; page <= TAJ_COMPANY_PAGES; page++) {
             const pageStartS = currentS;
             const pageStartA = currentA;
-            let ayahsOnPageCount = 0; // Count ayahs added to this page
+            let lineCountApproximation = 0;
             let pageEndS = currentS;
             let pageEndA = currentA;
-            if (page > (currentJuz * pagePerJuzApprox) && currentJuz < 30) {
-                currentJuz++;
+
+            if (juzBoundariesData[currentJuz - 1] && pageStartS >= juzBoundariesData[currentJuz - 1].startSurah) {
+                currentJuz = getJuzFromSurahAyah(pageStartS, pageStartA);
             }
-            while (ayahsOnPageCount < fullScreenReaderSettings.linesPerPage && currentS <= 114) {
-                ayahsOnPageCount++; // This is a line counter, not strictly ayah counter for Taj layout
+
+            while (lineCountApproximation < fullScreenReaderSettings.linesPerPage && currentS <= 114) {
+                lineCountApproximation++;
                 pageEndS = currentS;
                 pageEndA = currentA;
+
                 currentA++;
-                if (currentA > surahAyahCounts[currentS]) { // surahAyahCounts must be globally available
+                if (currentA > surahAyahCounts[currentS]) {
                     currentS++;
                     currentA = 1;
                     if (currentS > 114) break;
                 }
             }
+
             tajMushafPageData.push({
                 page: page,
                 startSurah: pageStartS, startAyah: pageStartA,
                 endSurah: pageEndS, endAyah: pageEndA,
                 juz: currentJuz
             });
+
             if (currentS > 114) break;
         }
-        console.log("Taj Mushaf Page Data Loaded (Simulated):", tajMushafPageData.length, "pages");
+        console.log(`Taj Mushaf Page Data Loaded/Recalculated: ${tajMushafPageData.length} pages based on ${fullScreenReaderSettings.linesPerPage} lines/page.`);
     }
+
     async function renderQuranPageEnhanced(pageNumber) {
         const contentDiv = document.getElementById('fsReaderContent');
         if (!contentDiv || !tajMushafPageData.length) {
@@ -5937,13 +5940,15 @@
         pageDiv.className = 'fsReaderPage';
         let currentS_loop_var = pageData.startSurah;
         let currentA_loop_var = pageData.startAyah;
-        let lineCountApproximation = 0;
         while (true) {
             if (currentS_loop_var > pageData.endSurah || (currentS_loop_var === pageData.endSurah && currentA_loop_var > pageData.endAyah)) {
                 break;
             }
+
             if (currentS_loop_var > 114) break;
+
             const ayahHTML = await getAyahHTML(currentS_loop_var, currentA_loop_var);
+
             if (ayahHTML) {
                 if (currentA_loop_var === 1 && currentS_loop_var !== 1 && currentS_loop_var !== 9) {
                     const bismDiv = document.createElement('div');
@@ -5951,7 +5956,6 @@
                     bismDiv.style.fontFamily = fullScreenReaderSettings.arabicFont;
                     bismDiv.textContent = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
                     pageDiv.appendChild(bismDiv);
-                    lineCountApproximation++;
                 }
                 const ayahSpan = document.createElement('span');
                 ayahSpan.className = 'fsReaderAyah';
@@ -5959,6 +5963,7 @@
                 ayahSpan.dataset.ayah = currentA_loop_var;
                 ayahSpan.style.fontFamily = fullScreenReaderSettings.arabicFont;
                 ayahSpan.innerHTML = ayahHTML;
+
                 const s_for_click = currentS_loop_var;
                 const a_for_click = currentA_loop_var;
                 ayahSpan.addEventListener('click', () => {
@@ -5978,24 +5983,22 @@
                         pageDiv.appendChild(translitSpan);
                     }
                 }
-                lineCountApproximation++;
             }
+
             currentA_loop_var++;
             if (currentA_loop_var > surahAyahCounts[currentS_loop_var]) {
                 currentS_loop_var++;
                 currentA_loop_var = 1;
             }
-            if (lineCountApproximation >= fullScreenReaderSettings.linesPerPage && pageNumber < TAJ_COMPANY_PAGES) {
-                if (currentS_loop_var < pageData.endSurah || (currentS_loop_var === pageData.endSurah && currentA_loop_var <= pageData.endAyah)) {
-                    break;
-                }
-            }
         }
+
         contentDiv.appendChild(pageDiv);
         contentDiv.scrollTop = 0;
         updateReaderHeaderInfo();
         updateScrubSliderRangeAndValue();
     }
+
+
     async function initializeContinuousScroll() {
         const contentDiv = document.getElementById('fsReaderContent');
         if (!contentDiv) {
@@ -6347,18 +6350,21 @@
         const firstPageOfSurah = tajMushafPageData.find(p => p.startSurah === surah || p.endSurah === surah);
         return firstPageOfSurah ? firstPageOfSurah.page : 1;
     }
-    function applyFullScreenReaderSettingsChanges() {
+    async function applyFullScreenReaderSettingsChanges() {
         const contentDiv = document.getElementById('fsReaderContent');
         if (contentDiv) {
             contentDiv.style.fontSize = fullScreenReaderSettings.fontSize;
         }
+
         if (fullScreenReaderViewMode === 'paged') {
-            renderQuranPageEnhanced(fullScreenReaderCurrentPage); // Re-render page for font/lines
+            tajMushafPageData = [];
+            await loadTajMushafPageDataIfNeeded();
+            await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
         } else {
-            continuousScrollSurahContainer.innerHTML = ''; // Clear
-            continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah; // Or first visible
-            continuousScrollNextAyahToLoad = fullScreenReaderCurrentAyah; // Or first visible
-            initializeContinuousScroll();
+            continuousScrollSurahContainer.innerHTML = '';
+            continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
+            continuousScrollNextAyahToLoad = fullScreenReaderCurrentAyah;
+            await initializeContinuousScroll();
         }
         saveFullScreenReaderSettings();
     }
@@ -6370,50 +6376,53 @@
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                for (const key in parsed) {
-                    if (parsed[key] !== undefined && fullScreenReaderSettings.hasOwnProperty(key)) {
-                        fullScreenReaderSettings[key] = parsed[key];
-                    }
-                }
+                Object.assign(fullScreenReaderSettings, parsed);
             } catch (e) { console.error("Error parsing saved reader settings", e); }
         }
-
         const audioSourceSelect = document.getElementById('fsAudioSourceSelect');
         if (audioSourceSelect) audioSourceSelect.value = fullScreenReaderSettings.audioSource;
 
         const fontSelect = document.getElementById('fsArabicFontSelect');
+        if (fontSelect) fontSelect.value = fullScreenReaderSettings.arabicFont;
+
         const sizeSlider = document.getElementById('fsFontSizeSlider');
         const sizeValueEl = document.getElementById('fsFontSizeValue');
-        const linesSlider = document.getElementById('fsLinesPerPageSlider');
-        const linesValueEl = document.getElementById('fsLinesPerPageValue');
-        const translitCheck = document.getElementById('fsShowTransliterationCheck');
-        const contAudioCheck = document.getElementById('fsContinuousAudioCheck');
-        const autoScrollCheck = document.getElementById('fsAutoScrollAudioCheck');
-        const highlightPicker = document.getElementById('fsHighlightColorPicker');
-        const viewModeSelect = document.getElementById('fsViewModeSelect');
-
-        if (fontSelect) fontSelect.value = fullScreenReaderSettings.arabicFont;
         if (sizeSlider && sizeValueEl) {
             sizeSlider.value = parseFloat(fullScreenReaderSettings.fontSize);
             sizeValueEl.textContent = fullScreenReaderSettings.fontSize;
         }
+        const linesSlider = document.getElementById('fsLinesPerPageSlider');
+        const linesValueEl = document.getElementById('fsLinesPerPageValue');
         if (linesSlider && linesValueEl) {
             linesSlider.value = fullScreenReaderSettings.linesPerPage;
             linesValueEl.textContent = fullScreenReaderSettings.linesPerPage;
         }
+        const translitCheck = document.getElementById('fsShowTransliterationCheck');
         if (translitCheck) translitCheck.checked = fullScreenReaderSettings.showTransliteration;
+
+        const tajweedCheck = document.getElementById('fsShowTajweedCheck');
+        if (tajweedCheck) tajweedCheck.checked = fullScreenReaderSettings.showTajweedColors;
+
+        const contAudioCheck = document.getElementById('fsContinuousAudioCheck');
         if (contAudioCheck) contAudioCheck.checked = fullScreenReaderSettings.continuousAudio;
+
+        const autoScrollCheck = document.getElementById('fsAutoScrollAudioCheck');
         if (autoScrollCheck) autoScrollCheck.checked = fullScreenReaderSettings.autoScrollAudio;
+
+        const highlightPicker = document.getElementById('fsHighlightColorPicker');
         if (highlightPicker) {
             highlightPicker.value = fullScreenReaderSettings.highlightColor.startsWith('rgba') ?
                 rgbToHex(fullScreenReaderSettings.highlightColor) :
                 fullScreenReaderSettings.highlightColor;
         }
+
+        const viewModeSelect = document.getElementById('fsViewModeSelect');
         if (viewModeSelect) viewModeSelect.value = fullScreenReaderViewMode;
         loadAndApplyDynamicFont(fullScreenReaderSettings.arabicFont).catch(err => {
-            alert(`Could not load saved font "${fullScreenReaderSettings.arabicFont}". Please check your connection or select another font.`);
+            console.warn(`Could not load saved font "${fullScreenReaderSettings.arabicFont}". Please check your connection or select another font.`);
         });
     }
+
 
     function rgbToHex(rgba) {
         if (rgba.startsWith('#')) return rgba; // Already hex
@@ -6640,7 +6649,14 @@
     }
     async function getAyahTransliteration(surah, ayah) { return null; }
     let isReaderChromeVisible = true; // To track visibility of header/footer/panels
-    function setupEnhancedFullScreenReaderEventListeners() {
+    function applyFontChangeToView() {
+        const newFont = fullScreenReaderSettings.arabicFont;
+        document.querySelectorAll(
+            '#fsReaderContent .fsReaderAyah, #fsReaderContent .bismillahText, #fsReaderContent .surahNameHeader'
+        ).forEach(el => {
+            el.style.fontFamily = newFont;
+        });
+    } function setupEnhancedFullScreenReaderEventListeners() {
         const closeBtn = document.getElementById('fsReaderCloseBtnEnhanced');
         const nextBtn = document.getElementById('fsReaderNextBtn');
         const prevBtn = document.getElementById('fsReaderPrevBtn');
@@ -6742,13 +6758,18 @@
                 if (settingsPanel) settingsPanel.style.cursor = 'wait';
                 try {
                     await loadAndApplyDynamicFont(e.target.value);
+                    await document.fonts.ready;
+                    applyFontChangeToView();
+                    saveFullScreenReaderSettings();
+
                 } catch (error) {
-                    alert(error.message);
+                    console.error("Error applying font change:", error);
                 } finally {
                     if (settingsPanel) settingsPanel.style.cursor = 'default';
                 }
             });
         }
+
         if (fontSizeSlider && fontSizeValueEl) {
             fontSizeSlider.addEventListener('input', (e) => {
                 fullScreenReaderSettings.fontSize = `${e.target.value}rem`;
@@ -6792,7 +6813,7 @@
                     await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
                 } else {
                     continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
-                    continuousScrollNextAyahToLoad = fullScreenReaderCurrentAyah;
+                    continuousScrollNextAyahToLoad = 1;
                     await initializeContinuousScroll();
                 }
                 updateReaderHeaderInfo();
@@ -6850,30 +6871,34 @@
         }
         setupKeyboardAndTapNavigation();
     }
+
     async function loadAndApplyDynamicFont(fontValue) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => { // Removed reject to prevent unhandled promise rejection
             const select = document.getElementById('fsArabicFontSelect');
-            if (!select) return reject('Font selector not found');
+            if (!select) {
+                console.error('Font selector not found');
+                return resolve();
+            }
+            if (document.fonts && document.fonts.check(`16px "${fontValue}"`)) {
+                fullScreenReaderSettings.arabicFont = fontValue;
+                return resolve();
+            }
 
             const selectedOption = select.querySelector(`option[value="${fontValue}"]`);
             if (!selectedOption) {
                 console.warn(`Font option for value "${fontValue}" not found.`);
                 fullScreenReaderSettings.arabicFont = 'var(--font-arabic)';
-                applyFullScreenReaderSettingsChanges();
                 return resolve();
             }
 
             const googleFontQuery = selectedOption.dataset.googleFont;
             if (!googleFontQuery) {
                 fullScreenReaderSettings.arabicFont = fontValue;
-                applyFullScreenReaderSettingsChanges();
                 return resolve();
             }
 
             const linkId = `dynamic-font-${googleFontQuery.replace(/[^a-zA-Z0-9]/g, '-')}`;
             if (document.getElementById(linkId)) {
-                fullScreenReaderSettings.arabicFont = fontValue;
-                applyFullScreenReaderSettingsChanges();
                 return resolve();
             }
 
@@ -6884,13 +6909,12 @@
 
             link.onload = () => {
                 fullScreenReaderSettings.arabicFont = fontValue;
-                applyFullScreenReaderSettingsChanges();
                 resolve();
             };
 
-            link.onerror = (err) => {
-                console.error(`Failed to load font: ${fontValue}`, err);
-                reject(new Error(`Could not load font: ${fontValue}`));
+            link.onerror = () => {
+                console.warn(`Failed to load font: ${fontValue}. The app will continue with a fallback font.`);
+                resolve();
             };
 
             document.head.appendChild(link);
@@ -9691,36 +9715,23 @@
         }
     })(); // End of self-contained patch
 
+    function initializeGoalsModule() {
+        if (window.goalsModuleInitialized) return;
 
+        injectGoalsCSS();
+        addGoalsNavLink();
+        createGoalsSectionHTML();
+        setupGoalsFormListener();
+        patchShowSectionForGoals();
 
+        window.goalsModuleInitialized = true;
+    }
 
+    function injectGoalsCSS() {
+        const cssId = "studyGoalsStyles";
+        if (document.getElementById(cssId)) document.getElementById(cssId).remove();
 
-
-
-
-
-
- // ====================================================================
-// --- ROBUST STUDY GOALS & PROGRESS TRACKER MODULE (v3 - Final) ---
-// ====================================================================
-
-function initializeGoalsModule() {
-    if (window.goalsModuleInitialized) return;
-
-    injectGoalsCSS();
-    addGoalsNavLink();
-    createGoalsSectionHTML();
-    setupGoalsFormListener();
-    patchShowSectionForGoals();
-    
-    window.goalsModuleInitialized = true;
-}
-
-function injectGoalsCSS() {
-    const cssId = "studyGoalsStyles";
-    if (document.getElementById(cssId)) document.getElementById(cssId).remove();
-
-    const styles = `
+        const styles = `
         /* Styles from previous version are retained... */
         .goals-container { padding: 10px; }
         .add-goal-form { background-color: var(--color-bg-secondary); padding: 20px; border-radius: var(--border-radius); margin-bottom: 25px; box-shadow: 0 2px 5px var(--color-shadow); }
@@ -9757,45 +9768,45 @@ function injectGoalsCSS() {
         .status-complete { background-color: var(--color-success); color: white; }
         .status-incomplete { background-color: #e0e0e0; color: #424242; }
     `;
-    const styleSheet = document.createElement("style");
-    styleSheet.id = cssId;
-    styleSheet.type = "text/css";
-    styleSheet.innerText = styles;
-    document.head.appendChild(styleSheet);
-}
-
-function addGoalsNavLink() {
-    const sidebarNav = document.querySelector('.sidebar nav ul');
-    if (!sidebarNav || document.querySelector('a[data-section="goals"]')) return;
-    const goalsLi = document.createElement('li');
-    const goalsLink = document.createElement('a');
-    goalsLink.href = "#goals";
-    goalsLink.className = "nav-link";
-    goalsLink.dataset.section = "goals";
-    goalsLink.textContent = "My Goals";
-    goalsLi.appendChild(goalsLink);
-    goalsLink.addEventListener('click', (e) => { e.preventDefault(); window.showSection('goals'); });
-    const reportingLink = sidebarNav.querySelector('a[data-section="reporting"]');
-    if (reportingLink) {
-        sidebarNav.insertBefore(goalsLi, reportingLink.parentElement);
-    } else {
-        sidebarNav.appendChild(goalsLi);
+        const styleSheet = document.createElement("style");
+        styleSheet.id = cssId;
+        styleSheet.type = "text/css";
+        styleSheet.innerText = styles;
+        document.head.appendChild(styleSheet);
     }
-}
 
-function createGoalsSectionHTML() {
-    const mainContent = document.querySelector('.main-content');
-    if (!mainContent || document.getElementById('goals')) return;
+    function addGoalsNavLink() {
+        const sidebarNav = document.querySelector('.sidebar nav ul');
+        if (!sidebarNav || document.querySelector('a[data-section="goals"]')) return;
+        const goalsLi = document.createElement('li');
+        const goalsLink = document.createElement('a');
+        goalsLink.href = "#goals";
+        goalsLink.className = "nav-link";
+        goalsLink.dataset.section = "goals";
+        goalsLink.textContent = "My Goals";
+        goalsLi.appendChild(goalsLink);
+        goalsLink.addEventListener('click', (e) => { e.preventDefault(); window.showSection('goals'); });
+        const reportingLink = sidebarNav.querySelector('a[data-section="reporting"]');
+        if (reportingLink) {
+            sidebarNav.insertBefore(goalsLi, reportingLink.parentElement);
+        } else {
+            sidebarNav.appendChild(goalsLi);
+        }
+    }
 
-    const goalsSection = document.createElement('section');
-    goalsSection.id = 'goals';
-    goalsSection.className = 'section';
-    goalsSection.setAttribute('role', 'region');
-    goalsSection.setAttribute('aria-labelledby', 'goals-heading');
+    function createGoalsSectionHTML() {
+        const mainContent = document.querySelector('.main-content');
+        if (!mainContent || document.getElementById('goals')) return;
 
-    let surahOptions = surahNames.map((name, i) => `<option value="${i+1}">${i+1}. ${name}</option>`).join('');
+        const goalsSection = document.createElement('section');
+        goalsSection.id = 'goals';
+        goalsSection.className = 'section';
+        goalsSection.setAttribute('role', 'region');
+        goalsSection.setAttribute('aria-labelledby', 'goals-heading');
 
-    goalsSection.innerHTML = `
+        let surahOptions = surahNames.map((name, i) => `<option value="${i + 1}">${i + 1}. ${name}</option>`).join('');
+
+        goalsSection.innerHTML = `
         <div class="goals-container">
             <h2 id="goals-heading">My Quran Goals</h2>
             <div class="add-goal-form">
@@ -9839,224 +9850,223 @@ function createGoalsSectionHTML() {
         </div>
         <div id="goalDetailsModal" class="modal goal-details-modal"><div class="modal-content"><span class="close-button" onclick="this.parentElement.parentElement.style.display='none'">×</span><h3 id="modalGoalTitle"></h3><div id="modalGoalContent" class="goal-details-content"></div></div></div>
     `;
-    mainContent.appendChild(goalsSection);
+        mainContent.appendChild(goalsSection);
 
-    document.getElementById('goal-type').addEventListener('change', async (e) => {
-        const targetWrapper = document.getElementById('goal-target-wrapper');
-        const countWrapper = document.getElementById('goal-count-wrapper');
-        const type = e.target.value;
-        targetWrapper.innerHTML = '';
-        countWrapper.innerHTML = '';
+        document.getElementById('goal-type').addEventListener('change', async (e) => {
+            const targetWrapper = document.getElementById('goal-target-wrapper');
+            const countWrapper = document.getElementById('goal-count-wrapper');
+            const type = e.target.value;
+            targetWrapper.innerHTML = '';
+            countWrapper.innerHTML = '';
 
-        switch(type) {
-            case 'read_surah':
-            case 'memorize_surah':
-                targetWrapper.innerHTML = `<label for="goal-target-surah">Select Surah:</label><select id="goal-target-surah" required>${surahOptions}</select>`;
-                break;
-            case 'read_ayahs_daily':
-                countWrapper.innerHTML = `<label for="goal-count">How many Ayahs per day?</label><input type="number" id="goal-count" min="1" value="10" required>`;
-                break;
-            case 'read_quran':
-                // No target needed, it's the whole Quran
-                break;
-            case 'tafsir_juz':
-                const juzOptions = juzBoundariesData.map(j => `<option value="${j.juz}">Juz ${j.juz}</option>`).join('');
-                targetWrapper.innerHTML = `<label for="goal-target-juz">Select Juz:</label><select id="goal-target-juz" required>${juzOptions}</select>`;
-                break;
-            case 'link_theme':
-                const themes = await getAllData('themes');
-                const themeOptions = themes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-                targetWrapper.innerHTML = `<label for="goal-target-theme">Select Theme:</label><select id="goal-target-theme" required>${themeOptions || '<option disabled>No themes created</option>'}</select>`;
-                countWrapper.innerHTML = `<label for="goal-count">Link how many Ayahs?</label><input type="number" id="goal-count" min="1" value="10" required>`;
-                break;
-        }
-    });
-
-    document.querySelectorAll('.goal-tab').forEach(tab => tab.addEventListener('click', (e) => {
-        document.querySelectorAll('.goal-tab, .goals-list-panel').forEach(el => el.classList.remove('active'));
-        e.target.classList.add('active');
-        document.getElementById(`goals-list-${e.target.dataset.tab}`).classList.add('active');
-    }));
-}
-
-function setupGoalsFormListener() {
-    const form = document.getElementById('goal-form');
-    if (form && !form.dataset.listenerAttached) {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const newGoal = {
-                title: document.getElementById('goal-title').value,
-                type: document.getElementById('goal-type').value,
-                targetDate: document.getElementById('goal-date').value,
-                creationDate: new Date().toISOString().split('T')[0],
-                isComplete: false
-            };
-            
-            const type = newGoal.type;
-            if (type === 'read_surah' || type === 'memorize_surah') {
-                newGoal.targetSurah = parseInt(document.getElementById('goal-target-surah').value);
-            } else if (type === 'read_ayahs_daily') {
-                newGoal.targetCount = parseInt(document.getElementById('goal-count').value);
-            } else if (type === 'tafsir_juz') {
-                newGoal.targetJuz = parseInt(document.getElementById('goal-target-juz').value);
-            } else if (type === 'link_theme') {
-                newGoal.targetTheme = parseInt(document.getElementById('goal-target-theme').value);
-                newGoal.targetCount = parseInt(document.getElementById('goal-count').value);
+            switch (type) {
+                case 'read_surah':
+                case 'memorize_surah':
+                    targetWrapper.innerHTML = `<label for="goal-target-surah">Select Surah:</label><select id="goal-target-surah" required>${surahOptions}</select>`;
+                    break;
+                case 'read_ayahs_daily':
+                    countWrapper.innerHTML = `<label for="goal-count">How many Ayahs per day?</label><input type="number" id="goal-count" min="1" value="10" required>`;
+                    break;
+                case 'read_quran':
+                    break;
+                case 'tafsir_juz':
+                    const juzOptions = juzBoundariesData.map(j => `<option value="${j.juz}">Juz ${j.juz}</option>`).join('');
+                    targetWrapper.innerHTML = `<label for="goal-target-juz">Select Juz:</label><select id="goal-target-juz" required>${juzOptions}</select>`;
+                    break;
+                case 'link_theme':
+                    const themes = await getAllData('themes');
+                    const themeOptions = themes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                    targetWrapper.innerHTML = `<label for="goal-target-theme">Select Theme:</label><select id="goal-target-theme" required>${themeOptions || '<option disabled>No themes created</option>'}</select>`;
+                    countWrapper.innerHTML = `<label for="goal-count">Link how many Ayahs?</label><input type="number" id="goal-count" min="1" value="10" required>`;
+                    break;
             }
-
-            await addData('goals', newGoal);
-            form.reset();
-            document.getElementById('goal-target-wrapper').innerHTML = '';
-            document.getElementById('goal-count-wrapper').innerHTML = '';
-            await renderGoalsUI();
         });
-        form.dataset.listenerAttached = 'true';
+
+        document.querySelectorAll('.goal-tab').forEach(tab => tab.addEventListener('click', (e) => {
+            document.querySelectorAll('.goal-tab, .goals-list-panel').forEach(el => el.classList.remove('active'));
+            e.target.classList.add('active');
+            document.getElementById(`goals-list-${e.target.dataset.tab}`).classList.add('active');
+        }));
     }
-}
 
-async function renderGoalsUI() {
-    const activeList = document.getElementById('goals-list-active');
-    const completedList = document.getElementById('goals-list-completed');
-    if (!activeList || !completedList) return;
+    function setupGoalsFormListener() {
+        const form = document.getElementById('goal-form');
+        if (form && !form.dataset.listenerAttached) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newGoal = {
+                    title: document.getElementById('goal-title').value,
+                    type: document.getElementById('goal-type').value,
+                    targetDate: document.getElementById('goal-date').value,
+                    creationDate: new Date().toISOString().split('T')[0],
+                    isComplete: false
+                };
 
-    activeList.innerHTML = '<p>Loading active goals...</p>';
-    completedList.innerHTML = '<p>Loading completed goals...</p>';
+                const type = newGoal.type;
+                if (type === 'read_surah' || type === 'memorize_surah') {
+                    newGoal.targetSurah = parseInt(document.getElementById('goal-target-surah').value);
+                } else if (type === 'read_ayahs_daily') {
+                    newGoal.targetCount = parseInt(document.getElementById('goal-count').value);
+                } else if (type === 'tafsir_juz') {
+                    newGoal.targetJuz = parseInt(document.getElementById('goal-target-juz').value);
+                } else if (type === 'link_theme') {
+                    newGoal.targetTheme = parseInt(document.getElementById('goal-target-theme').value);
+                    newGoal.targetCount = parseInt(document.getElementById('goal-count').value);
+                }
 
-    const allGoals = await getAllData('goals');
-    const userData = {
-        hifz: await getAllData('hifz'),
-        tafsir: await getAllData('tafsir'),
-        recitations: await getAllData('recitations'),
-        themeAyahs: await getAllData('theme_ayahs')
-    };
-    
-    let activeHTML = '';
-    let completedHTML = '';
-
-    for (const goal of allGoals) {
-        const { progress, progressText } = await calculateGoalProgress(goal, userData);
-        
-        if (progress >= 100 && !goal.isComplete) {
-            goal.isComplete = true;
-            await putData('goals', goal);
-        }
-
-        const goalCardHTML = createGoalCardHTML(goal, progress, progressText);
-        if (goal.isComplete) {
-            completedHTML += goalCardHTML;
-        } else {
-            activeHTML += goalCardHTML;
+                await addData('goals', newGoal);
+                form.reset();
+                document.getElementById('goal-target-wrapper').innerHTML = '';
+                document.getElementById('goal-count-wrapper').innerHTML = '';
+                await renderGoalsUI();
+            });
+            form.dataset.listenerAttached = 'true';
         }
     }
-    
-    activeList.innerHTML = activeHTML || '<p>No active goals. Add one above!</p>';
-    completedList.innerHTML = completedHTML || '<p>No goals completed yet. Keep going!</p>';
-    
-    document.querySelectorAll('.delete-goal-btn').forEach(btn => btn.addEventListener('click', handleDeleteGoal));
-    document.querySelectorAll('.view-details-btn').forEach(btn => btn.addEventListener('click', handleViewGoalDetails));
-}
 
-async function calculateGoalProgress(goal, userData) {
-    let progress = 0;
-    let progressText = '0/0';
-    const visualReadingLogs = userData.recitations.filter(r => r.qari === 'Visual Reading');
+    async function renderGoalsUI() {
+        const activeList = document.getElementById('goals-list-active');
+        const completedList = document.getElementById('goals-list-completed');
+        if (!activeList || !completedList) return;
 
-    switch (goal.type) {
-        case 'read_surah': {
-            const total = surahAyahCounts[goal.targetSurah];
-            const ayahsReadInSurah = new Set();
-            visualReadingLogs.filter(r => r.surah === goal.targetSurah).forEach(r => {
-                for (let i = r.ayahStart; i <= r.ayahEnd; i++) {
-                    ayahsReadInSurah.add(i);
-                }
-            });
-            const completed = ayahsReadInSurah.size;
-            progress = total > 0 ? (completed / total) * 100 : 100;
-            progressText = `${completed}/${total} Ayahs`;
-            break;
-        }
-        case 'read_quran': {
-            const total = 6236; // Total Ayahs
-            const ayahsRead = new Set();
-            visualReadingLogs.forEach(r => {
-                for (let i = r.ayahStart; i <= r.ayahEnd; i++) {
-                    ayahsRead.add(`${r.surah}:${i}`);
-                }
-            });
-            const completed = ayahsRead.size;
-            progress = (completed / total) * 100;
-            progressText = `${completed}/${total} Ayahs`;
-            break;
-        }
-        case 'read_ayahs_daily': {
-            const total = 7; // Track last 7 days
-            const dailyCounts = getDailyReadingCounts(visualReadingLogs);
-            let completed = 0;
-            for (let i = 0; i < 7; i++) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                const dayKey = d.toISOString().split('T')[0];
-                if ((dailyCounts[dayKey] || 0) >= goal.targetCount) {
-                    completed++;
-                }
+        activeList.innerHTML = '<p>Loading active goals...</p>';
+        completedList.innerHTML = '<p>Loading completed goals...</p>';
+
+        const allGoals = await getAllData('goals');
+        const userData = {
+            hifz: await getAllData('hifz'),
+            tafsir: await getAllData('tafsir'),
+            recitations: await getAllData('recitations'),
+            themeAyahs: await getAllData('theme_ayahs')
+        };
+
+        let activeHTML = '';
+        let completedHTML = '';
+
+        for (const goal of allGoals) {
+            const { progress, progressText } = await calculateGoalProgress(goal, userData);
+
+            if (progress >= 100 && !goal.isComplete) {
+                goal.isComplete = true;
+                await putData('goals', goal);
             }
-            progress = (completed / total) * 100;
-            progressText = `${completed}/${total} Days Met`;
-            break;
+
+            const goalCardHTML = createGoalCardHTML(goal, progress, progressText);
+            if (goal.isComplete) {
+                completedHTML += goalCardHTML;
+            } else {
+                activeHTML += goalCardHTML;
+            }
         }
-        case 'memorize_surah': {
-            const total = surahAyahCounts[goal.targetSurah];
-            const completed = userData.hifz.filter(h => h.surah === goal.targetSurah && h.status === 'memorized').length;
-            progress = total > 0 ? (completed / total) * 100 : 100;
-            progressText = `${completed}/${total} Ayahs`;
-            break;
-        }
-        case 'tafsir_juz': {
-            const ayahsInJuz = getAyahsForJuz(goal.targetJuz);
-            const total = ayahsInJuz.length;
-            const tafsirKeys = new Set(userData.tafsir.map(t => `${t.surah}:${t.ayah}`));
-            const completed = ayahsInJuz.filter(a => tafsirKeys.has(`${a.surah}:${a.ayah}`)).length;
-            progress = total > 0 ? (completed / total) * 100 : 100;
-            progressText = `${completed}/${total} Ayahs`;
-            break;
-        }
-        case 'link_theme': {
-            const total = goal.targetCount;
-            const completed = userData.themeAyahs.filter(ta => ta.themeId === goal.targetTheme).length;
-            progress = total > 0 ? (completed / total) * 100 : 100;
-            progressText = `${completed}/${total} Ayahs`;
-            break;
-        }
+
+        activeList.innerHTML = activeHTML || '<p>No active goals. Add one above!</p>';
+        completedList.innerHTML = completedHTML || '<p>No goals completed yet. Keep going!</p>';
+
+        document.querySelectorAll('.delete-goal-btn').forEach(btn => btn.addEventListener('click', handleDeleteGoal));
+        document.querySelectorAll('.view-details-btn').forEach(btn => btn.addEventListener('click', handleViewGoalDetails));
     }
-    return { progress: Math.min(progress, 100), progressText };
-}
 
-function getDailyReadingCounts(visualReadingLogs) {
-    const dailyCounts = {};
-    visualReadingLogs.forEach(r => {
-        const dayKey = r.date;
-        if (!dailyCounts[dayKey]) {
-            dailyCounts[dayKey] = 0;
+    async function calculateGoalProgress(goal, userData) {
+        let progress = 0;
+        let progressText = '0/0';
+        const visualReadingLogs = userData.recitations.filter(r => r.qari === 'Visual Reading');
+
+        switch (goal.type) {
+            case 'read_surah': {
+                const total = surahAyahCounts[goal.targetSurah];
+                const ayahsReadInSurah = new Set();
+                visualReadingLogs.filter(r => r.surah === goal.targetSurah).forEach(r => {
+                    for (let i = r.ayahStart; i <= r.ayahEnd; i++) {
+                        ayahsReadInSurah.add(i);
+                    }
+                });
+                const completed = ayahsReadInSurah.size;
+                progress = total > 0 ? (completed / total) * 100 : 100;
+                progressText = `${completed}/${total} Ayahs`;
+                break;
+            }
+            case 'read_quran': {
+                const total = 6236; // Total Ayahs
+                const ayahsRead = new Set();
+                visualReadingLogs.forEach(r => {
+                    for (let i = r.ayahStart; i <= r.ayahEnd; i++) {
+                        ayahsRead.add(`${r.surah}:${i}`);
+                    }
+                });
+                const completed = ayahsRead.size;
+                progress = (completed / total) * 100;
+                progressText = `${completed}/${total} Ayahs`;
+                break;
+            }
+            case 'read_ayahs_daily': {
+                const total = 7; // Track last 7 days
+                const dailyCounts = getDailyReadingCounts(visualReadingLogs);
+                let completed = 0;
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    const dayKey = d.toISOString().split('T')[0];
+                    if ((dailyCounts[dayKey] || 0) >= goal.targetCount) {
+                        completed++;
+                    }
+                }
+                progress = (completed / total) * 100;
+                progressText = `${completed}/${total} Days Met`;
+                break;
+            }
+            case 'memorize_surah': {
+                const total = surahAyahCounts[goal.targetSurah];
+                const completed = userData.hifz.filter(h => h.surah === goal.targetSurah && h.status === 'memorized').length;
+                progress = total > 0 ? (completed / total) * 100 : 100;
+                progressText = `${completed}/${total} Ayahs`;
+                break;
+            }
+            case 'tafsir_juz': {
+                const ayahsInJuz = getAyahsForJuz(goal.targetJuz);
+                const total = ayahsInJuz.length;
+                const tafsirKeys = new Set(userData.tafsir.map(t => `${t.surah}:${t.ayah}`));
+                const completed = ayahsInJuz.filter(a => tafsirKeys.has(`${a.surah}:${a.ayah}`)).length;
+                progress = total > 0 ? (completed / total) * 100 : 100;
+                progressText = `${completed}/${total} Ayahs`;
+                break;
+            }
+            case 'link_theme': {
+                const total = goal.targetCount;
+                const completed = userData.themeAyahs.filter(ta => ta.themeId === goal.targetTheme).length;
+                progress = total > 0 ? (completed / total) * 100 : 100;
+                progressText = `${completed}/${total} Ayahs`;
+                break;
+            }
         }
-        dailyCounts[dayKey] += (r.ayahEnd - r.ayahStart + 1);
-    });
-    return dailyCounts;
-}
+        return { progress: Math.min(progress, 100), progressText };
+    }
+
+    function getDailyReadingCounts(visualReadingLogs) {
+        const dailyCounts = {};
+        visualReadingLogs.forEach(r => {
+            const dayKey = r.date;
+            if (!dailyCounts[dayKey]) {
+                dailyCounts[dayKey] = 0;
+            }
+            dailyCounts[dayKey] += (r.ayahEnd - r.ayahStart + 1);
+        });
+        return dailyCounts;
+    }
 
 
-function createGoalCardHTML(goal, progress, progressText) {
-    const progressPercent = progress.toFixed(0);
-    const deadlineText = goal.targetDate ? `Target: ${new Date(goal.targetDate).toLocaleDateString()}` : 'Habit Goal';
-    
-    let goalDescription = '';
-    if (goal.type === 'read_surah') goalDescription = `Read Surah ${goal.targetSurah}`;
-    else if (goal.type === 'read_quran') goalDescription = `Complete Full Reading of Quran`;
-    else if (goal.type === 'read_ayahs_daily') goalDescription = `Read ${goal.targetCount} Ayahs Daily`;
-    else if (goal.type === 'memorize_surah') goalDescription = `Memorize Surah ${goal.targetSurah}`;
-    else if (goal.type === 'tafsir_juz') goalDescription = `Tafsir for Juz ${goal.targetJuz}`;
-    else if (goal.type === 'link_theme') goalDescription = `Link Ayahs to a theme`;
-    
-    return `
+    function createGoalCardHTML(goal, progress, progressText) {
+        const progressPercent = progress.toFixed(0);
+        const deadlineText = goal.targetDate ? `Target: ${new Date(goal.targetDate).toLocaleDateString()}` : 'Habit Goal';
+
+        let goalDescription = '';
+        if (goal.type === 'read_surah') goalDescription = `Read Surah ${goal.targetSurah}`;
+        else if (goal.type === 'read_quran') goalDescription = `Complete Full Reading of Quran`;
+        else if (goal.type === 'read_ayahs_daily') goalDescription = `Read ${goal.targetCount} Ayahs Daily`;
+        else if (goal.type === 'memorize_surah') goalDescription = `Memorize Surah ${goal.targetSurah}`;
+        else if (goal.type === 'tafsir_juz') goalDescription = `Tafsir for Juz ${goal.targetJuz}`;
+        else if (goal.type === 'link_theme') goalDescription = `Link Ayahs to a theme`;
+
+        return `
         <div class="goal-card ${goal.isComplete ? 'completed' : ''}">
             <div>
                 <h4>${goal.title}</h4>
@@ -10072,116 +10082,115 @@ function createGoalCardHTML(goal, progress, progressText) {
             </div>
         </div>
     `;
-}
+    }
 
-async function handleViewGoalDetails(e) {
-    const goalId = parseInt(e.target.dataset.goalId);
-    const goal = await getData('goals', goalId);
-    if (!goal) return;
+    async function handleViewGoalDetails(e) {
+        const goalId = parseInt(e.target.dataset.goalId);
+        const goal = await getData('goals', goalId);
+        if (!goal) return;
 
-    const modal = document.getElementById('goalDetailsModal');
-    document.getElementById('modalGoalTitle').textContent = `Details for: ${goal.title}`;
-    const contentEl = document.getElementById('modalGoalContent');
-    contentEl.innerHTML = '<p>Loading details...</p>';
-    modal.style.display = 'flex';
+        const modal = document.getElementById('goalDetailsModal');
+        document.getElementById('modalGoalTitle').textContent = `Details for: ${goal.title}`;
+        const contentEl = document.getElementById('modalGoalContent');
+        contentEl.innerHTML = '<p>Loading details...</p>';
+        modal.style.display = 'flex';
 
-    let detailHTML = '<ul class="detail-list">';
-    
-    switch (goal.type) {
-        case 'read_surah':
-        case 'read_quran': {
-            const visualReadingLogs = (await getAllData('recitations')).filter(r => r.qari === 'Visual Reading');
-            const ayahsRead = new Set();
-            visualReadingLogs.forEach(r => {
-                for (let i = r.ayahStart; i <= r.ayahEnd; i++) {
-                    ayahsRead.add(`${r.surah}:${i}`);
+        let detailHTML = '<ul class="detail-list">';
+
+        switch (goal.type) {
+            case 'read_surah':
+            case 'read_quran': {
+                const visualReadingLogs = (await getAllData('recitations')).filter(r => r.qari === 'Visual Reading');
+                const ayahsRead = new Set();
+                visualReadingLogs.forEach(r => {
+                    for (let i = r.ayahStart; i <= r.ayahEnd; i++) {
+                        ayahsRead.add(`${r.surah}:${i}`);
+                    }
+                });
+
+                const ayahsToRead = (goal.type === 'read_surah')
+                    ? Array.from({ length: surahAyahCounts[goal.targetSurah] }, (_, i) => `${goal.targetSurah}:${i + 1}`)
+                    : getAyahsForJuz(1, true).map(a => `${a.surah}:${a.ayah}`); // A simplified full quran list
+
+                const remaining = ayahsToRead.filter(key => !ayahsRead.has(key));
+                if (remaining.length > 0) {
+                    detailHTML += remaining.slice(0, 100).map(key => { // Show first 100 remaining
+                        const [s, a] = key.split(':');
+                        return `<li class="detail-item"><a onclick="jumpToTafsir(${s}, ${a})">Remaining: Surah ${s}:${a}</a></li>`;
+                    }).join('');
+                    if (remaining.length > 100) detailHTML += `<li>And ${remaining.length - 100} more...</li>`;
+                } else {
+                    detailHTML += '<li><p>All Ayahs have been read. Congratulations!</p></li>';
                 }
-            });
+                break;
+            }
+            case 'read_ayahs_daily': {
+                const visualReadingLogs = (await getAllData('recitations')).filter(r => r.qari === 'Visual Reading');
+                const dailyCounts = getDailyReadingCounts(visualReadingLogs);
+                for (let i = 0; i < 30; i++) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    const dayKey = d.toISOString().split('T')[0];
+                    const count = dailyCounts[dayKey] || 0;
+                    const isComplete = count >= goal.targetCount;
+                    detailHTML += `<li class="detail-item"><span>${d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</span><span class="detail-item-status status-${isComplete ? 'complete' : 'incomplete'}">${count} / ${goal.targetCount} Ayahs</span></li>`;
+                }
+                break;
+            }
+            case 'memorize_surah': { /* ... as before ... */ break; }
+            case 'tafsir_juz': { /* ... as before ... */ break; }
+            default:
+                detailHTML += '<li><p>Detailed progress view is not available for this goal type yet.</p></li>';
+        }
 
-            const ayahsToRead = (goal.type === 'read_surah') 
-                ? Array.from({length: surahAyahCounts[goal.targetSurah]}, (_, i) => `${goal.targetSurah}:${i+1}`)
-                : getAyahsForJuz(1, true).map(a => `${a.surah}:${a.ayah}`); // A simplified full quran list
-            
-            const remaining = ayahsToRead.filter(key => !ayahsRead.has(key));
-            if (remaining.length > 0) {
-                detailHTML += remaining.slice(0, 100).map(key => { // Show first 100 remaining
-                    const [s, a] = key.split(':');
-                    return `<li class="detail-item"><a onclick="jumpToTafsir(${s}, ${a})">Remaining: Surah ${s}:${a}</a></li>`;
-                }).join('');
-                if(remaining.length > 100) detailHTML += `<li>And ${remaining.length - 100} more...</li>`;
-            } else {
-                 detailHTML += '<li><p>All Ayahs have been read. Congratulations!</p></li>';
-            }
-            break;
+        detailHTML += '</ul>';
+        contentEl.innerHTML = detailHTML;
+    }
+    async function handleDeleteGoal(e) {
+        const goalId = parseInt(e.target.dataset.goalId);
+        if (confirm("Are you sure you want to delete this goal?")) {
+            await deleteData('goals', goalId);
+            await renderGoalsUI();
         }
-        case 'read_ayahs_daily': {
-            const visualReadingLogs = (await getAllData('recitations')).filter(r => r.qari === 'Visual Reading');
-            const dailyCounts = getDailyReadingCounts(visualReadingLogs);
-            for (let i = 0; i < 30; i++) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                const dayKey = d.toISOString().split('T')[0];
-                const count = dailyCounts[dayKey] || 0;
-                const isComplete = count >= goal.targetCount;
-                detailHTML += `<li class="detail-item"><span>${d.toLocaleDateString(undefined, {weekday: 'long', month: 'short', day: 'numeric'})}</span><span class="detail-item-status status-${isComplete ? 'complete' : 'incomplete'}">${count} / ${goal.targetCount} Ayahs</span></li>`;
-            }
-            break;
-        }
-        // ... (other cases for memorize, tafsir, etc. remain the same)
-        case 'memorize_surah': { /* ... as before ... */ break; }
-        case 'tafsir_juz': { /* ... as before ... */ break; }
-        default:
-             detailHTML += '<li><p>Detailed progress view is not available for this goal type yet.</p></li>';
     }
 
-    detailHTML += '</ul>';
-    contentEl.innerHTML = detailHTML;
-}
-async function handleDeleteGoal(e) {
-    const goalId = parseInt(e.target.dataset.goalId);
-    if (confirm("Are you sure you want to delete this goal?")) {
-        await deleteData('goals', goalId);
-        await renderGoalsUI();
+    async function jumpToHifz(surah, ayah) {
+        document.getElementById('goalDetailsModal').style.display = 'none';
+        showSection('hifz');
+        const hifzSelect = document.getElementById('hifz-surah-select');
+        hifzSelect.value = surah;
+        hifzSelect.dispatchEvent(new Event('change'));
     }
-}
 
-async function jumpToHifz(surah, ayah) {
-    document.getElementById('goalDetailsModal').style.display = 'none';
-    showSection('hifz');
-    const hifzSelect = document.getElementById('hifz-surah-select');
-    hifzSelect.value = surah;
-    hifzSelect.dispatchEvent(new Event('change'));
-}
+    async function jumpToTafsir(surah, ayah) {
+        document.getElementById('goalDetailsModal').style.display = 'none';
+        await loadAyah(surah, ayah);
+        showSection('tafsir');
+    }
 
-async function jumpToTafsir(surah, ayah) {
-    document.getElementById('goalDetailsModal').style.display = 'none';
-    await loadAyah(surah, ayah);
-    showSection('tafsir');
-}
-
-function getAyahsForJuz(juzNum) {
-    const ayahs = [];
-    for (let s = 1; s <= 114; s++) {
-        for (let a = 1; a <= surahAyahCounts[s]; a++) {
-            if (getJuzFromSurahAyah(s, a) === juzNum) {
-                ayahs.push({ surah: s, ayah: a });
+    function getAyahsForJuz(juzNum) {
+        const ayahs = [];
+        for (let s = 1; s <= 114; s++) {
+            for (let a = 1; a <= surahAyahCounts[s]; a++) {
+                if (getJuzFromSurahAyah(s, a) === juzNum) {
+                    ayahs.push({ surah: s, ayah: a });
+                }
             }
         }
+        return ayahs;
     }
-    return ayahs;
-}
 
-function patchShowSectionForGoals() {
-    if (window.showSection.isPatchedForGoals) return;
-    const originalShowSection = window.showSection;
-    window.showSection = function(sectionId) {
-        originalShowSection(sectionId);
-        if (sectionId === 'goals') {
-            renderGoalsUI();
-        }
-    };
-    window.showSection.isPatchedForGoals = true;
-}
+    function patchShowSectionForGoals() {
+        if (window.showSection.isPatchedForGoals) return;
+        const originalShowSection = window.showSection;
+        window.showSection = function (sectionId) {
+            originalShowSection(sectionId);
+            if (sectionId === 'goals') {
+                renderGoalsUI();
+            }
+        };
+        window.showSection.isPatchedForGoals = true;
+    }
 
-document.addEventListener('DOMContentLoaded', initializeGoalsModule);   
+    document.addEventListener('DOMContentLoaded', initializeGoalsModule);   
 </script>
