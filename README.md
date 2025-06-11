@@ -78,40 +78,54 @@ A powerful, offline-first Quranic study environment with advanced annotation, me
 - Spaced repetition scheduling | وقفہ تکرار شیڈیولنگ
 - Visual progress indicators | بصری پیشرفت اشارے
 
+
 <!-- NEW! -->
 ## 🎮 Quranic Games Suite | قرآنی گیمز کا مجموعہ 🎮
 
-Engage with the Quran in a fun and interactive way. All games are designed to work offline.
-قرآن کے ساتھ ایک تفریحی اور انٹرایکٹو انداز میں مشغول ہوں۔ تمام گیمز آف لائن کام کرنے کے لیے ڈیزائن کیے گئے ہیں۔
+Engage with the Quran in a fun and interactive way. All games are designed to work offline after the initial data load.
+قرآن کے ساتھ ایک تفریحی اور انٹرایکٹو انداز میں مشغول ہوں۔ تمام گیمز ابتدائی ڈیٹا لوڈ کے بعد آف لائن کام کرنے کے لیے ڈیزائن کیے گئے ہیں۔
 
 -   🗣️ **Recitation Practice** | **تلاوت کی مشق**:
-    -   Practice your recitation and get real-time feedback.
-    -   On desktop, uses the native browser API for convenience.
+    -   Practice your recitation and get real-time feedback on accuracy using your device's microphone.
     -   Listen to a reference recitation and compare your timing and accuracy.
-
--   🗣️ **تلاوت کی مشق**:
-    -   اپنی تلاوت کی مشق کریں اور حقیقی وقت میں فیڈ بیک حاصل کریں۔
-    -   موبائل پر، درست شناخت کے لیے ایک طاقتور آف لائن ووسک انجن استعمال کرتا ہے۔
-    -   ڈیسک ٹاپ پر، سہولت کے لیے مقامی براؤزر API کا استعمال کرتا ہے۔
+    -   مائیکروفون کے ذریعے اپنی تلاوت کی مشق کریں اور حقیقی وقت میں درستگی پر فیڈ بیک حاصل کریں۔
     -   حوالہ کی تلاوت سنیں اور اپنی ٹائمنگ اور درستگی کا موازنہ کریں۔
 
 -   ✍️ **Ayah Typing Challenge** | **آیت ٹائپنگ چیلنج**:
     -   Improve your Arabic typing speed and accuracy by typing out verses from the Quran.
-    -   Measures Words Per Minute (WPM) and accuracy.
-    -   Features a fullscreen, distraction-free typing environment.
-
--   ✍️ **آیت ٹائپنگ چیلنج**:
+    -   Measures Words Per Minute (WPM) and accuracy in a distraction-free environment.
     -   قرآن کی آیات ٹائپ کرکے اپنی عربی ٹائپنگ کی رفتار اور درستگی کو بہتر بنائیں۔
-    -   الفاظ فی منٹ (WPM) اور درستگی کی پیمائش کرتا ہے۔
-    -   ایک فل سکرین، خلفشار سے پاک ٹائپنگ ماحول فراہم کرتا ہے۔
+    -   ایک خلفشار سے پاک ماحول میں الفاظ فی منٹ (WPM) اور درستگی کی پیمائش کرتا ہے۔
 
 -   🧠 **Flashcard & Memory Match** | **فلیش کارڈ اور میموری میچ**:
     -   Learn Quranic vocabulary with classic flashcards.
     -   Reinforce your learning with a fun memory matching game based on the words you just practiced.
-
--   🧠 **فلیش کارڈ اور میموری میچ**:
     -   کلاسک فلیش کارڈز کے ساتھ قرآنی الفاظ سیکھیں۔
-    -   جن الفاظ کی آپ نے ابھی مشق کی ہے ان پر مبنی ایک تفریحی میموری میچنگ گیم کے ساتھ اپنی تعلیم کو تقویت دیں۔
+    -   ایک تفریحی میموری میچنگ گیم کے ساتھ اپنی تعلیم کو تقویت دیں۔
+
+-   🧩 **Takmil al-Ayah (Verse Jigsaw)** | **تکمیل الآیۃ (آیت کی پہیلی)**:
+    -   Reconstruct an Ayah by dragging and dropping its word segments into their correct slots.
+    -   A great way to improve your understanding of Arabic sentence structure.
+    -   آیت کے حصوں کو گھسیٹ کر ان کے صحیح خانوں میں رکھ کر آیت کو دوبارہ بنائیں۔
+    -   عربی جملے کی ساخت کی اپنی سمجھ کو بہتر بنانے کا ایک بہترین طریقہ۔
+
+-   🔀 **Nazm-ul-Ayah (Ayah Jumble)** | **نظم الآیۃ (آیت کی ترتیب)**:
+    -   Sharpen your recall by arranging the jumbled words of a verse into the correct sequence.
+    -   A challenging test of both memory and grammatical understanding.
+    -   ایک آیت کے بے ترتیب الفاظ کو صحیح ترتیب میں لگا کر اپنی یادداشت کو تیز کریں۔
+    -   یادداشت اور گرامر کی سمجھ دونوں کا ایک چیلنجنگ امتحان۔
+
+-   🎯 **Ayah-Translation Match** | **آیت-ترجمہ میچ**:
+    -   Test your comprehension by reading an Arabic verse and selecting its correct translation from multiple options.
+    -   A direct way to check your understanding of the Quran's meaning.
+    -   ایک عربی آیت پڑھ کر اور متعدد اختیارات میں سے اس کا صحیح ترجمہ منتخب کرکے اپنی فہم کی جانچ کریں۔
+    -   قرآن کے معنی کی اپنی سمجھ کو جانچنے کا ایک براہ راست طریقہ۔
+
+-   💡 **Lughat-ul-Nur (Word Whiz)** | **لغۃ النور (ورڈ وِز)**:
+    -   Quickly match Arabic words from the Quran to their correct translations in a multiple-choice format.
+    -   A fast-paced game to expand your Quranic vocabulary.
+    -   قرآن کے عربی الفاظ کو ان کے درست ترجمے کے ساتھ کثیر الانتخابی شکل میں جلدی سے ملائیں۔
+    -   اپنے قرآنی الفاظ کو بڑھانے کے لیے ایک تیز رفتار گیم۔
 <!-- End NEW! -->
 
 ## 💻 Technical Details | تکنیکی تفصیلات 💻
@@ -121,6 +135,9 @@ Engage with the Quran in a fun and interactive way. All games are designed to wo
 - 📲 **PWA Ready** | **پی ڈبلیو اے ریڈی**: Can be installed as a progressive web app | پروگریسیو ویب ایپ کے طور پر انسٹال کیا جا سکتا ہے
 - 🔄 **Dynamic Content Loading** | **ڈائنامک کنٹینٹ لوڈنگ**: Loads Quran data on demand | قرآنی ڈیٹا کو ضرورت کے مطابق لوڈ کرتا ہے
 - 🖌️ **RTL Support** | **آر ٹی ایل سپورٹ**: Full right-to-left text support | مکمل دائیں سے بائیں متن کی سپورٹ
+<!-- NEW! -->
+- 🧩 **Client-Side Library Integration**: Utilizes powerful libraries like `vis.js`, `docx.js`, and `diff-match-patch.js` for advanced features, all loaded on the client side. | کلائنٹ سائڈ لائبریری انٹیگریشن: ایڈوانسڈ خصوصیات کے لیے `vis.js`، `docx.js`، اور `diff-match-patch.js` جیسی طاقتور لائبریریوں کا استعمال کرتا ہے، جو سب کلائنٹ سائڈ پر لوڈ ہوتی ہیں۔
+<!-- End NEW! -->
 
 ## 📋 Requirements | ضروریات 📋
 
@@ -134,6 +151,12 @@ Engage with the Quran in a fun and interactive way. All games are designed to wo
 - 🧠 SRS algorithm adapted from memory research | ایس آر ایس الگورتھم میموری ریسرچ سے اپنایا گیا
 -   📊 **Vis.js** for the dynamic network graph visualization. | متحرک نیٹ ورک گراف ویژولائزیشن کے لیے **Vis.js** کا شکریہ۔
 -   📄 **Docx.js** for the client-side DOCX generation. | کلائنٹ سائڈ DOCX جنریشن کے لیے **Docx.js** کا شکریہ۔
+<!-- End NEW! -->
+<!-- NEW! -->
+-   ✍️ **diff-match-patch** for text comparison in the Recitation Practice game. | تلاوت کی مشق والے گیم میں متن کے موازنہ کے لیے **diff-match-patch** کا شکریہ۔
+-   📖 **Quran.com API** for providing the Tajweed-colored verse data used in the full-screen reader. | فل سکرین ریڈر میں استعمال ہونے والے تجوید کے رنگوں والے آیت کے ڈیٹا کی فراہمی کے لیے **Quran.com API** کا شکریہ۔
+-   🔊 Audio recitations sourced from **everyayah.com** (Mishary Alafasy) and **islamic.network** (Translations). | آڈیو تلاوتیں **everyayah.com** (مشاری العفاسی) اور **islamic.network** (تراجم) سے حاصل کی گئی ہیں۔
+-   ✒️ **Google Fonts** for providing the beautiful Arabic and Latin fonts used across the application's themes. | ایپلی کیشن کے تھیمز میں استعمال ہونے والے خوبصورت عربی اور لاطینی فونٹس کی فراہمی کے لیے **Google Fonts** کا شکریہ۔
 <!-- End NEW! -->
 
 
