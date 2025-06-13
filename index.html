@@ -5584,59 +5584,48 @@
         }
     }
     function updateVisualReadingProgress(currentS, currentA) {
-    if (!visualReadingSession.active) return;
-    // Simply update the last known position.
-    visualReadingSession.endSurah = parseInt(currentS);
-    visualReadingSession.endAyah = parseInt(currentA);
-}
+        if (!visualReadingSession.active) return;
+        visualReadingSession.endSurah = parseInt(currentS);
+        visualReadingSession.endAyah = parseInt(currentA);
+    }
     async function logVisualReadingSession() {
-    // 1. Exit if session wasn't active or didn't move.
-    if (!visualReadingSession.active || !visualReadingSession.startSurah || !visualReadingSession.endSurah) {
+        if (!visualReadingSession.active || !visualReadingSession.startSurah || !visualReadingSession.endSurah) {
+            visualReadingSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
+            return;
+        }
+
+        const { startSurah, startAyah, endSurah, endAyah } = visualReadingSession;
+        if (startSurah === endSurah && startAyah === endAyah) {
+            visualReadingSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
+            return;
+        }
+
+        const logPromises = [];
+        const qariName = "Visual/Self Reading";
+        for (let s = startSurah; s <= endSurah; s++) {
+            const currentStartAyah = (s === startSurah) ? startAyah : 1;
+            const currentEndAyah = (s === endSurah) ? endAyah : surahAyahCounts[s];
+
+            const logEntry = {
+                surah: s,
+                ayahStart: currentStartAyah,
+                ayahEnd: currentEndAyah,
+                qari: qariName,
+                date: new Date().toISOString().split('T')[0],
+                notes: `Auto-logged reading session for Surah ${s}.`
+            };
+
+            logPromises.push(addData(STORE_RECITATIONS, logEntry));
+        }
+
+        try {
+            await Promise.all(logPromises);
+            console.log(`Successfully logged reading for ${logPromises.length} separate Surah(s).`);
+        } catch (error) {
+            console.error("Failed to auto-log one or more visual reading sessions:", error);
+        }
         visualReadingSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
-        return;
     }
-
-    const { startSurah, startAyah, endSurah, endAyah } = visualReadingSession;
-
-    // 2. Also exit if the start and end points are identical (no reading happened).
-    if (startSurah === endSurah && startAyah === endAyah) {
-        visualReadingSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
-        return;
-    }
-
-    const logPromises = [];
-    const qariName = "Visual/Self Reading";
-
-    // 3. Loop through every surah from the start to the end of the session.
-    for (let s = startSurah; s <= endSurah; s++) {
-        // Determine the correct start ayah for the current surah in the loop.
-        const currentStartAyah = (s === startSurah) ? startAyah : 1;
-        
-        // Determine the correct end ayah for the current surah in the loop.
-        const currentEndAyah = (s === endSurah) ? endAyah : surahAyahCounts[s];
-
-        const logEntry = {
-            surah: s,
-            ayahStart: currentStartAyah,
-            ayahEnd: currentEndAyah,
-            qari: qariName,
-            date: new Date().toISOString().split('T')[0],
-            notes: `Auto-logged reading session for Surah ${s}.`
-        };
-        
-        logPromises.push(addData(STORE_RECITATIONS, logEntry));
-    }
-
-    try {
-        await Promise.all(logPromises);
-        console.log(`Successfully logged reading for ${logPromises.length} separate Surah(s).`);
-    } catch (error) {
-        console.error("Failed to auto-log one or more visual reading sessions:", error);
-    }
-
-    // 4. Reset the session for the next reading.
-    visualReadingSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
-}
     let isFullScreenReaderActive = false;
     let isDailyReadingSessionActive = false;
     let visualReadingSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
@@ -5779,14 +5768,14 @@
         document.head.appendChild(styleSheet);
     }
     async function launchFullScreenQuranReaderEnhanced() {
-    if (isFullScreenReaderActive) return;
-    isDailyReadingSessionActive = false;
-    isFullScreenReaderActive = true;
-    document.body.style.overflow = 'hidden';
-    injectEnhancedFullScreenReaderCSS();
-    const overlay = document.createElement('div');
-    overlay.id = 'fullScreenReaderOverlay';
-    overlay.innerHTML = `
+        if (isFullScreenReaderActive) return;
+        isDailyReadingSessionActive = false;
+        isFullScreenReaderActive = true;
+        document.body.style.overflow = 'hidden';
+        injectEnhancedFullScreenReaderCSS();
+        const overlay = document.createElement('div');
+        overlay.id = 'fullScreenReaderOverlay';
+        overlay.innerHTML = `
     <div id="fsReaderHeader">
         <button id="fsReaderIndexToggleBtn" title="Index">☰</button>
         <div class="title-page-container">
@@ -5871,31 +5860,31 @@
         </div>
     </div>
 `;
-    document.body.appendChild(overlay);
-    loadLastReadPosition();
-    loadFullScreenReaderSettings();
-    await loadTajMushafPageDataIfNeeded();
+        document.body.appendChild(overlay);
+        loadLastReadPosition();
+        loadFullScreenReaderSettings();
+        await loadTajMushafPageDataIfNeeded();
 
-    visualReadingSession = {
-        active: true,
-        startSurah: fullScreenReaderCurrentSurah,
-        startAyah: fullScreenReaderCurrentAyah,
-        endSurah: fullScreenReaderCurrentSurah,
-        endAyah: fullScreenReaderCurrentAyah
-    };
+        visualReadingSession = {
+            active: true,
+            startSurah: fullScreenReaderCurrentSurah,
+            startAyah: fullScreenReaderCurrentAyah,
+            endSurah: fullScreenReaderCurrentSurah,
+            endAyah: fullScreenReaderCurrentAyah
+        };
 
-    setupEnhancedFullScreenReaderEventListeners();
-    populateIndexLists();
-    if (fullScreenReaderViewMode === 'paged') {
-        document.getElementById('fsLinesPerPageSettingDiv').style.display = 'block';
-        await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
-    } else {
-        document.getElementById('fsLinesPerPageSettingDiv').style.display = 'none';
-        await initializeContinuousScroll();
+        setupEnhancedFullScreenReaderEventListeners();
+        populateIndexLists();
+        if (fullScreenReaderViewMode === 'paged') {
+            document.getElementById('fsLinesPerPageSettingDiv').style.display = 'block';
+            await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+        } else {
+            document.getElementById('fsLinesPerPageSettingDiv').style.display = 'none';
+            await initializeContinuousScroll();
+        }
+        updateReaderHeaderInfo();
+        updateScrubSliderRangeAndValue();
     }
-    updateReaderHeaderInfo();
-    updateScrubSliderRangeAndValue();
-}
 
     function closeFullScreenQuranReaderEnhanced() {
         const overlay = document.getElementById('fullScreenReaderOverlay');
@@ -6690,211 +6679,211 @@
         });
     }
     function setupEnhancedFullScreenReaderEventListeners() {
-    const closeBtn = document.getElementById('fsReaderCloseBtnEnhanced');
-    const nextBtn = document.getElementById('fsReaderNextBtn');
-    const prevBtn = document.getElementById('fsReaderPrevBtn');
-    const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
-    const settingsToggleBtn = document.getElementById('fsReaderSettingsToggleBtn');
-    const indexToggleBtn = document.getElementById('fsReaderIndexToggleBtn');
-    const settingsPanel = document.getElementById('fsReaderSettingsPanel');
-    const indexPanel = document.getElementById('fsReaderIndexPanel');
-    const contentDiv = document.getElementById('fsReaderContent');
-    const headerDiv = document.getElementById('fsReaderHeader');
-    const footerDiv = document.getElementById('fsReaderFooter');
-    const audioSourceSelect = document.getElementById('fsAudioSourceSelect');
-    if (audioSourceSelect) {
-        audioSourceSelect.addEventListener('change', (e) => {
-            fullScreenReaderSettings.audioSource = e.target.value;
-            stopAndClearAudio();
-            saveFullScreenReaderSettings();
-        });
-    }
-    const bookmarkBtn = document.getElementById('fsReaderBookmarkBtn');
-    if (bookmarkBtn) {
-        bookmarkBtn.addEventListener('click', async (event) => {
-            if (event.ctrlKey || event.metaKey) {
-                saveLastReadPosition();
-                event.target.style.transition = 'transform 0.2s';
-                event.target.style.transform = 'scale(1.4)';
-                setTimeout(() => { event.target.style.transform = 'scale(1)'; }, 250);
-            } else {
-                isDailyReadingSessionActive = true;
-                visualReadingSession = {
-                    active: true,
-                    startSurah: fullScreenReaderCurrentSurah,
-                    startAyah: fullScreenReaderCurrentAyah,
-                    endSurah: fullScreenReaderCurrentSurah,
-                    endAyah: fullScreenReaderCurrentAyah
-                };
-                event.target.style.backgroundColor = 'var(--color-success)';
-                setTimeout(() => { event.target.style.backgroundColor = ''; }, 1000);
-                loadLastReadPosition();
-                if (fullScreenReaderViewMode === 'paged') {
-                    await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+        const closeBtn = document.getElementById('fsReaderCloseBtnEnhanced');
+        const nextBtn = document.getElementById('fsReaderNextBtn');
+        const prevBtn = document.getElementById('fsReaderPrevBtn');
+        const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
+        const settingsToggleBtn = document.getElementById('fsReaderSettingsToggleBtn');
+        const indexToggleBtn = document.getElementById('fsReaderIndexToggleBtn');
+        const settingsPanel = document.getElementById('fsReaderSettingsPanel');
+        const indexPanel = document.getElementById('fsReaderIndexPanel');
+        const contentDiv = document.getElementById('fsReaderContent');
+        const headerDiv = document.getElementById('fsReaderHeader');
+        const footerDiv = document.getElementById('fsReaderFooter');
+        const audioSourceSelect = document.getElementById('fsAudioSourceSelect');
+        if (audioSourceSelect) {
+            audioSourceSelect.addEventListener('change', (e) => {
+                fullScreenReaderSettings.audioSource = e.target.value;
+                stopAndClearAudio();
+                saveFullScreenReaderSettings();
+            });
+        }
+        const bookmarkBtn = document.getElementById('fsReaderBookmarkBtn');
+        if (bookmarkBtn) {
+            bookmarkBtn.addEventListener('click', async (event) => {
+                if (event.ctrlKey || event.metaKey) {
+                    saveLastReadPosition();
+                    event.target.style.transition = 'transform 0.2s';
+                    event.target.style.transform = 'scale(1.4)';
+                    setTimeout(() => { event.target.style.transform = 'scale(1)'; }, 250);
                 } else {
-                    await initializeContinuousScroll();
+                    isDailyReadingSessionActive = true;
+                    visualReadingSession = {
+                        active: true,
+                        startSurah: fullScreenReaderCurrentSurah,
+                        startAyah: fullScreenReaderCurrentAyah,
+                        endSurah: fullScreenReaderCurrentSurah,
+                        endAyah: fullScreenReaderCurrentAyah
+                    };
+                    event.target.style.backgroundColor = 'var(--color-success)';
+                    setTimeout(() => { event.target.style.backgroundColor = ''; }, 1000);
+                    loadLastReadPosition();
+                    if (fullScreenReaderViewMode === 'paged') {
+                        await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+                    } else {
+                        await initializeContinuousScroll();
+                    }
                 }
-            }
-        });
-    }
-    const scrubSlider = document.getElementById('fsReaderScrubSlider');
-    if (closeBtn) closeBtn.addEventListener('click', closeFullScreenQuranReaderEnhanced);
-    if (nextBtn) nextBtn.addEventListener('click', goToNextEnhanced);
-    if (prevBtn) prevBtn.addEventListener('click', goToPrevEnhanced);
-    if (playPauseBtn) playPauseBtn.addEventListener('click', toggleAudioPlaybackEnhanced);
-    if (settingsToggleBtn && settingsPanel && indexPanel) {
-        settingsToggleBtn.addEventListener('click', () => {
-            const isSettingsVisible = settingsPanel.style.display === 'block';
-            settingsPanel.style.display = isSettingsVisible ? 'none' : 'block';
-            indexPanel.style.display = 'none';
-        });
-    }
-    if (indexToggleBtn && indexPanel && settingsPanel) {
-        indexToggleBtn.addEventListener('click', () => {
-            const isIndexVisible = indexPanel.style.display === 'block';
-            indexPanel.style.display = isIndexVisible ? 'none' : 'block';
-            settingsPanel.style.display = 'none';
-        });
-    }
-    if (contentDiv && headerDiv && footerDiv && settingsPanel && indexPanel) {
-        contentDiv.addEventListener('click', (e) => {
-            if (e.target === contentDiv && settingsPanel.style.display === 'none' && indexPanel.style.display === 'none') {
-                toggleReaderChromeVisibility();
-            } else if (settingsPanel.style.display === 'block' && !settingsPanel.contains(e.target) && e.target !== settingsToggleBtn) {
-                settingsPanel.style.display = 'none';
-            } else if (indexPanel.style.display === 'block' && !indexPanel.contains(e.target) && e.target !== indexToggleBtn) {
+            });
+        }
+        const scrubSlider = document.getElementById('fsReaderScrubSlider');
+        if (closeBtn) closeBtn.addEventListener('click', closeFullScreenQuranReaderEnhanced);
+        if (nextBtn) nextBtn.addEventListener('click', goToNextEnhanced);
+        if (prevBtn) prevBtn.addEventListener('click', goToPrevEnhanced);
+        if (playPauseBtn) playPauseBtn.addEventListener('click', toggleAudioPlaybackEnhanced);
+        if (settingsToggleBtn && settingsPanel && indexPanel) {
+            settingsToggleBtn.addEventListener('click', () => {
+                const isSettingsVisible = settingsPanel.style.display === 'block';
+                settingsPanel.style.display = isSettingsVisible ? 'none' : 'block';
                 indexPanel.style.display = 'none';
-            }
-        });
-    }
-    const arabicFontSelect = document.getElementById('fsArabicFontSelect');
-    const fontSizeSlider = document.getElementById('fsFontSizeSlider');
-    const fontSizeValueEl = document.getElementById('fsFontSizeValue');
-    const linesPerPageSlider = document.getElementById('fsLinesPerPageSlider');
-    const linesPerPageValueEl = document.getElementById('fsLinesPerPageValue');
-    const showTransliterationCheck = document.getElementById('fsShowTransliterationCheck');
-    const continuousAudioCheck = document.getElementById('fsContinuousAudioCheck');
-    const autoScrollAudioCheck = document.getElementById('fsAutoScrollAudioCheck');
-    const highlightColorPicker = document.getElementById('fsHighlightColorPicker');
-    const viewModeSelect = document.getElementById('fsViewModeSelect');
-    const showTajweedCheck = document.getElementById('fsShowTajweedCheck');
-    if (showTajweedCheck) {
-        showTajweedCheck.checked = fullScreenReaderSettings.showTajweedColors;
-        showTajweedCheck.addEventListener('change', (e) => {
-            fullScreenReaderSettings.showTajweedColors = e.target.checked;
+            });
+        }
+        if (indexToggleBtn && indexPanel && settingsPanel) {
+            indexToggleBtn.addEventListener('click', () => {
+                const isIndexVisible = indexPanel.style.display === 'block';
+                indexPanel.style.display = isIndexVisible ? 'none' : 'block';
+                settingsPanel.style.display = 'none';
+            });
+        }
+        if (contentDiv && headerDiv && footerDiv && settingsPanel && indexPanel) {
+            contentDiv.addEventListener('click', (e) => {
+                if (e.target === contentDiv && settingsPanel.style.display === 'none' && indexPanel.style.display === 'none') {
+                    toggleReaderChromeVisibility();
+                } else if (settingsPanel.style.display === 'block' && !settingsPanel.contains(e.target) && e.target !== settingsToggleBtn) {
+                    settingsPanel.style.display = 'none';
+                } else if (indexPanel.style.display === 'block' && !indexPanel.contains(e.target) && e.target !== indexToggleBtn) {
+                    indexPanel.style.display = 'none';
+                }
+            });
+        }
+        const arabicFontSelect = document.getElementById('fsArabicFontSelect');
+        const fontSizeSlider = document.getElementById('fsFontSizeSlider');
+        const fontSizeValueEl = document.getElementById('fsFontSizeValue');
+        const linesPerPageSlider = document.getElementById('fsLinesPerPageSlider');
+        const linesPerPageValueEl = document.getElementById('fsLinesPerPageValue');
+        const showTransliterationCheck = document.getElementById('fsShowTransliterationCheck');
+        const continuousAudioCheck = document.getElementById('fsContinuousAudioCheck');
+        const autoScrollAudioCheck = document.getElementById('fsAutoScrollAudioCheck');
+        const highlightColorPicker = document.getElementById('fsHighlightColorPicker');
+        const viewModeSelect = document.getElementById('fsViewModeSelect');
+        const showTajweedCheck = document.getElementById('fsShowTajweedCheck');
+        if (showTajweedCheck) {
+            showTajweedCheck.checked = fullScreenReaderSettings.showTajweedColors;
+            showTajweedCheck.addEventListener('change', (e) => {
+                fullScreenReaderSettings.showTajweedColors = e.target.checked;
+                applyFullScreenReaderSettingsChanges();
+            });
+        }
+        if (arabicFontSelect) {
+            arabicFontSelect.addEventListener('change', (e) => {
+                loadAndApplyDynamicFont(e.target.value);
+                applyFontChangeToView();
+                saveFullScreenReaderSettings();
+            });
+        }
+
+        if (fontSizeSlider && fontSizeValueEl) {
+            fontSizeSlider.addEventListener('input', (e) => {
+                fullScreenReaderSettings.fontSize = `${e.target.value}rem`;
+                fontSizeValueEl.textContent = fullScreenReaderSettings.fontSize;
+                const contentDiv = document.getElementById('fsReaderContent');
+                if (contentDiv) contentDiv.style.fontSize = fullScreenReaderSettings.fontSize;
+            });
+            fontSizeSlider.addEventListener('change', applyFullScreenReaderSettingsChanges);
+        }
+        if (linesPerPageSlider && linesPerPageValueEl) {
+            linesPerPageSlider.addEventListener('input', (e) => {
+                fullScreenReaderSettings.linesPerPage = parseInt(e.target.value, 10);
+                linesPerPageValueEl.textContent = fullScreenReaderSettings.linesPerPage;
+            });
+            linesPerPageSlider.addEventListener('change', applyFullScreenReaderSettingsChanges);
+        }
+        if (showTransliterationCheck) showTransliterationCheck.addEventListener('change', (e) => {
+            fullScreenReaderSettings.showTransliteration = e.target.checked;
             applyFullScreenReaderSettingsChanges();
         });
-    }
-    if (arabicFontSelect) {
-        arabicFontSelect.addEventListener('change', (e) => {
-            loadAndApplyDynamicFont(e.target.value); 
-            applyFontChangeToView();                 
-            saveFullScreenReaderSettings();          
-        });
-    }
-
-    if (fontSizeSlider && fontSizeValueEl) {
-        fontSizeSlider.addEventListener('input', (e) => {
-            fullScreenReaderSettings.fontSize = `${e.target.value}rem`;
-            fontSizeValueEl.textContent = fullScreenReaderSettings.fontSize;
-            const contentDiv = document.getElementById('fsReaderContent');
-            if (contentDiv) contentDiv.style.fontSize = fullScreenReaderSettings.fontSize;
-        });
-        fontSizeSlider.addEventListener('change', applyFullScreenReaderSettingsChanges);
-    }
-    if (linesPerPageSlider && linesPerPageValueEl) {
-        linesPerPageSlider.addEventListener('input', (e) => {
-            fullScreenReaderSettings.linesPerPage = parseInt(e.target.value, 10);
-            linesPerPageValueEl.textContent = fullScreenReaderSettings.linesPerPage;
-        });
-        linesPerPageSlider.addEventListener('change', applyFullScreenReaderSettingsChanges);
-    }
-    if (showTransliterationCheck) showTransliterationCheck.addEventListener('change', (e) => {
-        fullScreenReaderSettings.showTransliteration = e.target.checked;
-        applyFullScreenReaderSettingsChanges();
-    });
-    if (continuousAudioCheck) continuousAudioCheck.addEventListener('change', (e) => {
-        fullScreenReaderSettings.continuousAudio = e.target.checked;
-        saveFullScreenReaderSettings();
-    });
-    if (autoScrollAudioCheck) autoScrollAudioCheck.addEventListener('change', (e) => {
-        fullScreenReaderSettings.autoScrollAudio = e.target.checked;
-        saveFullScreenReaderSettings();
-    });
-    if (highlightColorPicker) highlightColorPicker.addEventListener('change', (e) => {
-        fullScreenReaderSettings.highlightColor = e.target.value;
-        saveFullScreenReaderSettings();
-    });
-    if (viewModeSelect) {
-        viewModeSelect.addEventListener('change', async (e) => {
-            fullScreenReaderViewMode = e.target.value;
+        if (continuousAudioCheck) continuousAudioCheck.addEventListener('change', (e) => {
+            fullScreenReaderSettings.continuousAudio = e.target.checked;
             saveFullScreenReaderSettings();
-            document.getElementById('fsLinesPerPageSettingDiv').style.display = (fullScreenReaderViewMode === 'paged') ? 'block' : 'none';
-            stopAndClearAudio();
-            if (fullScreenReaderViewMode === 'paged') {
-                fullScreenReaderCurrentPage = surahToPageEnhanced(fullScreenReaderCurrentSurah, fullScreenReaderCurrentAyah);
-                await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
-            } else {
-                continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
-                continuousScrollNextAyahToLoad = 1;
-                await initializeContinuousScroll();
-            }
-            updateReaderHeaderInfo();
-            updateScrubSliderRangeAndValue();
         });
-    }
-    document.querySelectorAll('#fsReaderIndexPanel .index-tab').forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            document.querySelectorAll('#fsReaderIndexPanel .index-tab').forEach(t => t.classList.remove('active-tab'));
-            e.target.classList.add('active-tab');
-            document.querySelectorAll('#fsReaderIndexPanel .index-content-panel').forEach(p => p.style.display = 'none');
-            document.getElementById(`fsIndexContent${e.target.dataset.tab.charAt(0).toUpperCase() + e.target.dataset.tab.slice(1)}`).style.display = 'block';
+        if (autoScrollAudioCheck) autoScrollAudioCheck.addEventListener('change', (e) => {
+            fullScreenReaderSettings.autoScrollAudio = e.target.checked;
+            saveFullScreenReaderSettings();
         });
-    });
-    if (scrubSlider) {
-        scrubSlider.addEventListener('input', () => {
-            if (fullScreenReaderViewMode === 'paged') {
-                const page = parseInt(scrubSlider.value, 10);
-                const pageData = tajMushafPageData.find(p => p.page === page);
-                if (pageData) {
-                    document.getElementById('fsReaderSurahTitle').textContent = `Surah ${pageData.startSurah}: ${surahNames[pageData.startSurah - 1]}`;
-                    document.getElementById('fsReaderPageInfo').textContent = `Page ${page}/${TAJ_COMPANY_PAGES} (Juz ${pageData.juz || getJuzFromSurahAyah(pageData.startSurah, pageData.startAyah)})`;
-                }
-            } else {
-                const surah = parseInt(scrubSlider.value, 10);
-                document.getElementById('fsReaderSurahTitle').textContent = `Surah ${surah}: ${surahNames[surah - 1]}`;
-                document.getElementById('fsReaderPageInfo').textContent = `Juz ${getJuzFromSurahAyah(surah, 1)}`;
-            }
+        if (highlightColorPicker) highlightColorPicker.addEventListener('change', (e) => {
+            fullScreenReaderSettings.highlightColor = e.target.value;
+            saveFullScreenReaderSettings();
         });
-        scrubSlider.addEventListener('change', async () => {
-            stopAndClearAudio();
-            if (fullScreenReaderViewMode === 'paged') {
-                fullScreenReaderCurrentPage = parseInt(scrubSlider.value, 10);
-                await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
-            } else {
-                fullScreenReaderCurrentSurah = parseInt(scrubSlider.value, 10);
-                fullScreenReaderCurrentAyah = 1;
-                continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
-                continuousScrollNextAyahToLoad = 1;
-                await initializeContinuousScroll();
-            }
-            updateReaderHeaderInfo();
-        });
-    }
-    if (contentDiv) {
-        contentDiv.addEventListener('scroll', async () => {
-            if (fullScreenReaderViewMode === 'continuous-scroll' && !isLoadingMoreAyahs) {
-                const scrollThreshold = contentDiv.scrollHeight - contentDiv.clientHeight - 700;
-                if (contentDiv.scrollTop >= scrollThreshold) {
-                    await loadMoreAyahsForContinuousScroll();
+        if (viewModeSelect) {
+            viewModeSelect.addEventListener('change', async (e) => {
+                fullScreenReaderViewMode = e.target.value;
+                saveFullScreenReaderSettings();
+                document.getElementById('fsLinesPerPageSettingDiv').style.display = (fullScreenReaderViewMode === 'paged') ? 'block' : 'none';
+                stopAndClearAudio();
+                if (fullScreenReaderViewMode === 'paged') {
+                    fullScreenReaderCurrentPage = surahToPageEnhanced(fullScreenReaderCurrentSurah, fullScreenReaderCurrentAyah);
+                    await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+                } else {
+                    continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
+                    continuousScrollNextAyahToLoad = 1;
+                    await initializeContinuousScroll();
                 }
                 updateReaderHeaderInfo();
-            }
+                updateScrubSliderRangeAndValue();
+            });
+        }
+        document.querySelectorAll('#fsReaderIndexPanel .index-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                document.querySelectorAll('#fsReaderIndexPanel .index-tab').forEach(t => t.classList.remove('active-tab'));
+                e.target.classList.add('active-tab');
+                document.querySelectorAll('#fsReaderIndexPanel .index-content-panel').forEach(p => p.style.display = 'none');
+                document.getElementById(`fsIndexContent${e.target.dataset.tab.charAt(0).toUpperCase() + e.target.dataset.tab.slice(1)}`).style.display = 'block';
+            });
         });
+        if (scrubSlider) {
+            scrubSlider.addEventListener('input', () => {
+                if (fullScreenReaderViewMode === 'paged') {
+                    const page = parseInt(scrubSlider.value, 10);
+                    const pageData = tajMushafPageData.find(p => p.page === page);
+                    if (pageData) {
+                        document.getElementById('fsReaderSurahTitle').textContent = `Surah ${pageData.startSurah}: ${surahNames[pageData.startSurah - 1]}`;
+                        document.getElementById('fsReaderPageInfo').textContent = `Page ${page}/${TAJ_COMPANY_PAGES} (Juz ${pageData.juz || getJuzFromSurahAyah(pageData.startSurah, pageData.startAyah)})`;
+                    }
+                } else {
+                    const surah = parseInt(scrubSlider.value, 10);
+                    document.getElementById('fsReaderSurahTitle').textContent = `Surah ${surah}: ${surahNames[surah - 1]}`;
+                    document.getElementById('fsReaderPageInfo').textContent = `Juz ${getJuzFromSurahAyah(surah, 1)}`;
+                }
+            });
+            scrubSlider.addEventListener('change', async () => {
+                stopAndClearAudio();
+                if (fullScreenReaderViewMode === 'paged') {
+                    fullScreenReaderCurrentPage = parseInt(scrubSlider.value, 10);
+                    await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+                } else {
+                    fullScreenReaderCurrentSurah = parseInt(scrubSlider.value, 10);
+                    fullScreenReaderCurrentAyah = 1;
+                    continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
+                    continuousScrollNextAyahToLoad = 1;
+                    await initializeContinuousScroll();
+                }
+                updateReaderHeaderInfo();
+            });
+        }
+        if (contentDiv) {
+            contentDiv.addEventListener('scroll', async () => {
+                if (fullScreenReaderViewMode === 'continuous-scroll' && !isLoadingMoreAyahs) {
+                    const scrollThreshold = contentDiv.scrollHeight - contentDiv.clientHeight - 700;
+                    if (contentDiv.scrollTop >= scrollThreshold) {
+                        await loadMoreAyahsForContinuousScroll();
+                    }
+                    updateReaderHeaderInfo();
+                }
+            });
+        }
+        setupKeyboardAndTapNavigation();
     }
-    setupKeyboardAndTapNavigation();
-}
-    
+
     function loadAndApplyDynamicFont(fontValue) {
         fullScreenReaderSettings.arabicFont = fontValue;
     }
@@ -6914,6 +6903,7 @@
             setTimeout(() => { btn.style.transform = 'scale(1)'; }, 250);
         }
     }
+    /* 
     async function getAyahHTML(surah, ayah) {
         if (fullScreenReaderSettings.showTajweedColors) {
             try {
@@ -6924,7 +6914,7 @@
                 const data = await response.json();
                 if (data.verses && data.verses.length > 0) {
                     const originalHtml = data.verses[0].text_uthmani_tajweed;
-                    const htmlWithoutVerseNumber = originalHtml.replace(/\s*﴿[٠-٩]+﴾\s*/g, '');
+            const htmlWithoutVerseNumber = originalHtml.replace(/\s*﴿[٠-٩]+﴾\s*\/g, ''); // remove the slash which was added for comment
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = htmlWithoutVerseNumber;
                     const tajweedElements = tempDiv.querySelectorAll('tajweed');
@@ -6938,6 +6928,35 @@
                 }
             } catch (error) {
                 console.warn(`Tajweed API fetch failed for ${surah}:${ayah}. Falling back to plain text.`, error);
+            }
+        }
+        const ayahData = await getData(STORE_QURAN, [surah, ayah]);
+        return ayahData ? ayahData.arabic.trim() : `[Ayah ${surah}:${ayah} not found]`;
+    } */
+
+    async function getAyahHTML(surah, ayah) {
+        if (fullScreenReaderSettings.showTajweedColors) {
+            try {
+                const response = await fetch(`tajweed_data/${surah}/${ayah}.html`);
+                if (!response.ok) {
+                    throw new Error(`Local file not found: ${response.statusText}`);
+                }
+                const originalHtml = await response.text();
+
+                const htmlWithoutVerseNumber = originalHtml.replace(/\s*﴿[٠-٩]+﴾\s*/g, '');
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlWithoutVerseNumber;
+
+                tempDiv.querySelectorAll('tajweed').forEach(el => {
+                    const span = document.createElement('span');
+                    span.className = `tajweed ${el.getAttribute('class')}`;
+                    span.innerHTML = el.innerHTML;
+                    el.parentNode.replaceChild(span, el);
+                });
+                return tempDiv.innerHTML;
+
+            } catch (error) {
+                console.warn(`Local Tajweed fetch failed for ${surah}:${ayah}. Falling back.`, error);
             }
         }
         const ayahData = await getData(STORE_QURAN, [surah, ayah]);
@@ -10168,7 +10187,6 @@
 
                 let ayahsToRead = [];
                 if (isFullQuran) {
-                    // For performance, let's just show a summary for full quran
                     detailHTML += `<li><p>Total unique Ayahs read/listened to: ${ayahsRead.size} / 6236</p></li>`;
                 } else {
                     for (let i = 1; i <= surahAyahCounts[goal.targetSurah]; i++) ayahsToRead.push(`${goal.targetSurah}:${i}`);
@@ -10251,7 +10269,6 @@
                 ayahs.push({ surah: s, ayah: a });
             }
         }
-        // Handle last surah of the Juz
         if (endJuzData.startSurah <= 114) {
             const startAyahLastSurah = (endJuzData.startSurah === startJuzData.startSurah) ? startJuzData.startAyah : 1;
             for (let a = startAyahLastSurah; a < endJuzData.startAyah; a++) {
@@ -10274,11 +10291,5 @@
     }
 
     document.addEventListener('DOMContentLoaded', initializeGoalsModule);
-
-
-
-
-
-
 
 </script>
