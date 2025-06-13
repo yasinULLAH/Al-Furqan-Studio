@@ -5584,44 +5584,66 @@
         }
     }
     function updateVisualReadingProgress(currentS, currentA) {
-        if (!visualReadingSession.active) return;
-        const sessionEndS = parseInt(visualReadingSession.endSurah);
-        const sessionEndA = parseInt(visualReadingSession.endAyah);
-        const newS = parseInt(currentS);
-        const newA = parseInt(currentA);
-        if (newS > sessionEndS) {
-            visualReadingSession.endSurah = newS;
-            visualReadingSession.endAyah = newA;
-        } else if (newS === sessionEndS && newA > sessionEndA) {
-            visualReadingSession.endAyah = newA;
-        }
-    }
+    if (!visualReadingSession.active) return;
+    // Add every unique ayah read to a Set for accurate tracking
+    visualReadingSession.readAyahs.add(`${currentS}:${currentA}`);
+}
     async function logVisualReadingSession() {
-        if (!visualReadingSession.active) return;
-        const { startSurah, startAyah, endSurah, endAyah } = visualReadingSession;
-        if (startSurah === endSurah && startAyah === endAyah) {
-            visualReadingSession.active = false; // Reset for next time
-            return;
-        }
-        const logEntry = {
-            surah: startSurah,
-            ayahStart: startAyah,
-            ayahEnd: endAyah || startAyah, // Fallback if endAyah is null
-            qari: "Visual/Self Reading", // Differentiates from audio logs
-            date: new Date().toISOString().split('T')[0],
-            notes: `Auto-logged reading session from S${startSurah}:${startAyah} to S${endSurah}:${endAyah}.`
-        };
-        try {
-            await addData(STORE_RECITATIONS, logEntry);
-            console.log("Auto-logged visual reading session:", logEntry);
-        } catch (error) {
-            console.error("Failed to auto-log visual reading session:", error);
-        }
-        visualReadingSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
+    // 1. Exit if not active or if no significant reading occurred (less than 2 ayahs)
+    if (!visualReadingSession.active || visualReadingSession.readAyahs.size < 2) {
+        visualReadingSession = { active: false, readAyahs: new Set() }; // Reset and exit
+        return;
     }
+
+    // 2. Group all read ayahs by their Surah number
+    const ayahsBySurah = {};
+    for (const ayahKey of visualReadingSession.readAyahs) {
+        const [s, a] = ayahKey.split(':').map(Number);
+        if (!ayahsBySurah[s]) {
+            ayahsBySurah[s] = [];
+        }
+        ayahsBySurah[s].push(a);
+    }
+
+    // 3. Create a separate log entry for each Surah that was read
+    const logPromises = [];
+    for (const surahNum in ayahsBySurah) {
+        const ayahs = ayahsBySurah[surahNum];
+        if (ayahs.length === 0) continue;
+
+        // 4. Find the start and end ayahs for the current Surah
+        const startAyah = Math.min(...ayahs);
+        const endAyah = Math.max(...ayahs);
+
+        // 5. Create the precise log entry for this Surah
+        const logEntry = {
+            surah: parseInt(surahNum),
+            ayahStart: startAyah,
+            ayahEnd: endAyah,
+            qari: "Visual/Self Reading", // Marker for this type of log
+            date: new Date().toISOString().split('T')[0],
+            notes: `Auto-logged reading session for Surah ${surahNum}.`
+        };
+
+        // 6. Add the database write operation to a list of promises
+        logPromises.push(addData(STORE_RECITATIONS, logEntry));
+    }
+
+    try {
+        // 7. Execute all database writes concurrently
+        await Promise.all(logPromises);
+        console.log(`Successfully logged reading for ${logPromises.length} separate Surah(s).`);
+    } catch (error) {
+        console.error("Failed to auto-log one or more visual reading sessions:", error);
+    }
+
+    // 8. Reset the session for the next reading
+    visualReadingSession = { active: false, readAyahs: new Set() };
+}
+    
     let isFullScreenReaderActive = false;
     let isDailyReadingSessionActive = false;
-    let visualReadingSession = { active: false, startSurah: null, startAyah: null, endSurah: null, endAyah: null };
+    let visualReadingSession = { active: false, readAyahs: new Set() };
     let fullScreenReaderCurrentPage = 1; // For 15-line Taj Company style pages
     let fullScreenReaderCurrentSurah = 1;
     let fullScreenReaderCurrentAyah = 1;
@@ -5761,121 +5783,123 @@
         document.head.appendChild(styleSheet);
     }
     async function launchFullScreenQuranReaderEnhanced() {
-        if (isFullScreenReaderActive) return;
-        isDailyReadingSessionActive = false;
-        isFullScreenReaderActive = true;
-        document.body.style.overflow = 'hidden';
-        injectEnhancedFullScreenReaderCSS();
-        const overlay = document.createElement('div');
-        overlay.id = 'fullScreenReaderOverlay';
-        overlay.innerHTML = `
-        <div id="fsReaderHeader">
-            <button id="fsReaderIndexToggleBtn" title="Index">☰</button>
-            <div class="title-page-container">
-                <div id="fsReaderSurahTitle" class="title">Loading...</div>
-                <div id="fsReaderPageInfo" class="page-info">Page ...</div>
-            </div>
-            <button id="fsReaderBookmarkBtn" title="Go to your daily reading spot (Ctrl+Click to set current spot)">📑</button>
-            <button id="fsReaderSettingsToggleBtn" title="Settings">⚙️</button>
+    if (isFullScreenReaderActive) return;
+    isDailyReadingSessionActive = false;
+    isFullScreenReaderActive = true;
+    document.body.style.overflow = 'hidden';
+    injectEnhancedFullScreenReaderCSS();
+    const overlay = document.createElement('div');
+    overlay.id = 'fullScreenReaderOverlay';
+    overlay.innerHTML = `
+    <div id="fsReaderHeader">
+        <button id="fsReaderIndexToggleBtn" title="Index">☰</button>
+        <div class="title-page-container">
+            <div id="fsReaderSurahTitle" class="title">Loading...</div>
+            <div id="fsReaderPageInfo" class="page-info">Page ...</div>
         </div>
-        <div id="fsReaderContent" style="font-size: ${fullScreenReaderSettings.fontSize};">
-            <p>Loading Quran content...</p>
+        <button id="fsReaderBookmarkBtn" title="Go to your daily reading spot (Ctrl+Click to set current spot)">📑</button>
+        <button id="fsReaderSettingsToggleBtn" title="Settings">⚙️</button>
+    </div>
+    <div id="fsReaderContent" style="font-size: ${fullScreenReaderSettings.fontSize};">
+        <p>Loading Quran content...</p>
+    </div>
+    <div id="fsReaderFooter">
+        <button id="fsReaderPrevBtn" title="Previous">◀</button>
+        <input type="range" id="fsReaderScrubSlider" min="1" max="${TAJ_COMPANY_PAGES}" value="1" title="Navigate">
+        <button id="fsReaderNextBtn" title="Next">▶</button>
+        <button id="fsReaderPlayPauseBtn" title="Play/Pause">🔊</button>
+        <button id="fsReaderCloseBtnEnhanced" title="Close Reader">✕</button>
+    </div>
+    <div id="fsReaderSettingsPanel" class="fsReaderSlidingPanel">
+        <h4>Reader Settings</h4>
+        <div class="panel-section">
+            <h5>Appearance</h5>
+            <label for="fsArabicFontSelect">Arabic Font:</label>
+            <select id="fsArabicFontSelect">
+                <option value="Scheherazade New" data-google-font="Scheherazade+New:wght@400;700">Scheherazade New</option>
+                <option value="KFGQPC Uthman Taha Naskh">KFGQPC Uthman Naskh</option>
+                <option value="Amiri" data-google-font="Amiri:wght@400;700">Amiri</option>
+                <option value="Lateef" data-google-font="Lateef">Lateef</option>
+                <option value="Noto Naskh Arabic" data-google-font="Noto+Naskh+Arabic:wght@400;700">Noto Naskh Arabic</option>
+                <option value="var(--font-arabic)">App Default Arabic</option>
+            </select>
+            <label for="fsFontSizeSlider">Base Font Size (<span id="fsFontSizeValue">${fullScreenReaderSettings.fontSize}</span>):</label>
+            <input type="range" id="fsFontSizeSlider" min="1.3" max="11.0" step="0.1" value="${parseFloat(fullScreenReaderSettings.fontSize)}">
+            <div id="fsLinesPerPageSettingDiv">
+                <label for="fsLinesPerPageSlider">Lines Per Page (Paged View) (<span id="fsLinesPerPageValue">${fullScreenReaderSettings.linesPerPage}</span>):</label>
+                <input type="range" id="fsLinesPerPageSlider" min="8" max="35" step="1" value="${fullScreenReaderSettings.linesPerPage}">
+            </div>
+            <label><input type="checkbox" id="fsShowTransliterationCheck"> Show Transliteration</label>
+            <label><input type="checkbox" id="fsShowTajweedCheck"> Show Tajweed Colors</label>
         </div>
-        <div id="fsReaderFooter">
-            <button id="fsReaderPrevBtn" title="Previous">◀</button>
-            <input type="range" id="fsReaderScrubSlider" min="1" max="${TAJ_COMPANY_PAGES}" value="1" title="Navigate">
-            <button id="fsReaderNextBtn" title="Next">▶</button>
-            <button id="fsReaderPlayPauseBtn" title="Play/Pause">🔊</button>
-            <button id="fsReaderCloseBtnEnhanced" title="Close Reader">✕</button>
+        <div class="panel-section">
+            <h5>Audio</h5>
+            <label for="fsAudioSourceSelect">Audio Source:</label>
+            <select id="fsAudioSourceSelect">
+                <option value="quran">Quran Recitation (Alafasy)</option>
+                <option value="en">English Translation (Ibrahim Walk)</option>
+                <option value="ur">Urdu Translation (Fateh Jalandhri)</option>
+            </select>
+            <label><input type="checkbox" id="fsContinuousAudioCheck"> Continuous Audio Playback</label>
+            <label><input type="checkbox" id="fsAutoScrollAudioCheck"> Auto-scroll with Audio</label>
+            <label for="fsHighlightColorPicker">Highlight Color:</label>
+            <input type="color" id="fsHighlightColorPicker" value="${fullScreenReaderSettings.highlightColor.startsWith('rgba') ? '#ffff96' : fullScreenReaderSettings.highlightColor}">
         </div>
-        <div id="fsReaderSettingsPanel" class="fsReaderSlidingPanel">
-            <h4>Reader Settings</h4>
-            <div class="panel-section">
-                <h5>Appearance</h5>
-                <label for="fsArabicFontSelect">Arabic Font:</label>
-                <select id="fsArabicFontSelect">
-                    <option value="Scheherazade New" data-google-font="Scheherazade+New:wght@400;700">Scheherazade New</option>
-                    <option value="KFGQPC Uthman Taha Naskh">KFGQPC Uthman Naskh</option>
-                    <option value="Amiri" data-google-font="Amiri:wght@400;700">Amiri</option>
-                    <option value="Lateef" data-google-font="Lateef">Lateef</option>
-                    <option value="Noto Naskh Arabic" data-google-font="Noto+Naskh+Arabic:wght@400;700">Noto Naskh Arabic</option>
-                    <option value="var(--font-arabic)">App Default Arabic</option>
-                </select>
-                <label for="fsFontSizeSlider">Base Font Size (<span id="fsFontSizeValue">${fullScreenReaderSettings.fontSize}</span>):</label>
-                <input type="range" id="fsFontSizeSlider" min="1.3" max="11.0" step="0.1" value="${parseFloat(fullScreenReaderSettings.fontSize)}">
-                <div id="fsLinesPerPageSettingDiv">
-                    <label for="fsLinesPerPageSlider">Lines Per Page (Paged View) (<span id="fsLinesPerPageValue">${fullScreenReaderSettings.linesPerPage}</span>):</label>
-                    <input type="range" id="fsLinesPerPageSlider" min="8" max="35" step="1" value="${fullScreenReaderSettings.linesPerPage}">
-                </div>
-                <label><input type="checkbox" id="fsShowTransliterationCheck"> Show Transliteration</label>
-                <label><input type="checkbox" id="fsShowTajweedCheck"> Show Tajweed Colors</label>
-            </div>
-            <div class="panel-section">
-                <h5>Audio</h5>
-                <label for="fsAudioSourceSelect">Audio Source:</label>
-                <select id="fsAudioSourceSelect">
-                    <option value="quran">Quran Recitation (Alafasy)</option>
-                    <option value="en">English Translation (Ibrahim Walk)</option>
-                    <option value="ur">Urdu Translation (Fateh Jalandhri)</option>
-                </select>
-                <label><input type="checkbox" id="fsContinuousAudioCheck"> Continuous Audio Playback</label>
-                <label><input type="checkbox" id="fsAutoScrollAudioCheck"> Auto-scroll with Audio</label>
-                <label for="fsHighlightColorPicker">Highlight Color:</label>
-                <input type="color" id="fsHighlightColorPicker" value="${fullScreenReaderSettings.highlightColor.startsWith('rgba') ? '#ffff96' : fullScreenReaderSettings.highlightColor}">
-            </div>
-            <div class="panel-section">
-                <h5>Navigation</h5>
-                <label for="fsViewModeSelect">View Mode:</label>
-                <select id="fsViewModeSelect">
-                    <option value="paged">Paged (Mushaf Style)</option>
-                    <option value="continuous-scroll">Continuous Scroll</option>
-                </select>
-            </div>
+        <div class="panel-section">
+            <h5>Navigation</h5>
+            <label for="fsViewModeSelect">View Mode:</label>
+            <select id="fsViewModeSelect">
+                <option value="paged">Paged (Mushaf Style)</option>
+                <option value="continuous-scroll">Continuous Scroll</option>
+            </select>
         </div>
-        <div id="fsReaderIndexPanel" class="fsReaderSlidingPanel">
-            <h4>Index</h4>
-            <div class="index-tabs">
-                <span class="index-tab active-tab" data-tab="surahs">Surahs</span>
-                <span class="index-tab" data-tab="juz">Juz (Parahs)</span>
-                <span class="index-tab" data-tab="themes">Themes</span>
-            </div>
-            <div id="fsIndexContentSurahs" class="index-content-panel">
-                <ul class="index-list" id="fsIndexSurahList"></ul>
-            </div>
-            <div id="fsIndexContentJuz" class="index-content-panel" style="display:none;">
-                <ul class="index-list" id="fsIndexJuzList"></ul>
-            </div>
-            <div id="fsIndexContentThemes" class="index-content-panel" style="display:none;">
-                 <input type="text" id="fsThematicIndexSearchInput" placeholder="Search themes..." style="width:100%; margin-bottom:10px;">
-                <ul class="index-list" id="fsIndexThemeList">
-                    <li><a href="#" data-s="2" data-a="255">Ayat al-Kursi</a></li>
-                </ul>
-            </div>
+    </div>
+    <div id="fsReaderIndexPanel" class="fsReaderSlidingPanel">
+        <h4>Index</h4>
+        <div class="index-tabs">
+            <span class="index-tab active-tab" data-tab="surahs">Surahs</span>
+            <span class="index-tab" data-tab="juz">Juz (Parahs)</span>
+            <span class="index-tab" data-tab="themes">Themes</span>
         </div>
-    `;
-        document.body.appendChild(overlay);
-        loadLastReadPosition();
-        loadFullScreenReaderSettings();
-        await loadTajMushafPageDataIfNeeded();
-        visualReadingSession = {
-            active: true,
-            startSurah: fullScreenReaderCurrentSurah,
-            startAyah: fullScreenReaderCurrentAyah,
-            endSurah: fullScreenReaderCurrentSurah,
-            endAyah: fullScreenReaderCurrentAyah
-        };
-        setupEnhancedFullScreenReaderEventListeners();
-        populateIndexLists();
-        if (fullScreenReaderViewMode === 'paged') {
-            document.getElementById('fsLinesPerPageSettingDiv').style.display = 'block';
-            await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
-        } else {
-            document.getElementById('fsLinesPerPageSettingDiv').style.display = 'none';
-            await initializeContinuousScroll();
-        }
-        updateReaderHeaderInfo();
-        updateScrubSliderRangeAndValue();
+        <div id="fsIndexContentSurahs" class="index-content-panel">
+            <ul class="index-list" id="fsIndexSurahList"></ul>
+        </div>
+        <div id="fsIndexContentJuz" class="index-content-panel" style="display:none;">
+            <ul class="index-list" id="fsIndexJuzList"></ul>
+        </div>
+        <div id="fsIndexContentThemes" class="index-content-panel" style="display:none;">
+             <input type="text" id="fsThematicIndexSearchInput" placeholder="Search themes..." style="width:100%; margin-bottom:10px;">
+            <ul class="index-list" id="fsIndexThemeList">
+                <li><a href="#" data-s="2" data-a="255">Ayat al-Kursi</a></li>
+            </ul>
+        </div>
+    </div>
+`;
+    document.body.appendChild(overlay);
+    loadLastReadPosition();
+    loadFullScreenReaderSettings();
+    await loadTajMushafPageDataIfNeeded();
+
+    // Key change: Initialize the session object with the new Set structure
+    visualReadingSession = {
+        active: true,
+        readAyahs: new Set()
+    };
+    // Log the very first ayah being viewed
+    visualReadingSession.readAyahs.add(`${fullScreenReaderCurrentSurah}:${fullScreenReaderCurrentAyah}`);
+
+    setupEnhancedFullScreenReaderEventListeners();
+    populateIndexLists();
+    if (fullScreenReaderViewMode === 'paged') {
+        document.getElementById('fsLinesPerPageSettingDiv').style.display = 'block';
+        await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+    } else {
+        document.getElementById('fsLinesPerPageSettingDiv').style.display = 'none';
+        await initializeContinuousScroll();
     }
+    updateReaderHeaderInfo();
+    updateScrubSliderRangeAndValue();
+}
     function closeFullScreenQuranReaderEnhanced() {
         const overlay = document.getElementById('fullScreenReaderOverlay');
         if (overlay) {
@@ -6669,211 +6693,210 @@
         });
     }
     function setupEnhancedFullScreenReaderEventListeners() {
-        const closeBtn = document.getElementById('fsReaderCloseBtnEnhanced');
-        const nextBtn = document.getElementById('fsReaderNextBtn');
-        const prevBtn = document.getElementById('fsReaderPrevBtn');
-        const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
-        const settingsToggleBtn = document.getElementById('fsReaderSettingsToggleBtn');
-        const indexToggleBtn = document.getElementById('fsReaderIndexToggleBtn');
-        const settingsPanel = document.getElementById('fsReaderSettingsPanel');
-        const indexPanel = document.getElementById('fsReaderIndexPanel');
-        const contentDiv = document.getElementById('fsReaderContent');
-        const headerDiv = document.getElementById('fsReaderHeader');
-        const footerDiv = document.getElementById('fsReaderFooter');
-        const audioSourceSelect = document.getElementById('fsAudioSourceSelect');
-        if (audioSourceSelect) {
-            audioSourceSelect.addEventListener('change', (e) => {
-                fullScreenReaderSettings.audioSource = e.target.value;
-                stopAndClearAudio();
-                saveFullScreenReaderSettings();
-            });
-        }
-        const bookmarkBtn = document.getElementById('fsReaderBookmarkBtn');
-        if (bookmarkBtn) {
-            bookmarkBtn.addEventListener('click', async (event) => {
-                if (event.ctrlKey || event.metaKey) {
-                    saveLastReadPosition();
-                    event.target.style.transition = 'transform 0.2s';
-                    event.target.style.transform = 'scale(1.4)';
-                    setTimeout(() => { event.target.style.transform = 'scale(1)'; }, 250);
+    const closeBtn = document.getElementById('fsReaderCloseBtnEnhanced');
+    const nextBtn = document.getElementById('fsReaderNextBtn');
+    const prevBtn = document.getElementById('fsReaderPrevBtn');
+    const playPauseBtn = document.getElementById('fsReaderPlayPauseBtn');
+    const settingsToggleBtn = document.getElementById('fsReaderSettingsToggleBtn');
+    const indexToggleBtn = document.getElementById('fsReaderIndexToggleBtn');
+    const settingsPanel = document.getElementById('fsReaderSettingsPanel');
+    const indexPanel = document.getElementById('fsReaderIndexPanel');
+    const contentDiv = document.getElementById('fsReaderContent');
+    const headerDiv = document.getElementById('fsReaderHeader');
+    const footerDiv = document.getElementById('fsReaderFooter');
+    const audioSourceSelect = document.getElementById('fsAudioSourceSelect');
+    if (audioSourceSelect) {
+        audioSourceSelect.addEventListener('change', (e) => {
+            fullScreenReaderSettings.audioSource = e.target.value;
+            stopAndClearAudio();
+            saveFullScreenReaderSettings();
+        });
+    }
+    const bookmarkBtn = document.getElementById('fsReaderBookmarkBtn');
+    if (bookmarkBtn) {
+        bookmarkBtn.addEventListener('click', async (event) => {
+            if (event.ctrlKey || event.metaKey) {
+                saveLastReadPosition();
+                event.target.style.transition = 'transform 0.2s';
+                event.target.style.transform = 'scale(1.4)';
+                setTimeout(() => { event.target.style.transform = 'scale(1)'; }, 250);
+            } else {
+                isDailyReadingSessionActive = true;
+                // Key Change: Initialize the session object with the new Set structure for daily reading
+                visualReadingSession = {
+                    active: true,
+                    readAyahs: new Set()
+                };
+                visualReadingSession.readAyahs.add(`${fullScreenReaderCurrentSurah}:${fullScreenReaderCurrentAyah}`);
+                
+                event.target.style.backgroundColor = 'var(--color-success)';
+                setTimeout(() => { event.target.style.backgroundColor = ''; }, 1000);
+                loadLastReadPosition();
+                if (fullScreenReaderViewMode === 'paged') {
+                    await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
                 } else {
-                    isDailyReadingSessionActive = true;
-                    visualReadingSession = {
-                        active: true,
-                        startSurah: fullScreenReaderCurrentSurah,
-                        startAyah: fullScreenReaderCurrentAyah,
-                        endSurah: fullScreenReaderCurrentSurah,
-                        endAyah: fullScreenReaderCurrentAyah
-                    };
-                    event.target.style.backgroundColor = 'var(--color-success)';
-                    setTimeout(() => { event.target.style.backgroundColor = ''; }, 1000);
-                    loadLastReadPosition();
-                    if (fullScreenReaderViewMode === 'paged') {
-                        await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
-                    } else {
-                        await initializeContinuousScroll();
-                    }
+                    await initializeContinuousScroll();
                 }
-            });
-        }
-        const scrubSlider = document.getElementById('fsReaderScrubSlider');
-        if (closeBtn) closeBtn.addEventListener('click', closeFullScreenQuranReaderEnhanced);
-        if (nextBtn) nextBtn.addEventListener('click', goToNextEnhanced);
-        if (prevBtn) prevBtn.addEventListener('click', goToPrevEnhanced);
-        if (playPauseBtn) playPauseBtn.addEventListener('click', toggleAudioPlaybackEnhanced);
-        if (settingsToggleBtn && settingsPanel && indexPanel) {
-            settingsToggleBtn.addEventListener('click', () => {
-                const isSettingsVisible = settingsPanel.style.display === 'block';
-                settingsPanel.style.display = isSettingsVisible ? 'none' : 'block';
-                indexPanel.style.display = 'none';
-            });
-        }
-        if (indexToggleBtn && indexPanel && settingsPanel) {
-            indexToggleBtn.addEventListener('click', () => {
-                const isIndexVisible = indexPanel.style.display === 'block';
-                indexPanel.style.display = isIndexVisible ? 'none' : 'block';
+            }
+        });
+    }
+    const scrubSlider = document.getElementById('fsReaderScrubSlider');
+    if (closeBtn) closeBtn.addEventListener('click', closeFullScreenQuranReaderEnhanced);
+    if (nextBtn) nextBtn.addEventListener('click', goToNextEnhanced);
+    if (prevBtn) prevBtn.addEventListener('click', goToPrevEnhanced);
+    if (playPauseBtn) playPauseBtn.addEventListener('click', toggleAudioPlaybackEnhanced);
+    if (settingsToggleBtn && settingsPanel && indexPanel) {
+        settingsToggleBtn.addEventListener('click', () => {
+            const isSettingsVisible = settingsPanel.style.display === 'block';
+            settingsPanel.style.display = isSettingsVisible ? 'none' : 'block';
+            indexPanel.style.display = 'none';
+        });
+    }
+    if (indexToggleBtn && indexPanel && settingsPanel) {
+        indexToggleBtn.addEventListener('click', () => {
+            const isIndexVisible = indexPanel.style.display === 'block';
+            indexPanel.style.display = isIndexVisible ? 'none' : 'block';
+            settingsPanel.style.display = 'none';
+        });
+    }
+    if (contentDiv && headerDiv && footerDiv && settingsPanel && indexPanel) {
+        contentDiv.addEventListener('click', (e) => {
+            if (e.target === contentDiv && settingsPanel.style.display === 'none' && indexPanel.style.display === 'none') {
+                toggleReaderChromeVisibility();
+            } else if (settingsPanel.style.display === 'block' && !settingsPanel.contains(e.target) && e.target !== settingsToggleBtn) {
                 settingsPanel.style.display = 'none';
-            });
-        }
-        if (contentDiv && headerDiv && footerDiv && settingsPanel && indexPanel) {
-            contentDiv.addEventListener('click', (e) => {
-                if (e.target === contentDiv && settingsPanel.style.display === 'none' && indexPanel.style.display === 'none') {
-                    toggleReaderChromeVisibility();
-                } else if (settingsPanel.style.display === 'block' && !settingsPanel.contains(e.target) && e.target !== settingsToggleBtn) {
-                    settingsPanel.style.display = 'none';
-                } else if (indexPanel.style.display === 'block' && !indexPanel.contains(e.target) && e.target !== indexToggleBtn) {
-                    indexPanel.style.display = 'none';
-                }
-            });
-        }
-        const arabicFontSelect = document.getElementById('fsArabicFontSelect');
-        const fontSizeSlider = document.getElementById('fsFontSizeSlider');
-        const fontSizeValueEl = document.getElementById('fsFontSizeValue');
-        const linesPerPageSlider = document.getElementById('fsLinesPerPageSlider');
-        const linesPerPageValueEl = document.getElementById('fsLinesPerPageValue');
-        const showTransliterationCheck = document.getElementById('fsShowTransliterationCheck');
-        const continuousAudioCheck = document.getElementById('fsContinuousAudioCheck');
-        const autoScrollAudioCheck = document.getElementById('fsAutoScrollAudioCheck');
-        const highlightColorPicker = document.getElementById('fsHighlightColorPicker');
-        const viewModeSelect = document.getElementById('fsViewModeSelect');
-        const showTajweedCheck = document.getElementById('fsShowTajweedCheck');
-        if (showTajweedCheck) {
-            showTajweedCheck.checked = fullScreenReaderSettings.showTajweedColors;
-            showTajweedCheck.addEventListener('change', (e) => {
-                fullScreenReaderSettings.showTajweedColors = e.target.checked;
-                applyFullScreenReaderSettingsChanges();
-            });
-        }
-        if (arabicFontSelect) {
-            arabicFontSelect.addEventListener('change', (e) => {
-                loadAndApplyDynamicFont(e.target.value); // Update the setting
-                applyFontChangeToView();                 // Apply the change to the DOM
-                saveFullScreenReaderSettings();          // Save the new setting
-            });
-        }
-
-        if (fontSizeSlider && fontSizeValueEl) {
-            fontSizeSlider.addEventListener('input', (e) => {
-                fullScreenReaderSettings.fontSize = `${e.target.value}rem`;
-                fontSizeValueEl.textContent = fullScreenReaderSettings.fontSize;
-                const contentDiv = document.getElementById('fsReaderContent');
-                if (contentDiv) contentDiv.style.fontSize = fullScreenReaderSettings.fontSize;
-            });
-            fontSizeSlider.addEventListener('change', applyFullScreenReaderSettingsChanges);
-        }
-        if (linesPerPageSlider && linesPerPageValueEl) {
-            linesPerPageSlider.addEventListener('input', (e) => {
-                fullScreenReaderSettings.linesPerPage = parseInt(e.target.value, 10);
-                linesPerPageValueEl.textContent = fullScreenReaderSettings.linesPerPage;
-            });
-            linesPerPageSlider.addEventListener('change', applyFullScreenReaderSettingsChanges);
-        }
-        if (showTransliterationCheck) showTransliterationCheck.addEventListener('change', (e) => {
-            fullScreenReaderSettings.showTransliteration = e.target.checked;
+            } else if (indexPanel.style.display === 'block' && !indexPanel.contains(e.target) && e.target !== indexToggleBtn) {
+                indexPanel.style.display = 'none';
+            }
+        });
+    }
+    const arabicFontSelect = document.getElementById('fsArabicFontSelect');
+    const fontSizeSlider = document.getElementById('fsFontSizeSlider');
+    const fontSizeValueEl = document.getElementById('fsFontSizeValue');
+    const linesPerPageSlider = document.getElementById('fsLinesPerPageSlider');
+    const linesPerPageValueEl = document.getElementById('fsLinesPerPageValue');
+    const showTransliterationCheck = document.getElementById('fsShowTransliterationCheck');
+    const continuousAudioCheck = document.getElementById('fsContinuousAudioCheck');
+    const autoScrollAudioCheck = document.getElementById('fsAutoScrollAudioCheck');
+    const highlightColorPicker = document.getElementById('fsHighlightColorPicker');
+    const viewModeSelect = document.getElementById('fsViewModeSelect');
+    const showTajweedCheck = document.getElementById('fsShowTajweedCheck');
+    if (showTajweedCheck) {
+        showTajweedCheck.checked = fullScreenReaderSettings.showTajweedColors;
+        showTajweedCheck.addEventListener('change', (e) => {
+            fullScreenReaderSettings.showTajweedColors = e.target.checked;
             applyFullScreenReaderSettingsChanges();
         });
-        if (continuousAudioCheck) continuousAudioCheck.addEventListener('change', (e) => {
-            fullScreenReaderSettings.continuousAudio = e.target.checked;
-            saveFullScreenReaderSettings();
+    }
+    if (arabicFontSelect) {
+        arabicFontSelect.addEventListener('change', (e) => {
+            loadAndApplyDynamicFont(e.target.value); // Update the setting
+            applyFontChangeToView();                 // Apply the change to the DOM
+            saveFullScreenReaderSettings();          // Save the new setting
         });
-        if (autoScrollAudioCheck) autoScrollAudioCheck.addEventListener('change', (e) => {
-            fullScreenReaderSettings.autoScrollAudio = e.target.checked;
-            saveFullScreenReaderSettings();
-        });
-        if (highlightColorPicker) highlightColorPicker.addEventListener('change', (e) => {
-            fullScreenReaderSettings.highlightColor = e.target.value;
-            saveFullScreenReaderSettings();
-        });
-        if (viewModeSelect) {
-            viewModeSelect.addEventListener('change', async (e) => {
-                fullScreenReaderViewMode = e.target.value;
-                saveFullScreenReaderSettings();
-                document.getElementById('fsLinesPerPageSettingDiv').style.display = (fullScreenReaderViewMode === 'paged') ? 'block' : 'none';
-                stopAndClearAudio();
-                if (fullScreenReaderViewMode === 'paged') {
-                    fullScreenReaderCurrentPage = surahToPageEnhanced(fullScreenReaderCurrentSurah, fullScreenReaderCurrentAyah);
-                    await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
-                } else {
-                    continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
-                    continuousScrollNextAyahToLoad = 1;
-                    await initializeContinuousScroll();
-                }
-                updateReaderHeaderInfo();
-                updateScrubSliderRangeAndValue();
-            });
-        }
-        document.querySelectorAll('#fsReaderIndexPanel .index-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                document.querySelectorAll('#fsReaderIndexPanel .index-tab').forEach(t => t.classList.remove('active-tab'));
-                e.target.classList.add('active-tab');
-                document.querySelectorAll('#fsReaderIndexPanel .index-content-panel').forEach(p => p.style.display = 'none');
-                document.getElementById(`fsIndexContent${e.target.dataset.tab.charAt(0).toUpperCase() + e.target.dataset.tab.slice(1)}`).style.display = 'block';
-            });
-        });
-        if (scrubSlider) {
-            scrubSlider.addEventListener('input', () => {
-                if (fullScreenReaderViewMode === 'paged') {
-                    const page = parseInt(scrubSlider.value, 10);
-                    const pageData = tajMushafPageData.find(p => p.page === page);
-                    if (pageData) {
-                        document.getElementById('fsReaderSurahTitle').textContent = `Surah ${pageData.startSurah}: ${surahNames[pageData.startSurah - 1]}`;
-                        document.getElementById('fsReaderPageInfo').textContent = `Page ${page}/${TAJ_COMPANY_PAGES} (Juz ${pageData.juz || getJuzFromSurahAyah(pageData.startSurah, pageData.startAyah)})`;
-                    }
-                } else {
-                    const surah = parseInt(scrubSlider.value, 10);
-                    document.getElementById('fsReaderSurahTitle').textContent = `Surah ${surah}: ${surahNames[surah - 1]}`;
-                    document.getElementById('fsReaderPageInfo').textContent = `Juz ${getJuzFromSurahAyah(surah, 1)}`;
-                }
-            });
-            scrubSlider.addEventListener('change', async () => {
-                stopAndClearAudio();
-                if (fullScreenReaderViewMode === 'paged') {
-                    fullScreenReaderCurrentPage = parseInt(scrubSlider.value, 10);
-                    await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
-                } else {
-                    fullScreenReaderCurrentSurah = parseInt(scrubSlider.value, 10);
-                    fullScreenReaderCurrentAyah = 1;
-                    continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
-                    continuousScrollNextAyahToLoad = 1;
-                    await initializeContinuousScroll();
-                }
-                updateReaderHeaderInfo();
-            });
-        }
-        if (contentDiv) {
-            contentDiv.addEventListener('scroll', async () => {
-                if (fullScreenReaderViewMode === 'continuous-scroll' && !isLoadingMoreAyahs) {
-                    const scrollThreshold = contentDiv.scrollHeight - contentDiv.clientHeight - 700;
-                    if (contentDiv.scrollTop >= scrollThreshold) {
-                        await loadMoreAyahsForContinuousScroll();
-                    }
-                    updateReaderHeaderInfo();
-                }
-            });
-        }
-        setupKeyboardAndTapNavigation();
     }
 
+    if (fontSizeSlider && fontSizeValueEl) {
+        fontSizeSlider.addEventListener('input', (e) => {
+            fullScreenReaderSettings.fontSize = `${e.target.value}rem`;
+            fontSizeValueEl.textContent = fullScreenReaderSettings.fontSize;
+            const contentDiv = document.getElementById('fsReaderContent');
+            if (contentDiv) contentDiv.style.fontSize = fullScreenReaderSettings.fontSize;
+        });
+        fontSizeSlider.addEventListener('change', applyFullScreenReaderSettingsChanges);
+    }
+    if (linesPerPageSlider && linesPerPageValueEl) {
+        linesPerPageSlider.addEventListener('input', (e) => {
+            fullScreenReaderSettings.linesPerPage = parseInt(e.target.value, 10);
+            linesPerPageValueEl.textContent = fullScreenReaderSettings.linesPerPage;
+        });
+        linesPerPageSlider.addEventListener('change', applyFullScreenReaderSettingsChanges);
+    }
+    if (showTransliterationCheck) showTransliterationCheck.addEventListener('change', (e) => {
+        fullScreenReaderSettings.showTransliteration = e.target.checked;
+        applyFullScreenReaderSettingsChanges();
+    });
+    if (continuousAudioCheck) continuousAudioCheck.addEventListener('change', (e) => {
+        fullScreenReaderSettings.continuousAudio = e.target.checked;
+        saveFullScreenReaderSettings();
+    });
+    if (autoScrollAudioCheck) autoScrollAudioCheck.addEventListener('change', (e) => {
+        fullScreenReaderSettings.autoScrollAudio = e.target.checked;
+        saveFullScreenReaderSettings();
+    });
+    if (highlightColorPicker) highlightColorPicker.addEventListener('change', (e) => {
+        fullScreenReaderSettings.highlightColor = e.target.value;
+        saveFullScreenReaderSettings();
+    });
+    if (viewModeSelect) {
+        viewModeSelect.addEventListener('change', async (e) => {
+            fullScreenReaderViewMode = e.target.value;
+            saveFullScreenReaderSettings();
+            document.getElementById('fsLinesPerPageSettingDiv').style.display = (fullScreenReaderViewMode === 'paged') ? 'block' : 'none';
+            stopAndClearAudio();
+            if (fullScreenReaderViewMode === 'paged') {
+                fullScreenReaderCurrentPage = surahToPageEnhanced(fullScreenReaderCurrentSurah, fullScreenReaderCurrentAyah);
+                await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+            } else {
+                continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
+                continuousScrollNextAyahToLoad = 1;
+                await initializeContinuousScroll();
+            }
+            updateReaderHeaderInfo();
+            updateScrubSliderRangeAndValue();
+        });
+    }
+    document.querySelectorAll('#fsReaderIndexPanel .index-tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            document.querySelectorAll('#fsReaderIndexPanel .index-tab').forEach(t => t.classList.remove('active-tab'));
+            e.target.classList.add('active-tab');
+            document.querySelectorAll('#fsReaderIndexPanel .index-content-panel').forEach(p => p.style.display = 'none');
+            document.getElementById(`fsIndexContent${e.target.dataset.tab.charAt(0).toUpperCase() + e.target.dataset.tab.slice(1)}`).style.display = 'block';
+        });
+    });
+    if (scrubSlider) {
+        scrubSlider.addEventListener('input', () => {
+            if (fullScreenReaderViewMode === 'paged') {
+                const page = parseInt(scrubSlider.value, 10);
+                const pageData = tajMushafPageData.find(p => p.page === page);
+                if (pageData) {
+                    document.getElementById('fsReaderSurahTitle').textContent = `Surah ${pageData.startSurah}: ${surahNames[pageData.startSurah - 1]}`;
+                    document.getElementById('fsReaderPageInfo').textContent = `Page ${page}/${TAJ_COMPANY_PAGES} (Juz ${pageData.juz || getJuzFromSurahAyah(pageData.startSurah, pageData.startAyah)})`;
+                }
+            } else {
+                const surah = parseInt(scrubSlider.value, 10);
+                document.getElementById('fsReaderSurahTitle').textContent = `Surah ${surah}: ${surahNames[surah - 1]}`;
+                document.getElementById('fsReaderPageInfo').textContent = `Juz ${getJuzFromSurahAyah(surah, 1)}`;
+            }
+        });
+        scrubSlider.addEventListener('change', async () => {
+            stopAndClearAudio();
+            if (fullScreenReaderViewMode === 'paged') {
+                fullScreenReaderCurrentPage = parseInt(scrubSlider.value, 10);
+                await renderQuranPageEnhanced(fullScreenReaderCurrentPage);
+            } else {
+                fullScreenReaderCurrentSurah = parseInt(scrubSlider.value, 10);
+                fullScreenReaderCurrentAyah = 1;
+                continuousScrollNextSurahToLoad = fullScreenReaderCurrentSurah;
+                continuousScrollNextAyahToLoad = 1;
+                await initializeContinuousScroll();
+            }
+            updateReaderHeaderInfo();
+        });
+    }
+    if (contentDiv) {
+        contentDiv.addEventListener('scroll', async () => {
+            if (fullScreenReaderViewMode === 'continuous-scroll' && !isLoadingMoreAyahs) {
+                const scrollThreshold = contentDiv.scrollHeight - contentDiv.clientHeight - 700;
+                if (contentDiv.scrollTop >= scrollThreshold) {
+                    await loadMoreAyahsForContinuousScroll();
+                }
+                updateReaderHeaderInfo();
+            }
+        });
+    }
+    setupKeyboardAndTapNavigation();
+}
     function loadAndApplyDynamicFont(fontValue) {
         fullScreenReaderSettings.arabicFont = fontValue;
     }
