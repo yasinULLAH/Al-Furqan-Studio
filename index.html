@@ -9672,6 +9672,8 @@
         }
     })(); // End of self-contained patch
 
+
+
     function initializeGoalsModule() {
         if (window.goalsModuleInitialized) return;
 
@@ -9689,7 +9691,6 @@
         if (document.getElementById(cssId)) document.getElementById(cssId).remove();
 
         const styles = `
-        /* Styles from previous version are retained... */
         .goals-container { padding: 10px; }
         .add-goal-form { background-color: var(--color-bg-secondary); padding: 20px; border-radius: var(--border-radius); margin-bottom: 25px; box-shadow: 0 2px 5px var(--color-shadow); }
         .add-goal-form h3 { margin-top: 0; }
@@ -9747,7 +9748,12 @@
         if (reportingLink) {
             sidebarNav.insertBefore(goalsLi, reportingLink.parentElement);
         } else {
-            sidebarNav.appendChild(goalsLi);
+            const dataManagementLink = sidebarNav.querySelector('a[data-section="data"]');
+            if (dataManagementLink) {
+                 sidebarNav.insertBefore(goalsLi, dataManagementLink.parentElement);
+            } else {
+                 sidebarNav.appendChild(goalsLi);
+            }
         }
     }
 
@@ -9778,12 +9784,17 @@
                             <label for="goal-type">Goal Type:</label>
                             <select id="goal-type" required>
                                 <option value="">-- Select Type --</option>
-                                <option value="read_surah">Read a Surah (Visual)</option>
-                                <option value="read_quran">Read Entire Quran (Visual)</option>
-                                <option value="read_ayahs_daily">Read Ayahs Daily (Habit)</option>
+                                <option value="read_surah">Read a Surah</option>
+                                <option value="listen_surah">Listen to a Surah</option>
+                                <option value="read_quran">Read Entire Quran</option>
+                                <option value="listen_quran">Listen to Entire Quran</option>
+                                <option value="read_ayahs_daily">Read Ayahs Daily</option>
+                                <option value="listen_ayahs_daily">Listen to Ayahs Daily</option>
                                 <option value="memorize_surah">Memorize a Surah</option>
                                 <option value="tafsir_juz">Complete Tafsir for a Juz</option>
                                 <option value="link_theme">Link Ayahs to a Theme</option>
+                                <option value="recurring_surah_daily">Recite Surah Daily (Habit)</option>
+                                <option value="recurring_surah_weekly">Recite Surah Weekly (Habit)</option>
                             </select>
                         </div>
                         <div id="goal-target-wrapper"></div>
@@ -9818,13 +9829,23 @@
 
             switch (type) {
                 case 'read_surah':
+                case 'listen_surah':
                 case 'memorize_surah':
+                case 'recurring_surah_daily':
                     targetWrapper.innerHTML = `<label for="goal-target-surah">Select Surah:</label><select id="goal-target-surah" required>${surahOptions}</select>`;
                     break;
+                case 'recurring_surah_weekly':
+                    const dayOptions = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+                        .map((day, i) => `<option value="${i}">${day}</option>`).join('');
+                    targetWrapper.innerHTML = `<label for="goal-target-surah">Select Surah:</label><select id="goal-target-surah" required>${surahOptions}</select>`;
+                    countWrapper.innerHTML = `<label for="goal-target-day">On which day?</label><select id="goal-target-day" required>${dayOptions}</select>`;
+                    break;
                 case 'read_ayahs_daily':
+                case 'listen_ayahs_daily':
                     countWrapper.innerHTML = `<label for="goal-count">How many Ayahs per day?</label><input type="number" id="goal-count" min="1" value="10" required>`;
                     break;
                 case 'read_quran':
+                case 'listen_quran':
                     break;
                 case 'tafsir_juz':
                     const juzOptions = juzBoundariesData.map(j => `<option value="${j.juz}">Juz ${j.juz}</option>`).join('');
@@ -9860,9 +9881,12 @@
                 };
 
                 const type = newGoal.type;
-                if (type === 'read_surah' || type === 'memorize_surah') {
+                if (type === 'read_surah' || type === 'listen_surah' || type === 'memorize_surah' || type === 'recurring_surah_daily') {
                     newGoal.targetSurah = parseInt(document.getElementById('goal-target-surah').value);
-                } else if (type === 'read_ayahs_daily') {
+                } else if (type === 'recurring_surah_weekly') {
+                    newGoal.targetSurah = parseInt(document.getElementById('goal-target-surah').value);
+                    newGoal.targetDay = parseInt(document.getElementById('goal-target-day').value); // 0=Sun
+                } else if (type === 'read_ayahs_daily' || type === 'listen_ayahs_daily') {
                     newGoal.targetCount = parseInt(document.getElementById('goal-count').value);
                 } else if (type === 'tafsir_juz') {
                     newGoal.targetJuz = parseInt(document.getElementById('goal-target-juz').value);
@@ -9902,8 +9926,9 @@
 
         for (const goal of allGoals) {
             const { progress, progressText } = await calculateGoalProgress(goal, userData);
-
-            if (progress >= 100 && !goal.isComplete) {
+            const isNowComplete = progress >= 100 && (goal.type !== 'read_ayahs_daily' && goal.type !== 'listen_ayahs_daily' && goal.type !== 'recurring_surah_daily' && goal.type !== 'recurring_surah_weekly');
+            
+            if (isNowComplete && !goal.isComplete) {
                 goal.isComplete = true;
                 await putData('goals', goal);
             }
@@ -9926,14 +9951,17 @@
     async function calculateGoalProgress(goal, userData) {
         let progress = 0;
         let progressText = '0/0';
-        const visualReadingLogs = userData.recitations.filter(r => r.qari === 'Visual Reading');
+        const allReadingLogs = userData.recitations; // Use ALL recitation logs now
 
         switch (goal.type) {
-            case 'read_surah': {
+            case 'read_surah':
+            case 'listen_surah': {
                 const total = surahAyahCounts[goal.targetSurah];
                 const ayahsReadInSurah = new Set();
-                visualReadingLogs.filter(r => r.surah === goal.targetSurah).forEach(r => {
-                    for (let i = r.ayahStart; i <= r.ayahEnd; i++) {
+                allReadingLogs.filter(r => r.surah === goal.targetSurah).forEach(r => {
+                    const start = r.ayahStart || 1;
+                    const end = r.ayahEnd || (r.ayahStart ? r.ayahStart : surahAyahCounts[r.surah]);
+                    for (let i = start; i <= end; i++) {
                         ayahsReadInSurah.add(i);
                     }
                 });
@@ -9942,11 +9970,14 @@
                 progressText = `${completed}/${total} Ayahs`;
                 break;
             }
-            case 'read_quran': {
+            case 'read_quran':
+            case 'listen_quran': {
                 const total = 6236; // Total Ayahs
                 const ayahsRead = new Set();
-                visualReadingLogs.forEach(r => {
-                    for (let i = r.ayahStart; i <= r.ayahEnd; i++) {
+                allReadingLogs.forEach(r => {
+                    const start = r.ayahStart || 1;
+                    const end = r.ayahEnd || (r.ayahStart ? r.ayahStart : surahAyahCounts[r.surah]);
+                    for (let i = start; i <= end; i++) {
                         ayahsRead.add(`${r.surah}:${i}`);
                     }
                 });
@@ -9955,15 +9986,50 @@
                 progressText = `${completed}/${total} Ayahs`;
                 break;
             }
-            case 'read_ayahs_daily': {
-                const total = 7; // Track last 7 days
-                const dailyCounts = getDailyReadingCounts(visualReadingLogs);
+            case 'read_ayahs_daily':
+            case 'listen_ayahs_daily': {
+                const total = 7; // Track last 7 days for habit
+                const dailyCounts = getDailyReadingCounts(allReadingLogs);
                 let completed = 0;
                 for (let i = 0; i < 7; i++) {
                     const d = new Date();
                     d.setDate(d.getDate() - i);
                     const dayKey = d.toISOString().split('T')[0];
                     if ((dailyCounts[dayKey] || 0) >= goal.targetCount) {
+                        completed++;
+                    }
+                }
+                progress = (completed / total) * 100;
+                progressText = `${completed}/${total} Days Met`;
+                break;
+            }
+            case 'recurring_surah_weekly': {
+                const total = 4; // Track last 4 weeks
+                let completed = 0;
+                const recitationLogsForSurah = allReadingLogs.filter(r => r.surah === goal.targetSurah);
+                for (let i = 0; i < total; i++) {
+                    const checkDate = new Date();
+                    checkDate.setDate(checkDate.getDate() - (i * 7));
+                    const dayOfWeek = checkDate.getDay();
+                    checkDate.setDate(checkDate.getDate() - (dayOfWeek - goal.targetDay));
+                    const dayKey = checkDate.toISOString().split('T')[0];
+                    if (recitationLogsForSurah.some(log => log.date === dayKey)) {
+                        completed++;
+                    }
+                }
+                progress = (completed / total) * 100;
+                progressText = `${completed}/${total} Weeks Met`;
+                break;
+            }
+            case 'recurring_surah_daily': {
+                const total = 7; // Track last 7 days
+                let completed = 0;
+                const recitationLogsForSurah = allReadingLogs.filter(r => r.surah === goal.targetSurah);
+                for (let i = 0; i < total; i++) {
+                    const checkDate = new Date();
+                    checkDate.setDate(checkDate.getDate() - i);
+                    const dayKey = checkDate.toISOString().split('T')[0];
+                    if (recitationLogsForSurah.some(log => log.date === dayKey)) {
                         completed++;
                     }
                 }
@@ -9998,14 +10064,15 @@
         return { progress: Math.min(progress, 100), progressText };
     }
 
-    function getDailyReadingCounts(visualReadingLogs) {
+    function getDailyReadingCounts(allReadingLogs) {
         const dailyCounts = {};
-        visualReadingLogs.forEach(r => {
+        allReadingLogs.forEach(r => {
             const dayKey = r.date;
-            if (!dailyCounts[dayKey]) {
-                dailyCounts[dayKey] = 0;
-            }
-            dailyCounts[dayKey] += (r.ayahEnd - r.ayahStart + 1);
+            if (!dayKey) return;
+            if (!dailyCounts[dayKey]) dailyCounts[dayKey] = 0;
+            const start = r.ayahStart || 1;
+            const end = r.ayahEnd || (r.ayahStart ? r.ayahStart : (surahAyahCounts[r.surah] || 0));
+            dailyCounts[dayKey] += Math.max(0, (end - start + 1));
         });
         return dailyCounts;
     }
@@ -10013,16 +10080,23 @@
 
     function createGoalCardHTML(goal, progress, progressText) {
         const progressPercent = progress.toFixed(0);
-        const deadlineText = goal.targetDate ? `Target: ${new Date(goal.targetDate).toLocaleDateString()}` : 'Habit Goal';
-
+        const isHabitGoal = goal.type.includes('daily') || goal.type.includes('weekly');
+        const deadlineText = !isHabitGoal && goal.targetDate ? `Target: ${new Date(goal.targetDate).toLocaleDateString()}` : 'Habit Goal';
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        
         let goalDescription = '';
-        if (goal.type === 'read_surah') goalDescription = `Read Surah ${goal.targetSurah}`;
+        if (goal.type === 'read_surah') goalDescription = `Read Surah ${goal.targetSurah}: ${surahNames[goal.targetSurah-1]}`;
+        else if (goal.type === 'listen_surah') goalDescription = `Listen to Surah ${goal.targetSurah}: ${surahNames[goal.targetSurah-1]}`;
         else if (goal.type === 'read_quran') goalDescription = `Complete Full Reading of Quran`;
+        else if (goal.type === 'listen_quran') goalDescription = `Complete Full Listening of Quran`;
         else if (goal.type === 'read_ayahs_daily') goalDescription = `Read ${goal.targetCount} Ayahs Daily`;
-        else if (goal.type === 'memorize_surah') goalDescription = `Memorize Surah ${goal.targetSurah}`;
+        else if (goal.type === 'listen_ayahs_daily') goalDescription = `Listen to ${goal.targetCount} Ayahs Daily`;
+        else if (goal.type === 'memorize_surah') goalDescription = `Memorize Surah ${goal.targetSurah}: ${surahNames[goal.targetSurah-1]}`;
         else if (goal.type === 'tafsir_juz') goalDescription = `Tafsir for Juz ${goal.targetJuz}`;
         else if (goal.type === 'link_theme') goalDescription = `Link Ayahs to a theme`;
-
+        else if (goal.type === 'recurring_surah_weekly') goalDescription = `Recite Surah ${goal.targetSurah} (${surahNames[goal.targetSurah-1]}) every ${days[goal.targetDay]}`;
+        else if (goal.type === 'recurring_surah_daily') goalDescription = `Recite Surah ${goal.targetSurah} (${surahNames[goal.targetSurah-1]}) every day`;
+        
         return `
         <div class="goal-card ${goal.isComplete ? 'completed' : ''}">
             <div>
@@ -10037,8 +10111,7 @@
                 <button class="view-details-btn" data-goal-id="${goal.id}">View Details</button>
                 <button class="delete-goal-btn" data-goal-id="${goal.id}">Delete</button>
             </div>
-        </div>
-    `;
+        </div>`;
     }
 
     async function handleViewGoalDetails(e) {
@@ -10053,49 +10126,76 @@
         modal.style.display = 'flex';
 
         let detailHTML = '<ul class="detail-list">';
+        const allReadingLogs = (await getAllData('recitations'));
 
         switch (goal.type) {
             case 'read_surah':
-            case 'read_quran': {
-                const visualReadingLogs = (await getAllData('recitations')).filter(r => r.qari === 'Visual Reading');
+            case 'listen_surah':
+            case 'read_quran':
+            case 'listen_quran': {
+                const isFullQuran = goal.type.includes('quran');
                 const ayahsRead = new Set();
-                visualReadingLogs.forEach(r => {
-                    for (let i = r.ayahStart; i <= r.ayahEnd; i++) {
-                        ayahsRead.add(`${r.surah}:${i}`);
+                allReadingLogs.forEach(r => {
+                    const start = r.ayahStart || 1;
+                    const end = r.ayahEnd || (r.ayahStart ? r.ayahStart : (surahAyahCounts[r.surah] || 0));
+                    for (let i = start; i <= end; i++) {
+                        if (isFullQuran || r.surah === goal.targetSurah) {
+                             ayahsRead.add(`${r.surah}:${i}`);
+                        }
                     }
                 });
-
-                const ayahsToRead = (goal.type === 'read_surah')
-                    ? Array.from({ length: surahAyahCounts[goal.targetSurah] }, (_, i) => `${goal.targetSurah}:${i + 1}`)
-                    : getAyahsForJuz(1, true).map(a => `${a.surah}:${a.ayah}`); // A simplified full quran list
-
-                const remaining = ayahsToRead.filter(key => !ayahsRead.has(key));
-                if (remaining.length > 0) {
-                    detailHTML += remaining.slice(0, 100).map(key => { // Show first 100 remaining
-                        const [s, a] = key.split(':');
-                        return `<li class="detail-item"><a onclick="jumpToTafsir(${s}, ${a})">Remaining: Surah ${s}:${a}</a></li>`;
-                    }).join('');
-                    if (remaining.length > 100) detailHTML += `<li>And ${remaining.length - 100} more...</li>`;
+                
+                let ayahsToRead = [];
+                if (isFullQuran) {
+                    // For performance, let's just show a summary for full quran
+                    detailHTML += `<li><p>Total unique Ayahs read/listened to: ${ayahsRead.size} / 6236</p></li>`;
                 } else {
-                    detailHTML += '<li><p>All Ayahs have been read. Congratulations!</p></li>';
+                    for(let i=1; i <= surahAyahCounts[goal.targetSurah]; i++) ayahsToRead.push(`${goal.targetSurah}:${i}`);
+                    const remaining = ayahsToRead.filter(key => !ayahsRead.has(key));
+                    if (remaining.length > 0) {
+                        detailHTML += remaining.slice(0, 100).map(key => {
+                            const [s, a] = key.split(':');
+                            return `<li class="detail-item"><a onclick="jumpToTafsir(${s}, ${a})">Remaining: Surah ${s}:${a}</a></li>`;
+                        }).join('');
+                        if (remaining.length > 100) detailHTML += `<li>And ${remaining.length - 100} more...</li>`;
+                    } else {
+                        detailHTML += '<li><p>All Ayahs have been read/listened to. Congratulations!</p></li>';
+                    }
                 }
                 break;
             }
-            case 'read_ayahs_daily': {
-                const visualReadingLogs = (await getAllData('recitations')).filter(r => r.qari === 'Visual Reading');
-                const dailyCounts = getDailyReadingCounts(visualReadingLogs);
+            case 'read_ayahs_daily':
+            case 'listen_ayahs_daily': {
+                const dailyCounts = getDailyReadingCounts(allReadingLogs);
                 for (let i = 0; i < 30; i++) {
                     const d = new Date();
                     d.setDate(d.getDate() - i);
                     const dayKey = d.toISOString().split('T')[0];
                     const count = dailyCounts[dayKey] || 0;
                     const isComplete = count >= goal.targetCount;
-                    detailHTML += `<li class="detail-item"><span>${d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</span><span class="detail-item-status status-${isComplete ? 'complete' : 'incomplete'}">${count} / ${goal.targetCount} Ayahs</span></li>`;
+                    detailHTML += `<li class="detail-item"><span>${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span><span class="detail-item-status status-${isComplete ? 'complete' : 'incomplete'}">${count} / ${goal.targetCount} Ayahs</span></li>`;
                 }
                 break;
             }
-            case 'memorize_surah': { /* ... as before ... */ break; }
-            case 'tafsir_juz': { /* ... as before ... */ break; }
+            case 'recurring_surah_daily':
+            case 'recurring_surah_weekly': {
+                const isWeekly = goal.type.includes('weekly');
+                const logsForSurah = allReadingLogs.filter(r => r.surah === goal.targetSurah);
+                const daysToCheck = isWeekly ? 4*7 : 30; // 4 weeks or 30 days
+                
+                 for (let i = 0; i < daysToCheck; i++) {
+                    const checkDate = new Date();
+                    checkDate.setDate(checkDate.getDate() - i);
+                    
+                    if (isWeekly && checkDate.getDay() !== goal.targetDay) continue;
+
+                    const dayKey = checkDate.toISOString().split('T')[0];
+                    const wasMet = logsForSurah.some(log => log.date === dayKey);
+
+                    detailHTML += `<li class="detail-item"><span>${checkDate.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</span><span class="detail-item-status status-${wasMet ? 'complete' : 'incomplete'}">${wasMet ? 'Done' : 'Pending'}</span></li>`;
+                 }
+                break;
+            }
             default:
                 detailHTML += '<li><p>Detailed progress view is not available for this goal type yet.</p></li>';
         }
@@ -10103,6 +10203,7 @@
         detailHTML += '</ul>';
         contentEl.innerHTML = detailHTML;
     }
+    
     async function handleDeleteGoal(e) {
         const goalId = parseInt(e.target.dataset.goalId);
         if (confirm("Are you sure you want to delete this goal?")) {
@@ -10111,28 +10212,30 @@
         }
     }
 
-    async function jumpToHifz(surah, ayah) {
-        document.getElementById('goalDetailsModal').style.display = 'none';
-        showSection('hifz');
-        const hifzSelect = document.getElementById('hifz-surah-select');
-        hifzSelect.value = surah;
-        hifzSelect.dispatchEvent(new Event('change'));
-    }
-
     async function jumpToTafsir(surah, ayah) {
-        document.getElementById('goalDetailsModal').style.display = 'none';
+        const modal = document.getElementById('goalDetailsModal');
+        if (modal) modal.style.display = 'none';
         await loadAyah(surah, ayah);
         showSection('tafsir');
     }
 
     function getAyahsForJuz(juzNum) {
         const ayahs = [];
-        for (let s = 1; s <= 114; s++) {
-            for (let a = 1; a <= surahAyahCounts[s]; a++) {
-                if (getJuzFromSurahAyah(s, a) === juzNum) {
-                    ayahs.push({ surah: s, ayah: a });
-                }
-            }
+        const startJuzData = juzBoundariesData[juzNum - 1];
+        const endJuzData = juzBoundariesData[juzNum] || { startSurah: 115, startAyah: 1 }; // sentinel
+        
+        for (let s = startJuzData.startSurah; s < endJuzData.startSurah; s++) {
+             const startAyah = (s === startJuzData.startSurah) ? startJuzData.startAyah : 1;
+             for (let a = startAyah; a <= surahAyahCounts[s]; a++) {
+                 ayahs.push({ surah: s, ayah: a });
+             }
+        }
+        // Handle last surah of the Juz
+        if(endJuzData.startSurah <= 114) {
+            const startAyahLastSurah = (endJuzData.startSurah === startJuzData.startSurah) ? startJuzData.startAyah : 1;
+             for (let a = startAyahLastSurah; a < endJuzData.startAyah; a++) {
+                 ayahs.push({ surah: endJuzData.startSurah, ayah: a });
+             }
         }
         return ayahs;
     }
@@ -10141,7 +10244,7 @@
         if (window.showSection.isPatchedForGoals) return;
         const originalShowSection = window.showSection;
         window.showSection = function (sectionId) {
-            originalShowSection(sectionId);
+            originalShowSection.apply(this, arguments); // Call original function
             if (sectionId === 'goals') {
                 renderGoalsUI();
             }
@@ -10149,5 +10252,6 @@
         window.showSection.isPatchedForGoals = true;
     }
 
-    document.addEventListener('DOMContentLoaded', initializeGoalsModule);   
+    document.addEventListener('DOMContentLoaded', initializeGoalsModule);
+
 </script>
