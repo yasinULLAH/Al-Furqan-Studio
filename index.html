@@ -901,8 +901,8 @@
 
         button#launchFullScreenReaderBtnEnhanced {
             position: absolute;
-            right: 83px;
-            top: 71px;
+            right: 23px;
+            top: 6px;
         }
 
         button#quitGameButton {
@@ -10294,4 +10294,335 @@
 
     document.addEventListener('DOMContentLoaded', initializeGoalsModule);
 
+</script>
+
+
+<script>
+    (function() {
+        // MANIFEST_URL should be globally available from your main script.
+        // If not, ensure it's defined, e.g.:
+        // const MANIFEST_URL = 'info.csv'; 
+
+        const JSZIP_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+        let jszipLoaded = false;
+        let dataFilesManifestCache = null;
+
+        function loadJSZip() {
+            return new Promise((resolve, reject) => {
+                if (typeof JSZip !== 'undefined') {
+                    jszipLoaded = true;
+                    resolve(window.JSZip);
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = JSZIP_CDN_URL;
+                script.onload = () => {
+                    jszipLoaded = true;
+                    resolve(window.JSZip);
+                };
+                script.onerror = () => reject(new Error('Failed to load JSZip library.'));
+                document.head.appendChild(script);
+            });
+        }
+
+        async function fetchAndParseManifest() {
+            if (dataFilesManifestCache) {
+                return dataFilesManifestCache;
+            }
+            if (typeof MANIFEST_URL === 'undefined') {
+                console.error("MANIFEST_URL is not defined. Cannot fetch data files from manifest.");
+                throw new Error("Manifest URL (info.csv) not defined.");
+            }
+            try {
+                const response = await fetch(MANIFEST_URL, { cache: "no-store" });
+                if (!response.ok) throw new Error(`Failed to fetch manifest (${MANIFEST_URL}): ${response.statusText}`);
+                const text = await response.text();
+                const lines = text.trim().split('\n');
+                if (lines.length < 2) { // Headers + at least one data line
+                    console.warn(`Manifest file '${MANIFEST_URL}' is empty or has no data rows.`);
+                    dataFilesManifestCache = [];
+                    return dataFilesManifestCache;
+                }
+                
+                const headers = lines.shift().trim().split(',').map(h => h.trim());
+                const urlHeaderIndex = headers.indexOf('url');
+                if (urlHeaderIndex === -1) throw new Error(`Manifest CSV ('${MANIFEST_URL}') must contain a 'url' header.`);
+
+                dataFilesManifestCache = lines.map(line => {
+                    const values = line.trim().split(',');
+                    let fileUrl = values[urlHeaderIndex] ? values[urlHeaderIndex].trim() : null;
+                    // Filter for files listed *inside* the manifest (typically .AM, but keep .csv for flexibility)
+                    if (fileUrl && (fileUrl.endsWith('.AM') || fileUrl.endsWith('.csv'))) { 
+                        return { name: fileUrl, url: fileUrl };
+                    }
+                    return null;
+                }).filter(Boolean); 
+                
+                if(dataFilesManifestCache.length === 0) {
+                    console.warn(`No .AM or .csv files found listed inside the manifest '${MANIFEST_URL}' after filtering.`);
+                }
+                return dataFilesManifestCache;
+            } catch (error) {
+                console.error(`Error fetching or parsing manifest '${MANIFEST_URL}':`, error);
+                dataFilesManifestCache = []; 
+                throw error;
+            }
+        }
+
+        async function fetchFileAsBlob(url, fileNameForError) {
+            try {
+                const response = await fetch(url, { cache: "no-store" });
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status} for ${fileNameForError || url}`);
+                }
+                return response.blob();
+            } catch (error) {
+                 console.warn(`Failed to fetch ${fileNameForError || url}: ${error.message}. File will be skipped.`);
+                 return null; 
+            }
+        }
+        
+        function triggerDownload(blob, filename) {
+            const downloadUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(downloadUrl);
+        }
+
+        async function handleZippedAppDownload(button) {
+            const originalButtonContent = 'Zip 📦'; // Updated icon
+            button.disabled = true;
+            button.innerHTML = 'Zipping... ⏳';
+
+            try {
+                if (!jszipLoaded) {
+                    await loadJSZip();
+                }
+                if (typeof JSZip === 'undefined') {
+                    throw new Error("JSZip library failed to load correctly.");
+                }
+
+                const zip = new JSZip();
+                
+                // 1. Add index.html
+                const currentHtmlContent = document.documentElement.outerHTML;
+                zip.file('index.html', currentHtmlContent);
+
+                // 2. Add info.csv (the manifest file itself)
+                let filesAddedToZip = 0;
+                if (typeof MANIFEST_URL !== 'undefined') {
+                    const manifestBlob = await fetchFileAsBlob(MANIFEST_URL, MANIFEST_URL);
+                    if (manifestBlob) {
+                        zip.file(MANIFEST_URL, manifestBlob); // Use MANIFEST_URL as filename (e.g., 'info.csv')
+                        filesAddedToZip++;
+                    } else {
+                        console.warn(`Manifest file '${MANIFEST_URL}' could not be fetched for the zip.`);
+                    }
+                } else {
+                     console.warn("MANIFEST_URL not defined; cannot add manifest file to zip.");
+                }
+
+
+                // 3. Add files listed in the manifest
+                let manifestFiles = [];
+                try {
+                    manifestFiles = await fetchAndParseManifest();
+                } catch (manifestError) {
+                    console.warn("Could not load files from manifest for zipping due to manifest error. Zip will contain index.html and potentially info.csv if fetched.", manifestError);
+                    // Continue to create zip with what we have
+                }
+                
+                if (manifestFiles && manifestFiles.length > 0) {
+                    const filePromises = manifestFiles.map(fileInfo =>
+                        fetchFileAsBlob(fileInfo.url, fileInfo.name)
+                        .then(blob => blob ? ({ name: fileInfo.name, blob }) : null)
+                    );
+                    const fetchedDataFiles = await Promise.all(filePromises);
+                    fetchedDataFiles.forEach(fileResult => {
+                        if (fileResult && fileResult.blob) {
+                            zip.file(fileResult.name, fileResult.blob);
+                            filesAddedToZip++;
+                        }
+                    });
+                }
+                
+                if (filesAddedToZip === 0) { // This counts index.html, info.csv, and data files
+                    //alert(`Warning: No files (including index.html or data files) could be added to the zip. An empty or minimal zip will be downloaded.`);
+                } else if (manifestFiles && filesAddedToZip < (manifestFiles.length + (typeof MANIFEST_URL !== 'undefined' ? 2 : 1) )) { // +2 for index.html and info.csv
+                     //alert(`Warning: Some files might be missing from the zip. Check console. The app might not work correctly offline.`);
+                }
+
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                triggerDownload(zipBlob, 'NurAlQuran_OfflineApp.zip');
+                button.innerHTML = originalButtonContent;
+
+            } catch (error) {
+                console.error('Error during zipped app download:', error);
+                alert(`Failed to prepare zipped app for download: ${error.message}. Check console for details.`);
+                button.innerHTML = 'Error! Retry Zip 📦';
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        async function handleUnzippedAppDownload(button) {
+            const originalButtonContent = 'Files 📁'; // Updated icon
+            button.disabled = true;
+            button.innerHTML = 'Preparing... ⏳';
+            
+            try {
+                // 1. Download index.html
+                const currentHtmlContent = document.documentElement.outerHTML;
+                const htmlBlob = new Blob([currentHtmlContent], { type: 'text/html' });
+                triggerDownload(htmlBlob, 'index.html');
+                await new Promise(resolve => setTimeout(resolve, 500)); // Give browser a moment
+
+                // 2. Download info.csv (the manifest file itself)
+                let filesDownloadedCount = 0;
+                if (typeof MANIFEST_URL !== 'undefined') {
+                    button.innerHTML = `Downloading ${MANIFEST_URL}...`;
+                    const manifestBlob = await fetchFileAsBlob(MANIFEST_URL, MANIFEST_URL);
+                    if (manifestBlob) {
+                        triggerDownload(manifestBlob, MANIFEST_URL);
+                        filesDownloadedCount++;
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                    } else {
+                        console.warn(`Manifest file '${MANIFEST_URL}' could not be fetched for unzipped download.`);
+                    }
+                } else {
+                    console.warn("MANIFEST_URL not defined; cannot download manifest file.");
+                }
+
+                // 3. Download files listed in the manifest
+                let manifestFiles = [];
+                try {
+                    manifestFiles = await fetchAndParseManifest();
+                } catch (manifestError) {
+                    console.warn("Could not load files from manifest for unzipped download due to manifest error.", manifestError);
+                    // Continue, user already got index.html and maybe info.csv
+                }
+
+                if (manifestFiles && manifestFiles.length > 0) {
+                    for (const fileInfo of manifestFiles) {
+                        button.innerHTML = `Downloading ${fileInfo.name}...`;
+                        const blob = await fetchFileAsBlob(fileInfo.url, fileInfo.name);
+                        if (blob) {
+                            triggerDownload(blob, fileInfo.name);
+                            filesDownloadedCount++;
+                            await new Promise(resolve => setTimeout(resolve, 300)); 
+                        }
+                    }
+                }
+                
+                const totalExpectedFiles = 1 + (typeof MANIFEST_URL !== 'undefined' ? 1 : 0) + (manifestFiles ? manifestFiles.length : 0);
+                if (filesDownloadedCount === 0) {
+                     alert(`Warning: Could not download any files. The app will not work offline.`);
+                } else if (filesDownloadedCount < totalExpectedFiles) {
+                    alert(`Warning: Some files (${totalExpectedFiles - filesDownloadedCount} of ${totalExpectedFiles}) could not be downloaded. Check console. The app might not be fully functional offline.`);
+                }
+
+                button.innerHTML = originalButtonContent;
+
+            } catch (error) {
+                console.error('Error during unzipped app download:', error);
+                alert(`Failed to prepare unzipped files for download: ${error.message}. Check console for details.`);
+                 button.innerHTML = 'Error! Retry Files 📁';
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+
+        function createAndInsertDownloadButtons() {
+            const quranHeading = document.getElementById('quran-heading');
+
+            if (!quranHeading) {
+                console.warn('Target h2#quran-heading for download buttons not found yet. Retrying...');
+                setTimeout(createAndInsertDownloadButtons, 500);
+                return;
+            }
+
+            if (document.getElementById('downloadAppZippedBtn')) return; 
+
+            if (getComputedStyle(quranHeading).display !== 'flex') {
+                quranHeading.style.display = 'flex';
+                quranHeading.style.justifyContent = 'space-between'; // This will push the button container to the right
+                quranHeading.style.alignItems = 'center';
+                quranHeading.style.width = '100%'; 
+            }
+
+            // Ensure existing text content of h2 is wrapped in a span if it's just a text node
+            // This helps in reliably appending the button container next to the text.
+            let textSpanContainer = quranHeading.querySelector('span#quranHeadingText');
+            if (!textSpanContainer) {
+                textSpanContainer = document.createElement('span');
+                textSpanContainer.id = 'quranHeadingText';
+                // Move existing children (likely just text node) into the new span
+                while (quranHeading.firstChild && quranHeading.firstChild.id !== 'quranHeadingDownloadButtons') {
+                    textSpanContainer.appendChild(quranHeading.firstChild);
+                }
+                quranHeading.insertBefore(textSpanContainer, quranHeading.firstChild); // Add span at the beginning
+            }
+
+
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.id = 'quranHeadingDownloadButtons';
+            buttonsContainer.style.display = 'flex';
+            buttonsContainer.style.gap = '8px'; 
+            buttonsContainer.style.marginLeft = 'auto'; 
+            buttonsContainer.style.flexShrink = '0';
+
+            const commonButtonStyle = `
+                padding: 5px 8px; 
+                font-size: 0.85rem;  
+                color: white;
+                border: none;
+                border-radius: var(--border-radius, 4px);
+                cursor: pointer;
+                vertical-align: middle;
+                line-height: normal;
+                white-space: nowrap; 
+            `;
+            
+            const hoverEffect = (btn, originalColor, hoverColor) => {
+                btn.addEventListener('mouseover', () => btn.style.backgroundColor = hoverColor);
+                btn.addEventListener('mouseout', () => btn.style.backgroundColor = originalColor);
+            };
+
+            const downloadZippedButton = document.createElement('button');
+            downloadZippedButton.id = 'downloadAppZippedBtn';
+            downloadZippedButton.innerHTML = 'Zip 📦';
+            downloadZippedButton.title = 'Download App & Data (Zipped)';
+            downloadZippedButton.style.cssText = commonButtonStyle;
+            downloadZippedButton.style.backgroundColor = 'var(--color-success, #28a745)';
+            hoverEffect(downloadZippedButton, 'var(--color-success, #28a745)', 'var(--color-accent-dark, #218838)');
+            downloadZippedButton.addEventListener('click', () => handleZippedAppDownload(downloadZippedButton));
+
+            const downloadUnzippedButton = document.createElement('button');
+            downloadUnzippedButton.id = 'downloadAppUnzippedBtn';
+            downloadUnzippedButton.innerHTML = 'Files 📁';
+            downloadUnzippedButton.title = 'Download App & Data (Individual Files)';
+            downloadUnzippedButton.style.cssText = commonButtonStyle;
+            downloadUnzippedButton.style.backgroundColor = 'var(--color-accent, #007bff)';
+            hoverEffect(downloadUnzippedButton, 'var(--color-accent, #007bff)', 'var(--color-accent-dark, #0056b3)');
+            downloadUnzippedButton.addEventListener('click', () => handleUnzippedAppDownload(downloadUnzippedButton));
+            
+            buttonsContainer.appendChild(downloadZippedButton);
+            buttonsContainer.appendChild(downloadUnzippedButton);
+            
+            quranHeading.appendChild(buttonsContainer); // Append to the h2
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', createAndInsertDownloadButtons);
+        } else {
+            createAndInsertDownloadButtons();
+        }
+
+    })();
 </script>
