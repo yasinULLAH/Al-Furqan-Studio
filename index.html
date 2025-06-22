@@ -10625,3 +10625,131 @@
 
     })();
 </script>
+
+<!-- Keyboard Shortcuts Module -->
+<script>
+    (function () {
+        'use strict';
+
+        // --- Configuration ---
+        // Maps the Alt + Number key to the corresponding section ID.
+        const sectionShortcuts = {
+            '1': 'quran',
+            '2': 'tafsir',
+            '3': 'themes',
+            '4': 'roots',
+            '5': 'recitation',
+            '6': 'hifz',
+            '7': 'search',
+            '8': 'data'
+        };
+
+        // --- Helper Functions for Navigation ---
+
+        /**
+         * Navigates to the next Ayah in sequence. Handles changing Surahs.
+         */
+        function goToNextAyah() {
+            // Ensure global variables from your main script are available
+            if (typeof currentSurah === 'undefined' || typeof currentAyah === 'undefined' || typeof surahAyahCounts === 'undefined' || typeof loadAyah !== 'function') {
+                console.warn("Shortcut failed: Required global variables (currentSurah, etc.) or loadAyah function not found.");
+                return;
+            }
+
+            let nextS = currentSurah;
+            let nextA = currentAyah + 1;
+
+            if (nextA > surahAyahCounts[nextS]) {
+                if (nextS < 114) {
+                    nextS++;
+                    nextA = 1;
+                } else {
+                    return; // At the very end of the Quran
+                }
+            }
+            loadAyah(nextS, nextA);
+        }
+
+        /**
+         * Navigates to the previous Ayah in sequence. Handles changing Surahs.
+         */
+        function goToPrevAyah() {
+            if (typeof currentSurah === 'undefined' || typeof currentAyah === 'undefined' || typeof surahAyahCounts === 'undefined' || typeof loadAyah !== 'function') {
+                console.warn("Shortcut failed: Required global variables (currentSurah, etc.) or loadAyah function not found.");
+                return;
+            }
+
+            let prevS = currentSurah;
+            let prevA = currentAyah - 1;
+
+            if (prevA < 1) {
+                if (prevS > 1) {
+                    prevS--;
+                    prevA = surahAyahCounts[prevS];
+                } else {
+                    return; // At the very beginning of the Quran
+                }
+            }
+            loadAyah(prevS, prevA);
+        }
+
+
+        // --- Main Keydown Handler ---
+
+        function handleGlobalKeyDown(event) {
+            // Do not trigger shortcuts if user is typing in an input, textarea, or select element.
+            const activeEl = document.activeElement;
+            const isTyping = activeEl && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName.toUpperCase());
+
+            // Exception: Allow Ctrl+S in the tafsir textarea for saving.
+            if (isTyping && !(event.ctrlKey && event.key.toLowerCase() === 's' && activeEl.id === 'tafsir-notes')) {
+                return;
+            }
+
+            // Do not interfere with special UI components like modals or the fullscreen reader
+            if (document.querySelector('.modal[style*="display: flex"]') || document.getElementById('fullScreenReaderOverlay')) {
+                return;
+            }
+
+            // --- Save Shortcut: Ctrl + S ---
+            if (event.ctrlKey && event.key.toLowerCase() === 's') {
+                event.preventDefault(); // IMPORTANT: Prevents browser's "Save Page" dialog
+                const activeSectionId = document.querySelector('.section.active')?.id;
+
+                if (activeSectionId === 'tafsir') {
+                    document.getElementById('save-tafsir-btn')?.click();
+                } else if (activeSectionId === 'roots') {
+                    document.getElementById('save-root-notes-btn')?.click();
+                }
+            }
+
+            // --- Section Switching: Alt + [1-8] ---
+            if (event.altKey && sectionShortcuts[event.key]) {
+                event.preventDefault();
+                const sectionId = sectionShortcuts[event.key];
+                if (typeof showSection === 'function') {
+                    showSection(sectionId);
+                }
+            }
+
+            // --- Ayah Navigation: Ctrl + Arrow Keys ---
+            if (event.ctrlKey) {
+                if (event.key === 'ArrowRight') {
+                    event.preventDefault();
+                    goToNextAyah();
+                } else if (event.key === 'ArrowLeft') {
+                    event.preventDefault();
+                    goToPrevAyah();
+                }
+            }
+        }
+
+        // --- Initialization ---
+        // Add the listener after the main DOM content has loaded.
+        document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('keydown', handleGlobalKeyDown);
+            console.log("Keyboard shortcuts module initialized.");
+        });
+
+    })();
+</script>
