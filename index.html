@@ -1072,6 +1072,54 @@
                 url("https://db.onlinewebfonts.com/t/f0034555c887b9dbfb67c6fd228d8f33.ttf")format("truetype"),
                 url("https://db.onlinewebfonts.com/t/f0034555c887b9dbfb67c6fd228d8f33.svg#KFGQPC Uthman Taha Naskh")format("svg");
         }
+
+        /* Add these new rules for the Word-by-Word table */
+        .word-by-word-options {
+            margin-top: 20px;
+        }
+
+        #wordByWordLanguageOptions {
+            padding-left: 25px;
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Styles for the table in the generated image */
+        .word-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 1.2em;
+            /* Base size for the table */
+        }
+
+        .word-table th,
+        .word-table td {
+            border: 1px solid var(--color-border);
+            padding: 8px 12px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .word-table th {
+            background-color: var(--color-bg-secondary);
+            color: var(--color-text-secondary);
+            font-weight: bold;
+        }
+
+        .word-table .arabic-word-cell {
+            font-family: var(--font-arabic);
+            font-size: 1.5em;
+            /* Make Arabic words larger */
+            direction: rtl;
+        }
+
+        button.generate-image-btn {
+            padding: 5px;
+            margin-top: 18px;
+        }
     </style>
     <!-- Optional: Include fonts if not available locally -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1093,6 +1141,34 @@
 </head>
 
 <body dir="ltr"> <!-- Default direction, will be set dynamically if needed -->
+
+    <!-- Modal for Ayah Image Generation (UPDATED) -->
+    <div id="ayahImageModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="ayahImageModalTitle">
+        <div class="modal-content">
+            <span class="close-button" onclick="this.parentElement.parentElement.style.display='none'">×</span>
+            <h3 id="ayahImageModalTitle">Generate Ayah Image</h3>
+
+            <!-- Section for Full Ayah Translations -->
+            <p><strong>Step 1:</strong> Select which full-ayah translations to include:</p>
+            <div id="imageTranslationOptions">
+                <!-- Checkboxes will be populated here by JavaScript -->
+            </div>
+
+            <!-- NEW Section for Word-by-Word Table -->
+            <div class="word-by-word-options">
+                <p><strong>Step 2:</strong> Add a word-by-word translation table (optional):</p>
+                <label>
+                    <input type="checkbox" id="includeWordByWordTable"> Include Word-by-Word Table
+                </label>
+                <div id="wordByWordLanguageOptions" style="display: none;">
+                    <p style="margin-bottom: 5px; font-size: 0.9em;">Select languages for the table:</p>
+                    <!-- Language choices for the table will be populated here -->
+                </div>
+            </div>
+
+            <button id="createImageBtn" style="margin-top: 25px;">Create & Download Image</button>
+        </div>
+    </div>
     <div id="sidebar-overlay"></div>
     <div id="loading-overlay">
         <div class="loading-content">
@@ -10728,5 +10804,289 @@
         document.addEventListener('DOMContentLoaded', () => {
             document.addEventListener('keydown', handleGlobalKeyDown);
         });
+    })();
+</script>
+
+
+<!-- Ayah Image Generator Module (V3.1 - Word-by-Word Fix) -->
+<script>
+    (function () {
+        'use strict';
+        const HTML2CANVAS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        let html2canvasLoaded = false;
+
+        function loadHtml2Canvas() {
+            return new Promise((resolve, reject) => {
+                if (typeof html2canvas !== 'undefined') {
+                    html2canvasLoaded = true;
+                    resolve();
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = HTML2CANVAS_CDN;
+                script.onload = () => {
+                    html2canvasLoaded = true;
+                    resolve();
+                };
+                script.onerror = () => reject(new Error("Failed to load image generation library."));
+                document.head.appendChild(script);
+            });
+        }
+
+        async function createImageContainerForCanvas(ayahData, selectedTranslations, wordByWordOptions) {
+            const imageContainer = document.createElement('div');
+            // --- Basic Styling ---
+            const themeBgPrimary = getComputedStyle(document.body).getPropertyValue('--color-bg-primary').trim();
+            const themeBgSecondary = getComputedStyle(document.body).getPropertyValue('--color-bg-secondary').trim();
+            const themeBorder = getComputedStyle(document.body).getPropertyValue('--color-border').trim();
+            const themeTextPrimary = getComputedStyle(document.body).getPropertyValue('--color-text-primary').trim();
+            const themeTextSecondary = getComputedStyle(document.body).getPropertyValue('--color-text-secondary').trim();
+            imageContainer.style.cssText = `
+                width: 800px;
+                padding: 40px;
+                border: 1px solid ${themeBorder};
+                background: linear-gradient(135deg, ${themeBgPrimary} 0%, ${themeBgSecondary} 100%);
+                font-family: var(--font-general);
+                color: ${themeTextPrimary};
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            `;
+
+            if (ayahData.surah !== 1 && ayahData.surah !== 9 && ayahData.ayah === 1) {
+                const bismillah = document.createElement('div');
+                bismillah.textContent = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ';
+                bismillah.style.cssText = "font-family: var(--font-arabic); font-size: 2em; text-align: center; margin-bottom: 20px;";
+                imageContainer.appendChild(bismillah);
+            }
+
+            const ref = document.createElement('h2');
+            ref.textContent = `Surah ${surahNames[ayahData.surah - 1]} (${ayahData.surah}:${ayahData.ayah})`;
+            ref.style.cssText = `text-align: center; color: ${themeTextSecondary}; margin-bottom: 10px; font-weight: normal;`;
+            imageContainer.appendChild(ref);
+
+            const arabicText = document.createElement('div');
+            arabicText.textContent = ayahData.arabic;
+            arabicText.style.cssText = "font-family: var(--font-arabic); font-size: 3.2em; text-align: center; direction: rtl; line-height: 1.8; margin-bottom: 20px;";
+            imageContainer.appendChild(arabicText);
+
+            selectedTranslations.forEach(trans => {
+                const divider = document.createElement('hr');
+                divider.style.cssText = "border: none; border-top: 1px solid var(--color-border); opacity: 0.5;";
+                imageContainer.appendChild(divider);
+                const transContainer = document.createElement('div');
+                transContainer.innerHTML = `
+                    <h4 style="color:${themeTextSecondary}; margin-bottom:5px; font-size:1em;">${trans.config.label}</h4>
+                    <p style="font-family:var(--font-${trans.config.key}); font-size:1.4em; direction:${trans.config.dir}; text-align:left; line-height:1.6; margin:0;">${trans.text}</p>
+                `;
+                imageContainer.appendChild(transContainer);
+            });
+
+            if (wordByWordOptions.include && wordByWordOptions.languages.length > 0) {
+                const table = await createWordByWordTable(ayahData, wordByWordOptions.languages);
+                if (table) {
+                    const divider = document.createElement('hr');
+                    divider.style.cssText = "border: none; border-top: 1px solid var(--color-border); margin-top: 20px;";
+                    imageContainer.appendChild(divider);
+                    const tableHeader = document.createElement('h4');
+                    tableHeader.textContent = "Word-by-Word Breakdown";
+                    tableHeader.style.cssText = `color:${themeTextSecondary}; margin: 20px 0 0 0; text-align: center;`;
+                    imageContainer.appendChild(tableHeader);
+                    imageContainer.appendChild(table);
+                }
+            }
+
+            const watermark = document.createElement('div');
+            watermark.textContent = 'Generated by Nur Al-Quran Studio';
+            watermark.style.cssText = `margin-top: 30px; text-align: center; font-size: 12px; color: ${themeTextSecondary}; opacity: 0.6;`;
+            imageContainer.appendChild(watermark);
+
+            imageContainer.style.position = 'absolute';
+            imageContainer.style.left = '-9999px';
+            document.body.appendChild(imageContainer);
+            return imageContainer;
+        }
+
+        async function createWordByWordTable(ayahData, languageKeys) {
+            // --- FIX --- Create a map to bridge language keys to DB property names
+            const propertyMap = {
+                'urdu': 'ur_meaning',
+                'english': 'en_meaning',
+                'pashto': 'pashto_text',
+                'Bangali': 'bn_meaning' // Assuming this key based on your other code
+            };
+
+            const metadata = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([ayahData.surah, ayahData.ayah, 0], [ayahData.surah, ayahData.ayah, Infinity]), 'location_idx');
+            if (!metadata || metadata.length === 0) return null;
+
+            const wordIds = metadata.map(m => m.word_id);
+            const translationPromises = wordIds.map(id => getData(STORE_WORD_TRANSLATIONS, id));
+            const translations = await Promise.all(translationPromises);
+
+            const arabicWords = ayahData.arabic.split(/\s+/).filter(w => w);
+
+            const table = document.createElement('table');
+            table.className = 'word-table';
+
+            const thead = table.createTHead();
+            const headerRow = thead.insertRow();
+            headerRow.innerHTML = '<th>Word (Arabic)</th>';
+            languageKeys.forEach(key => {
+                const config = getTranslationConfig(key);
+                headerRow.innerHTML += `<th>${config.label}</th>`;
+            });
+
+            const tbody = table.createTBody();
+            for (let i = 0; i < arabicWords.length; i++) {
+                const row = tbody.insertRow();
+                const arabicCell = row.insertCell();
+                arabicCell.className = 'arabic-word-cell';
+                arabicCell.textContent = arabicWords[i];
+
+                const wordTrans = translations[i] || {};
+
+                languageKeys.forEach(key => {
+                    const transCell = row.insertCell();
+                    const config = getTranslationConfig(key);
+                    // --- FIX --- Use the propertyMap to look up the correct field name
+                    const propertyName = propertyMap[key];
+                    transCell.textContent = wordTrans[propertyName] || 'N/A';
+
+                    transCell.style.fontFamily = `var(--font-${config.key})`;
+                    transCell.style.direction = config.dir;
+                });
+            }
+            return table;
+        }
+
+        // The rest of the functions remain the same as the previous version...
+
+        async function generateFinalImage() {
+            const modal = document.getElementById('ayahImageModal');
+            const createBtn = document.getElementById('createImageBtn');
+            createBtn.disabled = true;
+            createBtn.textContent = 'Creating...';
+            try {
+                const surah = parseInt(modal.dataset.surah, 10);
+                const ayah = parseInt(modal.dataset.ayah, 10);
+                const ayahData = await getData(STORE_QURAN, [surah, ayah]);
+                if (!ayahData) throw new Error(`Could not retrieve data for Ayah ${surah}:${ayah}.`);
+
+                const selectedTranslations = Array.from(document.querySelectorAll('#imageTranslationOptions input:checked'))
+                    .map(cb => ({ langKey: cb.value, text: ayahData[cb.value], config: getTranslationConfig(cb.value) }));
+
+                const wordByWordOptions = {
+                    include: document.getElementById('includeWordByWordTable').checked,
+                    languages: Array.from(document.querySelectorAll('#wordByWordLanguageOptions input:checked')).map(cb => cb.value)
+                };
+
+                const imageSourceContainer = await createImageContainerForCanvas(ayahData, selectedTranslations, wordByWordOptions);
+                const canvas = await html2canvas(imageSourceContainer, { useCORS: true, backgroundColor: null, scale: 2 });
+                const link = document.createElement('a');
+                link.download = `Ayah_${surah}_${ayah}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+
+                document.body.removeChild(imageSourceContainer);
+                modal.style.display = 'none';
+
+            } catch (error) {
+                console.error("Error generating final image:", error);
+                alert("Sorry, an error occurred. Please check the console for details.");
+            } finally {
+                createBtn.disabled = false;
+                createBtn.textContent = 'Create & Download Image';
+            }
+        }
+
+        async function openImageSettingsModal(event) {
+            const button = event.currentTarget;
+            button.disabled = true;
+            try {
+                if (!html2canvasLoaded) await loadHtml2Canvas();
+                const surah = parseInt(button.dataset.surah, 10);
+                const ayah = parseInt(button.dataset.ayah, 10);
+                const modal = document.getElementById('ayahImageModal');
+
+                modal.dataset.surah = surah;
+                modal.dataset.ayah = ayah;
+
+                const ayahData = await getData(STORE_QURAN, [surah, ayah]);
+                if (!ayahData) throw new Error(`Could not find data for Ayah ${surah}:${ayah}.`);
+
+                const availableTranslations = window.appManifest.filter(f => f.file_type === 'quran_translation' && ayahData[f.key]);
+                const currentlySelectedInUI = document.getElementById('translation-select').value;
+
+                const fullTransOptions = document.getElementById('imageTranslationOptions');
+                const wbywLangOptions = document.getElementById('wordByWordLanguageOptions');
+                fullTransOptions.innerHTML = '';
+                wbywLangOptions.innerHTML = '';
+
+                availableTranslations.forEach(config => {
+                    fullTransOptions.innerHTML += `<label><input type="checkbox" value="${config.key}" ${config.key === currentlySelectedInUI ? 'checked' : ''}> ${config.label}</label>`;
+                    wbywLangOptions.innerHTML += `<label><input type="checkbox" class="wbyw-lang-option" value="${config.key}" ${config.key === currentlySelectedInUI ? 'checked' : ''}> ${config.label}</label>`;
+                });
+
+                const includeWbyWCheckbox = document.getElementById('includeWordByWordTable');
+                includeWbyWCheckbox.checked = false;
+                wbywLangOptions.style.display = 'none';
+                includeWbyWCheckbox.onchange = () => {
+                    wbywLangOptions.style.display = includeWbyWCheckbox.checked ? 'flex' : 'none';
+                };
+
+                const createBtn = document.getElementById('createImageBtn');
+                const newCreateBtn = createBtn.cloneNode(true);
+                createBtn.parentNode.replaceChild(newCreateBtn, createBtn);
+                newCreateBtn.addEventListener('click', generateFinalImage);
+
+                modal.style.display = 'flex';
+
+            } catch (error) {
+                console.error("Error opening image settings modal:", error);
+                alert(error.message);
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function addShareButtonToAyah(surah, ayah) {
+            const ayahDiv = document.querySelector(`.ayah[data-surah="${surah}"][data-ayah="${ayah}"]`);
+            if (!ayahDiv || ayahDiv.querySelector('.generate-image-btn')) return;
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'ayah-actions';
+            const button = document.createElement('button');
+            button.className = 'generate-image-btn';
+            button.innerHTML = '🖼️ Generate Image';
+            button.dataset.surah = surah;
+            button.dataset.ayah = ayah;
+            button.addEventListener('click', openImageSettingsModal);
+            actionsDiv.appendChild(button);
+            ayahDiv.appendChild(actionsDiv);
+        }
+
+        function patchAndApplyToInitialView() {
+            if (window.renderSingleAyahView && !window.renderSingleAyahView.isPatchedForSharing) {
+                const originalFunction = window.renderSingleAyahView;
+                window.renderSingleAyahView = async function (...args) {
+                    await originalFunction.apply(this, args);
+                    const [surah, ayah] = args;
+                    addShareButtonToAyah(surah, ayah);
+                };
+                window.renderSingleAyahView.isPatchedForSharing = true;
+                console.log("renderSingleAyahView patched for image generation (v3.1).");
+            }
+
+            const initialAyahDiv = document.querySelector('#quran-display .ayah[data-surah]');
+            if (initialAyahDiv) {
+                const surah = parseInt(initialAyahDiv.dataset.surah, 10);
+                const ayah = parseInt(initialAyahDiv.dataset.ayah, 10);
+                if (!isNaN(surah) && !isNaN(ayah)) {
+                    addShareButtonToAyah(surah, ayah);
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', patchAndApplyToInitialView);
+
     })();
 </script>
