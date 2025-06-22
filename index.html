@@ -1207,6 +1207,83 @@
             color: white;
             transform: scale(1.1);
         }
+
+        .theme-synthesis-btn {
+            padding: 3px 8px !important;
+            font-size: 0.8rem !important;
+            margin-left: 8px !important;
+            background-color: var(--color-accent-dark) !important;
+        }
+
+        .synthesis-entry {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .synthesis-entry:last-child {
+            border-bottom: none;
+        }
+
+        .synthesis-ayah-ref {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: var(--color-text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .synthesis-ayah-text {
+            font-family: var(--font-arabic);
+            font-size: 1.8em;
+            line-height: 2;
+            text-align: right;
+            direction: rtl;
+            background-color: var(--color-bg-primary);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+        }
+
+        .synthesis-tafsir-heading {
+            font-weight: bold;
+            color: var(--color-text-secondary);
+            margin-top: 20px;
+            margin-bottom: 5px;
+        }
+
+        .synthesis-tafsir-notes {
+            font-family: var(--font-general);
+            font-size: 1.1em;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            padding-left: 15px;
+            border-left: 3px solid var(--color-accent);
+        }
+
+        @media print {
+            body>*:not(#synthesisModalContent) {
+                display: none;
+            }
+
+            #synthesisModalContent,
+            #synthesisModalContent * {
+                display: block !important;
+                visibility: visible !important;
+                position: static !important;
+                box-shadow: none !important;
+                border: none !important;
+                background-color: white !important;
+                color: black !important;
+            }
+
+            .synthesis-ayah-text {
+                font-size: 22pt !important;
+            }
+
+            .synthesis-tafsir-notes {
+                font-size: 12pt !important;
+            }
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1226,6 +1303,18 @@
 </head>
 
 <body dir="ltr">
+    <div id="themeSynthesisModal" class="modal">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
+            <span class="close-button" onclick="this.parentElement.parentElement.style.display='none'">×</span>
+            <h3 id="synthesisModalTitle" style="flex-shrink: 0;">Synthesis for Theme: ...</h3>
+            <div id="synthesisModalContent" style="overflow-y: auto; flex-grow: 1; padding-right: 15px;">
+            </div>
+            <div id="synthesisModalActions"
+                style="flex-shrink: 0; padding-top: 15px; border-top: 1px solid var(--color-border); text-align: right;">
+                <button id="synthesisPrintBtn">Print / Save as PDF</button>
+            </div>
+        </div>
+    </div>
     <div id="tafsirQuickModal" class="modal quick-action-modal">
         <div class="modal-content">
             <span class="close-button">×</span>
@@ -7095,36 +7184,6 @@
             setTimeout(() => { btn.style.transform = 'scale(1)'; }, 250);
         }
     }
-    /* 
-    async function getAyahHTML(surah, ayah) {
-        if (fullScreenReaderSettings.showTajweedColors) {
-            try {
-                const response = await fetch(`https://api.quran.com/api/v4/quran/verses/uthmani_tajweed?verse_key=${surah}:${ayah}`);
-                if (!response.ok) {
-                    throw new Error(`API fetch failed with status ${response.status}`);
-                }
-                const data = await response.json();
-                if (data.verses && data.verses.length > 0) {
-                    const originalHtml = data.verses[0].text_uthmani_tajweed;
-            const htmlWithoutVerseNumber = originalHtml.replace(/\s*﴿[٠-٩]+﴾\s*\/g, ''); 
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = htmlWithoutVerseNumber;
-                    const tajweedElements = tempDiv.querySelectorAll('tajweed');
-                    tajweedElements.forEach(el => {
-                        const span = document.createElement('span');
-                        span.className = `tajweed ${el.getAttribute('class')}`;
-                        span.innerHTML = el.innerHTML;
-                        el.parentNode.replaceChild(span, el);
-                    });
-                    return tempDiv.innerHTML;
-                }
-            } catch (error) {
-                console.warn(`Tajweed API fetch failed for ${surah}:${ayah}. Falling back to plain text.`, error);
-            }
-        }
-        const ayahData = await getData(STORE_QURAN, [surah, ayah]);
-        return ayahData ? ayahData.arabic.trim() : `[Ayah ${surah}:${ayah} not found]`;
-    } */
     async function getAyahHTML(surah, ayah) {
         if (fullScreenReaderSettings.showTajweedColors) {
             try {
@@ -11250,8 +11309,6 @@
             </div>
         `;
         }
-
-
         function injectActionsIntoAyahDiv(ayahDiv) {
             if (!ayahDiv || !(ayahDiv instanceof Element) || ayahDiv.querySelector('.ayah-quick-actions')) {
                 return;
@@ -11479,6 +11536,97 @@
         document.addEventListener('DOMContentLoaded', () => {
             setupQuickActionsListener();
             initializeQuickActionsModule();
+        });
+    })();
+</script>
+<script>
+    (function () {
+        'use strict';
+        let isSynthesisPatched = false;
+        async function handleThemeSynthesis(event) {
+            const themeId = parseInt(event.target.dataset.themeId, 10);
+            if (isNaN(themeId)) return;
+            showLoading("Synthesizing Theme...");
+            try {
+                const [theme, allThemeLinks, allTafsir] = await Promise.all([
+                    getData(STORE_THEMES, themeId),
+                    getAllData(STORE_THEME_AYAHS),
+                    getAllData(STORE_TAFSIR)
+                ]);
+                const relevantLinks = allThemeLinks
+                    .filter(link => link.themeId === themeId)
+                    .sort((a, b) => (a.surah !== b.surah) ? a.surah - b.surah : a.ayah - b.ayah);
+                if (relevantLinks.length === 0) {
+                    alert(`The theme "${theme.name}" has no linked Ayahs.`);
+                    hideLoading();
+                    return;
+                }
+                const tafsirMap = new Map(allTafsir.map(t => [`${t.surah}:${t.ayah}`, t.notes]));
+                let synthesisHTML = '';
+                for (const link of relevantLinks) {
+                    const ayahData = await getData(STORE_QURAN, [link.surah, link.ayah]);
+                    const tafsirNotes = tafsirMap.get(`${link.surah}:${link.ayah}`) || "<i>No Tafsir notes found for this Ayah.</i>";
+                    synthesisHTML += `
+                    <div class="synthesis-entry">
+                        <div class="synthesis-ayah-ref">Surah ${link.surah}: Ayah ${link.ayah}</div>
+                        <div class="synthesis-ayah-text">${ayahData?.arabic || 'Arabic text not found.'}</div>
+                        <div class="synthesis-tafsir-heading">My Tafsir/Notes:</div>
+                        <div class="synthesis-tafsir-notes">${tafsirNotes}</div>
+                    </div>
+                `;
+                }
+                const modal = document.getElementById('themeSynthesisModal');
+                document.getElementById('synthesisModalTitle').textContent = `Synthesis for Theme: "${theme.name}"`;
+                document.getElementById('synthesisModalContent').innerHTML = synthesisHTML;
+                modal.style.display = 'flex';
+            } catch (error) {
+                console.error("Error during theme synthesis:", error);
+                alert("Failed to generate synthesis document. Check console for details.");
+            } finally {
+                hideLoading();
+            }
+        }
+        function addSynthesisButtons() {
+            const themeListItems = document.querySelectorAll('#themes-list > li');
+            themeListItems.forEach(li => {
+                const themeSpan = li.querySelector('.view-theme-ayahs');
+                if (themeSpan && !li.querySelector('.theme-synthesis-btn')) {
+                    const themeId = themeSpan.dataset.themeId;
+                    const actionsDiv = li.querySelector('.theme-actions');
+                    if (themeId && actionsDiv) {
+                        const synthButton = document.createElement('button');
+                        synthButton.className = 'theme-synthesis-btn';
+                        synthButton.textContent = 'Synthesize';
+                        synthButton.title = 'Generate a document from this theme\'s Ayahs and your Tafsir';
+                        synthButton.dataset.themeId = themeId;
+                        synthButton.addEventListener('click', handleThemeSynthesis);
+                        actionsDiv.appendChild(synthButton);
+                    }
+                }
+            });
+        }
+        function patchDisplayThemesList() {
+            if (window.displayThemesList && !window.displayThemesList.isPatchedForSynthesis) {
+                const originalFunction = window.displayThemesList;
+                window.displayThemesList = async function (...args) {
+                    await originalFunction.apply(this, args);
+                    addSynthesisButtons();
+                };
+                window.displayThemesList.isPatchedForSynthesis = true;
+                console.log("displayThemesList has been patched for Theme Synthesis.");
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const printBtn = document.getElementById('synthesisPrintBtn');
+            if (printBtn) {
+                printBtn.addEventListener('click', () => {
+                    window.print();
+                });
+            }
+            setTimeout(() => {
+                patchDisplayThemesList();
+                addSynthesisButtons();
+            }, 200);
         });
     })();
 </script>
