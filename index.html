@@ -11090,3 +11090,108 @@
 
     })();
 </script>
+
+<!-- URL Hash Navigation Module -->
+<script>
+    (function() {
+        'use strict';
+
+        /**
+         * Parses the window.location.hash and validates it as a Surah:Ayah coordinate.
+         * @returns {object|null} An object {surah, ayah} or null if the hash is invalid.
+         */
+        function parseHash() {
+            try {
+                const hash = window.location.hash.substring(1); // Remove the '#'
+                if (!hash) return null;
+
+                const parts = hash.split(':');
+                if (parts.length !== 2) return null;
+
+                const surah = parseInt(parts[0], 10);
+                const ayah = parseInt(parts[1], 10);
+
+                // Validate the parsed numbers
+                if (isNaN(surah) || isNaN(ayah)) return null;
+                if (surah < 1 || surah > 114) return null;
+                // Assumes surahAyahCounts is globally available from your main script
+                if (ayah < 1 || ayah > surahAyahCounts[surah]) return null;
+
+                console.log(`[HashNav] Parsed valid location from hash: S${surah}:A${ayah}`);
+                return { surah, ayah };
+            } catch (e) {
+                console.error("[HashNav] Error parsing hash:", e);
+                return null;
+            }
+        }
+        
+        /**
+         * Patches the existing loadAyah function to update the URL hash on every successful load.
+         */
+        function patchLoadAyahForHashUpdate() {
+            // Ensure the patch is only applied once
+            if (window.loadAyah && !window.loadAyah.isPatchedForHashNav) {
+                const originalFunction = window.loadAyah;
+
+                window.loadAyah = async function(...args) {
+                    // Call the original function to do all the rendering work
+                    await originalFunction.apply(this, args);
+
+                    // --- NEW --- After a successful load, update the hash.
+                    // This part runs *after* your original function has finished.
+                    const [surah, ayah] = args;
+                    const newHash = `${surah}:${ayah}`;
+                    
+                    // Use replaceState to update the URL without adding to browser history,
+                    // which provides a smoother user experience.
+                    if (window.location.hash !== `#${newHash}`) {
+                         history.replaceState(null, '', `#${newHash}`);
+                    }
+                };
+                
+                window.loadAyah.isPatchedForHashNav = true;
+                console.log("[HashNav] `loadAyah` has been patched to update the URL hash.");
+            }
+        }
+
+        /**
+         * Checks the URL hash on initial page load and updates the app's starting position.
+         * This needs to run very early, before the default Ayah is loaded.
+         */
+        function handleInitialLoadFromHash() {
+            const initialLocation = parseHash();
+            if (initialLocation) {
+                // Override the default starting variables in your main script
+                // Assumes `currentSurah` and `currentAyah` are global variables.
+                if (typeof window.currentSurah !== 'undefined' && typeof window.currentAyah !== 'undefined') {
+                    window.currentSurah = initialLocation.surah;
+                    window.currentAyah = initialLocation.ayah;
+                    console.log(`[HashNav] Overriding initial location to S${window.currentSurah}:A${window.currentAyah}`);
+                }
+            }
+        }
+
+        // --- Module Initialization ---
+
+        // 1. Handle the initial load immediately. This is time-sensitive and must
+        //    happen before your main script's `loadQuranData` is called.
+        handleInitialLoadFromHash();
+
+        // 2. Patch the navigation function for future updates. This can happen
+        //    anytime after the main script has loaded.
+        document.addEventListener('DOMContentLoaded', () => {
+             // We wait a moment for the main app's functions to be defined on the window object.
+            setTimeout(patchLoadAyahForHashUpdate, 100);
+
+            // Also, listen for when the user manually uses the back/forward buttons
+            window.addEventListener('hashchange', () => {
+                const newLocation = parseHash();
+                if (newLocation && (newLocation.surah !== window.currentSurah || newLocation.ayah !== window.currentAyah)) {
+                     console.log('[HashNav] Hash changed by user, loading new location.');
+                     window.loadAyah(newLocation.surah, newLocation.ayah);
+                }
+            });
+        });
+
+    })();
+</script>
