@@ -1116,6 +1116,97 @@
         .graph-controls-container {
             flex-wrap: wrap;
         }
+
+        .ayah {
+            position: relative !important;
+            overflow: visible !important;
+        }
+
+        .ayah-actions-toggle {
+            display: none;
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 1.2rem;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            z-index: 11;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s;
+        }
+
+        .ayah-quick-actions {
+            position: absolute;
+            top: 8px;
+            left: 2px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background-color: rgba(var(--color-bg-secondary-rgb), 0.8);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            padding: 6px;
+            border-radius: var(--border-radius);
+            z-index: 10;
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            transform: translateX(-120%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .ayah-quick-actions.visible {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        @media (hover: hover) and (min-width: 769px) {
+            .ayah:hover .ayah-quick-actions {
+                transform: translateX(0);
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .ayah-actions-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .ayah:hover .ayah-quick-actions {
+                transform: translateX(-120%);
+                opacity: 0;
+                pointer-events: none;
+            }
+        }
+
+        .action-icon {
+            font-size: 1.2rem;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--color-border);
+            border-radius: 50%;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s, transform 0.2s;
+        }
+
+        .action-icon:hover {
+            background-color: var(--color-accent);
+            color: white;
+            transform: scale(1.1);
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1135,6 +1226,61 @@
 </head>
 
 <body dir="ltr">
+    <div id="tafsirQuickModal" class="modal quick-action-modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h4>Tafsir/Notes for <span class="modal-ayah-ref"></span></h4>
+            <div class="ayah-context"></div>
+            <div class="form-group">
+                <label for="quickTafsirText">Your Notes:</label>
+                <textarea id="quickTafsirText" rows="8" style="width: 100%;"></textarea>
+            </div>
+            <button id="saveQuickTafsirBtn">Save Notes</button>
+            <p id="quickTafsirStatus" aria-live="polite" style="margin-top:10px;"></p>
+        </div>
+    </div>
+    <div id="themeQuickModal" class="modal quick-action-modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h4>Theme Links for <span class="modal-ayah-ref"></span></h4>
+            <div class="ayah-context"></div>
+            <div class="form-group">
+                <label>Link to Theme(s):</label>
+                <select id="quickThemeSelect" multiple style="width: 100%; height: 150px;"></select>
+            </div>
+            <button id="saveQuickThemeBtn">Save Links</button>
+        </div>
+    </div>
+    <div id="recitationQuickModal" class="modal quick-action-modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h4>Log Recitation for <span class="modal-ayah-ref"></span></h4>
+            <div class="ayah-context"></div>
+            <div class="form-group">
+                <label for="quickRecitationQari">Qari/Source:</label>
+                <input type="text" id="quickRecitationQari" style="width: 100%;">
+            </div>
+            <div class="form-group">
+                <label for="quickRecitationNotes">Notes (Tajweed, Style, etc.):</label>
+                <textarea id="quickRecitationNotes" rows="4" style="width: 100%;"></textarea>
+            </div>
+            <button id="saveQuickRecitationBtn">Log this Recitation</button>
+        </div>
+    </div>
+    <div id="hifzQuickModal" class="modal quick-action-modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h4>Memorization Status for <span class="modal-ayah-ref"></span></h4>
+            <div class="ayah-context"></div>
+            <p style="text-align:center;">Current Status: <strong id="currentHifzStatus"></strong></p>
+            <div id="quickHifzStatusButtons" class="form-group">
+                <button data-status="not-started">Not Started</button>
+                <button data-status="in-progress">In Progress</button>
+                <button data-status="memorized">Memorized</button>
+            </div>
+            <p id="quickHifzStatus" aria-live="polite" style="text-align:center;"></p>
+        </div>
+    </div>
     <div id="ayahImageModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="ayahImageModalTitle">
         <div class="modal-content">
             <span class="close-button" onclick="this.parentElement.parentElement.style.display='none'">×</span>
@@ -1174,7 +1320,7 @@
     </div>
     <header>
         <button id="hamburger-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
-        <h1>Nur Al-Quran Studio Offline</h1>
+        <h1>Nur-Ul-Quran Offline</h1>
         <div class="header-controls">
             <label for="theme-switcher" class="sr-only">Choose Theme</label>
             <select id="theme-switcher" aria-label="Choose Theme">
@@ -10685,7 +10831,7 @@
                 }
             }
             const watermark = document.createElement('div');
-            watermark.textContent = 'Generated by Nur Al-Quran Studio';
+            watermark.textContent = 'Generated by Nur-Ul-Quran App';
             watermark.style.cssText = `margin-top: 30px; text-align: center; font-size: 12px; color: ${themeTextSecondary}; opacity: 0.6;`;
             imageContainer.appendChild(watermark);
             imageContainer.style.position = 'absolute';
@@ -11087,5 +11233,252 @@
             });
         }
         document.addEventListener('DOMContentLoaded', setupThemeViewSwitcher);
+    })();
+</script>
+<script>
+    (function () {
+        'use strict';
+        let observer = null;
+        function getQuickActionsHTML() {
+            return `
+            <button class="ayah-actions-toggle">⚙️</button>
+            <div class="ayah-quick-actions">
+                <button class="action-icon" data-action="tafsir" title="Add/Edit Tafsir">📝</button>
+                <button class="action-icon" data-action="theme" title="Link to Theme">🔗</button>
+                <button class="action-icon" data-action="recitation" title="Log Recitation">🎧</button>
+                <button class="action-icon" data-action="hifz" title="Set Hifz Status">❤️</button>
+            </div>
+        `;
+        }
+
+
+        function injectActionsIntoAyahDiv(ayahDiv) {
+            if (!ayahDiv || !(ayahDiv instanceof Element) || ayahDiv.querySelector('.ayah-quick-actions')) {
+                return;
+            }
+            let surah, ayah;
+            surah = ayahDiv.dataset.surah;
+            ayah = ayahDiv.dataset.ayah;
+            if (!surah || !ayah) {
+                if (ayahDiv.id) {
+                    const match = ayahDiv.id.match(/s(\d+)a(\d+)/);
+                    if (match && match.length === 3) {
+                        surah = match[1];
+                        ayah = match[2];
+                        ayahDiv.dataset.surah = surah;
+                        ayahDiv.dataset.ayah = ayah;
+                    }
+                }
+            }
+            if (surah && ayah) {
+                ayahDiv.insertAdjacentHTML('beforeend', getQuickActionsHTML());
+            } else {
+                console.warn("[QuickActions] Could not determine Surah/Ayah for an .ayah div, skipping.", ayahDiv);
+            }
+        }
+        async function openTafsirModal(surah, ayah) {
+            const modal = document.getElementById('tafsirQuickModal');
+            modal.dataset.surah = surah;
+            modal.dataset.ayah = ayah;
+            const ayahData = await getData(STORE_QURAN, [surah, ayah]);
+            const tafsirData = await getData(STORE_TAFSIR, [surah, ayah]);
+            modal.querySelector('.modal-ayah-ref').textContent = `${surah}:${ayah}`;
+            modal.querySelector('.ayah-context').textContent = ayahData?.arabic || 'Ayah text not found.';
+            modal.querySelector('#quickTafsirText').value = tafsirData?.notes || '';
+            modal.style.display = 'flex';
+            modal.querySelector('#quickTafsirText').focus();
+            document.getElementById('saveQuickTafsirBtn').onclick = async () => {
+                const notes = document.getElementById('quickTafsirText').value;
+                await putData(STORE_TAFSIR, { surah, ayah, notes });
+                const statusEl = document.getElementById('quickTafsirStatus');
+                statusEl.textContent = "Saved!";
+                setTimeout(() => {
+                    statusEl.textContent = "";
+                    modal.style.display = 'none';
+                }, 1200);
+            };
+        }
+        async function openThemeModal(surah, ayah) {
+            const modal = document.getElementById('themeQuickModal');
+            modal.dataset.surah = surah;
+            modal.dataset.ayah = ayah;
+            const [themes, linkedThemesForAyah, ayahData] = await Promise.all([
+                getAllData(STORE_THEMES),
+                getAllDataInRange('theme_ayahs', IDBKeyRange.only([surah, ayah]), 'surahAyah'),
+                getData(STORE_QURAN, [surah, ayah])
+            ]);
+            modal.querySelector('.modal-ayah-ref').textContent = `${surah}:${ayah}`;
+            modal.querySelector('.ayah-context').textContent = ayahData?.arabic || 'Ayah text not found.';
+            const select = document.getElementById('quickThemeSelect');
+            select.innerHTML = '';
+            const linkedThemeIds = new Set(linkedThemesForAyah.map(l => l.themeId));
+            themes.forEach(theme => {
+                const option = document.createElement('option');
+                option.value = theme.id;
+                option.textContent = theme.name;
+                if (linkedThemeIds.has(theme.id)) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            modal.style.display = 'flex';
+            document.getElementById('saveQuickThemeBtn').onclick = async () => {
+                const selectedThemeIds = new Set(Array.from(select.selectedOptions).map(opt => parseInt(opt.value)));
+                for (const link of linkedThemesForAyah) {
+                    if (!selectedThemeIds.has(link.themeId)) {
+                        await deleteData(STORE_THEME_AYAHS, link.id);
+                    }
+                }
+                for (const themeId of selectedThemeIds) {
+                    if (!linkedThemeIds.has(themeId)) {
+                        await addData(STORE_THEME_AYAHS, { themeId, surah, ayah, notes: '' });
+                    }
+                }
+                modal.style.display = 'none';
+            };
+        }
+        async function openRecitationModal(surah, ayah) {
+            const modal = document.getElementById('recitationQuickModal');
+            modal.dataset.surah = surah;
+            modal.dataset.ayah = ayah;
+            const ayahData = await getData(STORE_QURAN, [surah, ayah]);
+            modal.querySelector('.modal-ayah-ref').textContent = `${surah}:${ayah}`;
+            modal.querySelector('.ayah-context').textContent = ayahData?.arabic || 'Ayah text not found.';
+            modal.querySelector('#quickRecitationQari').value = '';
+            modal.querySelector('#quickRecitationNotes').value = '';
+            modal.style.display = 'flex';
+            document.getElementById('saveQuickRecitationBtn').onclick = async () => {
+                const log = {
+                    surah,
+                    ayahStart: ayah,
+                    ayahEnd: ayah,
+                    qari: document.getElementById('quickRecitationQari').value.trim(),
+                    date: new Date().toISOString().split('T')[0],
+                    notes: document.getElementById('quickRecitationNotes').value.trim()
+                };
+                await addData(STORE_RECITATIONS, log);
+                modal.style.display = 'none';
+            };
+        }
+        async function openHifzModal(surah, ayah) {
+            const modal = document.getElementById('hifzQuickModal');
+            modal.dataset.surah = surah;
+            modal.dataset.ayah = ayah;
+            const [hifzData, ayahData] = await Promise.all([
+                getData(STORE_HIFZ, [surah, ayah]),
+                getData(STORE_QURAN, [surah, ayah])
+            ]);
+            modal.querySelector('.modal-ayah-ref').textContent = `${surah}:${ayah}`;
+            modal.querySelector('.ayah-context').textContent = ayahData?.arabic || 'Ayah text not found.';
+            const currentStatus = hifzData?.status || 'not-started';
+            modal.querySelector('#currentHifzStatus').textContent = currentStatus.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            modal.querySelectorAll('#quickHifzStatusButtons button').forEach(btn => {
+                btn.disabled = (btn.dataset.status === currentStatus);
+                btn.onclick = async (e) => {
+                    const newStatus = e.target.dataset.status;
+                    const existing = hifzData || { surah, ayah, status: 'not-started', notes: '' };
+                    existing.status = newStatus;
+                    await putData(STORE_HIFZ, existing);
+                    modal.querySelector('#quickHifzStatus').textContent = "Status Updated!";
+                    setTimeout(() => {
+                        modal.querySelector('#quickHifzStatus').textContent = "";
+                        modal.style.display = 'none';
+                    }, 1200);
+                };
+            });
+            modal.style.display = 'flex';
+        }
+        function setupQuickActionsListener() {
+            document.body.addEventListener('click', (e) => {
+                const icon = e.target.closest('.action-icon');
+                if (icon) {
+                    const ayahDiv = icon.closest('.ayah');
+                    if (!ayahDiv) return;
+                    const surah = parseInt(ayahDiv.dataset.surah, 10);
+                    const ayah = parseInt(ayahDiv.dataset.ayah, 10);
+                    const action = icon.dataset.action;
+                    if (!surah || !ayah || !action) return;
+                    switch (action) {
+                        case 'tafsir': openTafsirModal(surah, ayah); break;
+                        case 'theme': openThemeModal(surah, ayah); break;
+                        case 'recitation': openRecitationModal(surah, ayah); break;
+                        case 'hifz': openHifzModal(surah, ayah); break;
+                    }
+                    return;
+                }
+                const toggle = e.target.closest('.ayah-actions-toggle');
+                if (toggle) {
+                    const actionTray = toggle.nextElementSibling;
+                    if (actionTray && actionTray.classList.contains('ayah-quick-actions')) {
+                        document.querySelectorAll('.ayah-quick-actions.visible').forEach(tray => {
+                            if (tray !== actionTray) tray.classList.remove('visible');
+                        });
+                        actionTray.classList.toggle('visible');
+                    }
+                    return;
+                }
+                if (!e.target.closest('.ayah-quick-actions')) {
+                    document.querySelectorAll('.ayah-quick-actions.visible').forEach(tray => {
+                        tray.classList.remove('visible');
+                    });
+                }
+            });
+            document.querySelectorAll('.quick-action-modal .close-button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btn.closest('.modal').style.display = 'none';
+                });
+            });
+        }
+        function processExistingAyahs(container) {
+            if (!container) return;
+            const ayahsToProcess = container.querySelectorAll('.ayah:not(:has(.ayah-quick-actions))');
+            if (ayahsToProcess.length > 0) {
+                console.log(`[QuickActions DEBUG] Found ${ayahsToProcess.length} new Ayah divs to process in #${container.id}.`);
+                ayahsToProcess.forEach(injectActionsIntoAyahDiv);
+            }
+        }
+        function initializeQuickActionsModule() {
+            if (observer) return;
+            const singleViewContainer = document.getElementById('quran-display');
+            const continuousViewContainer = document.getElementById('quran-continuous-display');
+            if (!singleViewContainer || !continuousViewContainer) {
+                console.error("Quick Actions FATAL: Could not find Quran display containers.");
+                return;
+            }
+            const mutationCallback = (mutationsList) => {
+                for (const mutation of mutationsList) {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        mutation.addedNodes.forEach(node => {
+                            if (node.nodeType === Node.ELEMENT_NODE) {
+                                if (node.classList.contains('ayah')) {
+                                    injectActionsIntoAyahDiv(node);
+                                }
+                                node.querySelectorAll('.ayah').forEach(injectActionsIntoAyahDiv);
+                            }
+                        });
+                    }
+                }
+            };
+            observer = new MutationObserver(mutationCallback);
+            const config = { childList: true, subtree: true };
+            observer.observe(singleViewContainer, config);
+            observer.observe(continuousViewContainer, config);
+            console.log("[QuickActions] MutationObserver is now watching both views.");
+            document.querySelectorAll('input[name="quran-view-mode"]').forEach(radio => {
+                radio.addEventListener('change', function () {
+                    console.log(`[QuickActions DEBUG] View mode changed to: ${this.value}. Triggering manual check.`);
+                    setTimeout(() => {
+                        const targetContainer = this.value === 'single' ? singleViewContainer : continuousViewContainer;
+                        processExistingAyahs(targetContainer);
+                    }, 50);
+                });
+            });
+            const defaultViewContainer = document.querySelector('input[name="quran-view-mode"]:checked').value === 'single' ? singleViewContainer : continuousViewContainer;
+            processExistingAyahs(defaultViewContainer);
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            setupQuickActionsListener();
+            initializeQuickActionsModule();
+        });
     })();
 </script>
