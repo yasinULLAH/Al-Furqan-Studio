@@ -1303,92 +1303,6 @@
 </head>
 
 <body dir="ltr">
-    <div id="themeSynthesisModal" class="modal">
-        <div class="modal-content" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
-            <span class="close-button" onclick="this.parentElement.parentElement.style.display='none'">×</span>
-            <h3 id="synthesisModalTitle" style="flex-shrink: 0;">Synthesis for Theme: ...</h3>
-            <div id="synthesisModalContent" style="overflow-y: auto; flex-grow: 1; padding-right: 15px;">
-            </div>
-            <div id="synthesisModalActions"
-                style="flex-shrink: 0; padding-top: 15px; border-top: 1px solid var(--color-border); text-align: right;">
-                <button id="synthesisPrintBtn">Print / Save as PDF</button>
-            </div>
-        </div>
-    </div>
-    <div id="tafsirQuickModal" class="modal quick-action-modal">
-        <div class="modal-content">
-            <span class="close-button">×</span>
-            <h4>Tafsir/Notes for <span class="modal-ayah-ref"></span></h4>
-            <div class="ayah-context"></div>
-            <div class="form-group">
-                <label for="quickTafsirText">Your Notes:</label>
-                <textarea id="quickTafsirText" rows="8" style="width: 100%;"></textarea>
-            </div>
-            <button id="saveQuickTafsirBtn">Save Notes</button>
-            <p id="quickTafsirStatus" aria-live="polite" style="margin-top:10px;"></p>
-        </div>
-    </div>
-    <div id="themeQuickModal" class="modal quick-action-modal">
-        <div class="modal-content">
-            <span class="close-button">×</span>
-            <h4>Theme Links for <span class="modal-ayah-ref"></span></h4>
-            <div class="ayah-context"></div>
-            <div class="form-group">
-                <label>Link to Theme(s):</label>
-                <select id="quickThemeSelect" multiple style="width: 100%; height: 150px;"></select>
-            </div>
-            <button id="saveQuickThemeBtn">Save Links</button>
-        </div>
-    </div>
-    <div id="recitationQuickModal" class="modal quick-action-modal">
-        <div class="modal-content">
-            <span class="close-button">×</span>
-            <h4>Log Recitation for <span class="modal-ayah-ref"></span></h4>
-            <div class="ayah-context"></div>
-            <div class="form-group">
-                <label for="quickRecitationQari">Qari/Source:</label>
-                <input type="text" id="quickRecitationQari" style="width: 100%;">
-            </div>
-            <div class="form-group">
-                <label for="quickRecitationNotes">Notes (Tajweed, Style, etc.):</label>
-                <textarea id="quickRecitationNotes" rows="4" style="width: 100%;"></textarea>
-            </div>
-            <button id="saveQuickRecitationBtn">Log this Recitation</button>
-        </div>
-    </div>
-    <div id="hifzQuickModal" class="modal quick-action-modal">
-        <div class="modal-content">
-            <span class="close-button">×</span>
-            <h4>Memorization Status for <span class="modal-ayah-ref"></span></h4>
-            <div class="ayah-context"></div>
-            <p style="text-align:center;">Current Status: <strong id="currentHifzStatus"></strong></p>
-            <div id="quickHifzStatusButtons" class="form-group">
-                <button data-status="not-started">Not Started</button>
-                <button data-status="in-progress">In Progress</button>
-                <button data-status="memorized">Memorized</button>
-            </div>
-            <p id="quickHifzStatus" aria-live="polite" style="text-align:center;"></p>
-        </div>
-    </div>
-    <div id="ayahImageModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="ayahImageModalTitle">
-        <div class="modal-content">
-            <span class="close-button" onclick="this.parentElement.parentElement.style.display='none'">×</span>
-            <h3 id="ayahImageModalTitle">Generate Ayah Image</h3>
-            <p><strong>Step 1:</strong> Select which full-ayah translations to include:</p>
-            <div id="imageTranslationOptions">
-            </div>
-            <div class="word-by-word-options">
-                <p><strong>Step 2:</strong> Add a word-by-word translation table (optional):</p>
-                <label>
-                    <input type="checkbox" id="includeWordByWordTable"> Include Word-by-Word Table
-                </label>
-                <div id="wordByWordLanguageOptions" style="display: none;">
-                    <p style="margin-bottom: 5px; font-size: 0.9em;">Select languages for the table:</p>
-                </div>
-            </div>
-            <button id="createImageBtn" style="margin-top: 25px;">Create & Download Image</button>
-        </div>
-    </div>
     <div id="sidebar-overlay"></div>
     <div id="loading-overlay">
         <div class="loading-content">
@@ -1711,6 +1625,92 @@
                 </div>
             </section>
         </main>
+    </div>
+        <div id="themeSynthesisModal" class="modal">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
+            <span class="close-button" onclick="this.parentElement.parentElement.style.display='none'">×</span>
+            <h3 id="synthesisModalTitle" style="flex-shrink: 0;">Synthesis for Theme: ...</h3>
+            <div id="synthesisModalContent" style="overflow-y: auto; flex-grow: 1; padding-right: 15px;">
+            </div>
+            <div id="synthesisModalActions"
+                style="flex-shrink: 0; padding-top: 15px; border-top: 1px solid var(--color-border); text-align: right;">
+                <button id="synthesisPrintBtn">Print / Save as PDF</button>
+            </div>
+        </div>
+    </div>
+    <div id="tafsirQuickModal" class="modal quick-action-modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h4>Tafsir/Notes for <span class="modal-ayah-ref"></span></h4>
+            <div class="ayah-context"></div>
+            <div class="form-group">
+                <label for="quickTafsirText">Your Notes:</label>
+                <textarea id="quickTafsirText" rows="8" style="width: 100%;"></textarea>
+            </div>
+            <button id="saveQuickTafsirBtn">Save Notes</button>
+            <p id="quickTafsirStatus" aria-live="polite" style="margin-top:10px;"></p>
+        </div>
+    </div>
+    <div id="themeQuickModal" class="modal quick-action-modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h4>Theme Links for <span class="modal-ayah-ref"></span></h4>
+            <div class="ayah-context"></div>
+            <div class="form-group">
+                <label>Link to Theme(s):</label>
+                <select id="quickThemeSelect" multiple style="width: 100%; height: 150px;"></select>
+            </div>
+            <button id="saveQuickThemeBtn">Save Links</button>
+        </div>
+    </div>
+    <div id="recitationQuickModal" class="modal quick-action-modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h4>Log Recitation for <span class="modal-ayah-ref"></span></h4>
+            <div class="ayah-context"></div>
+            <div class="form-group">
+                <label for="quickRecitationQari">Qari/Source:</label>
+                <input type="text" id="quickRecitationQari" style="width: 100%;">
+            </div>
+            <div class="form-group">
+                <label for="quickRecitationNotes">Notes (Tajweed, Style, etc.):</label>
+                <textarea id="quickRecitationNotes" rows="4" style="width: 100%;"></textarea>
+            </div>
+            <button id="saveQuickRecitationBtn">Log this Recitation</button>
+        </div>
+    </div>
+    <div id="hifzQuickModal" class="modal quick-action-modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h4>Memorization Status for <span class="modal-ayah-ref"></span></h4>
+            <div class="ayah-context"></div>
+            <p style="text-align:center;">Current Status: <strong id="currentHifzStatus"></strong></p>
+            <div id="quickHifzStatusButtons" class="form-group">
+                <button data-status="not-started">Not Started</button>
+                <button data-status="in-progress">In Progress</button>
+                <button data-status="memorized">Memorized</button>
+            </div>
+            <p id="quickHifzStatus" aria-live="polite" style="text-align:center;"></p>
+        </div>
+    </div>
+    <div id="ayahImageModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="ayahImageModalTitle">
+        <div class="modal-content">
+            <span class="close-button" onclick="this.parentElement.parentElement.style.display='none'">×</span>
+            <h3 id="ayahImageModalTitle">Generate Ayah Image</h3>
+            <p><strong>Step 1:</strong> Select which full-ayah translations to include:</p>
+            <div id="imageTranslationOptions">
+            </div>
+            <div class="word-by-word-options">
+                <p><strong>Step 2:</strong> Add a word-by-word translation table (optional):</p>
+                <label>
+                    <input type="checkbox" id="includeWordByWordTable"> Include Word-by-Word Table
+                </label>
+                <div id="wordByWordLanguageOptions" style="display: none;">
+                    <p style="margin-bottom: 5px; font-size: 0.9em;">Select languages for the table:</p>
+                </div>
+            </div>
+            <button id="createImageBtn" style="margin-top: 25px;">Create & Download Image</button>
+        </div>
     </div>
     <div id="themeAyahsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="themeAyahsModalTitle">
         <div class="modal-content">
