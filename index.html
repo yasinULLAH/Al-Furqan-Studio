@@ -1125,8 +1125,8 @@
         .ayah-actions-toggle {
             display: none;
             position: absolute;
-            top: 8px;
-            left: 8px;
+            top: 2px;
+            left: 45px;
             font-size: 1.2rem;
             width: 32px;
             height: 32px;
@@ -1160,9 +1160,9 @@
         }
 
         .ayah-quick-actions.visible {
-            transform: translateX(0);
-            opacity: 1;
-            pointer-events: auto;
+            transform: translateX(0) !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
         }
 
         @media (hover: hover) and (min-width: 769px) {
@@ -1626,7 +1626,7 @@
             </section>
         </main>
     </div>
-        <div id="themeSynthesisModal" class="modal">
+    <div id="themeSynthesisModal" class="modal">
         <div class="modal-content" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
             <span class="close-button" onclick="this.parentElement.parentElement.style.display='none'">×</span>
             <h3 id="synthesisModalTitle" style="flex-shrink: 0;">Synthesis for Theme: ...</h3>
@@ -11628,5 +11628,130 @@
                 addSynthesisButtons();
             }, 200);
         });
+    })();
+</script>
+<script>
+    (function () {
+        'use strict';
+        const EXAM_SYSTEM_URL = 'exam.html';
+        /**
+         * Dynamically injects the CSS required for the fullscreen iframe.
+         */
+        function injectIframeStyles() {
+            if (document.getElementById('exam-iframe-styles')) return;
+            const styles = `
+                #iframe-master-container {
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    z-index: 2147483647; background-color: #fff;
+                    display: flex; flex-direction: column;
+                }
+                #examSystemIframe { flex-grow: 1; border: none; }
+                #closeExamIframeBtn {
+                    position: absolute; top: 15px; right: 15px; z-index: 1;
+                    background-color: #dc3545; color: white; font-size: 24px;
+                    width: 40px; height: 40px; border-radius: 50%;
+                    border: 2px solid white; cursor: pointer; display: flex;
+                    justify-content: center; align-items: center; line-height: 1;
+                }
+            `;
+            const styleSheet = document.createElement("style");
+            styleSheet.id = 'exam-iframe-styles';
+            styleSheet.innerText = styles;
+            document.head.appendChild(styleSheet);
+        }
+        /**
+         * A utility to request fullscreen on an element, handling browser differences.
+         */
+        function requestFullscreenForElement(element) {
+            if (element.requestFullscreen) {
+                element.requestFullscreen().catch(err => console.warn(`Fullscreen request failed: ${err.message}`));
+            } else if (element.webkitRequestFullscreen) {
+                element.webkitRequestFullscreen();
+            } else if (element.mozRequestFullScreen) {
+                element.mozRequestFullScreen();
+            } else if (element.msRequestFullscreen) {
+                element.msRequestFullscreen();
+            }
+        }
+        /**
+         * A utility to exit fullscreen mode.
+         */
+        function exitFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(err => console.warn(`Exit fullscreen failed: ${err.message}`));
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+        /**
+         * Creates and displays the exam system in its own fullscreen context.
+         * @param {Event} event - The click event from the launch button.
+         */
+        function launchExamSystemInIframe(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            if (document.getElementById('iframe-master-container')) return;
+            const gameModal = document.getElementById('quranGameModal');
+            if (gameModal) gameModal.style.display = 'none';
+            const masterContainer = document.createElement('div');
+            masterContainer.id = 'iframe-master-container';
+            const iframe = document.createElement('iframe');
+            iframe.id = 'examSystemIframe';
+            iframe.src = EXAM_SYSTEM_URL;
+            const closeButton = document.createElement('button');
+            closeButton.id = 'closeExamIframeBtn';
+            closeButton.innerHTML = '×';
+            closeButton.title = 'Close Exam System';
+            closeButton.onclick = () => {
+                exitFullscreen();
+                masterContainer.remove();
+            };
+            masterContainer.appendChild(iframe);
+            masterContainer.appendChild(closeButton);
+            document.body.appendChild(masterContainer);
+            requestFullscreenForElement(masterContainer);
+        }
+        /**
+         * Creates and adds the "Launch Exam System" button.
+         * Uses addEventListener for better event control.
+         */
+        function addLaunchButton() {
+            const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
+            if (!gameSelectionArea) return false;
+            if (document.getElementById('launchExamSystemBtn')) return true;
+            const launchButton = document.createElement('button');
+            launchButton.id = 'launchExamSystemBtn';
+            launchButton.className = 'game-select-btn';
+            launchButton.style.backgroundColor = 'var(--color-danger, #dc3545)';
+            launchButton.textContent = 'Launch Exam System';
+            launchButton.addEventListener('click', launchExamSystemInIframe);
+            gameSelectionArea.appendChild(launchButton);
+            return true;
+        }
+        function initializeIntegration() {
+            injectIframeStyles();
+            let attempts = 0;
+            const maxAttempts = 50;
+            const interval = setInterval(() => {
+                attempts++;
+                if (addLaunchButton()) {
+                    clearInterval(interval);
+                } else if (attempts > maxAttempts) {
+                    clearInterval(interval);
+                    console.error('Exam System Launcher: Failed to find ".game-selection-area" after multiple attempts.');
+                }
+            }, 500);
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeIntegration);
+        } else {
+            initializeIntegration();
+        }
     })();
 </script>

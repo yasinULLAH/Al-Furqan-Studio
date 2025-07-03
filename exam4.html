@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examination & Result System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #3d9dff;
+            --secondary-color: #8b949e;
+            --background-color: #0d1117;
+            --surface-color: #161b22;
+            --text-color: #c9d1d9;
+            --border-color: #30363d;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .module {
+            display: none;
+            background-color: var(--surface-color);
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            animation: fadeIn 0.5s;
+        }
+
+        .module.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1, h2, h3 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+
+        button, input[type="submit"] {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        button:hover, input[type="submit"]:hover {
+            opacity: 0.9;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button.danger { background-color: var(--danger-color); }
+        button.success { background-color: var(--success-color); }
+        button.secondary { background-color: var(--secondary-color); }
+        
+        input[type="text"], input[type="number"], input[type="password"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-size: 1em;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--surface-color);
+            color: var(--primary-color);
+        }
+        
+        tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            background-color: var(--surface-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        nav button {
+            background-color: transparent;
+            color: var(--secondary-color);
+            border: 2px solid transparent;
+            padding: 8px 15px;
+        }
+
+        nav button.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        #userLoginScreen, #pinScreen {
+            max-width: 500px;
+            margin: 50px auto;
+            text-align: center;
+        }
+
+        #pin-container input {
+            width: 40px;
+            height: 50px;
+            text-align: center;
+            font-size: 1.5em;
+            margin: 0 5px;
+        }
+        
+        .exam-interface {
+            display: flex;
+            gap: 20px;
+            min-height: 70vh;
+        }
+        
+        .question-panel {
+            flex: 3;
+        }
+
+        .exam-sidebar {
+            flex: 1;
+            padding: 15px;
+            border-left: 1px solid var(--border-color);
+        }
+
+        .question-nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 5px;
+        }
+
+        .question-nav-item {
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            line-height: 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .question-nav-item.current {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .question-nav-item.answered {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .mcq-option {
+            display: block;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #timer {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--danger-color);
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        #resultCard {
+            border: 2px solid var(--primary-color);
+            padding: 20px;
+            border-radius: 10px;
+            background-color: var(--surface-color);
+        }
+
+        .chart-container {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        [dir="rtl"] {
+            direction: rtl;
+        }
+        [dir="rtl"] th, [dir="rtl"] td {
+            text-align: right;
+        }
+        [dir="rtl"] .exam-sidebar {
+            border-left: none;
+            border-right: 1px solid var(--border-color);
+        }
+        /* Add this to your main <style> block in the <head> */
+
+#resultCard .question-review-list {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 2px solid var(--border-color);
+}
+#resultCard .review-item {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px dotted var(--border-color);
+}
+#resultCard .review-item:last-child {
+    border-bottom: none;
+}
+#resultCard .review-item h4 {
+    font-size: 1.1em;
+    margin-bottom: 8px;
+    color: var(--text-color);
+    border: none;
+}
+#resultCard .review-item p {
+    margin: 4px 0 4px 15px;
+    font-size: 1em;
+}
+#resultCard .review-item .your-answer {
+    font-weight: bold;
+}
+#resultCard .review-item .correct-answer {
+    color: var(--success-color);
+    font-weight: bold;
+}
+#resultCard .review-item .status-indicator {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-right: 8px;
+}
+#resultCard .status-correct {
+    color: var(--success-color);
+}
+#resultCard .status-incorrect {
+    color: var(--danger-color);
+}
+#resultCard .status-unanswered {
+    color: var(--secondary-color);
+}
+    </style>
+</head>
+<body data-theme="light">
+
+    <div class="container" id="app-container">
+        
+        <div id="userLoginScreen" class="module active">
+            <h2 data-lang-key="login_title">Select User Profile</h2>
+            <div id="userList" class="form-grid"></div>
+            <hr style="margin: 20px 0;">
+            <h3 data-lang-key="create_profile_title">Create New Profile</h3>
+            <form id="newUserForm" class="form-grid">
+                <div>
+                    <label for="newUserName" data-lang-key="name">Name</label>
+                    <input type="text" id="newUserName" required>
+                </div>
+                <div>
+                    <label for="newUserClass" data-lang-key="class">Class</label>
+                    <input type="text" id="newUserClass">
+                </div>
+                <div>
+                    <label for="newUserRollNo" data-lang-key="roll_no">Roll No.</label>
+                    <input type="text" id="newUserRollNo">
+                </div>
+                <div class="full-width">
+                    <button type="submit" data-lang-key="create_user">Create & Login</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="pinScreen" class="module">
+            <h2 data-lang-key="enter_pin">Enter PIN</h2>
+            <div id="pin-container">
+                <input type="password" maxlength="1" class="pin-input">
+                <input type="password" maxlength="1" class="pin-input">
+                <input type="password" maxlength="1" class="pin-input">
+                <input type="password" maxlength="1" class="pin-input">
+            </div>
+            <p id="pinError" style="color:var(--danger-color); margin-top: 10px;"></p>
+            <button onclick="checkPin()" data-lang-key="login">Login</button>
+            <button class="secondary" onclick="showModule('userLoginScreen')" data-lang-key="back">Back</button>
+        </div>
+
+        <div id="mainApp" style="display: none;">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background-color: var(--surface-color); border-radius: 8px;">
+                <h1 style="border: none; margin: 0; font-size: 1.5em;"><span data-lang-key="welcome">Welcome</span>, <span id="currentUserName"></span></h1>
+                <div style="display: flex; gap: 10px;">
+                    <button class="secondary" onclick="logout()" data-lang-key="logout">Logout</button>
+                </div>
+            </header>
+            <nav id="mainNav"></nav>
+            <main>
+                <div id="dashboard" class="module">
+                    <h2 data-lang-key="dashboard">Dashboard</h2>
+                    <div class="form-grid">
+                        <div class="chart-container"><strong><span data-lang-key="exams_taken">Exams Taken:</span></strong> <span id="statExamsTaken">0</span></div>
+                        <div class="chart-container"><strong><span data-lang-key="avg_score">Average Score:</span></strong> <span id="statAvgScore">0</span>%</div>
+                        <div class="chart-container"><strong><span data-lang-key="subjects_mastered">Subjects Mastered:</span></strong> <span id="statSubjects">0</span></div>
+                    </div>
+                    <div class="chart-container">
+                        <h3 data-lang-key="performance_trend">Performance Trend</h3>
+                        <canvas id="performanceTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="subjects" class="module">
+                    <h2 data-lang-key="subjects">Subjects</h2>
+                    <form id="subjectForm">
+                        <input type="hidden" id="subjectId">
+                        <div class="form-grid">
+                            <div>
+                                <label for="subjectName" data-lang-key="subject_name">Subject Name</label>
+                                <input type="text" id="subjectName" required>
+                            </div>
+                            <div style="align-self: end;">
+                                <button type="submit" data-lang-key="save_subject">Save Subject</button>
+                                <button type="button" class="secondary" onclick="syncWithSource('subjects')" data-lang-key="sync_subjects">Sync Subjects</button>
+                            </div>
+                        </div>
+                    </form>
+                    <table id="subjectsTable">
+                        <thead><tr><th data-lang-key="subject_name">Subject Name</th><th data-lang-key="actions">Actions</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div id="exams" class="module">
+                    <h2 data-lang-key="exams">Exams</h2>
+                    <form id="examForm">
+                        <input type="hidden" id="examId">
+                        <div class="form-grid">
+                            <div>
+                                <label for="examName" data-lang-key="exam_name">Exam Name</label>
+                                <input type="text" id="examName" required>
+                            </div>
+                            <div>
+                                <label for="examSubject" data-lang-key="subject">Subject</label>
+                                <select id="examSubject" required></select>
+                            </div>
+                            <div>
+                                <label for="examDuration" data-lang-key="duration_minutes">Duration (Minutes)</label>
+                                <input type="number" id="examDuration" value="30" required>
+                            </div>
+                             <div>
+                                <label for="examPassPercentage" data-lang-key="pass_percentage">Pass Percentage (%)</label>
+                                <input type="number" id="examPassPercentage" value="50" required>
+                            </div>
+                        </div>
+                        <button type="submit" data-lang-key="save_exam">Save Exam</button>
+                    </form>
+                    <table id="examsTable">
+                        <thead>
+                            <tr>
+                                <th data-lang-key="exam_name">Exam Name</th>
+                                <th data-lang-key="subject">Subject</th>
+                                <th data-lang-key="questions">Questions</th>
+                                <th data-lang-key="actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                
+                <div id="examQuestions" class="module">
+                    <h2 id="examQuestionsTitle"></h2>
+                    <button class="secondary" onclick="showModule('exams')" data-lang-key="back_to_exams">Back to Exams</button>
+                    <button class="success" onclick="loadQuestionsForExam()" data-lang-key="load_questions">Load Questions from Source</button>
+                    <div id="questionsList"></div>
+                </div>
+
+                <div id="takeExam" class="module">
+                    <h2 data-lang-key="take_exam">Take Exam</h2>
+                    <div id="examSelectionContainer">
+                        <label for="examToTake" data-lang-key="select_exam">Select Exam</label>
+                        <select id="examToTake"></select>
+                        <button onclick="startExam()" data-lang-key="start_exam">Start Exam</button>
+                    </div>
+                    <div id="examInProgressContainer" style="display: none;">
+                        <div class="exam-interface">
+                            <div class="question-panel">
+                                <h3 id="questionTitle"></h3>
+                                <div id="questionText"></div>
+                                <div id="answerArea"></div>
+                                <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                                    <button onclick="prevQuestion()" id="prevBtn" data-lang-key="previous">Previous</button>
+                                    <button onclick="nextQuestion()" id="nextBtn" data-lang-key="next">Next</button>
+                                </div>
+                            </div>
+                            <div class="exam-sidebar">
+                                <div id="timer"></div>
+                                <h3 data-lang-key="question_nav">Question Navigation</h3>
+                                <div id="questionNavGrid" class="question-nav-grid"></div>
+                                <button class="danger" style="width: 100%; margin-top: 20px;" onclick="submitExam()" data-lang-key="submit_exam">Submit Exam</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="results" class="module">
+                    <h2 data-lang-key="results_reports">Results & Reports</h2>
+                    <nav id="resultsNav">
+                        <button class="active" onclick="showResultsTab('individual')" data-lang-key="my_results">My Results</button>
+                        <button onclick="showResultsTab('batch')" data-lang-key="batch_reports">Batch Reports</button>
+                    </nav>
+
+                    <div id="individualResultsTab" class="results-tab active">
+                        <h3><span data-lang-key="my_exam_results">My Exam Results</span></h3>
+                        <table id="myResultsTable">
+                             <thead><tr><th data-lang-key="exam_name">Exam Name</th><th data-lang-key="score">Score</th><th data-lang-key="status">Status</th><th data-lang-key="date_taken">Date Taken</th><th data-lang-key="actions">Actions</th></tr></thead>
+                             <tbody></tbody>
+                        </table>
+                        <div id="resultCardContainer" style="display:none; margin-top: 20px;">
+                            <div id="resultCard"></div>
+                            <button onclick="exportResultCard('png')" data-lang-key="export_png">Export as PNG</button>
+                            <button onclick="exportResultCard('pdf')" data-lang-key="export_pdf">Export as PDF</button>
+                        </div>
+                    </div>
+
+                    <div id="batchResultsTab" class="results-tab" style="display:none;">
+                        <h3><span data-lang-key="all_student_reports">All Student Reports</span></h3>
+                        <div class="form-grid">
+                            <div>
+                                <label for="reportExamFilter" data-lang-key="filter_by_exam">Filter by Exam</label>
+                                <select id="reportExamFilter" onchange="generateBatchReport()"></select>
+                            </div>
+                            <div>
+                                <label for="reportClassFilter" data-lang-key="filter_by_class">Filter by Class</label>
+                                <select id="reportClassFilter" onchange="generateBatchReport()"></select>
+                            </div>
+                        </div>
+                        <button onclick="exportBatchReport('csv')" data-lang-key="export_csv">Export as CSV</button>
+                        <table id="batchReportTable">
+                            <thead><tr><th data-lang-key="student">Student</th><th data-lang-key="class">Class</th><th data-lang-key="score">Score (%)</th><th data-lang-key="status">Status</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                        <div class="chart-container">
+                            <h3 data-lang-key="subject_wise_average">Subject-wise Average Score</h3>
+                            <canvas id="subjectAverageChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="settings" class="module">
+                    <h2 data-lang-key="settings">Settings</h2>
+                    <div class="form-grid">
+                        <div>
+                            <h3 data-lang-key="theme">Theme</h3>
+                            <select id="themeSelector" onchange="changeTheme(this.value)">
+                                <option value="light" data-lang-key="light">Light</option>
+                                <option value="dark" data-lang-key="dark">Dark</option>
+                            </select>
+                        </div>
+                        <div>
+                            <h3 data-lang-key="language">Language</h3>
+                            <select id="languageSelector" onchange="changeLanguage(this.value)">
+                                <option value="en">English</option>
+                                <option value="ur">اردو</option>
+                            </select>
+                        </div>
+                        <div>
+                            <h3 data-lang-key="admin_lock_pin">Admin Lock PIN</h3>
+                            <input type="password" id="adminPin" placeholder="Enter 4-digit PIN">
+                            <button onclick="setAdminPin()" data-lang-key="set_pin">Set PIN</button>
+                        </div>
+                        <div>
+                            <h3 data-lang-key="data_management">Data Management</h3>
+                            <button onclick="backupData()" data-lang-key="backup_data">Backup All Data (JSON)</button>
+                            <br><br>
+                            <label for="importFile" data-lang-key="import_data">Import Data (JSON)</label>
+                            <input type="file" id="importFile" accept=".json" onchange="importData(event)">
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+<script>
+const DB_NAME = 'ExamSystemDB';
+const DB_VERSION = 1;
+let db;
+let currentUserId = null;
+let activeExam = {
+    examId: null,
+    questions: [],
+    userAnswers: {},
+    currentQuestionIndex: 0,
+    timerInterval: null
+};
+
+const langData = {
+    en: {
+        login_title: "Select User Profile",
+        create_profile_title: "Create New Profile",
+        name: "Name",
+        class: "Class",
+        roll_no: "Roll No.",
+        create_user: "Create & Login",
+        enter_pin: "Enter PIN",
+        login: "Login",
+        back: "Back",
+        welcome: "Welcome",
+        logout: "Logout",
+        dashboard: "Dashboard",
+        exams_taken: "Exams Taken:",
+        avg_score: "Average Score:",
+        subjects_mastered: "Subjects:",
+        performance_trend: "Performance Trend",
+        subjects: "Subjects",
+        subject_name: "Subject Name",
+        save_subject: "Save Subject",
+        sync_subjects: "Sync Subjects",
+        actions: "Actions",
+        exams: "Exams",
+        exam_name: "Exam Name",
+        duration_minutes: "Duration (Minutes)",
+        pass_percentage: "Pass Percentage (%)",
+        save_exam: "Save Exam",
+        questions: "Questions",
+        back_to_exams: "Back to Exams",
+        load_questions: "Load Questions from Source",
+        take_exam: "Take Exam",
+        select_exam: "Select Exam",
+        start_exam: "Start Exam",
+        previous: "Previous",
+        next: "Next",
+        question_nav: "Question Navigation",
+        submit_exam: "Submit Exam",
+        results_reports: "Results & Reports",
+        my_results: "My Results",
+        batch_reports: "Batch Reports",
+        my_exam_results: "My Exam Results",
+        score: "Score",
+        status: "Status",
+        date_taken: "Date Taken",
+        export_png: "Export as PNG",
+        export_pdf: "Export as PDF",
+        all_student_reports: "All Student Reports",
+        filter_by_exam: "Filter by Exam",
+        filter_by_class: "Filter by Class",
+        export_csv: "Export as CSV",
+        student: "Student",
+        subject_wise_average: "Subject-wise Average Score",
+        settings: "Settings",
+        theme: "Theme",
+        light: "Light",
+        dark: "Dark",
+        language: "Language",
+        admin_lock_pin: "Admin Lock PIN",
+        set_pin: "Set PIN",
+        data_management: "Data Management",
+        backup_data: "Backup All Data (JSON)",
+        import_data: "Import Data (JSON)",
+    },
+    ur: {
+        login_title: "صارف کا پروفائل منتخب کریں",
+        create_profile_title: "نیا پروفائل بنائیں",
+        name: "نام",
+        class: "کلاس",
+        roll_no: "رول نمبر",
+        create_user: "بنائیں اور لاگ ان کریں",
+        enter_pin: "پن درج کریں",
+        login: "لاگ ان",
+        back: "پیچھے",
+        welcome: "خوش آمدید",
+        logout: "لاگ آؤٹ",
+        dashboard: "ڈیش بورڈ",
+        exams_taken: "دیے گئے امتحانات:",
+        avg_score: "اوسط سکور:",
+        subjects_mastered: "مضامین:",
+        performance_trend: "کارکردگی کا رجحان",
+        subjects: "مضامین",
+        subject_name: "مضمون کا نام",
+        save_subject: "مضمون محفوظ کریں",
+        sync_subjects: "مضامین سنک کریں",
+        actions: "اعمال",
+        exams: "امتحانات",
+        exam_name: "امتحان کا نام",
+        duration_minutes: "دورانیہ (منٹ)",
+        pass_percentage: "کامیابی کا فیصد (%)",
+        save_exam: "امتحان محفوظ کریں",
+        questions: "سوالات",
+        back_to_exams: "امتحانات پر واپس",
+        load_questions: "ماخذ سے سوالات لوڈ کریں",
+        take_exam: "امتحان دیں",
+        select_exam: "امتحان منتخب کریں",
+        start_exam: "امتحان شروع کریں",
+        previous: "پچھلا",
+        next: "اگلا",
+        question_nav: "سوالات کی نیویگیشن",
+        submit_exam: "امتحان جمع کروائیں",
+        results_reports: "نتائج اور رپورٹس",
+        my_results: "میرے نتائج",
+        batch_reports: "بیچ رپورٹس",
+        my_exam_results: "میرے امتحانی نتائج",
+        score: "سکور",
+        status: "حیثیت",
+        date_taken: "تاریخ",
+        export_png: "PNG کے طور پر ایکسپورٹ کریں",
+        export_pdf: "PDF کے طور پر ایکسپورٹ کریں",
+        all_student_reports: "تمام طلباء کی رپورٹس",
+        filter_by_exam: "امتحان کے لحاظ سے فلٹر کریں",
+        filter_by_class: "کلاس کے لحاظ سے فلٹر کریں",
+        export_csv: "CSV کے طور پر ایکسپورٹ کریں",
+        student: "طالب علم",
+        subject_wise_average: "مضمون کے لحاظ سے اوسط سکور",
+        settings: "ترتیبات",
+        theme: "تھیم",
+        light: "لائٹ",
+        dark: "ڈارک",
+        language: "زبان",
+        admin_lock_pin: "ایڈمن لاک پن",
+        set_pin: "پن سیٹ کریں",
+        data_management: "ڈیٹا مینجمنٹ",
+        backup_data: "تمام ڈیٹا کا بیک اپ لیں (JSON)",
+        import_data: "ڈیٹا امپورٹ کریں (JSON)",
+    }
+};
+
+function changeLanguage(lang) {
+    const elements = document.querySelectorAll('[data-lang-key]');
+    const direction = lang === 'ur' ? 'rtl' : 'ltr';
+    document.documentElement.lang = lang;
+    document.documentElement.dir = direction;
+    
+    elements.forEach(el => {
+        const key = el.getAttribute('data-lang-key');
+        if (langData[lang] && langData[lang][key]) {
+            el.textContent = langData[lang][key];
+        }
+    });
+    localStorage.setItem('examAppLanguage', lang);
+}
+
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = event => reject("DB Error: " + event.target.errorCode);
+        request.onsuccess = event => {
+            db = event.target.result;
+            resolve(db);
+        };
+        request.onupgradeneeded = event => {
+            let db = event.target.result;
+            if (!db.objectStoreNames.contains('users')) {
+                const userStore = db.createObjectStore('users', { keyPath: 'id', autoIncrement: true });
+                userStore.createIndex('name', 'name', { unique: false });
+            }
+            if (!db.objectStoreNames.contains('subjects')) {
+                const subjectStore = db.createObjectStore('subjects', { keyPath: 'id', autoIncrement: true });
+                subjectStore.createIndex('userId', 'userId', { unique: false });
+            }
+            if (!db.objectStoreNames.contains('exams')) {
+                const examStore = db.createObjectStore('exams', { keyPath: 'id', autoIncrement: true });
+                examStore.createIndex('userId', 'userId', { unique: false });
+            }
+            if (!db.objectStoreNames.contains('questions')) {
+                const questionStore = db.createObjectStore('questions', { keyPath: 'id', autoIncrement: true });
+                questionStore.createIndex('examId', 'examId', { unique: false });
+            }
+            if (!db.objectStoreNames.contains('studentAnswers')) {
+                const answerStore = db.createObjectStore('studentAnswers', { keyPath: 'id', autoIncrement: true });
+                answerStore.createIndex('examResultId', 'examResultId', { unique: false });
+            }
+            if (!db.objectStoreNames.contains('examResults')) {
+                const resultStore = db.createObjectStore('examResults', { keyPath: 'id', autoIncrement: true });
+                resultStore.createIndex('userId_examId', ['userId', 'examId'], { unique: true });
+                resultStore.createIndex('userId', 'userId', {unique: false});
+            }
+            if (!db.objectStoreNames.contains('settings')) {
+                db.createObjectStore('settings', { keyPath: 'key' });
+            }
+        };
+    });
+}
+
+function getStore(storeName, mode) {
+    return db.transaction(storeName, mode).objectStore(storeName);
+}
+
+function addData(storeName, data) {
+    return new Promise((resolve, reject) => {
+        const request = getStore(storeName, 'readwrite').add(data);
+        request.onsuccess = event => resolve(event.target.result);
+        request.onerror = event => reject(event.target.error);
+    });
+}
+
+function updateData(storeName, data) {
+    return new Promise((resolve, reject) => {
+        const request = getStore(storeName, 'readwrite').put(data);
+        request.onsuccess = event => resolve(event.target.result);
+        request.onerror = event => reject(event.target.error);
+    });
+}
+
+function deleteData(storeName, key) {
+    return new Promise((resolve, reject) => {
+        const request = getStore(storeName, 'readwrite').delete(key);
+        request.onsuccess = () => resolve();
+        request.onerror = event => reject(event.target.error);
+    });
+}
+
+function getData(storeName, key) {
+    return new Promise((resolve, reject) => {
+        const request = getStore(storeName, 'readonly').get(key);
+        request.onsuccess = event => resolve(event.target.result);
+        request.onerror = event => reject(event.target.error);
+    });
+}
+
+function getAllData(storeName, indexName, query) {
+    return new Promise((resolve, reject) => {
+        const store = getStore(storeName, 'readonly');
+        const request = indexName ? store.index(indexName).getAll(query) : store.getAll();
+        request.onsuccess = event => resolve(event.target.result);
+        request.onerror = event => reject(event.target.error);
+    });
+}
+
+/**
+ * Fetches data from the source Quran app database.
+ * This is the primary integration point for loading real data.
+ * @param {string} dataType - The type of data to fetch ('subjects' or 'questions').
+ * @param {object} options - Additional options, e.g., { examId: 1, subjectId: 5 }.
+ * @returns {Promise<Array>} A promise that resolves with the fetched data.
+ */
+async function fetchFromSourceDB(dataType, options = {}) {
+    const SOURCE_DB_NAME = 'NurAlQuranStudioDBz';
+    const SOURCE_STORE_THEMES = 'themes';
+    
+    const openSourceDB = () => {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(SOURCE_DB_NAME);
+            request.onsuccess = event => resolve(event.target.result);
+            request.onerror = event => reject("Could not open source DB: " + event.target.error);
+        });
+    };
+
+    if (dataType === 'subjects') {
+        let sourceDb;
+        try {
+            sourceDb = await openSourceDB();
+            const transaction = sourceDb.transaction(SOURCE_STORE_THEMES, 'readonly');
+            const store = transaction.objectStore(SOURCE_STORE_THEMES);
+            const subjects = await new Promise((resolve, reject) => {
+                store.getAll().onsuccess = e => resolve(e.target.result.map(theme => ({ id: `theme_${theme.id}`, name: theme.name })));
+                transaction.onerror = e => reject(e.target.error);
+            });
+            return subjects.length > 0 ? subjects : [{ id: 'general', name: 'General Quran' }];
+        } catch (error) {
+            console.error("Failed to fetch subjects from source DB. Using fallback.", error);
+            return [{ id: 'general', name: 'General Quran' }];
+        } finally {
+            if (sourceDb) sourceDb.close();
+        }
+    }
+
+    if (dataType === 'questions') {
+        let sourceDb;
+        try {
+            sourceDb = await openSourceDB();
+            const questions = [];
+            const lang = options.lang || 'urdu'; // MODIFIED: Use passed language or default
+
+            const quranKeys = await new Promise(r => sourceDb.transaction('quran', 'readonly').objectStore('quran').getAllKeys().onsuccess = e => r(e.target.result));
+            const wordTransKeys = await new Promise(r => sourceDb.transaction('word_translations', 'readonly').objectStore('word_translations').getAllKeys().onsuccess = e => r(e.target.result));
+            
+            if (quranKeys.length < 4 || wordTransKeys.length < 4) {
+                 throw new Error("Not enough data in source DB to generate questions.");
+            }
+
+            for (let i = 0; i < 5; i++) {
+                const question = await generateAyahTranslationQuestion(sourceDb, quranKeys, lang); // MODIFIED
+                if (question) questions.push(question);
+            }
+
+            for (let i = 0; i < 5; i++) {
+                const question = await generateWordMeaningQuestion(sourceDb, wordTransKeys, lang); // MODIFIED
+                if (question) questions.push(question);
+            }
+            
+            const randomKey = quranKeys[Math.floor(Math.random() * quranKeys.length)];
+            const ayahData = await new Promise(r => sourceDb.transaction('quran', 'readonly').objectStore('quran').get(randomKey).onsuccess = e => r(e.target.result));
+            if(ayahData) {
+                questions.push({ 
+                    type: 'subjective', 
+                    text: `Provide a brief tafsir for the following Ayah:\n\n"${ayahData.arabic}"`,
+                    marks: 10 
+                });
+            }
+
+            return questions;
+
+        } catch (error) {
+            console.error("Failed to generate real questions from source DB. Using placeholders.", error);
+            return [
+                { type: 'mcq', text: 'Placeholder: Which Surah is called "The Opening"?', options: ['Al-Baqarah', 'Al-Fatihah', 'An-Nas'], correctAnswer: 'Al-Fatihah', marks: 5 },
+                { type: 'subjective', text: 'Placeholder: What is the significance of Laylat al-Qadr?', marks: 10 }
+            ];
+        } finally {
+            if (sourceDb) sourceDb.close();
+        }
+    }
+
+    return [];
+}
+/**
+ * Generates a single Ayah-to-Translation MCQ.
+ */
+async function generateAyahTranslationQuestion(sourceDb, quranKeys, lang) {
+    const transaction = sourceDb.transaction('quran', 'readonly');
+    const quranStore = transaction.objectStore('quran');
+
+    const selectedKeys = new Set();
+    while (selectedKeys.size < 4 && selectedKeys.size < quranKeys.length) {
+        selectedKeys.add(quranKeys[Math.floor(Math.random() * quranKeys.length)]);
+    }
+
+    const ayahDataPromises = Array.from(selectedKeys).map(key => 
+        new Promise(r => quranStore.get(key).onsuccess = e => r(e.target.result))
+    );
+    const ayahs = await Promise.all(ayahDataPromises);
+
+    if (ayahs.some(a => !a)) return null;
+
+    const questionAyah = ayahs[0];
+    const correctAnswer = questionAyah[lang]; // MODIFIED: Use dynamic language key
+    if (!correctAnswer) return null;
+
+    const options = ayahs.map(a => a[lang]).filter(Boolean);
+    if (options.length < 2) return null;
+
+    return {
+        type: 'mcq',
+        text: `Choose the correct ${lang} translation for:\n\n"${questionAyah.arabic}"`, // MODIFIED
+        options: shuffleArray(options),
+        correctAnswer: correctAnswer,
+        marks: 5
+    };
+}
+
+/**
+ * Generates a single Word-to-Meaning MCQ.
+ */
+async function generateWordMeaningQuestion(sourceDb, wordTransKeys, lang) {
+    // NEW: Map language name to database field name
+    const langFieldMap = {
+        'english': 'en_meaning',
+        'urdu': 'ur_meaning',
+        'pashto': 'pashto_text'
+    };
+    const translationField = langFieldMap[lang];
+    if (!translationField) return null; // Exit if language is not supported for words (e.g., Bangali)
+
+    const selectedKeys = new Set();
+    while (selectedKeys.size < 4 && selectedKeys.size < wordTransKeys.length) {
+        selectedKeys.add(wordTransKeys[Math.floor(Math.random() * wordTransKeys.length)]);
+    }
+
+    const wordTransPromises = Array.from(selectedKeys).map(key => new Promise(r => 
+        sourceDb.transaction('word_translations', 'readonly').objectStore('word_translations').get(key).onsuccess = e => r(e.target.result)
+    ));
+    const wordTranslations = await Promise.all(wordTransPromises);
+    
+    if (wordTranslations.some(wt => !wt)) return null;
+
+    const questionWordData = wordTranslations[0];
+    const correctAnswer = questionWordData[translationField]; // MODIFIED
+    if (!correctAnswer) return null;
+
+    const metaData = await new Promise(r => 
+        sourceDb.transaction('word_metadata', 'readonly').objectStore('word_metadata').get(questionWordData.word_id).onsuccess = e => r(e.target.result)
+    );
+    if (!metaData) return null;
+
+    const ayahData = await new Promise(r => 
+        sourceDb.transaction('quran', 'readonly').objectStore('quran').get([metaData.surah, metaData.ayah]).onsuccess = e => r(e.target.result)
+    );
+    if (!ayahData) return null;
+    
+    const arabicWord = ayahData.arabic.split(/\s+/)[metaData.word_position];
+    if (!arabicWord) return null;
+
+    const options = wordTranslations.map(wt => wt[translationField]).filter(Boolean); // MODIFIED
+    if (options.length < 2) return null;
+
+    return {
+        type: 'mcq',
+        text: `What is the ${lang} meaning of the word:\n\n"${arabicWord}"`, // MODIFIED
+        options: shuffleArray(options),
+        correctAnswer: correctAnswer,
+        marks: 5
+    };
+}
+/**
+ * Shuffles an array in place.
+ */
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+// You will also need this helper array in your exam_system.html file.
+// Make sure it is defined in the global scope of your script.
+const surahAyahCounts = [0,7,286,200,176,120,165,206,75,129,109,123,111,43,52,99,128,111,110,98,135,112,78,118,64,77,227,93,88,69,60,34,30,73,54,45,83,182,88,75,85,54,53,89,59,37,35,38,29,18,45,60,49,62,55,78,96,29,22,24,13,14,11,11,18,12,12,30,52,52,44,28,28,20,56,40,31,50,40,46,42,29,19,36,25,22,17,19,26,30,20,15,21,11,8,8,19,5,8,8,11,11,8,3,9,5,4,7,3,6,3,5,4,5,6];
+
+function showModule(moduleId) {
+    document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
+    document.getElementById(moduleId)?.classList.add('active');
+    document.querySelectorAll('#mainNav button').forEach(b => b.classList.remove('active'));
+    document.querySelector(`#mainNav button[onclick="showModule('${moduleId}')"]`)?.classList.add('active');
+    
+    switch(moduleId) {
+        case 'dashboard': loadDashboard(); break;
+        case 'subjects': loadSubjects(); break;
+        case 'exams': loadExams(); break;
+        case 'takeExam': loadExamsToTake(); break;
+        case 'results': showResultsTab('individual'); break;
+    }
+}
+
+function setupNav() {
+    const navModules = [
+        { id: 'dashboard', key: 'dashboard' }, { id: 'subjects', key: 'subjects' },
+        { id: 'exams', key: 'exams' }, { id: 'takeExam', key: 'take_exam' },
+        { id: 'results', key: 'results_reports' }, { id: 'settings', key: 'settings' }
+    ];
+    const navContainer = document.getElementById('mainNav');
+    navContainer.innerHTML = '';
+    navModules.forEach(module => {
+        const button = document.createElement('button');
+        button.setAttribute('data-lang-key', module.key);
+        button.onclick = () => showModule(module.id);
+        navContainer.appendChild(button);
+    });
+}
+
+function changeTheme(theme) {
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('examAppTheme', theme);
+}
+
+async function loadUsers() {
+    const users = await getAllData('users');
+    const userList = document.getElementById('userList');
+    userList.innerHTML = '';
+    users.forEach(user => {
+        const userButton = document.createElement('button');
+        userButton.textContent = `${user.name} (${user.className || 'N/A'})`;
+        userButton.onclick = () => selectUser(user.id);
+        userList.appendChild(userButton);
+    });
+}
+
+document.getElementById('newUserForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const newUser = {
+        name: document.getElementById('newUserName').value,
+        className: document.getElementById('newUserClass').value,
+        rollNo: document.getElementById('newUserRollNo').value,
+        pin: null
+    };
+    const newId = await addData('users', newUser);
+    login(newId);
+});
+
+async function selectUser(id) {
+    const user = await getData('users', id);
+    if (user.pin) {
+        currentUserId = id;
+        document.getElementById('pinError').textContent = '';
+        document.querySelectorAll('.pin-input').forEach(i => i.value = '');
+        showModule('pinScreen');
+        document.querySelector('.pin-input').focus();
+    } else {
+        login(id);
+    }
+}
+
+function login(id) {
+    currentUserId = id;
+    sessionStorage.setItem('currentUserId', id);
+    document.getElementById('userLoginScreen').classList.remove('active');
+    document.getElementById('pinScreen').classList.remove('active');
+    document.getElementById('mainApp').style.display = 'block';
+    loadUserSession();
+}
+
+function logout() {
+    currentUserId = null;
+    sessionStorage.removeItem('currentUserId');
+    document.getElementById('mainApp').style.display = 'none';
+    showModule('userLoginScreen');
+    loadUsers();
+}
+
+async function loadUserSession() {
+    if (!currentUserId) return;
+    const user = await getData('users', currentUserId);
+    document.getElementById('currentUserName').textContent = user.name;
+    setupNav();
+    showModule('dashboard');
+    const savedLang = localStorage.getItem('examAppLanguage') || 'en';
+    document.getElementById('languageSelector').value = savedLang;
+    changeLanguage(savedLang);
+}
+
+const pinInputs = document.querySelectorAll('.pin-input');
+pinInputs.forEach((input, index) => {
+    input.addEventListener('keydown', (e) => {
+        if (e.key >= 0 && e.key <= 9) {
+            input.value = ''; 
+            setTimeout(() => {
+                if(index < pinInputs.length - 1) pinInputs[index + 1].focus();
+            }, 10);
+        } else if (e.key === 'Backspace') {
+            setTimeout(() => {
+                if(index > 0) pinInputs[index - 1].focus();
+            }, 10);
+        }
+    });
+});
+
+async function checkPin() {
+    const enteredPin = Array.from(pinInputs).map(i => i.value).join('');
+    if (enteredPin.length !== 4) {
+        document.getElementById('pinError').textContent = 'PIN must be 4 digits.';
+        return;
+    }
+    const user = await getData('users', currentUserId);
+    if (user.pin === enteredPin) {
+        login(currentUserId);
+    } else {
+        document.getElementById('pinError').textContent = 'Incorrect PIN.';
+    }
+}
+
+async function setAdminPin() {
+    const pin = document.getElementById('adminPin').value;
+    if (pin && pin.length !== 4) {
+        alert('PIN must be 4 digits.');
+        return;
+    }
+    let user = await getData('users', currentUserId);
+    user.pin = pin || null;
+    await updateData('users', user);
+    alert('PIN updated successfully.');
+    document.getElementById('adminPin').value = '';
+}
+
+async function syncWithSource(type) {
+    if (type === 'subjects') {
+        const sourceSubjects = await fetchFromSourceDB('subjects');
+        const existingSubjects = await getAllData('subjects', 'userId', currentUserId);
+        const existingNames = existingSubjects.map(s => s.name);
+        for (const sub of sourceSubjects) {
+            if (!existingNames.includes(sub.name)) {
+                await addData('subjects', { name: sub.name, userId: currentUserId });
+            }
+        }
+        alert('Subjects synced!');
+        loadSubjects();
+    }
+}
+
+async function loadSubjects() {
+    const subjects = await getAllData('subjects', 'userId', currentUserId);
+    const tbody = document.getElementById('subjectsTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    subjects.forEach(sub => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td>${sub.name}</td>
+            <td>
+                <button onclick="editSubject(${sub.id}, '${sub.name}')">Edit</button>
+                <button class="danger" onclick="deleteSubject(${sub.id})">Delete</button>
+            </td>
+        `;
+    });
+}
+
+document.getElementById('subjectForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const subject = {
+        name: document.getElementById('subjectName').value,
+        userId: currentUserId,
+    };
+    const id = document.getElementById('subjectId').value;
+    if (id) {
+        subject.id = parseInt(id);
+        await updateData('subjects', subject);
+    } else {
+        await addData('subjects', subject);
+    }
+    document.getElementById('subjectForm').reset();
+    document.getElementById('subjectId').value = '';
+    loadSubjects();
+});
+
+function editSubject(id, name) {
+    document.getElementById('subjectId').value = id;
+    document.getElementById('subjectName').value = name;
+}
+
+async function deleteSubject(id) {
+    if (confirm('Are you sure you want to delete this subject?')) {
+        await deleteData('subjects', id);
+        loadSubjects();
+    }
+}
+
+async function populateSubjectDropdown(selectId) {
+    const subjects = await getAllData('subjects', 'userId', currentUserId);
+    const select = document.getElementById(selectId);
+    select.innerHTML = '';
+    subjects.forEach(sub => {
+        const option = document.createElement('option');
+        option.value = sub.id;
+        option.textContent = sub.name;
+        select.appendChild(option);
+    });
+}
+
+async function loadExams() {
+    await populateSubjectDropdown('examSubject');
+    const exams = await getAllData('exams', 'userId', currentUserId);
+    const questions = await getAllData('questions');
+    const subjects = await getAllData('subjects', 'userId', currentUserId);
+    const subjectMap = subjects.reduce((map, sub) => (map[sub.id] = sub.name, map), {});
+    const tbody = document.getElementById('examsTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    exams.forEach(exam => {
+        const row = tbody.insertRow();
+        const questionCount = questions.filter(q => q.examId === exam.id).length;
+        row.innerHTML = `
+            <td>${exam.name}</td>
+            <td>${subjectMap[exam.subjectId] || 'N/A'}</td>
+            <td>${questionCount}</td>
+            <td>
+                <button onclick="manageExamQuestions(${exam.id})">Manage Questions</button>
+                <button onclick="editExam(${exam.id})">Edit</button>
+                <button class="danger" onclick="deleteExam(${exam.id})">Delete</button>
+            </td>
+        `;
+    });
+}
+
+document.getElementById('examForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const exam = {
+        name: document.getElementById('examName').value,
+        subjectId: parseInt(document.getElementById('examSubject').value),
+        durationMinutes: parseInt(document.getElementById('examDuration').value),
+        passPercentage: parseInt(document.getElementById('examPassPercentage').value),
+        userId: currentUserId,
+    };
+    const id = document.getElementById('examId').value;
+    if (id) {
+        exam.id = parseInt(id);
+        await updateData('exams', exam);
+    } else {
+        await addData('exams', exam);
+    }
+    document.getElementById('examForm').reset();
+    document.getElementById('examId').value = '';
+    loadExams();
+});
+
+async function editExam(id) {
+    const exam = await getData('exams', id);
+    document.getElementById('examId').value = exam.id;
+    document.getElementById('examName').value = exam.name;
+    document.getElementById('examSubject').value = exam.subjectId;
+    document.getElementById('examDuration').value = exam.durationMinutes;
+    document.getElementById('examPassPercentage').value = exam.passPercentage;
+}
+
+async function deleteExam(id) {
+    if (confirm('Are you sure? This will delete the exam and all its questions.')) {
+        await deleteData('exams', id);
+        const questions = await getAllData('questions', 'examId', id);
+        for(const q of questions) {
+            await deleteData('questions', q.id);
+        }
+        loadExams();
+    }
+}
+
+async function manageExamQuestions(examId) {
+    activeExam.examId = examId;
+    const exam = await getData('exams', examId);
+    document.getElementById('examQuestionsTitle').textContent = `Questions for: ${exam.name}`;
+    await displayExamQuestions();
+    showModule('examQuestions');
+}
+
+async function loadQuestionsForExam() {
+    // NEW: Prompt the admin for the desired language
+    const langOptions = ['urdu', 'english', 'pashto'];
+    const userInput = prompt(`Enter language for answers (${langOptions.join(', ')}):`, 'urdu');
+
+    // NEW: Validate input and default to 'urdu' if invalid or cancelled
+    let selectedLang = userInput ? userInput.toLowerCase().trim() : 'urdu';
+    if (!langOptions.includes(selectedLang)) {
+        alert(`Invalid language "${selectedLang}". Defaulting to 'urdu'.`);
+        selectedLang = 'urdu';
+    }
+
+    const sourceQuestions = await fetchFromSourceDB('questions', { lang: selectedLang }); // MODIFIED: Pass language
+    
+    // Clear existing questions for this exam first
+    const existingQuestions = await getAllData('questions', 'examId', activeExam.examId);
+    for(const q of existingQuestions) {
+        await deleteData('questions', q.id);
+    }
+    
+    // Add the newly fetched questions
+    for (const q of sourceQuestions) {
+        q.examId = activeExam.examId;
+        await addData('questions', q);
+    }
+    alert(`${sourceQuestions.length} questions loaded with ${selectedLang.toUpperCase()} answers!`);
+    await displayExamQuestions();
+}
+
+async function displayExamQuestions() {
+    const questions = await getAllData('questions', 'examId', activeExam.examId);
+    const listDiv = document.getElementById('questionsList');
+    listDiv.innerHTML = '';
+    questions.forEach((q, index) => {
+        const qDiv = document.createElement('div');
+        qDiv.style.border = '1px solid var(--border-color)';
+        qDiv.style.padding = '15px';
+        qDiv.style.margin = '10px 0';
+        qDiv.style.borderRadius = '5px';
+        qDiv.innerHTML = `
+            <strong>Q${index + 1}: (${q.type}, ${q.marks} marks)</strong> ${q.text}
+            <button class="danger" style="float:right;" onclick="deleteQuestion(${q.id})">X</button>
+        `;
+        listDiv.appendChild(qDiv);
+    });
+}
+
+async function deleteQuestion(id) {
+    await deleteData('questions', id);
+    await displayExamQuestions();
+}
+
+async function loadExamsToTake() {
+    const exams = await getAllData('exams', 'userId', currentUserId);
+    const subjects = await getAllData('subjects', 'userId', currentUserId);
+    const subjectMap = subjects.reduce((map, sub) => (map[sub.id] = sub.name, map), {});
+    const select = document.getElementById('examToTake');
+    select.innerHTML = '<option value="">-- Select an Exam --</option>';
+    exams.forEach(exam => {
+        const option = document.createElement('option');
+        option.value = exam.id;
+        option.textContent = `${exam.name} (${subjectMap[exam.subjectId]})`;
+        select.appendChild(option);
+    });
+    document.getElementById('examSelectionContainer').style.display = 'block';
+    document.getElementById('examInProgressContainer').style.display = 'none';
+}
+
+async function startExam() {
+    const examId = parseInt(document.getElementById('examToTake').value);
+    if (!examId) return;
+
+    activeExam.examId = examId;
+    activeExam.questions = await getAllData('questions', 'examId', examId);
+    activeExam.userAnswers = {};
+    activeExam.currentQuestionIndex = 0;
+
+    if (activeExam.questions.length === 0) {
+        alert("This exam has no questions.");
+        return;
+    }
+    
+    document.getElementById('examSelectionContainer').style.display = 'none';
+    document.getElementById('examInProgressContainer').style.display = 'block';
+
+    renderQuestion();
+    renderQuestionNav();
+    startTimer();
+}
+
+function renderQuestion() {
+    const q = activeExam.questions[activeExam.currentQuestionIndex];
+    document.getElementById('questionTitle').textContent = `Question ${activeExam.currentQuestionIndex + 1} of ${activeExam.questions.length}`;
+    document.getElementById('questionText').textContent = q.text;
+    const answerArea = document.getElementById('answerArea');
+    answerArea.innerHTML = '';
+
+    if (q.type === 'mcq') {
+        q.options.forEach(opt => {
+            const label = document.createElement('label');
+            label.className = 'mcq-option';
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'mcq';
+            radio.value = opt;
+            radio.onchange = () => saveAnswer(opt);
+            if(activeExam.userAnswers[q.id] === opt) radio.checked = true;
+            label.appendChild(radio);
+            label.append(` ${opt}`);
+            answerArea.appendChild(label);
+        });
+    } else {
+        const textarea = document.createElement('textarea');
+        textarea.rows = 8;
+        textarea.oninput = () => saveAnswer(textarea.value);
+        textarea.value = activeExam.userAnswers[q.id] || '';
+        answerArea.appendChild(textarea);
+    }
+    updateNavButtons();
+    updateQuestionNav();
+}
+
+function saveAnswer(answer) {
+    const qId = activeExam.questions[activeExam.currentQuestionIndex].id;
+    activeExam.userAnswers[qId] = answer;
+    updateQuestionNav();
+}
+
+function updateNavButtons() {
+    document.getElementById('prevBtn').disabled = activeExam.currentQuestionIndex === 0;
+    document.getElementById('nextBtn').disabled = activeExam.currentQuestionIndex === activeExam.questions.length - 1;
+}
+
+function renderQuestionNav() {
+    const grid = document.getElementById('questionNavGrid');
+    grid.innerHTML = '';
+    activeExam.questions.forEach((q, index) => {
+        const item = document.createElement('div');
+        item.className = 'question-nav-item';
+        item.textContent = index + 1;
+        item.onclick = () => jumpToQuestion(index);
+        grid.appendChild(item);
+    });
+}
+
+function updateQuestionNav() {
+    const items = document.querySelectorAll('.question-nav-item');
+    items.forEach((item, index) => {
+        const qId = activeExam.questions[index].id;
+        item.classList.remove('current', 'answered');
+        if (index === activeExam.currentQuestionIndex) {
+            item.classList.add('current');
+        }
+        if (activeExam.userAnswers[qId]) {
+            item.classList.add('answered');
+        }
+    });
+}
+
+function jumpToQuestion(index) {
+    activeExam.currentQuestionIndex = index;
+    renderQuestion();
+}
+
+function nextQuestion() {
+    if (activeExam.currentQuestionIndex < activeExam.questions.length - 1) {
+        activeExam.currentQuestionIndex++;
+        renderQuestion();
+    }
+}
+
+function prevQuestion() {
+    if (activeExam.currentQuestionIndex > 0) {
+        activeExam.currentQuestionIndex--;
+        renderQuestion();
+    }
+}
+
+async function startTimer() {
+    const exam = await getData('exams', activeExam.examId);
+    let duration = exam.durationMinutes * 60;
+    const timerEl = document.getElementById('timer');
+    activeExam.timerInterval = setInterval(() => {
+        duration--;
+        const minutes = Math.floor(duration / 60);
+        const seconds = duration % 60;
+        timerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        if (duration <= 0) {
+            submitExam();
+        }
+    }, 1000);
+}
+
+// Replace the entire submitExam function with this one
+async function submitExam() {
+    clearInterval(activeExam.timerInterval);
+    if(!confirm("Are you sure you want to submit the exam?")) return;
+
+    let totalMarks = 0;
+    let obtainedMarks = 0;
+
+    activeExam.questions.forEach(q => {
+        totalMarks += q.marks;
+        const userAnswer = activeExam.userAnswers[q.id];
+        if (q.type === 'mcq' && userAnswer === q.correctAnswer) {
+            obtainedMarks += q.marks;
+        }
+    });
+    
+    const exam = await getData('exams', activeExam.examId);
+    const percentage = totalMarks > 0 ? (obtainedMarks / totalMarks) * 100 : 0;
+
+    const result = {
+        userId: currentUserId,
+        examId: activeExam.examId,
+        totalMarks: totalMarks,
+        obtainedMarks: obtainedMarks,
+        percentage: percentage,
+        status: percentage >= exam.passPercentage ? 'Pass' : 'Fail',
+        date: new Date().toISOString(),
+        userAnswers: activeExam.userAnswers, // <-- THIS IS THE KEY ADDITION
+    };
+    
+    const existingResult = await getAllData('examResults', 'userId_examId', [currentUserId, activeExam.examId]);
+    if(existingResult.length > 0) {
+        result.id = existingResult[0].id;
+        await updateData('examResults', result);
+    } else {
+        await addData('examResults', result);
+    }
+    
+    alert('Exam submitted! View your result in the Results tab.');
+    showModule('results');
+}
+function showResultsTab(tabId) {
+    document.querySelectorAll('.results-tab').forEach(t => t.style.display = 'none');
+    document.getElementById(tabId + 'ResultsTab').style.display = 'block';
+    document.querySelectorAll('#resultsNav button').forEach(b => b.classList.remove('active'));
+    document.querySelector(`#resultsNav button[onclick="showResultsTab('${tabId}')"]`).classList.add('active');
+
+    if (tabId === 'individual') {
+        loadMyResults();
+    } else if (tabId === 'batch') {
+        loadBatchReportFilters();
+        generateBatchReport();
+    }
+}
+
+async function loadMyResults() {
+    const results = await getAllData('examResults', 'userId', currentUserId);
+    const exams = await getAllData('exams');
+    const examMap = exams.reduce((map, exam) => (map[exam.id] = exam.name, map), {});
+    const tbody = document.getElementById('myResultsTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    results.forEach(res => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td>${examMap[res.examId] || 'N/A'}</td>
+            <td>${res.obtainedMarks}/${res.totalMarks} (${res.percentage.toFixed(2)}%)</td>
+            <td style="color:${res.status === 'Pass' ? 'var(--success-color)' : 'var(--danger-color)'}">${res.status}</td>
+            <td>${new Date(res.date).toLocaleDateString()}</td>
+            <td><button onclick="viewResultCard(${res.id})">View Card</button></td>
+        `;
+    });
+}
+
+// Replace the entire viewResultCard function with this one
+async function viewResultCard(resultId) {
+    const result = await getData('examResults', resultId);
+    const exam = await getData('exams', result.examId);
+    const subject = await getData('subjects', exam.subjectId);
+    const user = await getData('users', result.userId);
+    const questions = await getAllData('questions', 'examId', result.examId);
+
+    const summaryHTML = `
+        <h3 style="text-align:center;">Result Card</h3>
+        <p><strong>Student:</strong> ${user.name}</p>
+        <p><strong>Exam:</strong> ${exam.name}</p>
+        <p><strong>Subject:</strong> ${subject.name}</p>
+        <hr>
+        <p><strong>Total Marks:</strong> ${result.totalMarks}</p>
+        <p><strong>Obtained Marks:</strong> ${result.obtainedMarks}</p>
+        <p><strong>Percentage:</strong> ${result.percentage.toFixed(2)}%</p>
+        <h3 style="color:${result.status === 'Pass' ? 'var(--success-color)' : 'var(--danger-color)'}">Status: ${result.status}</h3>
+    `;
+    
+    let reviewHTML = '<div class="question-review-list"><h3>Detailed Review</h3>';
+    
+    // *** THIS IS THE FIX ***
+    // Check if the userAnswers property exists. If not, show a message.
+    if (result.userAnswers) {
+        const userAnswers = result.userAnswers;
+        questions.forEach((q, index) => {
+            const userAnswer = userAnswers[q.id];
+            const isAnswered = userAnswer !== undefined && userAnswer !== '';
+
+            reviewHTML += `<div class="review-item">`;
+            reviewHTML += `<h4>Q${index + 1}: ${q.text}</h4>`;
+
+            if (q.type === 'mcq') {
+                const isCorrect = isAnswered && userAnswer === q.correctAnswer;
+                const statusIndicator = isAnswered 
+                    ? (isCorrect ? '<span class="status-indicator status-correct">✔️</span>' : '<span class="status-indicator status-incorrect">❌</span>')
+                    : '<span class="status-indicator status-unanswered">⚪</span>';
+                
+                reviewHTML += `<p>${statusIndicator}<span class="your-answer">Your Answer: ${isAnswered ? userAnswer : 'Not Answered'}</span></p>`;
+                if (!isCorrect) {
+                    reviewHTML += `<p><span class="correct-answer">Correct Answer: ${q.correctAnswer}</span></p>`;
+                }
+            } else if (q.type === 'subjective') {
+                 reviewHTML += `<p><span class="your-answer">Your Subjective Answer:</span></p><p><em>${isAnswered ? userAnswer : 'Not Answered'}</em></p>`;
+            }
+            reviewHTML += `</div>`;
+        });
+    } else {
+        // Show a message if this is an old result record without detailed answers
+        reviewHTML += `<p><em>Detailed answer review is not available for this older exam result.</em></p>`;
+    }
+    reviewHTML += '</div>';
+
+    const cardContainer = document.getElementById('resultCardContainer');
+    document.getElementById('resultCard').innerHTML = summaryHTML + reviewHTML;
+    cardContainer.style.display = 'block';
+    cardContainer.dataset.resultId = resultId;
+    cardContainer.scrollIntoView({ behavior: 'smooth' });
+}
+async function exportResultCard(format) {
+    const container = document.getElementById('resultCard');
+    if (!container) return;
+    const canvas = await html2canvas(container, {scale: 2});
+    
+    if (format === 'png') {
+        const link = document.createElement('a');
+        link.download = 'result-card.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    } else if (format === 'pdf') {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const imgData = canvas.toDataURL('image/png');
+        doc.addImage(imgData, 'PNG', 10, 10, 190, 0);
+        doc.save('result-card.pdf');
+    }
+}
+
+async function loadBatchReportFilters() {
+    const exams = await getAllData('exams');
+    const users = await getAllData('users');
+
+    const examFilter = document.getElementById('reportExamFilter');
+    examFilter.innerHTML = '<option value="">All Exams</option>';
+    exams.forEach(e => examFilter.add(new Option(e.name, e.id)));
+
+    const classFilter = document.getElementById('reportClassFilter');
+    const classes = [...new Set(users.map(u => u.className).filter(Boolean))];
+    classFilter.innerHTML = '<option value="">All Classes</option>';
+    classes.forEach(c => classFilter.add(new Option(c, c)));
+}
+
+async function generateBatchReport() {
+    const examId = document.getElementById('reportExamFilter').value;
+    const className = document.getElementById('reportClassFilter').value;
+
+    let results = await getAllData('examResults');
+    let users = await getAllData('users');
+    let exams = await getAllData('exams');
+
+    if(examId) {
+        results = results.filter(r => r.examId == examId);
+    }
+    
+    const userMap = users.reduce((map, user) => (map[user.id] = user, map), {});
+    results = results.filter(r => userMap[r.userId]);
+
+    if(className) {
+        results = results.filter(r => userMap[r.userId].className === className);
+    }
+
+    const tbody = document.getElementById('batchReportTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    results.sort((a,b) => b.percentage - a.percentage).forEach(res => {
+        const user = userMap[res.userId];
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td>${user.name}</td>
+            <td>${user.className}</td>
+            <td>${res.percentage.toFixed(2)}%</td>
+            <td>${res.status}</td>
+        `;
+    });
+    
+    generateSubjectAverageChart(results, exams);
+}
+
+let subjectChartInstance;
+async function generateSubjectAverageChart(results, allExams) {
+    if (subjectChartInstance) subjectChartInstance.destroy();
+
+    const allSubjects = await getAllData('subjects');
+    const subjectMap = allSubjects.reduce((map, s) => (map[s.id] = s.name, map), {});
+    const examMap = allExams.reduce((map, e) => (map[e.id] = {subjectId: e.subjectId}, map), {});
+    
+    const dataBySubject = {};
+    results.forEach(res => {
+        const exam = examMap[res.examId];
+        if(!exam) return;
+        const subjectId = exam.subjectId;
+        if (!dataBySubject[subjectId]) {
+            dataBySubject[subjectId] = { totalPercent: 0, count: 0 };
+        }
+        dataBySubject[subjectId].totalPercent += res.percentage;
+        dataBySubject[subjectId].count++;
+    });
+
+    const labels = Object.keys(dataBySubject).map(id => subjectMap[id]);
+    const data = Object.values(dataBySubject).map(d => d.totalPercent / d.count);
+    
+    const ctx = document.getElementById('subjectAverageChart').getContext('2d');
+    subjectChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Average Score (%)',
+                data: data,
+                backgroundColor: 'rgba(0, 123, 255, 0.5)'
+            }]
+        },
+        options: { scales: { y: { beginAtZero: true, max: 100 } } }
+    });
+}
+
+function exportBatchReport(format) {
+    const table = document.getElementById('batchReportTable');
+    if (format === 'csv') {
+        const ws = XLSX.utils.table_to_sheet(table);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Batch Report");
+        XLSX.writeFile(wb, "batch_report.xlsx");
+    }
+}
+
+async function loadDashboard() {
+    const results = await getAllData('examResults', 'userId', currentUserId);
+    const subjects = await getAllData('subjects', 'userId', currentUserId);
+
+    document.getElementById('statExamsTaken').textContent = results.length;
+    document.getElementById('statSubjects').textContent = subjects.length;
+
+    if (results.length > 0) {
+        const avgScore = results.reduce((sum, r) => sum + r.percentage, 0) / results.length;
+        document.getElementById('statAvgScore').textContent = avgScore.toFixed(2);
+    } else {
+        document.getElementById('statAvgScore').textContent = "0";
+    }
+
+    renderPerformanceTrendChart(results);
+}
+
+let trendChartInstance;
+async function renderPerformanceTrendChart(results) {
+    if (trendChartInstance) trendChartInstance.destroy();
+    
+    const exams = await getAllData('exams');
+    const examMap = exams.reduce((map, exam) => (map[exam.id] = exam.name, map), {});
+
+    results.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+    const labels = results.map(r => examMap[r.examId] || 'Unknown');
+    const data = results.map(r => r.percentage);
+
+    const ctx = document.getElementById('performanceTrendChart').getContext('2d');
+    trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Score (%)',
+                data: data,
+                borderColor: 'var(--primary-color)',
+                tension: 0.1
+            }]
+        },
+        options: { scales: { y: { beginAtZero: true, max: 100 } } }
+    });
+}
+
+async function backupData() {
+    const backup = {};
+    for (const storeName of db.objectStoreNames) {
+        backup[storeName] = await getAllData(storeName);
+    }
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `exam_backup_${new Date().toISOString().slice(0,10)}.json`;
+    link.click();
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        if (!confirm("This will overwrite all existing data. Are you sure?")) return;
+        const importedData = JSON.parse(e.target.result);
+        for (const storeName of db.objectStoreNames) {
+            const store = getStore(storeName, 'readwrite');
+            await new Promise(res => store.clear().onsuccess = res);
+            if(importedData[storeName]){
+                for (const item of importedData[storeName]) {
+                    await addData(storeName, item);
+                }
+            }
+        }
+        alert("Data imported successfully! The page will now reload.");
+        location.reload();
+    };
+    reader.readAsText(file);
+}
+
+window.onload = async () => {
+    try {
+        await openDB();
+        const savedTheme = localStorage.getItem('examAppTheme') || 'light';
+        changeTheme(savedTheme);
+        document.getElementById('themeSelector').value = savedTheme;
+        
+        const savedUserId = sessionStorage.getItem('currentUserId');
+        if (savedUserId) {
+            currentUserId = parseInt(savedUserId);
+            login(currentUserId);
+        } else {
+            showModule('userLoginScreen');
+            loadUsers();
+        }
+    } catch (error) {
+        console.error("Initialization failed:", error);
+        document.body.innerHTML = "<h1>Error</h1><p>Could not initialize the application. Please refresh.</p>";
+    }
+};
+
+</script>
+</body>
+</html>
