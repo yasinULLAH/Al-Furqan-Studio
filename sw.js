@@ -1,5 +1,5 @@
 const CACHE_NAME = 'nur-ul-quran-cache-v1';
-const MANIFEST_URL = 'info.csv';
+const MANIFEST_URL = './info.csv';
 
 const parseManifest = async () => {
     try {
@@ -28,7 +28,7 @@ self.addEventListener('install', event => {
     event.waitUntil(
         (async () => {
             const cache = await caches.open(CACHE_NAME);
-            const appShellFiles = ['/', '/index.html', MANIFEST_URL];
+            const appShellFiles = ['./index.html', MANIFEST_URL];
             const dataFiles = await parseManifest();
             const allFilesToCache = [...appShellFiles, ...dataFiles];
             await cache.addAll(allFilesToCache);
