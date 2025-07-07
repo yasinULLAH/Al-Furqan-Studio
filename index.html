@@ -12,6 +12,7 @@
         src="https://cdn.jsdelivr.net/npm/vis-network@latest/dist/vis-network.min.js"></script>
     <script type="text/javascript"
         src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
             --color-bg-primary: #e8f5e9;
@@ -1618,10 +1619,16 @@
                     <p id="clear-status" aria-live="polite"></p>
                 </div>
                 <div class="settings-section mb-20">
-                    <h3>Export Personal Tafsir to Word (.docx)</h3>
-                    <p>Generates a .docx file of all your Tafsir notes (basic styling).</p>
-                    <button id="export-tafsir-to-docx-btn">Export Tafsir to .docx</button>
+                    <h3>Export Personal Tafsir</h3>
+                    <p>Generate a file of all your Tafsir notes for backup or printing.</p>
+                    <div class="flex-group" style="justify-content: flex-start; flex-wrap: wrap;">
+                        <button id="export-tafsir-to-docx-btn">Export to .docx</button>
+                        <button id="export-tafsir-to-md-btn">Export to Markdown</button>
+                        <button id="export-tafsir-to-pdf-btn">Export to PDF</button>
+                    </div>
                     <p id="export-tafsir-docx-status" aria-live="polite"></p>
+                    <p id="export-tafsir-md-status" aria-live="polite"></p>
+                    <p id="export-tafsir-pdf-status" aria-live="polite"></p>
                 </div>
             </section>
         </main>
@@ -4021,6 +4028,7 @@
             if (eventListenersInitialized) {
                 return;
             }
+
             const hamburgerBtn = document.getElementById('hamburger-btn');
             const sidebar = document.querySelector('.sidebar');
             const overlay = document.getElementById('sidebar-overlay');
@@ -4101,7 +4109,7 @@
                     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
                 }
             });
-            setupTafsirDocxButton();
+            setupTafsirExportButtons();
             document.querySelectorAll('input[name="root-view-mode"]').forEach(radio => {
                 radio.addEventListener('change', function () {
                     const newViewMode = this.value;
@@ -4266,7 +4274,7 @@
                 setupEventListeners();
                 await loadQuranData();
                 displayThemesList();
-                setupTafsirDocxButton();
+                setupTafsirExportButtons();
                 setupGameModal();
                 initializeReportingModule_Enhanced();
                 window.rootNodePopupEl = document.getElementById('root-node-popup');
@@ -4459,6 +4467,125 @@
             }, 300);
         }
         setupQuranViewSwitcher();
+        async function loadHtml2PdfJs() {
+            return new Promise((resolve, reject) => {
+                if (window.html2pdf) {
+                    resolve(window.html2pdf);
+                    return;
+                }
+                let attempts = 0;
+                const interval = setInterval(() => {
+                    if (window.html2pdf) {
+                        clearInterval(interval);
+                        resolve(window.html2pdf);
+                    } else if (attempts++ > 20) {
+                        clearInterval(interval);
+                        reject("Failed to load html2pdf.js library.");
+                    }
+                }, 250);
+            });
+        }
+
+        async function exportTafsirToMd() {
+            setStatusMessage('export-tafsir-md-status', 'Preparing Markdown file...', false);
+            showLoading("Generating Markdown export...");
+            try {
+                const allTafsir = await getAllData(STORE_TAFSIR);
+                if (!allTafsir || allTafsir.length === 0) {
+                    setStatusMessage('export-tafsir-md-status', 'No Tafsir notes to export.', false);
+                    return;
+                }
+                allTafsir.sort((a, b) => (a.surah !== b.surah) ? a.surah - b.surah : a.ayah - b.ayah);
+                let markdownContent = "# My Personal Quran Tafsir\n\n";
+                let currentSurahNum = -1;
+                for (const entry of allTafsir) {
+                    if (entry.surah !== currentSurahNum) {
+                        currentSurahNum = entry.surah;
+                        const surahName = surahNames[currentSurahNum - 1] || `Surah ${currentSurahNum}`;
+                        markdownContent += `## Surah ${currentSurahNum}: ${surahName}\n\n`;
+                    }
+                    const ayahData = await getData(STORE_QURAN, [entry.surah, entry.ayah]);
+                    markdownContent += `### Ayah ${entry.ayah}\n\n`;
+                    markdownContent += `> ${ayahData ? ayahData.arabic : "Arabic text not found."}\n\n`;
+                    markdownContent += `**Notes:**\n\n${entry.notes || '*No notes for this Ayah.*'}\n\n---\n\n`;
+                }
+                const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `Personal-Tafsir-${new Date().toISOString().split('T')[0]}.md`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                setStatusMessage('export-tafsir-md-status', 'Markdown file generated.', false);
+            } catch (error) {
+                setStatusMessage('export-tafsir-md-status', 'Failed to generate Markdown file.', true);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function exportTafsirToPdf() {
+            setStatusMessage('export-tafsir-pdf-status', 'Preparing PDF file...', false);
+            showLoading("Generating PDF...");
+            try {
+                const html2pdf = await loadHtml2PdfJs();
+                const allTafsir = await getAllData(STORE_TAFSIR);
+                if (!allTafsir || allTafsir.length === 0) {
+                    setStatusMessage('export-tafsir-pdf-status', 'No Tafsir notes to export.', false);
+                    return;
+                }
+                allTafsir.sort((a, b) => (a.surah !== b.surah) ? a.surah - b.surah : a.ayah - b.ayah);
+
+                const contentContainer = document.createElement('div');
+                let htmlString = `<div class="pdf-container">
+            <style>
+                .pdf-container {
+                    direction: rtl; font-family: 'Scheherazade New', 'Times New Roman', serif;
+                    box-sizing: border-box; padding: 10mm;
+                }
+                h1, h2, h3 { text-align: right; color: #333; }
+                h1 { text-align: center; font-size: 24pt; }
+                h2 { font-size: 18pt; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px;}
+                h3 { font-size: 16pt; }
+                .arabic-text { font-family: 'Scheherazade New', serif; font-size: 22pt; text-align: right; direction: rtl; background-color: #f8f9fa; padding: 10px; border-radius: 5px; }
+                .notes { white-space: pre-wrap; font-size: 12pt; line-height: 1.6; border-right: 3px solid #eee; padding-right: 10px; text-align: right; }
+                .ayah-block { margin-bottom: 25px; page-break-inside: avoid; }
+            </style>
+            <h1>My Personal Quran Tafsir</h1>`;
+
+                let currentSurahNum = -1;
+                for (const entry of allTafsir) {
+                    if (entry.surah !== currentSurahNum) {
+                        currentSurahNum = entry.surah;
+                        htmlString += `<h2>Surah ${currentSurahNum}: ${surahNames[currentSurahNum - 1]}</h2>`;
+                    }
+                    const ayahData = await getData(STORE_QURAN, [entry.surah, entry.ayah]);
+                    htmlString += `<div class="ayah-block"><h3>Ayah ${entry.ayah}</h3>`;
+                    htmlString += `<div class="arabic-text">${ayahData ? ayahData.arabic : ""}</div>`;
+                    htmlString += `<p class="notes">${(entry.notes || '<i>No notes.</i>').replace(/\n/g, '<br>')}</p></div>`;
+                }
+                htmlString += `</div>`;
+                contentContainer.innerHTML = htmlString;
+
+                const opt = {
+                    margin: 0,
+                    filename: `Personal-Tafsir-RTL.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                await html2pdf().from(contentContainer).set(opt).save();
+                setStatusMessage('export-tafsir-pdf-status', 'PDF file generated.', false);
+            } catch (error) {
+                setStatusMessage('export-tafsir-pdf-status', 'Failed to generate PDF file.', true);
+            } finally {
+                hideLoading();
+            }
+        }
+
+
     </script>
     <div id="word-tooltip"
         style="display:none; position:absolute; background:var(--color-bg-secondary); border:1px solid var(--color-border); padding:10px; border-radius:var(--border-radius); z-index:1001; max-width:300px; pointer-events:none;">
@@ -4494,184 +4621,101 @@
         let docx;
         try {
             docx = await loadDocxJs();
-            if (!docx || !docx.Document || !docx.Packer || !docx.Paragraph || !docx.TextRun || !docx.HeadingLevel) {
-                throw new Error("DOCX library not loaded correctly or is an incompatible version.");
-            }
         } catch (error) {
-            console.error("Error loading DOCX library:", error);
-            setStatusMessage('export-tafsir-docx-status', typeof error === 'string' ? error : 'Failed to load DOCX library.', true);
+            setStatusMessage('export-tafsir-docx-status', 'Failed to load DOCX library.', true);
             hideLoading();
             return;
         }
-        if (!db) {
-            setStatusMessage('export-tafsir-docx-status', 'Database not ready.', true);
-            hideLoading();
-            return;
-        }
+
         try {
             const allTafsirEntries = await getAllData(STORE_TAFSIR);
             if (!allTafsirEntries || allTafsirEntries.length === 0) {
-                setStatusMessage('export-tafsir-docx-status', 'No Tafsir notes found to export.', false);
+                setStatusMessage('export-tafsir-docx-status', 'No Tafsir notes to export.', false);
                 hideLoading();
                 return;
             }
-            allTafsirEntries.sort((a, b) => {
-                if (a.surah !== b.surah) return a.surah - b.surah;
-                return a.ayah - b.ayah;
-            });
-            const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ShadingType, convertInchesToTwip } = docx;
+            allTafsirEntries.sort((a, b) => a.surah !== b.surah ? a.surah - b.surah : a.ayah - b.ayah);
+
+            const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ShadingType } = docx;
             const children = [];
             children.push(
-                new Paragraph({
-                    text: "My Personal Quran Tafsir",
-                    heading: HeadingLevel.TITLE,
-                    alignment: AlignmentType.CENTER,
-                })
+                new Paragraph({ text: "My Personal Quran Tafsir", heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER })
             );
             children.push(new Paragraph(" "));
+
             let currentProcessingSurah = -1;
             for (const tafsirEntry of allTafsirEntries) {
                 if (tafsirEntry.surah !== currentProcessingSurah) {
                     currentProcessingSurah = tafsirEntry.surah;
-                    const surahNameStr = surahNames[currentProcessingSurah - 1] || `Surah ${currentProcessingSurah}`;
-                    children.push(
-                        new Paragraph({
-                            children: [
-                                new TextRun({
-                                    text: `Surah ${currentProcessingSurah}: ${surahNameStr}`,
-                                    bold: true,
-                                    size: 32,
-                                    color: "2E74B5",
-                                }),
-                            ],
-                            heading: HeadingLevel.HEADING_1,
-                            spacing: { before: convertInchesToTwip(0.2), after: convertInchesToTwip(0.1) },
-                        })
-                    );
+                    const surahName = surahNames[currentProcessingSurah - 1] || `Surah ${currentProcessingSurah}`;
+                    children.push(new Paragraph({
+                        text: `Surah ${currentProcessingSurah}: ${surahName}`,
+                        heading: HeadingLevel.HEADING_1, alignment: AlignmentType.RIGHT, bidirectional: true
+                    }));
                 }
                 const quranAyahData = await getData(STORE_QURAN, [tafsirEntry.surah, tafsirEntry.ayah]);
                 const arabicText = quranAyahData ? quranAyahData.arabic : "Arabic text not found.";
-                children.push(
-                    new Paragraph({
-                        children: [
-                            new TextRun({
-                                text: `Ayah ${tafsirEntry.ayah}`,
-                                bold: true,
-                                size: 28,
-                                color: "1F4E79",
-                            }),
-                        ],
-                        spacing: { before: convertInchesToTwip(0.15), after: convertInchesToTwip(0.05) },
-                    })
-                );
-                children.push(
-                    new Paragraph({
-                        children: [
-                            new TextRun({
-                                text: arabicText,
-                                font: "Scheherazade New",
-                                size: 36,
-                                rightToLeft: true,
-                            }),
-                        ],
-                        alignment: AlignmentType.RIGHT,
-                        bidirectional: true,
-                        shading: {
-                            type: ShadingType.SOLID,
-                            color: "E8F5E9",
-                            fill: "E8F5E9",
-                        },
-                        spacing: { after: convertInchesToTwip(0.1) },
-                    })
-                );
-                const notesLines = tafsirEntry.notes.split('\n');
-                notesLines.forEach((line, index) => {
-                    children.push(
-                        new Paragraph({
-                            children: [
-                                new TextRun({
-                                    text: line,
-                                    size: 24,
-                                }),
-                            ],
-                            indentation: { left: convertInchesToTwip(0.25) },
-                            spacing: { after: (index === notesLines.length - 1) ? convertInchesToTwip(0.15) : convertInchesToTwip(0.02) },
-                        })
-                    );
+
+                children.push(new Paragraph({
+                    text: `Ayah ${tafsirEntry.ayah}`,
+                    heading: HeadingLevel.HEADING_2, alignment: AlignmentType.RIGHT, bidirectional: true
+                }));
+
+                children.push(new Paragraph({
+                    children: [new TextRun({ text: arabicText, font: "Scheherazade New", size: 36, rightToLeft: true })],
+                    alignment: AlignmentType.RIGHT, bidirectional: true,
+                    shading: { type: ShadingType.SOLID, color: "E8F5E9", fill: "E8F5E9" },
+                }));
+
+                const notesLines = tafsirEntry.notes ? tafsirEntry.notes.split('\n') : [''];
+                notesLines.forEach(line => {
+                    children.push(new Paragraph({
+                        text: line,
+                        alignment: AlignmentType.RIGHT, bidirectional: true,
+                    }));
                 });
                 children.push(new Paragraph(" "));
             }
+
             const doc = new Document({
-                sections: [{
-                    properties: {
-                        page: {
-                            margin: {
-                                top: convertInchesToTwip(0.75),
-                                right: convertInchesToTwip(0.75),
-                                bottom: convertInchesToTwip(0.75),
-                                left: convertInchesToTwip(0.75),
-                            },
-                        },
-                    },
-                    children: children,
-                }],
-                styles: {
-                    default: {
-                        document: {
-                            run: {
-                                font: "Calibri",
-                                size: 22,
-                            },
-                            paragraph: {
-                                spacing: { line: 276 }
-                            }
-                        },
-                    },
-                    paragraphStyles: [
-                        {
-                            id: "arabicStyle",
-                            name: "Arabic Text",
-                            basedOn: "Normal",
-                            next: "Normal",
-                            run: {
-                                font: "Scheherazade New",
-                                size: 36,
-                                rightToLeft: true,
-                            },
-                            paragraph: {
-                                alignment: AlignmentType.RIGHT,
-                                bidirectional: true,
-                            }
-                        }
-                    ]
+                sections: [{ children: children }],
+                settings: {
+                    view: "rightToLeft",
                 }
             });
+
             Packer.toBlob(doc).then(blob => {
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(blob);
-                link.download = `Personal-Tafsir-${new Date().toISOString().split('T')[0]}.docx`;
+                link.download = `Personal-Tafsir-RTL-${new Date().toISOString().split('T')[0]}.docx`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 URL.revokeObjectURL(link.href);
                 setStatusMessage('export-tafsir-docx-status', 'Tafsir DOCX file generated.', false);
-            }).catch(packError => {
-                console.error("Error packing DOCX:", packError);
-                setStatusMessage('export-tafsir-docx-status', 'Failed to generate DOCX file.', true);
             });
+
         } catch (error) {
-            console.error("Error exporting Tafsir to DOCX:", error);
             setStatusMessage('export-tafsir-docx-status', 'Failed to export Tafsir to DOCX.', true);
         } finally {
             hideLoading();
         }
     }
-    function setupTafsirDocxButton() {
+
+
+
+    function setupTafsirExportButtons() {
         const exportDocxBtn = document.getElementById('export-tafsir-to-docx-btn');
         if (exportDocxBtn) {
             exportDocxBtn.addEventListener('click', exportTafsirToDocx);
-        } else {
-            console.warn("Export Tafsir to DOCX button not found.");
+        }
+        const exportMdBtn = document.getElementById('export-tafsir-to-md-btn');
+        if (exportMdBtn) {
+            exportMdBtn.addEventListener('click', exportTafsirToMd);
+        }
+        const exportPdfBtn = document.getElementById('export-tafsir-to-pdf-btn');
+        if (exportPdfBtn) {
+            exportPdfBtn.addEventListener('click', exportTafsirToPdf);
         }
     }
     function exitBrowserFullscreen() {
@@ -9435,7 +9479,7 @@
                 if (typeof setupEventListeners === 'function') setupEventListeners(); else console.error("setupEventListeners not found");
                 if (typeof loadQuranData === 'function') await loadQuranData();
                 if (typeof displayThemesList === 'function') displayThemesList();
-                if (typeof setupTafsirDocxButton === 'function') setupTafsirDocxButton();
+                if (typeof setupTafsirDocxButton === 'function') setupTafsirExportButtons();
                 if (typeof document !== 'undefined' && !window.rootNodePopupEl) window.rootNodePopupEl = document.getElementById('root-node-popup');
             }
             initializeReportingModule_Enhanced();
