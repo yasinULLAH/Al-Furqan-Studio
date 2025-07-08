@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- SEO & Metadata -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Quran Azeem-ul-Shan Reader</title>
+    <meta name="description" content="A fast, offline-first, installable Quran reader app for the 604-page version of Quran Azeem-ul-Shan. Works entirely in your browser with no server required.">
+    <meta name="keywords" content="Quran, Koran, Islam, Muslim, Read Quran, Quran App, PWA, Offline Quran, Yasin Ullah">
+    <meta name="author" content="Yasin Ullah, Pakistani">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Quran Reader">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIlF1cmFuIEF6ZWVtLXVsLVNoYW4gUmVhZGVyIiwKICAic2hvcnRfbmFtZSI6ICJRdXJhbiBSZWFkZXIiLAogICJkZXNjcmlwdGlvbiI6ICJBIGZhc3QsIG9mZmxpbmUtZmlyc3QsIGluc3RhbGxhYmxlIFF1cmFuIHJlYWRlciBhcHAuIiwKICAic3RhcnRfdXJsIjogIi8iLAogICJkaXNwbGF5IjogImZ1bGxzY3JlZW4iLAogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdCIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzFhMWExYSIsCiAgInRoZW1lX2NvbG9yIjogIiMxYTFhMWEiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0,UEhOamNtbHpkQzV5YjI5eVpYUnpJRzl5YmpFeU1TQXdNQ0lnSUhWemFXNW5JaUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTVuYjI5a1pTQnpkM2QzTG1sdkwzTmxjblpwWTJWdkwzZHViM0psYm5WdmN6MDlNa013TURBd0lpQjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NW5iMjlrWlNCemQzZDNMbWx2TDNObGNuWnBZMlZ2TDNkdWIzSmxiblZ2Y3oweU16QXdNQ0lnWm1sc2JEMGlNVEF3SURFeU1EQWdYUW89IiwKICAgICAgInNpemVzIjogIjE5MngxOTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0,UEhOamNtbHpkQzV5YjI5eVpYUnpJRzl5YmpFeU1TQXdNQ0lnSUhWemFXNW5JaUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTVuYjI5a1pTQnpkM2QzTG1sdkwzTmxjblpwWTJWdkwzZHViM0psYm5WdmN6MDlOREF3TUNJZ1ptbHNiQzBpTVRBd0lERXlNREFnWFZvPSIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICAgIH0KICBdCn0=">
+
+    <style>
+        /* CSS Reset & Global Styles */
+        :root {
+            --bg-color-light: #f4f4f4;
+            --text-color-light: #1a1a1a;
+            --ui-bg-light: #ffffff;
+            --accent-color-light: #2a7a4c;
+            
+            --bg-color-dark: #121212;
+            --text-color-dark: #e0e0e0;
+            --ui-bg-dark: #1e1e1e;
+            --accent-color-dark: #4caf50;
+
+            --bg-color: var(--bg-color-light);
+            --text-color: var(--text-color-light);
+            --ui-bg: var(--ui-bg-light);
+            --accent-color: var(--accent-color-light);
+        }
+        html.dark-mode {
+            --bg-color: var(--bg-color-dark);
+            --text-color: var(--text-color-dark);
+            --ui-bg: var(--ui-bg-dark);
+            --accent-color: var(--accent-color-dark);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        button, input {
+            font-family: inherit;
+            color: inherit;
+        }
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Loader */
+        .loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            flex-direction: column;
+            color: white;
+        }
+        .loader-text {
+            margin-top: 1rem;
+            font-size: 1.1rem;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--accent-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Setup Screen */
+        #setup-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            height: 100%;
+        }
+        #setup-screen h1 { margin-bottom: 0.5rem; }
+        #setup-screen p { margin-bottom: 1.5rem; max-width: 600px; line-height: 1.6; }
+        #drop-zone {
+            width: 100%;
+            max-width: 500px;
+            padding: 3rem 1rem;
+            border: 3px dashed var(--text-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #drop-zone.drag-over {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color-dark);
+        }
+        #file-input { display: none; }
+        #import-progress-container {
+            width: 100%;
+            max-width: 500px;
+            margin-top: 1.5rem;
+        }
+        #import-progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: var(--ui-bg);
+            border: 1px solid var(--text-color);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #import-progress {
+            width: 0%;
+            height: 100%;
+            background-color: var(--accent-color);
+            transition: width 0.1s linear;
+        }
+        #import-status {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        /* Reader Screen */
+        #reader-screen {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        #image-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: none; /* Disable default touch actions like pinch-zoom */
+        }
+
+        /* UI Controls */
+        .ui-controls {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+        }
+        .ui-controls > * { pointer-events: auto; }
+        
+        .nav-button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.4);
+            color: white;
+            border: none;
+            width: 44px;
+            height: 60px;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease, background-color 0.3s ease;
+        }
+        .nav-button:hover { background: rgba(0, 0, 0, 0.6); }
+        #prev-page { left: 0; border-radius: 0 10px 10px 0; }
+        #next-page { right: 0; border-radius: 10px 0 0 10px; }
+
+        .ui-controls:hover .nav-button, .ui-controls.touch-active .nav-button {
+            opacity: 1;
+        }
+        
+        /* Top & Bottom Bars */
+        .control-bar {
+            position: absolute;
+            left: 0;
+            right: 0;
+            background: var(--ui-bg);
+            color: var(--text-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1rem;
+            height: 56px;
+            transform: translateY(-100%);
+            transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        #top-bar { top: 0; transform: translateY(-100%); }
+        #bottom-bar { bottom: 0; transform: translateY(100%); }
+        
+        #reader-screen.controls-visible #top-bar { transform: translateY(0); }
+        #reader-screen.controls-visible #bottom-bar { transform: translateY(0); }
+        
+        .bar-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .bar-button {
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+        #bookmark-btn.bookmarked {
+            color: var(--accent-color);
+        }
+        #page-number-input {
+            width: 60px;
+            text-align: center;
+            background: var(--bg-color);
+            border: 1px solid var(--text-color);
+            border-radius: 5px;
+            padding: 5px;
+            -moz-appearance: textfield; /* Firefox */
+        }
+        #page-number-input::-webkit-outer-spin-button,
+        #page-number-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        #page-slider {
+            flex-grow: 1;
+            cursor: pointer;
+        }
+        /* Custom slider styles */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 5px;
+            background: var(--text-color);
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            margin-top: -7.5px;
+        }
+        input[type=range]::-moz-range-track {
+            height: 5px;
+            background: var(--text-color);
+            border-radius: 3px;
+        }
+        input[type=range]::-moz-range-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            border: none;
+        }
+
+        /* Menu Panel */
+        #menu-panel {
+            position: fixed;
+            top: 56px;
+            right: 0;
+            width: 300px;
+            max-width: 80vw;
+            height: calc(100% - 56px);
+            background: var(--ui-bg);
+            box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        #reader-screen.menu-open #menu-panel {
+            transform: translateX(0);
+        }
+        
+        .menu-section {
+            border-bottom: 1px solid var(--bg-color);
+            padding-bottom: 1.5rem;
+        }
+        .menu-section:last-child { border-bottom: none; }
+        .menu-section h3 {
+            margin-bottom: 1rem;
+            color: var(--accent-color);
+        }
+        
+        #theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0.5rem 0;
+        }
+        
+        #bookmarks-list {
+            list-style: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #bookmarks-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0.5rem;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        #bookmarks-list li:hover {
+            background-color: var(--bg-color);
+        }
+        .delete-bookmark-btn {
+            background: none;
+            border: none;
+            color: #ff4d4d;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        .menu-button {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 0.5rem;
+        }
+        .menu-button:hover {
+            background-color: var(--accent-color-dark);
+        }
+        .file-input-label {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .nav-button {
+                width: 40px;
+                height: 15%;
+            }
+            #top-bar, #bottom-bar {
+                padding: 0 0.5rem;
+                height: 50px;
+            }
+            .bar-section {
+                gap: 0.5rem;
+            }
+            .bar-button {
+                font-size: 20px;
+            }
+            #page-info { font-size: 14px; }
+            #page-number-input { width: 50px; }
+        }
+                #quran-page {
+            height: 100%; /* Prioritize filling the viewport height */
+            width: auto; /* Adjust width automatically to maintain aspect ratio */
+            max-width: none; /* Allow width to exceed viewport width if necessary */
+            object-fit: contain;
+            transform-origin: center center;
+            transition: opacity 0.2s ease-in-out;
+            will-change: transform;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- App Loader -->
+    <div id="app-loader" class="loader-overlay">
+        <div class="loader"></div>
+        <p class="loader-text">Loading App...</p>
+    </div>
+
+    <!-- Initial Setup Screen -->
+    <div id="setup-screen" class="hidden">
+        <h1>One-Time Setup</h1>
+        <p>Please wait while the app automatically downloads and stores the Quran pages (1.png to 604.png) from its folder for offline use. This may take a few moments and only happens once.</p>
+        
+        <div id="import-progress-container" class="hidden">
+            <div id="import-progress-bar">
+                <div id="import-progress"></div>
+            </div>
+            <p id="import-status"></p>
+        </div>
+    </div>
+
+    <!-- Main Reader Screen -->
+    <div id="reader-screen" class="hidden">
+        <div id="image-container">
+            <img id="quran-page" alt="Quran Page">
+        </div>
+
+        <div class="ui-controls">
+            <!-- Navigation Buttons -->
+            <button id="prev-page" class="nav-button" aria-label="Previous Page">❮</button>
+            <button id="next-page" class="nav-button" aria-label="Next Page">❯</button>
+
+            <!-- Top Bar -->
+            <div id="top-bar" class="control-bar">
+                <div class="bar-section">
+                    <button id="menu-btn" class="bar-button" aria-label="Open Menu">☰</button>
+                </div>
+                <div class="bar-section" id="page-info">Page 1 / 604</div>
+                <div class="bar-section">
+                    <button id="bookmark-btn" class="bar-button" aria-label="Toggle Bookmark">★</button>
+                </div>
+            </div>
+
+            <!-- Bottom Bar -->
+            <div id="bottom-bar" class="control-bar">
+                <input type="number" id="page-number-input" min="1" max="604" aria-label="Page Number Input">
+                <input type="range" id="page-slider" min="1" max="604" value="1" aria-label="Page Slider">
+            </div>
+
+            <!-- Side Menu Panel -->
+            <div id="menu-panel">
+                <!-- Theme Toggle -->
+                <div class="menu-section">
+                    <h3>Settings</h3>
+                    <label id="theme-toggle" for="theme-switch">
+                        <span>Dark Mode</span>
+                        <input type="checkbox" id="theme-switch" role="switch">
+                    </label>
+                </div>
+                
+                <!-- Bookmarks -->
+                <div class="menu-section">
+                    <h3>Bookmarks</h3>
+                    <ul id="bookmarks-list">
+                        <!-- Bookmarks will be populated by JS -->
+                        <li class="no-bookmarks">No bookmarks yet.</li>
+                    </ul>
+                </div>
+
+                <!-- Backup & Restore -->
+                <div class="menu-section">
+                    <h3>Backup & Restore</h3>
+                    <p style="font-size: 0.8rem; margin-bottom: 1rem;">Save or load your bookmarks and reading progress.</p>
+                    <button id="export-data-btn" class="menu-button">Export Data</button>
+                    <label class="file-input-label">
+                        <input type="file" id="import-data-input" class="hidden" accept="application/json">
+                        <button id="import-data-btn" class="menu-button" onclick="document.getElementById('import-data-input').click()">Import Data</button>
+                    </label>
+                </div>
+                
+                <p style="font-size: 0.7rem; text-align: center; margin-top: auto; padding-top: 1rem;">Author: Yasin Ullah (Pakistani)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- This is the template for the service worker. It will be registered by the main script. -->
+    <script type="text/service-worker" id="sw">
+        const CACHE_NAME = 'quran-reader-cache-v1';
+        const APP_SHELL_URL = '/';
+
+        self.addEventListener('install', event => {
+            event.waitUntil(
+                caches.open(CACHE_NAME)
+                    .then(cache => {
+                        // Cache the main HTML file itself. The path '/' may need adjustment
+                        // depending on deployment, but for a single file app at the root, it's correct.
+                        // We fetch the app shell with a cache-busting query to ensure we get the latest version from the network.
+                        return cache.add(new Request(APP_SHELL_URL, {cache: 'reload'}));
+                    })
+            );
+            self.skipWaiting();
+        });
+
+        self.addEventListener('activate', event => {
+            event.waitUntil(
+                caches.keys().then(cacheNames => {
+                    return Promise.all(
+                        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
+                    );
+                })
+            );
+            self.clients.claim();
+        });
+
+        self.addEventListener('fetch', event => {
+            // We only handle navigation requests for the app shell.
+            // All other assets (images, data) are served from IndexedDB, not the network.
+            if (event.request.mode === 'navigate') {
+                event.respondWith(
+                    caches.match(APP_SHELL_URL)
+                        .then(response => {
+                            return response || fetch(event.request);
+                        })
+                );
+            }
+        });
+    </script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        'use strict';
+
+        // --- CONFIGURATION ---
+        const DB_NAME = 'QuranReaderDB';
+        const DB_VERSION = 1;
+        const IMAGE_STORE_NAME = 'quran_pages';
+        const DATA_STORE_NAME = 'user_data';
+        const TOTAL_PAGES = 604;
+
+        // --- DOM ELEMENTS ---
+        const appLoader = document.getElementById('app-loader');
+        const setupScreen = document.getElementById('setup-screen');
+        const readerScreen = document.getElementById('reader-screen');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const importProgressContainer = document.getElementById('import-progress-container');
+        const importProgressBar = document.getElementById('import-progress');
+        const importStatus = document.getElementById('import-status');
+        const quranPageImg = document.getElementById('quran-page');
+        const imageContainer = document.getElementById('image-container');
+        const prevBtn = document.getElementById('prev-page');
+        const nextBtn = document.getElementById('next-page');
+        const pageInfo = document.getElementById('page-info');
+        const pageSlider = document.getElementById('page-slider');
+        const pageNumInput = document.getElementById('page-number-input');
+        const bookmarkBtn = document.getElementById('bookmark-btn');
+        const menuBtn = document.getElementById('menu-btn');
+        const menuPanel = document.getElementById('menu-panel');
+        const themeSwitch = document.getElementById('theme-switch');
+        const bookmarksList = document.getElementById('bookmarks-list');
+        const exportBtn = document.getElementById('export-data-btn');
+        const importInput = document.getElementById('import-data-input');
+
+        // --- APP STATE ---
+        let db;
+        let currentPage = 1;
+        let bookmarks = [];
+        let isDarkMode = false;
+        let controlsVisible = false;
+        let menuOpen = false;
+        let controlsTimeout;
+        let zoomState = { scale: 1, x: 0, y: 0, initialDistance: 0 };
+        let lastTap = 0;
+
+        // --- DATABASE HELPERS ---
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = event => {
+                    const dbInstance = event.target.result;
+                    if (!dbInstance.objectStoreNames.contains(IMAGE_STORE_NAME)) {
+                        dbInstance.createObjectStore(IMAGE_STORE_NAME); // Key is page number
+                    }
+                    if (!dbInstance.objectStoreNames.contains(DATA_STORE_NAME)) {
+                        dbInstance.createObjectStore(DATA_STORE_NAME); // Key is data type ('lastPage', 'bookmarks', etc.)
+                    }
+                };
+
+                request.onsuccess = event => {
+                    db = event.target.result;
+                    resolve(db);
+                };
+
+                request.onerror = event => {
+                    console.error('Database error:', event.target.error);
+                    reject('Database error: ' + event.target.error);
+                };
+            });
+        }
+
+        function dbGet(storeName, key) {
+            return new Promise((resolve, reject) => {
+                if (!db) { reject("DB not initialized"); return; }
+                const transaction = db.transaction(storeName, 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.get(key);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function dbSet(storeName, key, value) {
+            return new Promise((resolve, reject) => {
+                if (!db) { reject("DB not initialized"); return; }
+                const transaction = db.transaction(storeName, 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.put(value, key);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        function dbDelete(storeName, key) {
+            return new Promise((resolve, reject) => {
+                if (!db) { reject("DB not initialized"); return; }
+                const transaction = db.transaction(storeName, 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.delete(key);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function checkImagesExist() {
+            return new Promise(async (resolve) => {
+                try {
+                    const image = await dbGet(IMAGE_STORE_NAME, 1);
+                    resolve(!!image);
+                } catch (e) {
+                    resolve(false);
+                }
+            });
+        }
+        async function autoImportImages() {
+            for (let i = 1; i <= TOTAL_PAGES; i++) {
+                try {
+                    // Fetch the image assuming it's in the same folder
+                    const response = await fetch(`${i}.png`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const imageBlob = await response.blob();
+                    
+                    // Store the blob in IndexedDB
+                    await dbSet(IMAGE_STORE_NAME, i, imageBlob);
+
+                    // Update progress UI
+                    const progress = ((i / TOTAL_PAGES) * 100).toFixed(1);
+                    importProgressBar.style.width = `${progress}%`;
+                    importStatus.textContent = `Loading page ${i} / ${TOTAL_PAGES}...`;
+
+                } catch (error) {
+                    console.error(`Failed to load and store page ${i}.png:`, error);
+                    importStatus.innerHTML = `<b>Error:</b> Could not load page <b>${i}.png</b>. <br><br> Please ensure all 604 image files are in the same directory as this HTML file and that you are running it from a web server, not as a local file. Then, refresh the page.`;
+                    // Stop the import process on the first error
+                    return;
+                }
+            }
+
+            importStatus.textContent = 'Setup complete! Initializing app...';
+            // Set sample data on first install
+            await dbSet(DATA_STORE_NAME, 'bookmarks', [1, 78, 255, 604]);
+            setTimeout(() => window.location.reload(), 1500);
+        }
+        // --- SETUP SCREEN LOGIC ---
+        function initSetup() {
+            appLoader.classList.add('hidden');
+            setupScreen.classList.remove('hidden');
+            importProgressContainer.classList.remove('hidden');
+            autoImportImages(); // Start the automatic import
+        }
+
+        function handleDrop(e) {
+            handleFiles(e.dataTransfer.files);
+        }
+
+        function handleFileSelect(e) {
+            handleFiles(e.target.files);
+        }
+
+        async function handleFiles(files) {
+            if (files.length !== TOTAL_PAGES) {
+                alert(`Please select or drop exactly ${TOTAL_PAGES} image files.`);
+                return;
+            }
+
+            importProgressContainer.classList.remove('hidden');
+            dropZone.classList.add('hidden');
+            
+            const imageFiles = Array.from(files).sort((a, b) => {
+                const numA = parseInt(a.name.match(/\d+/)[0], 10);
+                const numB = parseInt(b.name.match(/\d+/)[0], 10);
+                return numA - numB;
+            });
+
+            for (let i = 0; i < imageFiles.length; i++) {
+                const file = imageFiles[i];
+                const pageNum = i + 1;
+                
+                try {
+                    await dbSet(IMAGE_STORE_NAME, pageNum, file);
+                    const progress = ((pageNum / TOTAL_PAGES) * 100).toFixed(1);
+                    importProgressBar.style.width = `${progress}%`;
+                    importStatus.textContent = `Importing page ${pageNum} / ${TOTAL_PAGES}...`;
+                } catch (error) {
+                    console.error(`Failed to import page ${pageNum}:`, error);
+                    importStatus.textContent = `Error importing page ${pageNum}. Please refresh and try again.`;
+                    return;
+                }
+            }
+
+            importStatus.textContent = 'Import complete! Initializing app...';
+            // Set some sample data on first install
+            await dbSet(DATA_STORE_NAME, 'bookmarks', [1, 78, 255, 604]);
+            setTimeout(() => window.location.reload(), 1500);
+        }
+
+        // --- READER SCREEN LOGIC ---
+        async function initReader() {
+            // Load user data
+            const [lastReadPage, savedBookmarks, savedTheme] = await Promise.all([
+                dbGet(DATA_STORE_NAME, 'lastReadPage'),
+                dbGet(DATA_STORE_NAME, 'bookmarks'),
+                dbGet(DATA_STORE_NAME, 'isDarkMode')
+            ]);
+            
+            currentPage = lastReadPage || 1;
+            bookmarks = savedBookmarks || [1, 78, 255, 604]; // Add sample data if none exists
+            isDarkMode = savedTheme || false;
+            
+            setupEventListeners();
+            applyTheme();
+            updateBookmarksUI();
+            
+            await loadPage(currentPage, true);
+
+            appLoader.classList.add('hidden');
+            readerScreen.classList.remove('hidden');
+        }
+
+        function setupEventListeners() {
+            // Navigation
+            prevBtn.addEventListener('click', () => changePage(currentPage - 1));
+            nextBtn.addEventListener('click', () => changePage(currentPage + 1));
+            pageSlider.addEventListener('input', () => pageNumInput.value = pageSlider.value);
+            pageSlider.addEventListener('change', () => changePage(parseInt(pageSlider.value, 10)));
+            pageNumInput.addEventListener('change', () => changePage(parseInt(pageNumInput.value, 10)));
+            document.addEventListener('keydown', handleKeydown);
+
+            // UI Controls
+            readerScreen.addEventListener('click', handleScreenTap);
+            menuBtn.addEventListener('click', toggleMenu);
+            
+            // Bookmarks
+            bookmarkBtn.addEventListener('click', toggleBookmark);
+
+            // Theme
+            themeSwitch.addEventListener('change', toggleTheme);
+            
+            // Backup & Restore
+            exportBtn.addEventListener('click', exportData);
+            importInput.addEventListener('change', importData);
+
+            // Zoom & Pan
+            imageContainer.addEventListener('touchstart', handleTouchStart);
+            imageContainer.addEventListener('touchmove', handleTouchMove);
+            imageContainer.addEventListener('touchend', handleTouchEnd);
+        }
+        
+        let preloadedPages = {};
+        async function preloadPage(pageNum) {
+            if (pageNum < 1 || pageNum > TOTAL_PAGES || preloadedPages[pageNum]) {
+                return;
+            }
+            try {
+                const blob = await dbGet(IMAGE_STORE_NAME, pageNum);
+                if (blob) {
+                    preloadedPages[pageNum] = URL.createObjectURL(blob);
+                }
+            } catch(e) {
+                console.warn("Could not preload page", pageNum, e);
+            }
+        }
+        
+        async function loadPage(pageNum, isInitialLoad = false) {
+            pageNum = Math.max(1, Math.min(TOTAL_PAGES, pageNum));
+
+            if (!isInitialLoad) {
+                quranPageImg.style.opacity = '0';
+            }
+            
+            resetZoom();
+
+            try {
+                let objectURL;
+                if (preloadedPages[pageNum]) {
+                    objectURL = preloadedPages[pageNum];
+                    delete preloadedPages[pageNum]; // Use it, then remove from preload cache
+                } else {
+                    const blob = await dbGet(IMAGE_STORE_NAME, pageNum);
+                    if (!blob) throw new Error(`Image for page ${pageNum} not found.`);
+                    objectURL = URL.createObjectURL(blob);
+                }
+                
+                // Revoke old URL to free memory, except for preloaded ones
+                if (quranPageImg.src && !Object.values(preloadedPages).includes(quranPageImg.src)) {
+                     URL.revokeObjectURL(quranPageImg.src);
+                }
+
+                quranPageImg.src = objectURL;
+                quranPageImg.onload = () => {
+                    quranPageImg.style.opacity = '1';
+                };
+
+                currentPage = pageNum;
+                updateUIAfterPageChange();
+                dbSet(DATA_STORE_NAME, 'lastReadPage', currentPage);
+
+                // Preload adjacent pages
+                preloadPage(currentPage - 1);
+                preloadPage(currentPage + 1);
+                preloadPage(currentPage - 2);
+                preloadPage(currentPage + 2);
+
+            } catch (error) {
+                console.error('Error loading page:', error);
+                alert('Could not load page. The database might be corrupted.');
+            }
+        }
+        
+        function changePage(pageNum) {
+            if (pageNum >= 1 && pageNum <= TOTAL_PAGES) {
+                loadPage(pageNum);
+            }
+        }
+        
+        function updateUIAfterPageChange() {
+            pageInfo.textContent = `Page ${currentPage} / ${TOTAL_PAGES}`;
+            pageSlider.value = currentPage;
+            pageNumInput.value = currentPage;
+            
+            // Update bookmark status
+            if (bookmarks.includes(currentPage)) {
+                bookmarkBtn.classList.add('bookmarked');
+            } else {
+                bookmarkBtn.classList.remove('bookmarked');
+            }
+        }
+        
+        function handleKeydown(e) {
+            if (document.activeElement === pageNumInput) return;
+            if (e.key === 'ArrowRight') nextBtn.click();
+            if (e.key === 'ArrowLeft') prevBtn.click();
+        }
+
+        // --- UI VISIBILITY ---
+        function handleScreenTap(e) {
+            // If tap is on a button or inside the menu, do nothing
+            if (e.target.closest('button, input, #menu-panel')) {
+                return;
+            }
+            
+            // If menu is open, close it
+            if (menuOpen) {
+                toggleMenu();
+                return;
+            }
+
+            // Toggle controls
+            controlsVisible = !controlsVisible;
+            readerScreen.classList.toggle('controls-visible', controlsVisible);
+            
+            // On mobile, show nav buttons too
+            if ('ontouchstart' in window) {
+                document.querySelector('.ui-controls').classList.toggle('touch-active', controlsVisible);
+            }
+
+            clearTimeout(controlsTimeout);
+            if (controlsVisible) {
+                controlsTimeout = setTimeout(() => {
+                    controlsVisible = false;
+                    readerScreen.classList.remove('controls-visible');
+                    document.querySelector('.ui-controls').classList.remove('touch-active');
+                }, 4000);
+            }
+        }
+
+        // --- MENU & BOOKMARKS ---
+        function toggleMenu(e) {
+            if (e) e.stopPropagation();
+            menuOpen = !menuOpen;
+            readerScreen.classList.toggle('menu-open', menuOpen);
+        }
+
+        function toggleBookmark() {
+            const index = bookmarks.indexOf(currentPage);
+            if (index > -1) {
+                bookmarks.splice(index, 1);
+            } else {
+                bookmarks.push(currentPage);
+                bookmarks.sort((a,b) => a - b);
+            }
+            dbSet(DATA_STORE_NAME, 'bookmarks', bookmarks);
+            updateBookmarksUI();
+            updateUIAfterPageChange(); // to update the star icon color
+        }
+        
+        function updateBookmarksUI() {
+            bookmarksList.innerHTML = '';
+            if (bookmarks.length === 0) {
+                bookmarksList.innerHTML = '<li class="no-bookmarks">No bookmarks yet.</li>';
+                return;
+            }
+            
+            bookmarks.forEach(pageNum => {
+                const li = document.createElement('li');
+                li.dataset.page = pageNum;
+                li.innerHTML = `<span>Page ${pageNum}</span><button class="delete-bookmark-btn" data-page="${pageNum}">×</button>`;
+                
+                li.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('delete-bookmark-btn')) return;
+                    changePage(pageNum);
+                    toggleMenu();
+                });
+                
+                li.querySelector('.delete-bookmark-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const pageToDelete = parseInt(e.target.dataset.page, 10);
+                    bookmarks = bookmarks.filter(p => p !== pageToDelete);
+                    dbSet(DATA_STORE_NAME, 'bookmarks', bookmarks);
+                    updateBookmarksUI();
+                    updateUIAfterPageChange();
+                });
+                
+                bookmarksList.appendChild(li);
+            });
+        }
+        
+        // --- THEME ---
+        function applyTheme() {
+            document.documentElement.classList.toggle('dark-mode', isDarkMode);
+            themeSwitch.checked = isDarkMode;
+            // Update theme-color meta tag for PWA
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', isDarkMode ? '#1a1a1a' : '#f4f4f4');
+        }
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            dbSet(DATA_STORE_NAME, 'isDarkMode', isDarkMode);
+            applyTheme();
+        }
+
+        // --- ZOOM & PAN ---
+        function resetZoom() {
+            zoomState = { scale: 1, x: 0, y: 0 };
+            applyTransform();
+        }
+
+        function applyTransform() {
+            // Clamp values to prevent excessive scaling or panning off-screen
+            zoomState.scale = Math.max(1, Math.min(zoomState.scale, 4));
+
+            const maxPanX = (quranPageImg.offsetWidth * zoomState.scale - imageContainer.clientWidth) / 2;
+            const maxPanY = (quranPageImg.offsetHeight * zoomState.scale - imageContainer.clientHeight) / 2;
+            
+            zoomState.x = Math.max(-maxPanX, Math.min(zoomState.x, maxPanX));
+            zoomState.y = Math.max(-maxPanY, Math.min(zoomState.y, maxPanY));
+            
+            // If scale is 1, reset pan
+            if(zoomState.scale === 1) {
+                zoomState.x = 0;
+                zoomState.y = 0;
+            }
+
+            quranPageImg.style.transform = `translate(${zoomState.x}px, ${zoomState.y}px) scale(${zoomState.scale})`;
+        }
+
+        function getDistance(p1, p2) {
+            return Math.sqrt(Math.pow(p2.clientX - p1.clientX, 2) + Math.pow(p2.clientY - p1.clientY, 2));
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+
+            // Double tap to zoom
+            const now = new Date().getTime();
+            if (now - lastTap < 300) {
+                if (zoomState.scale > 1) {
+                    resetZoom();
+                } else {
+                    zoomState.scale = 2.5;
+                    applyTransform();
+                }
+                lastTap = 0;
+                return;
+            }
+            lastTap = now;
+
+            if (e.touches.length === 1) {
+                zoomState.startX = e.touches[0].clientX - zoomState.x;
+                zoomState.startY = e.touches[0].clientY - zoomState.y;
+            }
+            if (e.touches.length === 2) {
+                zoomState.initialDistance = getDistance(e.touches[0], e.touches[1]);
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (zoomState.scale <= 1 && e.touches.length === 1) return; // Don't pan if not zoomed
+
+            if (e.touches.length === 1) {
+                zoomState.x = e.touches[0].clientX - zoomState.startX;
+                zoomState.y = e.touches[0].clientY - zoomState.startY;
+            }
+            if (e.touches.length === 2) {
+                const newDist = getDistance(e.touches[0], e.touches[1]);
+                zoomState.scale = zoomState.scale * (newDist / zoomState.initialDistance);
+                zoomState.initialDistance = newDist;
+            }
+            applyTransform();
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            // Final adjustments or snapping can be done here if needed
+        }
+        
+        // --- BACKUP & RESTORE ---
+        async function exportData() {
+            try {
+                const dataToExport = {
+                    lastReadPage: await dbGet(DATA_STORE_NAME, 'lastReadPage') || 1,
+                    bookmarks: await dbGet(DATA_STORE_NAME, 'bookmarks') || [],
+                    isDarkMode: await dbGet(DATA_STORE_NAME, 'isDarkMode') || false,
+                };
+                
+                const jsonString = JSON.stringify(dataToExport, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `quran-reader-backup-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Export failed:', error);
+                alert('Failed to export data.');
+            }
+        }
+
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (!data.hasOwnProperty('lastReadPage') || !data.hasOwnProperty('bookmarks')) {
+                        throw new Error('Invalid backup file format.');
+                    }
+                    
+                    if (confirm('This will overwrite your current progress and bookmarks. Are you sure?')) {
+                        await Promise.all([
+                            dbSet(DATA_STORE_NAME, 'lastReadPage', data.lastReadPage),
+                            dbSet(DATA_STORE_NAME, 'bookmarks', data.bookmarks),
+                            dbSet(DATA_STORE_NAME, 'isDarkMode', data.isDarkMode || false)
+                        ]);
+                        alert('Data imported successfully! The app will now reload.');
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    console.error('Import failed:', error);
+                    alert('Import failed. The file may be corrupt or in the wrong format.');
+                } finally {
+                    // Reset file input to allow re-selection of the same file
+                    importInput.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- PWA SERVICE WORKER REGISTRATION ---
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                const swScriptElement = document.getElementById('sw');
+                if (!swScriptElement) {
+                    console.error("Service worker script element not found.");
+                    return;
+                }
+                const swScript = swScriptElement.textContent;
+                const swBlob = new Blob([swScript], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(swBlob);
+
+                navigator.serviceWorker.register(swUrl)
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            }
+        }
+
+
+        // --- INITIALIZATION ---
+        async function main() {
+            try {
+                await openDB();
+                const imagesExist = await checkImagesExist();
+                if (imagesExist) {
+                    initReader();
+                } else {
+                    initSetup();
+                }
+                registerServiceWorker();
+            } catch (error) {
+                console.error('App initialization failed:', error);
+                appLoader.innerHTML = `<p style="color:red; text-align:center;">A critical error occurred. Please clear your browser cache/data for this site and try again. <br><br> Error: ${error}</p>`;
+            }
+        }
+
+        main();
+    });
+    </script>
+
+</body>
+</html>
