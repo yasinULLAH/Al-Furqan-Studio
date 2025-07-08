@@ -1,40 +1,21 @@
-const CACHE_NAME = 'nur-ul-quran-cache-v1';
-const MANIFEST_URL = './info.csv';
-
-const parseManifest = async () => {
-    try {
-        const response = await fetch(MANIFEST_URL);
-        if (!response.ok) {
-            throw new Error('Network response for manifest was not ok');
-        }
-        const text = await response.text();
-        const lines = text.trim().split('\n');
-        const headers = lines.shift().trim().split(',').map(h => h.trim());
-        const urlIndex = headers.indexOf('url');
-        if (urlIndex === -1) {
-            throw new Error('Manifest CSV must contain a "url" header.');
-        }
-        return lines.map(line => {
-            const values = line.trim().split(',');
-            return values[urlIndex] ? values[urlIndex].trim() : null;
-        }).filter(Boolean);
-    } catch (error) {
-        console.error('Failed to fetch or parse manifest:', error);
-        return [];
-    }
-};
+const CACHE_NAME = 'nur-ul-quran-cache-v9';
+const APP_SHELL_FILES = [
+    '/',
+    './index.html',
+    './favicon.png',
+    './manifest.json',
+    './info.csv'
+];
 
 self.addEventListener('install', event => {
     event.waitUntil(
-        (async () => {
-            const cache = await caches.open(CACHE_NAME);
-            const appShellFiles = ['./index.html', MANIFEST_URL];
-            const dataFiles = await parseManifest();
-            const allFilesToCache = [...appShellFiles, ...dataFiles];
-            await cache.addAll(allFilesToCache);
-        })()
+        caches.open(CACHE_NAME)
+            .then(cache => {
+                console.log('[SW] Caching essential app shell.');
+                return cache.addAll(APP_SHELL_FILES);
+            })
+            .then(() => self.skipWaiting())
     );
-    self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
@@ -42,40 +23,45 @@ self.addEventListener('activate', event => {
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.map(cacheName => {
-                    if (cacheName !== CACHE_NAME) {
+                    if (cacheName.startsWith('nur-ul-quran-cache-') && cacheName !== CACHE_NAME) {
+                        console.log('[SW] Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim())
     );
 });
 
 self.addEventListener('fetch', event => {
-    if (!event.request.url.startsWith('http')) {
+    const { request } = event;
+
+    if (request.mode === 'navigate') {
+        event.respondWith(
+            fetch(request)
+            .catch(() => caches.match('./index.html'))
+        );
         return;
     }
 
     event.respondWith(
-        caches.match(event.request).then(cachedResponse => {
+        caches.match(request).then(cachedResponse => {
             if (cachedResponse) {
                 return cachedResponse;
             }
 
-            return fetch(event.request).then(
-                networkResponse => {
-                    if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-                        return networkResponse;
-                    }
-
-                    const responseToCache = networkResponse.clone();
-                    caches.open(CACHE_NAME).then(cache => {
-                        cache.put(event.request, responseToCache);
-                    });
-
+            return fetch(request).then(networkResponse => {
+                if (!networkResponse || !networkResponse.url.startsWith('http')) {
                     return networkResponse;
                 }
-            );
+
+                const responseToCache = networkResponse.clone();
+                caches.open(CACHE_NAME).then(cache => {
+                    cache.put(request, responseToCache);
+                });
+
+                return networkResponse;
+            });
         })
     );
 });
