@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Quran Azeem-ul-Shan Reader</title>
-    <meta name="description" content="A fast, offline-first, installable Quran reader app for the 604-page version of Quran Azeem-ul-Shan. Works entirely in your browser with no server required.">
-    <meta name="keywords" content="Quran, Koran, Islam, Muslim, Read Quran, Quran App, PWA, Offline Quran, Yasin Ullah">
+    <meta name="description" content="A feature-rich, offline-first, installable Quran reader app with page-by-page and continuous scroll modes, Surah/Juz index, bookmarks, and more.">
+    <meta name="keywords" content="Quran, Koran, Islam, Muslim, Read Quran, Continuous Scroll Quran, Quran App, PWA, Offline Quran, Yasin Ullah, Pakistani">
     <meta name="author" content="Yasin Ullah, Pakistani">
     <meta name="theme-color" content="#1a1a1a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,38 +14,37 @@
     <meta name="apple-mobile-web-app-title" content="Quran Reader">
 
     <!-- PWA Manifest -->
-    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIlF1cmFuIEF6ZWVtLXVsLVNoYW4gUmVhZGVyIiwKICAic2hvcnRfbmFtZSI6ICJRdXJhbiBSZWFkZXIiLAogICJkZXNjcmlwdGlvbiI6ICJBIGZhc3QsIG9mZmxpbmUtZmlyc3QsIGluc3RhbGxhYmxlIFF1cmFuIHJlYWRlciBhcHAuIiwKICAic3RhcnRfdXJsIjogIi8iLAogICJkaXNwbGF5IjogImZ1bGxzY3JlZW4iLAogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdCIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzFhMWExYSIsCiAgInRoZW1lX2NvbG9yIjogIiMxYTFhMWEiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0,UEhOamNtbHpkQzV5YjI5eVpYUnpJRzl5YmpFeU1TQXdNQ0lnSUhWemFXNW5JaUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTVuYjI5a1pTQnpkM2QzTG1sdkwzTmxjblpwWTJWdkwzZHViM0psYm5WdmN6MDlNa013TURBd0lpQjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NW5iMjlrWlNCemQzZDNMbWx2TDNObGNuWnBZMlZ2TDNkdWIzSmxiblZ2Y3oweU16QXdNQ0lnWm1sc2JEMGlNVEF3SURFeU1EQWdYUW89IiwKICAgICAgInNpemVzIjogIjE5MngxOTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0,UEhOamNtbHpkQzV5YjI5eVpYUnpJRzl5YmpFeU1TQXdNQ0lnSUhWemFXNW5JaUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTVuYjI5a1pTQnpkM2QzTG1sdkwzTmxjblpwWTJWdkwzZHViM0psYm5WdmN6MDlOREF3TUNJZ1ptbHNiQzBpTVRBd0lERXlNREFnWFZvPSIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICAgIH0KICBdCn0=">
+    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIlF1cmFuIEF6ZWVtLXVsLVNoYW4gUmVhZGVyIiwKICAic2hvcnRfbmFtZSI6ICJRdXJhbiBSZWFkZXIiLAogICJkZXNjcmlwdGlvbiI6ICJBIHByb2R1Y3Rpb24tcmVhZHksIG9mZmxpbmUtZmlyc3QsIGluc3RhbGxhYmxlIFF1cmFuIHJlYWRlciBhcHAuIiwKICAic3RhcnRfdXJsIjogIi8iLAogICJkaXNwbGF5IjogImZ1bGxzY3JlZW4iLAogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdCIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzEyMTIxMiIsCiAgInRoZW1lX2NvbG9yIjogIiMxYTFhMWEiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0,UEhOamNtbHpkQzV5YjI5eVpYUnpJRzl5YmpFeU1TQXdNQ0lnSUhWemFXNW5JaUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTVuYjI5a1pTQnpkM2QzTG1sdkwzTmxjblpwWTJWdkwzZHViM0psYm5WdmN6MDlNa013TURBd0lpQjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NW5iMjlrWlNCemQzZDNMbWx2TDNObGNuWnBZMlZ2TDNkdWIzSmxiblZ2Y3oweU16QXdNQ0lnWm1sc2JEMGlNVEF3SURFeU1EQWdYUW89IiwKICAgICAgInNpemVzIjogIjE5MngxOTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0,UEhOamNtbHpkQzV5YjI5eVpYUnpJRzl5YmpFeU1TQXdNQ0lnSUhWemFXNW5JaUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTVuYjI5a1pTQnpkM2QzTG1sdkwzTmxjblpwWTJWdkwzZHViM0psYm5WdmN6MDlOREF3TUNJZ1ptbHNiQzBpTVRBd0lERXlNREFnWFZvPSIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICAgIH0KICBdCn0=">
 
     <style>
         /* CSS Reset & Global Styles */
         :root {
-            --bg-color-light: #f4f4f4;
+            --bg-color-light: #f0f0f0;
             --text-color-light: #1a1a1a;
             --ui-bg-light: #ffffff;
             --accent-color-light: #2a7a4c;
+            --border-color-light: #e0e0e0;
             
             --bg-color-dark: #121212;
             --text-color-dark: #e0e0e0;
             --ui-bg-dark: #1e1e1e;
             --accent-color-dark: #4caf50;
+            --border-color-dark: #333333;
 
             --bg-color: var(--bg-color-light);
             --text-color: var(--text-color-light);
             --ui-bg: var(--ui-bg-light);
             --accent-color: var(--accent-color-light);
+            --border-color: var(--border-color-light);
         }
         html.dark-mode {
             --bg-color: var(--bg-color-dark);
             --text-color: var(--text-color-dark);
             --ui-bg: var(--ui-bg-dark);
             --accent-color: var(--accent-color-dark);
+            --border-color: var(--border-color-dark);
         }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body {
             width: 100%;
             height: 100%;
@@ -54,382 +53,138 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             transition: background-color 0.3s ease, color 0.3s ease;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        button, input {
-            font-family: inherit;
-            color: inherit;
-        }
-        .hidden {
-            display: none !important;
-        }
+        button, input { font-family: inherit; color: inherit; }
+        .hidden { display: none !important; }
         
-        /* Loader */
-        .loader-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            flex-direction: column;
-            color: white;
+        /* Loader & Setup Screen */
+        .overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center; z-index: 10000;
+            flex-direction: column; color: white; text-align: center; padding: 2rem;
         }
-        .loader-text {
-            margin-top: 1rem;
-            font-size: 1.1rem;
-        }
-        .loader {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid var(--accent-color);
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--accent-color-dark); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        .loader-text { margin-top: 1rem; font-size: 1.1rem; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #import-progress-container { width: 100%; max-width: 500px; margin-top: 1.5rem; }
+        #import-progress-bar { width: 100%; height: 20px; background-color: var(--ui-bg-dark); border-radius: 10px; overflow: hidden; }
+        #import-progress { width: 0%; height: 100%; background-color: var(--accent-color-dark); transition: width 0.1s linear; }
+        #import-status { margin-top: 0.5rem; font-size: 0.9rem; }
 
-        /* Setup Screen */
-        #setup-screen {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 2rem;
-            height: 100%;
-        }
-        #setup-screen h1 { margin-bottom: 0.5rem; }
-        #setup-screen p { margin-bottom: 1.5rem; max-width: 600px; line-height: 1.6; }
-        #drop-zone {
-            width: 100%;
-            max-width: 500px;
-            padding: 3rem 1rem;
-            border: 3px dashed var(--text-color);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        #drop-zone.drag-over {
-            background-color: var(--accent-color);
-            color: white;
-            border-color: var(--accent-color-dark);
-        }
-        #file-input { display: none; }
-        #import-progress-container {
-            width: 100%;
-            max-width: 500px;
-            margin-top: 1.5rem;
-        }
-        #import-progress-bar {
-            width: 100%;
-            height: 20px;
-            background-color: var(--ui-bg);
-            border: 1px solid var(--text-color);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        #import-progress {
-            width: 0%;
-            height: 100%;
-            background-color: var(--accent-color);
-            transition: width 0.1s linear;
-        }
-        #import-status {
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
-        }
+        /* Main Reader Screen */
+        #reader-screen { width: 100%; height: 100%; position: relative; }
+        
+        /* Page-by-Page View */
+        #page-view-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; touch-action: none; }
+        #quran-page { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; transform-origin: center center; transition: opacity 0.2s ease-in-out; will-change: transform; }
 
-        /* Reader Screen */
-        #reader-screen {
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
-        #image-container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            touch-action: none; /* Disable default touch actions like pinch-zoom */
-        }
+        /* Continuous Scroll View */
+        #continuous-view-container { width: 100%; height: 100%; overflow-y: scroll; scroll-behavior: smooth; }
+        .continuous-page-wrapper { display: flex; flex-direction: column; align-items: center; padding: 10px 5px; }
+        .continuous-page-wrapper img { max-width: 100%; height: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 4px; }
+        html.dark-mode .continuous-page-wrapper img { box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+        .page-placeholder { width: 95vw; background-color: var(--border-color); border-radius: 4px; }
 
         /* UI Controls */
-        .ui-controls {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-        }
+        .ui-controls { position: fixed; inset: 0; pointer-events: none; }
         .ui-controls > * { pointer-events: auto; }
-        
-        .nav-button {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.4);
-            color: white;
-            border: none;
-            width: 44px;
-            height: 60px;
-            font-size: 24px;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            transition: opacity 0.3s ease, background-color 0.3s ease;
-        }
-        .nav-button:hover { background: rgba(0, 0, 0, 0.6); }
+        .nav-button { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.4); color: white; border: none; width: 44px; height: 60px; font-size: 24px; cursor: pointer; display: flex; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease, background-color 0.3s ease; }
+        .nav-button:hover { background: rgba(0,0,0,0.6); }
         #prev-page { left: 0; border-radius: 0 10px 10px 0; }
         #next-page { right: 0; border-radius: 10px 0 0 10px; }
+        #reader-screen.page-mode.controls-visible .nav-button, #reader-screen.page-mode.touch-active .nav-button { opacity: 1; }
 
-        .ui-controls:hover .nav-button, .ui-controls.touch-active .nav-button {
-            opacity: 1;
-        }
-        
         /* Top & Bottom Bars */
-        .control-bar {
-            position: absolute;
-            left: 0;
-            right: 0;
-            background: var(--ui-bg);
-            color: var(--text-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 1rem;
-            height: 56px;
-            transform: translateY(-100%);
-            transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
+        .control-bar { position: absolute; left: 0; right: 0; background: var(--ui-bg); color: var(--text-color); display: flex; justify-content: space-between; align-items: center; padding: 0 1rem; height: 56px; transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         #top-bar { top: 0; transform: translateY(-100%); }
         #bottom-bar { bottom: 0; transform: translateY(100%); }
-        
         #reader-screen.controls-visible #top-bar { transform: translateY(0); }
         #reader-screen.controls-visible #bottom-bar { transform: translateY(0); }
-        
-        .bar-section {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .bar-button {
-            background: none;
-            border: none;
-            color: inherit;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 0.5rem;
-        }
-        #bookmark-btn.bookmarked {
-            color: var(--accent-color);
-        }
-        #page-number-input {
-            width: 60px;
-            text-align: center;
-            background: var(--bg-color);
-            border: 1px solid var(--text-color);
-            border-radius: 5px;
-            padding: 5px;
-            -moz-appearance: textfield; /* Firefox */
-        }
-        #page-number-input::-webkit-outer-spin-button,
-        #page-number-input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        
-        #page-slider {
-            flex-grow: 1;
-            cursor: pointer;
-        }
-        /* Custom slider styles */
-        input[type=range] {
-            -webkit-appearance: none;
-            background: transparent;
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            height: 5px;
-            background: var(--text-color);
-            border-radius: 3px;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            background: var(--accent-color);
-            margin-top: -7.5px;
-        }
-        input[type=range]::-moz-range-track {
-            height: 5px;
-            background: var(--text-color);
-            border-radius: 3px;
-        }
-        input[type=range]::-moz-range-thumb {
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            background: var(--accent-color);
-            border: none;
-        }
+        .bar-section { display: flex; align-items: center; gap: 1rem; }
+        .bar-button { background: none; border: none; color: inherit; font-size: 24px; cursor: pointer; padding: 0.5rem; border-radius: 50%; }
+        #bookmark-btn.bookmarked, #mode-toggle.continuous-mode { color: var(--accent-color); }
+        #page-number-input { width: 60px; text-align: center; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 5px; padding: 5px; -moz-appearance: textfield; }
+        #page-number-input::-webkit-outer-spin-button, #page-number-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        #page-slider { flex-grow: 1; cursor: pointer; }
 
-        /* Menu Panel */
-        #menu-panel {
-            position: fixed;
-            top: 56px;
-            right: 0;
-            width: 300px;
-            max-width: 80vw;
-            height: calc(100% - 56px);
-            background: var(--ui-bg);
-            box-shadow: -2px 0 5px rgba(0,0,0,0.2);
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            padding: 1rem;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-        #reader-screen.menu-open #menu-panel {
-            transform: translateX(0);
-        }
-        
-        .menu-section {
-            border-bottom: 1px solid var(--bg-color);
-            padding-bottom: 1.5rem;
-        }
-        .menu-section:last-child { border-bottom: none; }
-        .menu-section h3 {
-            margin-bottom: 1rem;
-            color: var(--accent-color);
-        }
-        
-        #theme-toggle {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            padding: 0.5rem 0;
-        }
-        
-        #bookmarks-list {
-            list-style: none;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        #bookmarks-list li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 0.5rem;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.2s;
-        }
-        #bookmarks-list li:hover {
-            background-color: var(--bg-color);
-        }
-        .delete-bookmark-btn {
-            background: none;
-            border: none;
-            color: #ff4d4d;
-            font-size: 1.2rem;
-            cursor: pointer;
-        }
-        .menu-button {
-            width: 100%;
-            padding: 0.8rem;
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            margin-top: 0.5rem;
-        }
-        .menu-button:hover {
-            background-color: var(--accent-color-dark);
-        }
-        .file-input-label {
-            display: block;
-        }
+        /* Menu & Navigation Panel */
+        .panel { position: fixed; top: 0; right: 0; width: 100%; height: 100%; background: var(--ui-bg); transform: translateX(100%); transition: transform 0.3s ease; z-index: 5000; display: flex; flex-direction: column; }
+        #reader-screen.menu-open #menu-panel, #reader-screen.nav-panel-open #nav-panel { transform: translateX(0); }
+        .panel-header { display: flex; align-items: center; padding: 0 1rem; height: 56px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .panel-header h2 { margin: 0 auto; }
+        .panel-close-btn { font-size: 24px; position: absolute; left: 1rem; }
+        .panel-content { padding: 1rem; overflow-y: auto; flex-grow: 1; }
+        .menu-section { border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
+        .menu-section:last-child { border-bottom: none; margin-bottom: 0; }
+        .menu-section h3 { margin-bottom: 1rem; color: var(--accent-color); }
+        .menu-button { width: 100%; padding: 0.8rem; background-color: var(--accent-color); color: white; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; margin-top: 0.5rem; font-size: 1rem; }
+        #pwa-install-button.hidden { display: none; }
 
+        /* Navigation Panel Specifics */
+        .nav-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
+        .nav-tab { flex: 1; padding: 1rem; text-align: center; cursor: pointer; background: var(--bg-color); border-bottom: 3px solid transparent; }
+        .nav-tab.active { border-bottom-color: var(--accent-color); background: var(--ui-bg); }
+        #nav-search { width: 100%; padding: 0.75rem; font-size: 1rem; border: 1px solid var(--border-color); border-radius: 5px; background: var(--bg-color); margin-bottom: 1rem; }
+        .index-list { list-style: none; }
+        .index-list li { display: flex; justify-content: space-between; padding: 1rem; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background-color 0.2s; }
+        .index-list li:hover { background-color: var(--bg-color); }
+        .index-list .surah-id { font-size: 0.8rem; color: #888; }
+        .index-list .page-num { color: var(--accent-color); font-weight: bold; }
+        
         /* Responsive */
+        @media (min-width: 601px) {
+            #menu-panel { width: 350px; max-width: 90vw; border-left: 1px solid var(--border-color); }
+            #nav-panel { width: 400px; max-width: 90vw; border-left: 1px solid var(--border-color); }
+        }
         @media (max-width: 600px) {
-            .nav-button {
-                width: 40px;
-                height: 15%;
-            }
-            #top-bar, #bottom-bar {
-                padding: 0 0.5rem;
-                height: 50px;
-            }
-            .bar-section {
-                gap: 0.5rem;
-            }
-            .bar-button {
-                font-size: 20px;
-            }
+            .nav-button { width: 40px; height: 15%; }
+            .control-bar { padding: 0 0.5rem; height: 50px; }
+            .bar-section { gap: 0.5rem; }
+            .bar-button { font-size: 20px; }
             #page-info { font-size: 14px; }
             #page-number-input { width: 50px; }
-        }
-                #quran-page {
-            height: 100%; /* Prioritize filling the viewport height */
-            width: auto; /* Adjust width automatically to maintain aspect ratio */
-            max-width: none; /* Allow width to exceed viewport width if necessary */
-            object-fit: contain;
-            transform-origin: center center;
-            transition: opacity 0.2s ease-in-out;
-            will-change: transform;
         }
     </style>
 </head>
 <body>
 
-    <!-- App Loader -->
-    <div id="app-loader" class="loader-overlay">
+    <div id="app-loader" class="overlay">
         <div class="loader"></div>
         <p class="loader-text">Loading App...</p>
     </div>
 
-    <!-- Initial Setup Screen -->
-    <div id="setup-screen" class="hidden">
+    <div id="setup-screen" class="overlay hidden">
         <h1>One-Time Setup</h1>
-        <p>Please wait while the app automatically downloads and stores the Quran pages (1.png to 604.png) from its folder for offline use. This may take a few moments and only happens once.</p>
-        
+        <p>Please wait while the app downloads and stores the Quran pages for offline use. This may take a few moments.</p>
         <div id="import-progress-container" class="hidden">
-            <div id="import-progress-bar">
-                <div id="import-progress"></div>
-            </div>
+            <div id="import-progress-bar"><div id="import-progress"></div></div>
             <p id="import-status"></p>
         </div>
     </div>
 
-    <!-- Main Reader Screen -->
     <div id="reader-screen" class="hidden">
-        <div id="image-container">
+        <!-- Main View Containers -->
+        <div id="page-view-container">
             <img id="quran-page" alt="Quran Page">
         </div>
+        <div id="continuous-view-container" class="hidden"></div>
 
         <div class="ui-controls">
-            <!-- Navigation Buttons -->
+            <!-- Navigation Buttons (Page Mode only) -->
             <button id="prev-page" class="nav-button" aria-label="Previous Page">❮</button>
             <button id="next-page" class="nav-button" aria-label="Next Page">❯</button>
 
             <!-- Top Bar -->
             <div id="top-bar" class="control-bar">
                 <div class="bar-section">
-                    <button id="menu-btn" class="bar-button" aria-label="Open Menu">☰</button>
+                    <button id="menu-btn" class="bar-button" aria-label="Open Settings Menu">☰</button>
+                    <button id="index-btn" class="bar-button" aria-label="Open Index"></button> <!-- Book icon -->
                 </div>
                 <div class="bar-section" id="page-info">Page 1 / 604</div>
                 <div class="bar-section">
+                    <button id="mode-toggle" class="bar-button" aria-label="Toggle Reading Mode"></button> <!-- Page stack icon -->
                     <button id="bookmark-btn" class="bar-button" aria-label="Toggle Bookmark">★</button>
                 </div>
             </div>
@@ -439,463 +194,448 @@
                 <input type="number" id="page-number-input" min="1" max="604" aria-label="Page Number Input">
                 <input type="range" id="page-slider" min="1" max="604" value="1" aria-label="Page Slider">
             </div>
-
-            <!-- Side Menu Panel -->
-            <div id="menu-panel">
-                <!-- Theme Toggle -->
+        </div>
+        
+        <!-- Settings Menu Panel -->
+        <div id="menu-panel" class="panel">
+            <header class="panel-header">
+                <button id="menu-close-btn" class="bar-button panel-close-btn" aria-label="Close Menu">×</button>
+                <h2>Settings</h2>
+            </header>
+            <div class="panel-content">
                 <div class="menu-section">
-                    <h3>Settings</h3>
-                    <label id="theme-toggle" for="theme-switch">
-                        <span>Dark Mode</span>
-                        <input type="checkbox" id="theme-switch" role="switch">
+                    <h3>General</h3>
+                    <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0;" for="theme-switch">
+                        <span>Dark Mode</span><input type="checkbox" id="theme-switch" role="switch">
                     </label>
                 </div>
-                
-                <!-- Bookmarks -->
                 <div class="menu-section">
                     <h3>Bookmarks</h3>
-                    <ul id="bookmarks-list">
-                        <!-- Bookmarks will be populated by JS -->
-                        <li class="no-bookmarks">No bookmarks yet.</li>
-                    </ul>
+                    <ul id="bookmarks-list" class="index-list"></ul>
                 </div>
-
-                <!-- Backup & Restore -->
                 <div class="menu-section">
                     <h3>Backup & Restore</h3>
-                    <p style="font-size: 0.8rem; margin-bottom: 1rem;">Save or load your bookmarks and reading progress.</p>
                     <button id="export-data-btn" class="menu-button">Export Data</button>
                     <label class="file-input-label">
                         <input type="file" id="import-data-input" class="hidden" accept="application/json">
-                        <button id="import-data-btn" class="menu-button" onclick="document.getElementById('import-data-input').click()">Import Data</button>
+                        <button class="menu-button" onclick="document.getElementById('import-data-input').click()">Import Data</button>
                     </label>
                 </div>
-                
-                <p style="font-size: 0.7rem; text-align: center; margin-top: auto; padding-top: 1rem;">Author: Yasin Ullah (Pakistani)</p>
+                <div class="menu-section">
+                    <h3>App</h3>
+                    <button id="pwa-install-button" class="menu-button hidden">Install App</button>
+                    <p style="font-size: 0.8rem; text-align: center; margin-top: 1rem;">Author: Yasin Ullah (Pakistani)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Surah/Juz Navigation Panel -->
+        <div id="nav-panel" class="panel">
+             <header class="panel-header">
+                <button id="nav-panel-close-btn" class="bar-button panel-close-btn" aria-label="Close Navigation">×</button>
+                <h2>Index</h2>
+            </header>
+            <div class="nav-tabs">
+                <div id="surah-tab" class="nav-tab active">Surah</div>
+                <div id="juz-tab" class="nav-tab">Juz'</div>
+            </div>
+            <div class="panel-content">
+                <input type="search" id="nav-search" placeholder="Search Surahs...">
+                <div id="surah-list-container">
+                    <ul id="surah-list" class="index-list"></ul>
+                </div>
+                <div id="juz-list-container" class="hidden">
+                    <ul id="juz-list" class="index-list"></ul>
+                </div>
             </div>
         </div>
     </div>
-
-    <!-- This is the template for the service worker. It will be registered by the main script. -->
-    <script type="text/service-worker" id="sw">
-        const CACHE_NAME = 'quran-reader-cache-v1';
-        const APP_SHELL_URL = '/';
-
-        self.addEventListener('install', event => {
-            event.waitUntil(
-                caches.open(CACHE_NAME)
-                    .then(cache => {
-                        // Cache the main HTML file itself. The path '/' may need adjustment
-                        // depending on deployment, but for a single file app at the root, it's correct.
-                        // We fetch the app shell with a cache-busting query to ensure we get the latest version from the network.
-                        return cache.add(new Request(APP_SHELL_URL, {cache: 'reload'}));
-                    })
-            );
-            self.skipWaiting();
-        });
-
-        self.addEventListener('activate', event => {
-            event.waitUntil(
-                caches.keys().then(cacheNames => {
-                    return Promise.all(
-                        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
-                    );
-                })
-            );
-            self.clients.claim();
-        });
-
-        self.addEventListener('fetch', event => {
-            // We only handle navigation requests for the app shell.
-            // All other assets (images, data) are served from IndexedDB, not the network.
-            if (event.request.mode === 'navigate') {
-                event.respondWith(
-                    caches.match(APP_SHELL_URL)
-                        .then(response => {
-                            return response || fetch(event.request);
-                        })
-                );
-            }
-        });
-    </script>
     
+    <script type="text/service-worker" id="sw">{ "cacheName": "quran-reader-cache-v2", "appShellUrl": "/" }</script>
+
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         'use strict';
 
-        // --- CONFIGURATION ---
+        // --- CONFIGURATION & CONSTANTS ---
         const DB_NAME = 'QuranReaderDB';
         const DB_VERSION = 1;
         const IMAGE_STORE_NAME = 'quran_pages';
         const DATA_STORE_NAME = 'user_data';
         const TOTAL_PAGES = 604;
+        const SURAHS = [ {id:1,name:"Al-Fatihah",startPage:1},{id:2,name:"Al-Baqarah",startPage:2},{id:3,name:"Aal-E-Imran",startPage:50},{id:4,name:"An-Nisa",startPage:77},{id:5,name:"Al-Ma'idah",startPage:106},{id:6,name:"Al-An'am",startPage:128},{id:7,name:"Al-A'raf",startPage:151},{id:8,name:"Al-Anfal",startPage:177},{id:9,name:"At-Tawbah",startPage:187},{id:10,name:"Yunus",startPage:208},{id:11,name:"Hud",startPage:221},{id:12,name:"Yusuf",startPage:235},{id:13,name:"Ar-Ra'd",startPage:249},{id:14,name:"Ibrahim",startPage:255},{id:15,name:"Al-Hijr",startPage:262},{id:16,name:"An-Nahl",startPage:267},{id:17,name:"Al-Isra",startPage:282},{id:18,name:"Al-Kahf",startPage:293},{id:19,name:"Maryam",startPage:305},{id:20,name:"Ta-Ha",startPage:312},{id:21,name:"Al-Anbiya",startPage:322},{id:22,name:"Al-Hajj",startPage:332},{id:23,name:"Al-Mu'minun",startPage:342},{id:24,name:"An-Nur",startPage:350},{id:25,name:"Al-Furqan",startPage:359},{id:26,name:"Ash-Shu'ara",startPage:367},{id:27,name:"An-Naml",startPage:377},{id:28,name:"Al-Qasas",startPage:385},{id:29,name:"Al-Ankabut",startPage:396},{id:30,name:"Ar-Rum",startPage:404},{id:31,name:"Luqman",startPage:411},{id:32,name:"As-Sajdah",startPage:415},{id:33,name:"Al-Ahzab",startPage:418},{id:34,name:"Saba",startPage:428},{id:35,name:"Fatir",startPage:434},{id:36,name:"Ya-Sin",startPage:440},{id:37,name:"As-Saffat",startPage:446},{id:38,name:"Sad",startPage:453},{id:39,name:"Az-Zumar",startPage:458},{id:40,name:"Ghafir",startPage:467},{id:41,name:"Fussilat",startPage:477},{id:42,name:"Ash-Shura",startPage:483},{id:43,name:"Az-Zukhruf",startPage:489},{id:44,name:"Ad-Dukhan",startPage:496},{id:45,name:"Al-Jathiyah",startPage:499},{id:46,name:"Al-Ahqaf",startPage:502},{id:47,name:"Muhammad",startPage:507},{id:48,name:"Al-Fath",startPage:511},{id:49,name:"Al-Hujurat",startPage:515},{id:50,name:"Qaf",startPage:518},{id:51,name:"Adh-Dhariyat",startPage:520},{id:52,name:"At-Tur",startPage:523},{id:53,name:"An-Najm",startPage:526},{id:54,name:"Al-Qamar",startPage:528},{id:55,name:"Ar-Rahman",startPage:531},{id:56,name:"Al-Waqi'ah",startPage:534},{id:57,name:"Al-Hadid",startPage:537},{id:58,name:"Al-Mujadila",startPage:542},{id:59,name:"Al-Hashr",startPage:545},{id:60,name:"Al-Mumtahanah",startPage:549},{id:61,name:"As-Saff",startPage:551},{id:62,name:"Al-Jumu'ah",startPage:553},{id:63,name:"Al-Munafiqun",startPage:554},{id:64,name:"At-Taghabun",startPage:556},{id:65,name:"At-Talaq",startPage:558},{id:66,name:"At-Tahrim",startPage:560},{id:67,name:"Al-Mulk",startPage:562},{id:68,name:"Al-Qalam",startPage:564},{id:69,name:"Al-Haqqah",startPage:566},{id:70,name:"Al-Ma'arij",startPage:568},{id:71,name:"Nuh",startPage:570},{id:72,name:"Al-Jinn",startPage:572},{id:73,name:"Al-Muzzammil",startPage:574},{id:74,name:"Al-Muddaththir",startPage:575},{id:75,name:"Al-Qiyamah",startPage:577},{id:76,name:"Al-Insan",startPage:578},{id:77,name:"Al-Mursalat",startPage:580},{id:78,name:"An-Naba",startPage:582},{id:79,name:"An-Nazi'at",startPage:583},{id:80,name:"Abasa",startPage:585},{id:81,name:"At-Takwir",startPage:586},{id:82,name:"Al-Infitar",startPage:587},{id:83,name:"Al-Mutaffifin",startPage:587},{id:84,name:"Al-Inshiqaq",startPage:589},{id:85,name:"Al-Buruj",startPage:590},{id:86,name:"At-Tariq",startPage:591},{id:87,name:"Al-A'la",startPage:591},{id:88,name:"Al-Ghashiyah",startPage:592},{id:89,name:"Al-Fajr",startPage:593},{id:90,name:"Al-Balad",startPage:594},{id:91,name:"Ash-Shams",startPage:595},{id:92,name:"Al-Layl",startPage:595},{id:93,name:"Ad-Duha",startPage:596},{id:94,name:"Ash-Sharh",startPage:596},{id:95,name:"At-Tin",startPage:597},{id:96,name:"Al-Alaq",startPage:597},{id:97,name:"Al-Qadr",startPage:598},{id:98,name:"Al-Bayyinah",startPage:598},{id:99,name:"Az-Zalzalah",startPage:599},{id:100,name:"Al-Adiyat",startPage:599},{id:101,name:"Al-Qari'ah",startPage:600},{id:102,name:"At-Takathur",startPage:600},{id:103,name:"Al-Asr",startPage:601},{id:104,name:"Al-Humazah",startPage:601},{id:105,name:"Al-Fil",startPage:601},{id:106,name:"Quraysh",startPage:602},{id:107,name:"Al-Ma'un",startPage:602},{id:108,name:"Al-Kawthar",startPage:602},{id:109,name:"Al-Kafirun",startPage:603},{id:110,name:"An-Nasr",startPage:603},{id:111,name:"Al-Masad",startPage:603},{id:112,name:"Al-Ikhlas",startPage:604},{id:113,name:"Al-Falaq",startPage:604},{id:114,name:"An-Nas",startPage:604} ];
+        const JUZ = [ {id:1,startPage:2},{id:2,startPage:22},{id:3,startPage:42},{id:4,startPage:62},{id:5,startPage:82},{id:6,startPage:102},{id:7,startPage:122},{id:8,startPage:142},{id:9,startPage:162},{id:10,startPage:182},{id:11,startPage:202},{id:12,startPage:222},{id:13,startPage:242},{id:14,startPage:262},{id:15,startPage:282},{id:16,startPage:302},{id:17,startPage:322},{id:18,startPage:342},{id:19,startPage:362},{id:20,startPage:382},{id:21,startPage:402},{id:22,startPage:422},{id:23,startPage:442},{id:24,startPage:462},{id:25,startPage:482},{id:26,startPage:502},{id:27,startPage:522},{id:28,startPage:542},{id:29,startPage:562},{id:30,startPage:582} ];
 
         // --- DOM ELEMENTS ---
-        const appLoader = document.getElementById('app-loader');
-        const setupScreen = document.getElementById('setup-screen');
-        const readerScreen = document.getElementById('reader-screen');
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const importProgressContainer = document.getElementById('import-progress-container');
-        const importProgressBar = document.getElementById('import-progress');
-        const importStatus = document.getElementById('import-status');
-        const quranPageImg = document.getElementById('quran-page');
-        const imageContainer = document.getElementById('image-container');
-        const prevBtn = document.getElementById('prev-page');
-        const nextBtn = document.getElementById('next-page');
-        const pageInfo = document.getElementById('page-info');
-        const pageSlider = document.getElementById('page-slider');
-        const pageNumInput = document.getElementById('page-number-input');
-        const bookmarkBtn = document.getElementById('bookmark-btn');
-        const menuBtn = document.getElementById('menu-btn');
-        const menuPanel = document.getElementById('menu-panel');
-        const themeSwitch = document.getElementById('theme-switch');
-        const bookmarksList = document.getElementById('bookmarks-list');
-        const exportBtn = document.getElementById('export-data-btn');
-        const importInput = document.getElementById('import-data-input');
+        const $ = (selector) => document.querySelector(selector);
+        const appLoader = $('#app-loader'), setupScreen = $('#setup-screen'), readerScreen = $('#reader-screen');
+        const importProgressContainer = $('#import-progress-container'), importProgressBar = $('#import-progress'), importStatus = $('#import-status');
+        const pageViewContainer = $('#page-view-container'), continuousViewContainer = $('#continuous-view-container'), quranPageImg = $('#quran-page');
+        const prevBtn = $('#prev-page'), nextBtn = $('#next-page');
+        const topBar = $('#top-bar'), bottomBar = $('#bottom-bar');
+        const pageInfo = $('#page-info'), pageSlider = $('#page-slider'), pageNumInput = $('#page-number-input');
+        const menuBtn = $('#menu-btn'), menuPanel = $('#menu-panel'), menuCloseBtn = $('#menu-close-btn');
+        const indexBtn = $('#index-btn'), navPanel = $('#nav-panel'), navPanelCloseBtn = $('#nav-panel-close-btn');
+        const bookmarkBtn = $('#bookmark-btn'), modeToggle = $('#mode-toggle'), themeSwitch = $('#theme-switch');
+        const bookmarksList = $('#bookmarks-list');
+        const exportBtn = $('#export-data-btn'), importInput = $('#import-data-input');
+        const pwaInstallBtn = $('#pwa-install-button');
+        const surahTab = $('#surah-tab'), juzTab = $('#juz-tab');
+        const surahListContainer = $('#surah-list-container'), juzListContainer = $('#juz-list-container');
+        const surahList = $('#surah-list'), juzList = $('#juz-list'), navSearch = $('#nav-search');
 
         // --- APP STATE ---
         let db;
         let currentPage = 1;
+        let currentMode = 'page'; // 'page' or 'continuous'
         let bookmarks = [];
         let isDarkMode = false;
         let controlsVisible = false;
-        let menuOpen = false;
-        let controlsTimeout;
-        let zoomState = { scale: 1, x: 0, y: 0, initialDistance: 0 };
-        let lastTap = 0;
+        let isMenuOpen = false, isNavPanelOpen = false;
+        let controlsTimeout, pwaInstallPrompt;
+        let zoomState = { scale: 1, x: 0, y: 0 }, lastTap = 0;
+        let lastScrollY = 0, isScrolling, scrollTimeout;
+        let placeholderHeight = 0;
+        let preloadedPages = {};
 
         // --- DATABASE HELPERS ---
-        function openDB() {
-            return new Promise((resolve, reject) => {
+        const dbGet = (store, key) => new Promise((res, rej) => db.transaction(store).objectStore(store).get(key).onsuccess = e => res(e.target.result));
+        const dbSet = (store, key, val) => new Promise((res, rej) => db.transaction(store, 'readwrite').objectStore(store).put(val, key).onsuccess = res);
+
+        // --- INITIALIZATION ---
+        async function main() {
+            try {
                 const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-                request.onupgradeneeded = event => {
-                    const dbInstance = event.target.result;
-                    if (!dbInstance.objectStoreNames.contains(IMAGE_STORE_NAME)) {
-                        dbInstance.createObjectStore(IMAGE_STORE_NAME); // Key is page number
-                    }
-                    if (!dbInstance.objectStoreNames.contains(DATA_STORE_NAME)) {
-                        dbInstance.createObjectStore(DATA_STORE_NAME); // Key is data type ('lastPage', 'bookmarks', etc.)
-                    }
+                request.onupgradeneeded = e => {
+                    const dbInstance = e.target.result;
+                    if (!dbInstance.objectStoreNames.contains(IMAGE_STORE_NAME)) dbInstance.createObjectStore(IMAGE_STORE_NAME);
+                    if (!dbInstance.objectStoreNames.contains(DATA_STORE_NAME)) dbInstance.createObjectStore(DATA_STORE_NAME);
                 };
+                db = await new Promise((res, rej) => { request.onsuccess = e => res(e.target.result); request.onerror = e => rej(e.target.error); });
 
-                request.onsuccess = event => {
-                    db = event.target.result;
-                    resolve(db);
-                };
-
-                request.onerror = event => {
-                    console.error('Database error:', event.target.error);
-                    reject('Database error: ' + event.target.error);
-                };
-            });
-        }
-
-        function dbGet(storeName, key) {
-            return new Promise((resolve, reject) => {
-                if (!db) { reject("DB not initialized"); return; }
-                const transaction = db.transaction(storeName, 'readonly');
-                const store = transaction.objectStore(storeName);
-                const request = store.get(key);
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        function dbSet(storeName, key, value) {
-            return new Promise((resolve, reject) => {
-                if (!db) { reject("DB not initialized"); return; }
-                const transaction = db.transaction(storeName, 'readwrite');
-                const store = transaction.objectStore(storeName);
-                const request = store.put(value, key);
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
-        }
-        
-        function dbDelete(storeName, key) {
-            return new Promise((resolve, reject) => {
-                if (!db) { reject("DB not initialized"); return; }
-                const transaction = db.transaction(storeName, 'readwrite');
-                const store = transaction.objectStore(storeName);
-                const request = store.delete(key);
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        function checkImagesExist() {
-            return new Promise(async (resolve) => {
-                try {
-                    const image = await dbGet(IMAGE_STORE_NAME, 1);
-                    resolve(!!image);
-                } catch (e) {
-                    resolve(false);
+                const imagesExist = await dbGet(IMAGE_STORE_NAME, 1);
+                if (imagesExist) {
+                    await initReader();
+                } else {
+                    initSetup();
                 }
-            });
-        }
-        async function autoImportImages() {
-            for (let i = 1; i <= TOTAL_PAGES; i++) {
-                try {
-                    // Fetch the image assuming it's in the same folder
-                    const response = await fetch(`${i}.png`);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    const imageBlob = await response.blob();
-                    
-                    // Store the blob in IndexedDB
-                    await dbSet(IMAGE_STORE_NAME, i, imageBlob);
-
-                    // Update progress UI
-                    const progress = ((i / TOTAL_PAGES) * 100).toFixed(1);
-                    importProgressBar.style.width = `${progress}%`;
-                    importStatus.textContent = `Loading page ${i} / ${TOTAL_PAGES}...`;
-
-                } catch (error) {
-                    console.error(`Failed to load and store page ${i}.png:`, error);
-                    importStatus.innerHTML = `<b>Error:</b> Could not load page <b>${i}.png</b>. <br><br> Please ensure all 604 image files are in the same directory as this HTML file and that you are running it from a web server, not as a local file. Then, refresh the page.`;
-                    // Stop the import process on the first error
-                    return;
-                }
+                registerServiceWorker();
+                setupPWAInstall();
+            } catch (error) {
+                console.error('App initialization failed:', error);
+                appLoader.innerHTML = `<p style="color:red; text-align:center;">A critical error occurred. Please clear your browser cache/data for this site and try again. <br><br> Error: ${error}</p>`;
             }
-
-            importStatus.textContent = 'Setup complete! Initializing app...';
-            // Set sample data on first install
-            await dbSet(DATA_STORE_NAME, 'bookmarks', [1, 78, 255, 604]);
-            setTimeout(() => window.location.reload(), 1500);
         }
-        // --- SETUP SCREEN LOGIC ---
+
+        // --- SETUP & AUTO-IMPORT ---
         function initSetup() {
             appLoader.classList.add('hidden');
             setupScreen.classList.remove('hidden');
             importProgressContainer.classList.remove('hidden');
-            autoImportImages(); // Start the automatic import
+            autoImportImages();
         }
 
-        function handleDrop(e) {
-            handleFiles(e.dataTransfer.files);
-        }
-
-        function handleFileSelect(e) {
-            handleFiles(e.target.files);
-        }
-
-        async function handleFiles(files) {
-            if (files.length !== TOTAL_PAGES) {
-                alert(`Please select or drop exactly ${TOTAL_PAGES} image files.`);
-                return;
-            }
-
-            importProgressContainer.classList.remove('hidden');
-            dropZone.classList.add('hidden');
-            
-            const imageFiles = Array.from(files).sort((a, b) => {
-                const numA = parseInt(a.name.match(/\d+/)[0], 10);
-                const numB = parseInt(b.name.match(/\d+/)[0], 10);
-                return numA - numB;
-            });
-
-            for (let i = 0; i < imageFiles.length; i++) {
-                const file = imageFiles[i];
-                const pageNum = i + 1;
-                
+        async function autoImportImages() {
+            for (let i = 1; i <= TOTAL_PAGES; i++) {
                 try {
-                    await dbSet(IMAGE_STORE_NAME, pageNum, file);
-                    const progress = ((pageNum / TOTAL_PAGES) * 100).toFixed(1);
+                    const response = await fetch(`${i}.png`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    await dbSet(IMAGE_STORE_NAME, i, await response.blob());
+                    const progress = ((i / TOTAL_PAGES) * 100).toFixed(1);
                     importProgressBar.style.width = `${progress}%`;
-                    importStatus.textContent = `Importing page ${pageNum} / ${TOTAL_PAGES}...`;
+                    importStatus.textContent = `Loading page ${i} / ${TOTAL_PAGES}...`;
                 } catch (error) {
-                    console.error(`Failed to import page ${pageNum}:`, error);
-                    importStatus.textContent = `Error importing page ${pageNum}. Please refresh and try again.`;
+                    console.error(`Failed to load/store page ${i}.png:`, error);
+                    importStatus.innerHTML = `<b>Error:</b> Could not load page <b>${i}.png</b>. Please check your network connection and file location, then refresh.`;
                     return;
                 }
             }
-
-            importStatus.textContent = 'Import complete! Initializing app...';
-            // Set some sample data on first install
+            importStatus.textContent = 'Setup complete! Initializing app...';
             await dbSet(DATA_STORE_NAME, 'bookmarks', [1, 78, 255, 604]);
             setTimeout(() => window.location.reload(), 1500);
         }
 
-        // --- READER SCREEN LOGIC ---
+        // --- READER INITIALIZATION & STATE LOADING ---
         async function initReader() {
-            // Load user data
-            const [lastReadPage, savedBookmarks, savedTheme] = await Promise.all([
+            const [lastPage, savedBookmarks, savedTheme, savedMode] = await Promise.all([
                 dbGet(DATA_STORE_NAME, 'lastReadPage'),
                 dbGet(DATA_STORE_NAME, 'bookmarks'),
-                dbGet(DATA_STORE_NAME, 'isDarkMode')
+                dbGet(DATA_STORE_NAME, 'isDarkMode'),
+                dbGet(DATA_STORE_NAME, 'currentMode')
             ]);
             
-            currentPage = lastReadPage || 1;
-            bookmarks = savedBookmarks || [1, 78, 255, 604]; // Add sample data if none exists
+            currentPage = lastPage || 1;
+            bookmarks = savedBookmarks || [1, 78, 255, 604];
             isDarkMode = savedTheme || false;
-            
+            currentMode = savedMode || 'page';
+
             setupEventListeners();
             applyTheme();
             updateBookmarksUI();
+            populateIndexLists();
+            await setReadingMode(currentMode, true); // Initial mode set
             
-            await loadPage(currentPage, true);
-
             appLoader.classList.add('hidden');
             readerScreen.classList.remove('hidden');
         }
 
-        function setupEventListeners() {
-            // Navigation
-            prevBtn.addEventListener('click', () => changePage(currentPage - 1));
-            nextBtn.addEventListener('click', () => changePage(currentPage + 1));
-            pageSlider.addEventListener('input', () => pageNumInput.value = pageSlider.value);
-            pageSlider.addEventListener('change', () => changePage(parseInt(pageSlider.value, 10)));
-            pageNumInput.addEventListener('change', () => changePage(parseInt(pageNumInput.value, 10)));
-            document.addEventListener('keydown', handleKeydown);
-
-            // UI Controls
-            readerScreen.addEventListener('click', handleScreenTap);
-            menuBtn.addEventListener('click', toggleMenu);
-            
-            // Bookmarks
-            bookmarkBtn.addEventListener('click', toggleBookmark);
-
-            // Theme
-            themeSwitch.addEventListener('change', toggleTheme);
-            
-            // Backup & Restore
-            exportBtn.addEventListener('click', exportData);
-            importInput.addEventListener('change', importData);
-
-            // Zoom & Pan
-            imageContainer.addEventListener('touchstart', handleTouchStart);
-            imageContainer.addEventListener('touchmove', handleTouchMove);
-            imageContainer.addEventListener('touchend', handleTouchEnd);
-        }
-        
-        let preloadedPages = {};
-        async function preloadPage(pageNum) {
-            if (pageNum < 1 || pageNum > TOTAL_PAGES || preloadedPages[pageNum]) {
-                return;
-            }
-            try {
-                const blob = await dbGet(IMAGE_STORE_NAME, pageNum);
-                if (blob) {
-                    preloadedPages[pageNum] = URL.createObjectURL(blob);
-                }
-            } catch(e) {
-                console.warn("Could not preload page", pageNum, e);
-            }
-        }
-        
-        async function loadPage(pageNum, isInitialLoad = false) {
+        // --- CORE FUNCTIONALITY ---
+        async function loadPage(pageNum) {
             pageNum = Math.max(1, Math.min(TOTAL_PAGES, pageNum));
-
-            if (!isInitialLoad) {
-                quranPageImg.style.opacity = '0';
-            }
-            
+            quranPageImg.style.opacity = '0';
             resetZoom();
-
             try {
                 let objectURL;
                 if (preloadedPages[pageNum]) {
                     objectURL = preloadedPages[pageNum];
-                    delete preloadedPages[pageNum]; // Use it, then remove from preload cache
+                    delete preloadedPages[pageNum];
                 } else {
                     const blob = await dbGet(IMAGE_STORE_NAME, pageNum);
                     if (!blob) throw new Error(`Image for page ${pageNum} not found.`);
                     objectURL = URL.createObjectURL(blob);
                 }
                 
-                // Revoke old URL to free memory, except for preloaded ones
                 if (quranPageImg.src && !Object.values(preloadedPages).includes(quranPageImg.src)) {
-                     URL.revokeObjectURL(quranPageImg.src);
+                    URL.revokeObjectURL(quranPageImg.src);
                 }
-
                 quranPageImg.src = objectURL;
-                quranPageImg.onload = () => {
-                    quranPageImg.style.opacity = '1';
-                };
-
-                currentPage = pageNum;
-                updateUIAfterPageChange();
-                dbSet(DATA_STORE_NAME, 'lastReadPage', currentPage);
-
-                // Preload adjacent pages
-                preloadPage(currentPage - 1);
-                preloadPage(currentPage + 1);
-                preloadPage(currentPage - 2);
-                preloadPage(currentPage + 2);
+                quranPageImg.onload = () => { quranPageImg.style.opacity = '1'; };
+                
+                preloadPage(pageNum - 1);
+                preloadPage(pageNum + 1);
 
             } catch (error) {
                 console.error('Error loading page:', error);
-                alert('Could not load page. The database might be corrupted.');
             }
         }
         
-        function changePage(pageNum) {
-            if (pageNum >= 1 && pageNum <= TOTAL_PAGES) {
+        function changePage(pageNum, fromUI = false) {
+            pageNum = Math.max(1, Math.min(TOTAL_PAGES, pageNum));
+            if (currentPage === pageNum && !fromUI) return;
+            
+            currentPage = pageNum;
+            
+            if (currentMode === 'page') {
                 loadPage(pageNum);
+            } else {
+                const target = document.querySelector(`.page-placeholder[data-page="${pageNum}"]`);
+                if (target) {
+                    continuousViewContainer.scrollTop = target.offsetTop - topBar.clientHeight;
+                }
             }
+            updateUIAfterPageChange();
+            dbSet(DATA_STORE_NAME, 'lastReadPage', currentPage);
         }
-        
+
         function updateUIAfterPageChange() {
             pageInfo.textContent = `Page ${currentPage} / ${TOTAL_PAGES}`;
-            pageSlider.value = currentPage;
-            pageNumInput.value = currentPage;
-            
-            // Update bookmark status
-            if (bookmarks.includes(currentPage)) {
-                bookmarkBtn.classList.add('bookmarked');
-            } else {
-                bookmarkBtn.classList.remove('bookmarked');
+            if (document.activeElement !== pageSlider) pageSlider.value = currentPage;
+            if (document.activeElement !== pageNumInput) pageNumInput.value = currentPage;
+            bookmarkBtn.classList.toggle('bookmarked', bookmarks.includes(currentPage));
+        }
+
+        // --- READING MODE MANAGEMENT ---
+        async function setReadingMode(mode, isInitialLoad = false) {
+            currentMode = mode;
+            readerScreen.className = ``; // Clear classes
+            readerScreen.classList.add(`${mode}-mode`);
+            if (isDarkMode) readerScreen.classList.add('dark-mode');
+
+            if (mode === 'page') {
+                pageViewContainer.classList.remove('hidden');
+                continuousViewContainer.classList.add('hidden');
+                modeToggle.innerHTML = ``; // Page stack icon
+                await loadPage(currentPage);
+            } else { // continuous mode
+                pageViewContainer.classList.add('hidden');
+                continuousViewContainer.classList.remove('hidden');
+                modeToggle.innerHTML = ``; // Single page icon
+                if (continuousViewContainer.children.length === 0) {
+                    await setupContinuousView();
+                }
+                // Scroll to the current page after a short delay to allow rendering
+                setTimeout(() => changePage(currentPage), 50);
             }
+            updateUIAfterPageChange();
+            if (!isInitialLoad) dbSet(DATA_STORE_NAME, 'currentMode', currentMode);
+        }
+
+        async function setupContinuousView() {
+            // Estimate placeholder height based on window ratio
+            placeholderHeight = window.innerWidth * 1.5; // A reasonable approximation for Quran pages
+            continuousViewContainer.innerHTML = ''; // Clear previous content
+            const fragment = document.createDocumentFragment();
+            for (let i = 1; i <= TOTAL_PAGES; i++) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'page-placeholder';
+                placeholder.dataset.page = i;
+                placeholder.style.height = `${placeholderHeight}px`;
+                fragment.appendChild(placeholder);
+            }
+            continuousViewContainer.appendChild(fragment);
+            updateVisiblePages();
+        }
+
+        function updateVisiblePages() {
+            if (currentMode !== 'continuous') return;
+            requestAnimationFrame(() => {
+                const viewTop = continuousViewContainer.scrollTop;
+                const viewBottom = viewTop + continuousViewContainer.clientHeight;
+
+                for (const placeholder of continuousViewContainer.children) {
+                    const isLoaded = placeholder.children.length > 0;
+                    const pageNum = parseInt(placeholder.dataset.page, 10);
+                    
+                    // The range to render is 1.5 viewport heights above and below
+                    const buffer = continuousViewContainer.clientHeight * 1.5;
+                    const isVisible = (placeholder.offsetTop + placeholder.clientHeight > viewTop - buffer) && (placeholder.offsetTop < viewBottom + buffer);
+
+                    if (isVisible && !isLoaded) {
+                        loadContinuousPage(placeholder, pageNum);
+                    } else if (!isVisible && isLoaded) {
+                        unloadContinuousPage(placeholder);
+                    }
+                }
+            });
         }
         
-        function handleKeydown(e) {
-            if (document.activeElement === pageNumInput) return;
-            if (e.key === 'ArrowRight') nextBtn.click();
-            if (e.key === 'ArrowLeft') prevBtn.click();
+        async function loadContinuousPage(placeholder, pageNum) {
+            try {
+                const blob = await dbGet(IMAGE_STORE_NAME, pageNum);
+                if (!blob) return;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'continuous-page-wrapper';
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(blob);
+                img.alt = `Quran Page ${pageNum}`;
+                img.onload = () => { 
+                    placeholder.style.height = 'auto'; // Revert to natural height
+                };
+                wrapper.appendChild(img);
+                placeholder.innerHTML = ''; // Clear just in case
+                placeholder.appendChild(wrapper);
+            } catch (e) { console.error("Failed to load continuous page:", e); }
         }
 
-        // --- UI VISIBILITY ---
-        function handleScreenTap(e) {
-            // If tap is on a button or inside the menu, do nothing
-            if (e.target.closest('button, input, #menu-panel')) {
-                return;
+        function unloadContinuousPage(placeholder) {
+            const img = placeholder.querySelector('img');
+            if (img && img.src) URL.revokeObjectURL(img.src);
+            placeholder.innerHTML = '';
+            placeholder.style.height = `${placeholderHeight}px`; // Restore placeholder height
+        }
+        
+        async function preloadPage(pageNum) {
+            if (pageNum < 1 || pageNum > TOTAL_PAGES || preloadedPages[pageNum]) return;
+            try {
+                const blob = await dbGet(IMAGE_STORE_NAME, pageNum);
+                if(blob) preloadedPages[pageNum] = URL.createObjectURL(blob);
+            } catch(e) { console.warn("Could not preload page", pageNum, e); }
+        }
+
+        // --- EVENT LISTENERS ---
+        function setupEventListeners() {
+            // Navigation
+            prevBtn.addEventListener('click', () => changePage(currentPage - 1));
+            nextBtn.addEventListener('click', () => changePage(currentPage + 1));
+            pageSlider.addEventListener('input', () => pageNumInput.value = pageSlider.value);
+            pageSlider.addEventListener('change', () => changePage(parseInt(pageSlider.value, 10)));
+            pageNumInput.addEventListener('change', () => changePage(parseInt(pageNumInput.value, 10), true));
+            document.addEventListener('keydown', e => {
+                if (document.activeElement.tagName === 'INPUT') return;
+                if (e.key === 'ArrowRight') nextBtn.click();
+                if (e.key === 'ArrowLeft') prevBtn.click();
+            });
+
+            // UI Toggles & Panels
+            readerScreen.addEventListener('click', handleScreenTap);
+            menuBtn.addEventListener('click', toggleMenu);
+            menuCloseBtn.addEventListener('click', toggleMenu);
+            indexBtn.addEventListener('click', toggleNavPanel);
+            navPanelCloseBtn.addEventListener('click', toggleNavPanel);
+
+            // Core features
+            bookmarkBtn.addEventListener('click', toggleBookmark);
+            modeToggle.addEventListener('click', () => setReadingMode(currentMode === 'page' ? 'continuous' : 'page'));
+            themeSwitch.addEventListener('change', toggleTheme);
+
+            // Zoom & Pan
+            pageViewContainer.addEventListener('touchstart', handleTouchStart);
+            pageViewContainer.addEventListener('touchmove', handleTouchMove);
+            pageViewContainer.addEventListener('touchend', handleTouchEnd);
+
+            // Continuous scroll
+            continuousViewContainer.addEventListener('scroll', handleContinuousScroll);
+
+            // Backup & Restore
+            exportBtn.addEventListener('click', exportData);
+            importInput.addEventListener('change', importData);
+            
+            // Nav Panel
+            surahTab.addEventListener('click', () => showNavTab('surah'));
+            juzTab.addEventListener('click', () => showNavTab('juz'));
+            navSearch.addEventListener('input', filterSurahList);
+        }
+
+        // --- EVENT HANDLERS ---
+        function handleContinuousScroll() {
+            // Update current page number based on scroll position
+            const viewTop = continuousViewContainer.scrollTop;
+            const centerLine = viewTop + (continuousViewContainer.clientHeight / 3);
+            const newPage = Math.floor(centerLine / (placeholderHeight || 1)) + 1;
+            if (newPage !== currentPage && newPage >=1 && newPage <= TOTAL_PAGES) {
+                currentPage = newPage;
+                dbSet(DATA_STORE_NAME, 'lastReadPage', currentPage);
+                updateUIAfterPageChange();
             }
             
-            // If menu is open, close it
-            if (menuOpen) {
-                toggleMenu();
-                return;
+            // Auto-hide UI bars
+            if (viewTop > lastScrollY && viewTop > 100) { // Scrolling down
+                readerScreen.classList.remove('controls-visible');
+            } else if (viewTop < lastScrollY) { // Scrolling up
+                readerScreen.classList.add('controls-visible');
             }
+            lastScrollY = viewTop <= 0 ? 0 : viewTop;
 
-            // Toggle controls
+            // Debounce virtual scroller update
+            clearTimeout(isScrolling);
+            isScrolling = setTimeout(updateVisiblePages, 100);
+        }
+
+        function handleScreenTap(e) {
+            if (currentMode === 'continuous' || e.target.closest('button, input, .panel')) return;
             controlsVisible = !controlsVisible;
             readerScreen.classList.toggle('controls-visible', controlsVisible);
-            
-            // On mobile, show nav buttons too
             if ('ontouchstart' in window) {
-                document.querySelector('.ui-controls').classList.toggle('touch-active', controlsVisible);
+                readerScreen.classList.toggle('touch-active', controlsVisible);
             }
-
             clearTimeout(controlsTimeout);
             if (controlsVisible) {
                 controlsTimeout = setTimeout(() => {
                     controlsVisible = false;
                     readerScreen.classList.remove('controls-visible');
-                    document.querySelector('.ui-controls').classList.remove('touch-active');
+                    readerScreen.classList.remove('touch-active');
                 }, 4000);
             }
         }
 
-        // --- MENU & BOOKMARKS ---
-        function toggleMenu(e) {
-            if (e) e.stopPropagation();
-            menuOpen = !menuOpen;
-            readerScreen.classList.toggle('menu-open', menuOpen);
-        }
+        const togglePanel = (panelType) => {
+            const isOpen = panelType === 'menu' ? isMenuOpen : isNavPanelOpen;
+            const className = panelType === 'menu' ? 'menu-open' : 'nav-panel-open';
+            
+            if (isOpen) {
+                readerScreen.classList.remove(className);
+            } else {
+                // Close other panels before opening
+                readerScreen.classList.remove('menu-open', 'nav-panel-open');
+                readerScreen.classList.add(className);
+            }
+            
+            if (panelType === 'menu') isMenuOpen = !isMenuOpen; else isNavPanelOpen = !isNavPanelOpen;
+        };
+        const toggleMenu = () => togglePanel('menu');
+        const toggleNavPanel = () => togglePanel('nav');
 
+        // --- FEATURES (BOOKMARKS, THEME, BACKUP, PWA) ---
         function toggleBookmark() {
             const index = bookmarks.indexOf(currentPage);
             if (index > -1) {
@@ -904,230 +644,194 @@
                 bookmarks.push(currentPage);
                 bookmarks.sort((a,b) => a - b);
             }
-            dbSet(DATA_STORE_NAME, 'bookmarks', bookmarks);
-            updateBookmarksUI();
-            updateUIAfterPageChange(); // to update the star icon color
+            dbSet(DATA_STORE_NAME, 'bookmarks', bookmarks).then(() => {
+                updateBookmarksUI();
+                updateUIAfterPageChange();
+            });
         }
         
         function updateBookmarksUI() {
             bookmarksList.innerHTML = '';
             if (bookmarks.length === 0) {
-                bookmarksList.innerHTML = '<li class="no-bookmarks">No bookmarks yet.</li>';
+                bookmarksList.innerHTML = '<li style="padding: 1rem; text-align: center;">No bookmarks yet.</li>';
                 return;
             }
-            
             bookmarks.forEach(pageNum => {
                 const li = document.createElement('li');
-                li.dataset.page = pageNum;
-                li.innerHTML = `<span>Page ${pageNum}</span><button class="delete-bookmark-btn" data-page="${pageNum}">×</button>`;
-                
-                li.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('delete-bookmark-btn')) return;
-                    changePage(pageNum);
-                    toggleMenu();
-                });
-                
+                li.innerHTML = `<span>Page ${pageNum}</span><button class="delete-bookmark-btn bar-button" data-page="${pageNum}" style="color: #ff4d4d;">×</button>`;
+                li.addEventListener('click', () => { changePage(pageNum); toggleMenu(); });
                 li.querySelector('.delete-bookmark-btn').addEventListener('click', (e) => {
                     e.stopPropagation();
                     const pageToDelete = parseInt(e.target.dataset.page, 10);
                     bookmarks = bookmarks.filter(p => p !== pageToDelete);
-                    dbSet(DATA_STORE_NAME, 'bookmarks', bookmarks);
-                    updateBookmarksUI();
-                    updateUIAfterPageChange();
+                    dbSet(DATA_STORE_NAME, 'bookmarks', bookmarks).then(() => { updateBookmarksUI(); updateUIAfterPageChange(); });
                 });
-                
                 bookmarksList.appendChild(li);
             });
         }
         
-        // --- THEME ---
         function applyTheme() {
             document.documentElement.classList.toggle('dark-mode', isDarkMode);
+            readerScreen.classList.toggle('dark-mode', isDarkMode); // Also on readerScreen for specificity
             themeSwitch.checked = isDarkMode;
-            // Update theme-color meta tag for PWA
-            document.querySelector('meta[name="theme-color"]').setAttribute('content', isDarkMode ? '#1a1a1a' : '#f4f4f4');
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', isDarkMode ? '#1a1a1a' : '#f0f0f0');
         }
 
         function toggleTheme() {
             isDarkMode = !isDarkMode;
-            dbSet(DATA_STORE_NAME, 'isDarkMode', isDarkMode);
-            applyTheme();
+            dbSet(DATA_STORE_NAME, 'isDarkMode', isDarkMode).then(applyTheme);
         }
 
-        // --- ZOOM & PAN ---
-        function resetZoom() {
-            zoomState = { scale: 1, x: 0, y: 0 };
-            applyTransform();
-        }
-
-        function applyTransform() {
-            // Clamp values to prevent excessive scaling or panning off-screen
-            zoomState.scale = Math.max(1, Math.min(zoomState.scale, 4));
-
-            const maxPanX = (quranPageImg.offsetWidth * zoomState.scale - imageContainer.clientWidth) / 2;
-            const maxPanY = (quranPageImg.offsetHeight * zoomState.scale - imageContainer.clientHeight) / 2;
-            
-            zoomState.x = Math.max(-maxPanX, Math.min(zoomState.x, maxPanX));
-            zoomState.y = Math.max(-maxPanY, Math.min(zoomState.y, maxPanY));
-            
-            // If scale is 1, reset pan
-            if(zoomState.scale === 1) {
-                zoomState.x = 0;
-                zoomState.y = 0;
-            }
-
-            quranPageImg.style.transform = `translate(${zoomState.x}px, ${zoomState.y}px) scale(${zoomState.scale})`;
-        }
-
-        function getDistance(p1, p2) {
-            return Math.sqrt(Math.pow(p2.clientX - p1.clientX, 2) + Math.pow(p2.clientY - p1.clientY, 2));
-        }
-
-        function handleTouchStart(e) {
-            e.preventDefault();
-
-            // Double tap to zoom
-            const now = new Date().getTime();
-            if (now - lastTap < 300) {
-                if (zoomState.scale > 1) {
-                    resetZoom();
-                } else {
-                    zoomState.scale = 2.5;
-                    applyTransform();
-                }
-                lastTap = 0;
-                return;
-            }
-            lastTap = now;
-
-            if (e.touches.length === 1) {
-                zoomState.startX = e.touches[0].clientX - zoomState.x;
-                zoomState.startY = e.touches[0].clientY - zoomState.y;
-            }
-            if (e.touches.length === 2) {
-                zoomState.initialDistance = getDistance(e.touches[0], e.touches[1]);
-            }
-        }
-
-        function handleTouchMove(e) {
-            e.preventDefault();
-            if (zoomState.scale <= 1 && e.touches.length === 1) return; // Don't pan if not zoomed
-
-            if (e.touches.length === 1) {
-                zoomState.x = e.touches[0].clientX - zoomState.startX;
-                zoomState.y = e.touches[0].clientY - zoomState.startY;
-            }
-            if (e.touches.length === 2) {
-                const newDist = getDistance(e.touches[0], e.touches[1]);
-                zoomState.scale = zoomState.scale * (newDist / zoomState.initialDistance);
-                zoomState.initialDistance = newDist;
-            }
-            applyTransform();
-        }
-
-        function handleTouchEnd(e) {
-            e.preventDefault();
-            // Final adjustments or snapping can be done here if needed
-        }
-        
-        // --- BACKUP & RESTORE ---
         async function exportData() {
-            try {
-                const dataToExport = {
-                    lastReadPage: await dbGet(DATA_STORE_NAME, 'lastReadPage') || 1,
-                    bookmarks: await dbGet(DATA_STORE_NAME, 'bookmarks') || [],
-                    isDarkMode: await dbGet(DATA_STORE_NAME, 'isDarkMode') || false,
-                };
-                
-                const jsonString = JSON.stringify(dataToExport, null, 2);
-                const blob = new Blob([jsonString], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `quran-reader-backup-${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            } catch (error) {
-                console.error('Export failed:', error);
-                alert('Failed to export data.');
-            }
+            const dataToExport = {
+                bookmarks: await dbGet(DATA_STORE_NAME, 'bookmarks') || [],
+                isDarkMode: await dbGet(DATA_STORE_NAME, 'isDarkMode') || false,
+                lastReadPage: await dbGet(DATA_STORE_NAME, 'lastReadPage') || 1,
+                currentMode: await dbGet(DATA_STORE_NAME, 'currentMode') || 'page',
+            };
+            const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `quran-reader-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(a.href);
         }
 
         function importData(e) {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = async (event) => {
                 try {
                     const data = JSON.parse(event.target.result);
-                    if (!data.hasOwnProperty('lastReadPage') || !data.hasOwnProperty('bookmarks')) {
-                        throw new Error('Invalid backup file format.');
-                    }
-                    
-                    if (confirm('This will overwrite your current progress and bookmarks. Are you sure?')) {
+                    if (!data.bookmarks) throw new Error('Invalid backup file.');
+                    if (confirm('This will overwrite your settings. Are you sure?')) {
                         await Promise.all([
-                            dbSet(DATA_STORE_NAME, 'lastReadPage', data.lastReadPage),
                             dbSet(DATA_STORE_NAME, 'bookmarks', data.bookmarks),
-                            dbSet(DATA_STORE_NAME, 'isDarkMode', data.isDarkMode || false)
+                            dbSet(DATA_STORE_NAME, 'isDarkMode', data.isDarkMode || false),
+                            dbSet(DATA_STORE_NAME, 'lastReadPage', data.lastReadPage || 1),
+                            dbSet(DATA_STORE_NAME, 'currentMode', data.currentMode || 'page')
                         ]);
-                        alert('Data imported successfully! The app will now reload.');
+                        alert('Data imported! The app will now reload.');
                         window.location.reload();
                     }
-                } catch (error) {
-                    console.error('Import failed:', error);
-                    alert('Import failed. The file may be corrupt or in the wrong format.');
-                } finally {
-                    // Reset file input to allow re-selection of the same file
-                    importInput.value = '';
-                }
+                } catch (error) { alert('Import failed: ' + error.message); }
+                finally { importInput.value = ''; }
             };
             reader.readAsText(file);
         }
 
-        // --- PWA SERVICE WORKER REGISTRATION ---
+        function setupPWAInstall() {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                pwaInstallPrompt = e;
+                pwaInstallBtn.classList.remove('hidden');
+            });
+            pwaInstallBtn.addEventListener('click', () => {
+                if (pwaInstallPrompt) {
+                    pwaInstallPrompt.prompt();
+                    pwaInstallPrompt.userChoice.then(() => {
+                        pwaInstallBtn.classList.add('hidden');
+                        pwaInstallPrompt = null;
+                    });
+                }
+            });
+        }
+        
         function registerServiceWorker() {
             if ('serviceWorker' in navigator) {
-                const swScriptElement = document.getElementById('sw');
-                if (!swScriptElement) {
-                    console.error("Service worker script element not found.");
-                    return;
-                }
-                const swScript = swScriptElement.textContent;
-                const swBlob = new Blob([swScript], { type: 'application/javascript' });
-                const swUrl = URL.createObjectURL(swBlob);
-
-                navigator.serviceWorker.register(swUrl)
-                    .then(registration => {
-                        console.log('Service Worker registered with scope:', registration.scope);
-                    })
-                    .catch(error => {
-                        console.error('Service Worker registration failed:', error);
-                    });
+                try {
+                    const swConfig = JSON.parse(document.getElementById('sw').textContent);
+                    const swScript = `
+                        const CACHE_NAME = '${swConfig.cacheName}';
+                        const APP_SHELL_URL = '${swConfig.appShellUrl}';
+                        self.addEventListener('install', e => {
+                            e.waitUntil(caches.open(CACHE_NAME).then(c => c.add(new Request(APP_SHELL_URL, {cache:'reload'}))));
+                            self.skipWaiting();
+                        });
+                        self.addEventListener('activate', e => {
+                            e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))));
+                            self.clients.claim();
+                        });
+                        self.addEventListener('fetch', e => {
+                            if (e.request.mode === 'navigate') {
+                                e.respondWith(caches.match(APP_SHELL_URL).then(res => res || fetch(e.request)));
+                            }
+                        });
+                    `;
+                    const swBlob = new Blob([swScript], { type: 'application/javascript' });
+                    navigator.serviceWorker.register(URL.createObjectURL(swBlob)).then(reg => console.log('SW registered:', reg)).catch(err => console.error('SW registration failed:', err));
+                } catch (err) { console.error('Could not create/register SW:', err); }
             }
         }
-
-
-        // --- INITIALIZATION ---
-        async function main() {
-            try {
-                await openDB();
-                const imagesExist = await checkImagesExist();
-                if (imagesExist) {
-                    initReader();
-                } else {
-                    initSetup();
-                }
-                registerServiceWorker();
-            } catch (error) {
-                console.error('App initialization failed:', error);
-                appLoader.innerHTML = `<p style="color:red; text-align:center;">A critical error occurred. Please clear your browser cache/data for this site and try again. <br><br> Error: ${error}</p>`;
-            }
+        
+        // --- NAVIGATION PANEL LOGIC ---
+        function populateIndexLists() {
+            const surahFrag = document.createDocumentFragment();
+            SURAHS.forEach(s => surahFrag.appendChild(createIndexListItem(`${s.id}. ${s.name}`, s.startPage, s.id)));
+            surahList.appendChild(surahFrag);
+            
+            const juzFrag = document.createDocumentFragment();
+            JUZ.forEach(j => juzFrag.appendChild(createIndexListItem(`Juz' ${j.id}`, j.startPage)));
+            juzList.appendChild(juzFrag);
         }
 
+        function createIndexListItem(title, page, surahId = null) {
+            const li = document.createElement('li');
+            li.dataset.page = page;
+            if (surahId) li.dataset.surahId = surahId;
+            li.innerHTML = `<span>${title}</span><span class="page-num">p. ${page}</span>`;
+            li.addEventListener('click', () => { changePage(page); toggleNavPanel(); });
+            return li;
+        }
+
+        function showNavTab(tabName) {
+            const isSurah = tabName === 'surah';
+            surahTab.classList.toggle('active', isSurah);
+            juzTab.classList.toggle('active', !isSurah);
+            surahListContainer.classList.toggle('hidden', !isSurah);
+            juzListContainer.classList.toggle('hidden', isSurah);
+            navSearch.classList.toggle('hidden', !isSurah);
+        }
+
+        function filterSurahList() {
+            const query = navSearch.value.toLowerCase().trim();
+            surahList.querySelectorAll('li').forEach(li => {
+                const text = li.textContent.toLowerCase();
+                li.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        // --- ZOOM & PAN LOGIC (PAGE MODE ONLY) ---
+        function resetZoom() { zoomState = { scale: 1, x: 0, y: 0 }; applyTransform(); }
+        function applyTransform() {
+            zoomState.scale = Math.max(1, Math.min(zoomState.scale, 4));
+            const maxPanX = Math.max(0, (quranPageImg.offsetWidth * zoomState.scale - pageViewContainer.clientWidth) / 2);
+            const maxPanY = Math.max(0, (quranPageImg.offsetHeight * zoomState.scale - pageViewContainer.clientHeight) / 2);
+            zoomState.x = Math.max(-maxPanX, Math.min(zoomState.x, maxPanX));
+            zoomState.y = Math.max(-maxPanY, Math.min(zoomState.y, maxPanY));
+            if(zoomState.scale === 1) { zoomState.x = 0; zoomState.y = 0; }
+            quranPageImg.style.transform = `translate(${zoomState.x}px, ${zoomState.y}px) scale(${zoomState.scale})`;
+        }
+        function getDistance(p1, p2) { return Math.sqrt(Math.pow(p2.clientX - p1.clientX, 2) + Math.pow(p2.clientY - p1.clientY, 2)); }
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const now = new Date().getTime();
+            if (now - lastTap < 300) { zoomState.scale > 1 ? resetZoom() : (zoomState.scale = 2.5, applyTransform()); lastTap = 0; return; }
+            lastTap = now;
+            if (e.touches.length === 1) { zoomState.startX = e.touches[0].clientX - zoomState.x; zoomState.startY = e.touches[0].clientY - zoomState.y; }
+            if (e.touches.length === 2) { zoomState.initialDistance = getDistance(e.touches[0], e.touches[1]); }
+        }
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (zoomState.scale <= 1 && e.touches.length === 1) return;
+            if (e.touches.length === 1) { zoomState.x = e.touches[0].clientX - zoomState.startX; zoomState.y = e.touches[0].clientY - zoomState.startY; }
+            if (e.touches.length === 2) { const newDist = getDistance(e.touches[0], e.touches[1]); zoomState.scale *= (newDist / zoomState.initialDistance); zoomState.initialDistance = newDist; }
+            applyTransform();
+        }
+        function handleTouchEnd(e) { e.preventDefault(); }
+        
+        // --- RUN APP ---
         main();
     });
     </script>
