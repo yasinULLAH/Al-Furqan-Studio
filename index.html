@@ -1287,6 +1287,50 @@
                 font-size: 12pt !important;
             }
         }
+
+        #commandPaletteResults {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 350px;
+            overflow-y: auto;
+            width: 370px;
+        }
+
+        .cp-result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            cursor: pointer;
+            border-radius: var(--border-radius);
+            transition: background-color 0.15s, color 0.15s;
+            font-size: 1rem;
+            background: #007800;
+            color: white;
+            margin-top: 1px;
+            border-top: 1px solid #03ff0d;
+        }
+
+        .cp-result-item.active {
+            background-color: var(--color-accent);
+            color: white;
+        }
+
+        /* This is the change: remove the :hover selector to avoid conflicts with keyboard selection */
+        /* .cp-result-item:hover {
+    background-color: var(--color-accent);
+    color: white;
+} */
+
+        .cp-result-item .category {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        .cp-result-item.active .category {
+            opacity: 1;
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1735,6 +1779,14 @@
             <h3 id="rootOccurrencesModalTitle">Occurrences for Root: <span id="modal-root-term"></span></h3>
             <ul id="modal-root-occurrences-list">
             </ul>
+        </div>
+    </div>
+    <div id="commandPalette" class="modal" role="dialog" aria-modal="true" aria-labelledby="commandPaletteLabel">
+        <div class="command-palette-content">
+            <label for="commandPaletteInput" id="commandPaletteLabel" class="sr-only">Type a command or
+                search...</label>
+            <input type="text" id="commandPaletteInput" placeholder="Go to Surah, Export Data, Start Game...">
+            <ul id="commandPaletteResults"></ul>
         </div>
     </div>
     <script>
@@ -4805,8 +4857,8 @@
         const gameModalCSS = `
         .game-modal .modal-content {
             max-width: 90%;
-            width: 700px; 
-            max-height: 90vh;
+            width: 881px; 
+            max-height: 98vh;
             overflow-y: auto;
             background-color: var(--color-bg-primary); 
             color: var(--color-text-primary);
@@ -11768,5 +11820,198 @@
         } else {
             initializeIntegration();
         }
+    })();
+</script>
+
+<script>
+    (function () {
+        'use strict';
+
+        const paletteEl = document.getElementById('commandPalette');
+        const inputEl = document.getElementById('commandPaletteInput');
+        const resultsEl = document.getElementById('commandPaletteResults');
+
+        let allCommands = [];
+        let activeIndex = -1;
+
+        const openGameModalAndStart = (gameFunction) => {
+            const gameModal = document.getElementById('quranGameModal');
+            if (gameModal) gameModal.style.display = 'flex';
+            if (typeof gameFunction === 'function') {
+                gameFunction();
+            }
+            closeCommandPalette();
+        };
+
+        const generateActionCommands = () => [
+            { name: 'Export All Personal Data', category: 'Data', execute: () => document.getElementById('export-data-btn')?.click() },
+            { name: 'Import Personal Data...', category: 'Data', execute: () => { showSection('data'); document.getElementById('import-file')?.click(); } },
+            { name: 'Export Tafsir as DOCX', category: 'Data', execute: () => document.getElementById('export-tafsir-to-docx-btn')?.click() },
+            { name: 'Export Tafsir as PDF', category: 'Data', execute: () => document.getElementById('export-tafsir-to-pdf-btn')?.click() },
+            { name: 'Save Current Tafsir Notes', category: 'Action', execute: () => document.getElementById('save-tafsir-btn')?.click() },
+            { name: 'Launch Full Screen Reader', category: 'Action', execute: () => document.getElementById('launchFullScreenReaderBtnEnhanced')?.click() },
+            { name: 'Analyze Root Word...', category: 'Action', execute: () => { const root = prompt("Enter Arabic root to analyze (e.g., ع ل م)"); if (root) { showSection('roots'); document.getElementById('root-input').value = root; document.getElementById('analyze-root-btn').click(); } } },
+            { name: 'Clear All Personal Data (Irreversible!)', category: 'Data', execute: () => document.getElementById('clear-data-btn')?.click() },
+        ];
+
+        const generateNavigationCommands = () => [
+            { name: 'Quran Viewer', category: 'Navigation', execute: () => showSection('quran') },
+            { name: 'Personal Tafsir', category: 'Navigation', execute: () => showSection('tafsir') },
+            { name: 'Thematic Linker', category: 'Navigation', execute: () => showSection('themes') },
+            { name: 'Root Word Analyzer', category: 'Navigation', execute: () => showSection('roots') },
+            { name: 'Recitation Log', category: 'Navigation', execute: () => showSection('recitation') },
+            { name: 'Memorization Hub', category: 'Navigation', execute: () => showSection('hifz') },
+            { name: 'Advanced Search', category: 'Navigation', execute: () => showSection('search') },
+            { name: 'Data Management', category: 'Navigation', execute: () => showSection('data') },
+            { name: 'My Goals', category: 'Navigation', execute: () => showSection('goals') },
+            { name: 'Reporting', category: 'Navigation', execute: () => showSection('reporting') },
+        ];
+
+        const generateGameCommands = () => [
+            { name: 'Game: Word Meaning (Lughat-ul-Nur)', category: 'Game', execute: () => openGameModalAndStart(window.startWordWhizGame) },
+            { name: 'Game: Ayah Jumble (Nazm-ul-Ayah)', category: 'Game', execute: () => openGameModalAndStart(window.startAyahJumbleGame) },
+            { name: 'Game: Ayah Translation Match', category: 'Game', execute: () => openGameModalAndStart(window.startAyahMatchGame_Engine) },
+            { name: 'Game: Ayah Typing Challenge', category: 'Game', execute: () => openGameModalAndStart(window.startAyahTyping_Engine) },
+            { name: 'Game: Recitation Practice', category: 'Game', execute: () => openGameModalAndStart(window.startRecitationPracticeGame_Engine) },
+            { name: 'Game: Flashcard & Memory', category: 'Game', execute: () => openGameModalAndStart(window.startFlashcardGame_Suite) },
+            { name: 'Game: Verse Jigsaw (Takmil al-Ayah)', category: 'Game', execute: () => openGameModalAndStart(window.startVerseJigsawGame_Engine) },
+            { name: 'Launch Exam System', category: 'Game', execute: () => document.getElementById('launchExamSystemBtn')?.click() },
+        ];
+
+        const generateSettingsCommands = () => [
+            { name: 'Switch to Serene Theme', category: 'Settings', execute: () => { document.getElementById('theme-switcher').value = 'serene'; applyTheme('serene'); } },
+            { name: 'Switch to Manuscript Theme', category: 'Settings', execute: () => { document.getElementById('theme-switcher').value = 'manuscript'; applyTheme('manuscript'); } },
+            { name: 'Switch to Holo-Quran Theme', category: 'Settings', execute: () => { document.getElementById('theme-switcher').value = 'holo'; applyTheme('holo'); } },
+            { name: 'Switch to Urdu Translation', category: 'Settings', execute: () => { document.getElementById('translation-select').value = 'urdu'; document.getElementById('translation-select').dispatchEvent(new Event('change')); } },
+            { name: 'Switch to English Translation', category: 'Settings', execute: () => { document.getElementById('translation-select').value = 'english'; document.getElementById('translation-select').dispatchEvent(new Event('change')); } },
+        ];
+
+        function getCommands() {
+            const surahCommands = surahNames.map((name, index) => ({
+                name: `Go to Surah ${index + 1}: ${name}`,
+                category: 'Surah',
+                execute: () => { if (typeof loadAyah === 'function') { loadAyah(index + 1, 1); showSection('quran'); } }
+            }));
+
+            const juzCommands = juzBoundariesData.map((juz) => ({
+                name: `Go to Juz ${juz.juz}: ${juz.name}`,
+                category: 'Juz',
+                execute: () => { if (typeof loadAyah === 'function') { loadAyah(juz.startSurah, juz.startAyah); showSection('quran'); } }
+            }));
+
+            const ayahCommand = {
+                name: 'Go to specific Ayah...', category: 'Action', execute: () => {
+                    const ref = prompt('Enter Surah:Ayah (e.g., 2:255)');
+                    if (ref) {
+                        const parts = ref.split(':').map(p => parseInt(p.trim()));
+                        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                            loadAyah(parts[0], parts[1]);
+                            showSection('quran');
+                        } else {
+                            alert('Invalid format. Please use Surah:Ayah, for example, 2:255');
+                        }
+                    }
+                }
+            };
+
+            return [
+                ...generateNavigationCommands(),
+                ayahCommand,
+                ...generateActionCommands(),
+                ...generateSettingsCommands(),
+                ...generateGameCommands(),
+                ...surahCommands,
+                ...juzCommands,
+            ];
+        }
+
+        function renderResults(filteredCommands) {
+            resultsEl.innerHTML = '';
+            filteredCommands.slice(0, 7).forEach((cmd) => {
+                const li = document.createElement('li');
+                li.classList.add('cp-result-item');
+                li.dataset.commandName = cmd.name;
+                li.innerHTML = `
+                    <span>${cmd.name}</span>
+                    <span class="category">${cmd.category}</span>
+                `;
+                li.addEventListener('click', () => executeCommand(cmd));
+                resultsEl.appendChild(li);
+            });
+            activeIndex = -1;
+            if (filteredCommands.length > 0) {
+                activeIndex = 0;
+                resultsEl.children[0]?.classList.add('active');
+            }
+        }
+
+        function filterAndRender() {
+            const query = inputEl.value.toLowerCase().trim();
+            if (!query) {
+                renderResults(allCommands.filter(c => ['Navigation', 'Action', 'Game'].includes(c.category)));
+                return;
+            }
+            const filtered = allCommands.filter(cmd => cmd.name.toLowerCase().includes(query));
+            renderResults(filtered);
+        }
+
+        function executeCommand(command) {
+            if (command && typeof command.execute === 'function') {
+                command.execute();
+                closeCommandPalette();
+            }
+        }
+
+        function openCommandPalette() {
+            allCommands = getCommands();
+            paletteEl.style.display = 'flex';
+            inputEl.value = '';
+            filterAndRender();
+            inputEl.focus();
+        }
+
+        function closeCommandPalette() {
+            paletteEl.style.display = 'none';
+        }
+
+        function updateSelection(direction) {
+            const items = resultsEl.children;
+            if (items.length === 0) return;
+            items[activeIndex]?.classList.remove('active');
+            if (direction === 'down') {
+                activeIndex = (activeIndex + 1) % items.length;
+            } else {
+                activeIndex = (activeIndex - 1 + items.length) % items.length;
+            }
+            items[activeIndex]?.classList.add('active');
+            items[activeIndex]?.scrollIntoView({ block: 'nearest' });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                openCommandPalette();
+            }
+        });
+
+        paletteEl.addEventListener('click', (e) => {
+            if (e.target === paletteEl) closeCommandPalette();
+        });
+
+        inputEl.addEventListener('input', filterAndRender);
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeCommandPalette();
+            else if (e.key === 'ArrowDown') { e.preventDefault(); updateSelection('down'); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); updateSelection('up'); }
+            else if (e.key === 'Enter') {
+                e.preventDefault();
+                const activeItem = resultsEl.querySelector('.active');
+                if (activeItem) {
+                    const commandName = activeItem.dataset.commandName;
+                    const commandToExecute = allCommands.find(c => c.name === commandName);
+                    executeCommand(commandToExecute);
+                }
+            }
+        });
     })();
 </script>
