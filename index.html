@@ -5034,40 +5034,7 @@
                 }
             }, 400);
         }
-        function showGamePlayUI(gameTitle) {
-            restoreModalInteractivity();
-            const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
-            const gamePlayArea = document.getElementById('gamePlayArea');
-            const gameScoreArea = document.getElementById('gameScoreArea');
-            const quitGameButton = document.getElementById('quitGameButton');
-            const gameModalTitle = document.getElementById('gameModalTitle');
-            if (gameSelectionArea) {
-                gameSelectionArea.style.display = 'none';
-            } else {
-                console.error("[MainGameModal] showGamePlayUI: game-selection-area (.game-selection-area) not found.");
-            }
-            if (gamePlayArea) {
-                gamePlayArea.style.display = 'block';
-            } else {
-                console.error("[MainGameModal] showGamePlayUI: gamePlayArea not found");
-            }
-            if (gameScoreArea) {
-                gameScoreArea.style.display = 'block';
-                if (typeof updateScoreDisplay === "function") updateScoreDisplay();
-            } else {
-                console.error("[MainGameModal] showGamePlayUI: gameScoreArea not found");
-            }
-            if (quitGameButton) {
-                quitGameButton.style.display = 'block';
-            } else {
-                console.error("[MainGameModal] showGamePlayUI: quitGameButton not found");
-            }
-            if (gameModalTitle) {
-                gameModalTitle.textContent = gameTitle;
-            } else {
-                console.error("[MainGameModal] showGamePlayUI: gameModalTitle not found");
-            }
-        }
+
         closeButton.addEventListener('click', () => {
             performModalCloseActions(true);
         });
@@ -5155,66 +5122,56 @@
         }, 400);
     }
     function showGamePlayUI(gameTitle) {
-        console.log(`[MainGameModal] showGamePlayUI called for title: "${gameTitle}".`);
-        const gameSelectionArea = document.getElementById('game-selection-area');
+        document.body.classList.add('game-mode-active');
+        const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
         const gamePlayArea = document.getElementById('gamePlayArea');
         const gameScoreArea = document.getElementById('gameScoreArea');
         const quitGameButton = document.getElementById('quitGameButton');
         const gameModalTitle = document.getElementById('gameModalTitle');
         if (gameSelectionArea) {
             gameSelectionArea.style.display = 'none';
-        } else {
-            console.error("[MainGameModal] CRITICAL in showGamePlayUI: game-selection-area NOT FOUND.");
         }
         if (gamePlayArea) {
             gamePlayArea.style.display = 'block';
-        } else {
-            console.error("[MainGameModal] showGamePlayUI: gamePlayArea not found");
         }
         if (gameScoreArea) {
             gameScoreArea.style.display = 'block';
             updateScoreDisplay();
-        } else {
-            console.error("[MainGameModal] showGamePlayUI: gameScoreArea not found");
         }
         if (quitGameButton) {
             quitGameButton.style.display = 'block';
-        } else {
-            console.error("[MainGameModal] showGamePlayUI: quitGameButton not found");
         }
         if (gameModalTitle) {
             gameModalTitle.textContent = gameTitle;
-        } else {
-            console.error("[MainGameModal] showGamePlayUI: gameModalTitle not found");
         }
     }
-    function showGamePlayUI(gameTitle) {
-        const gameSelectionArea = document.getElementById('game-selection-area');
-        const gamePlayArea = document.getElementById('gamePlayArea');
-        const gameScoreArea = document.getElementById('gameScoreArea');
-        const quitGameButton = document.getElementById('quitGameButton');
-        const gameModalTitle = document.getElementById('gameModalTitle');
-        if (gameSelectionArea) {
-            gameSelectionArea.style.display = 'none';
-        } else {
-        }
-        if (gamePlayArea) {
-            gamePlayArea.style.display = 'block';
-        } else {
-        }
-        if (gameScoreArea) {
-            gameScoreArea.style.display = 'block';
-            updateScoreDisplay();
-        } else {
-        }
-        if (quitGameButton) {
-            quitGameButton.style.display = 'block';
-        } else {
-        }
-        if (gameModalTitle) {
-            gameModalTitle.textContent = gameTitle;
-        } else {
-        }
+
+    function resetGameUI() {
+        document.body.classList.remove('game-mode-active');
+        setTimeout(() => {
+            const gamePlayArea = document.getElementById('gamePlayArea');
+            const gameSelectionArea = document.querySelector('#quranGameModal .game-selection-area');
+            const gameScoreArea = document.getElementById('gameScoreArea');
+            const quitGameButton = document.getElementById('quitGameButton');
+            const gameModalTitle = document.getElementById('gameModalTitle');
+
+            if (gameSelectionArea) {
+                gameSelectionArea.style.display = 'block';
+            }
+            if (gamePlayArea) {
+                gamePlayArea.style.display = 'none';
+                gamePlayArea.innerHTML = '';
+            }
+            if (gameScoreArea) {
+                gameScoreArea.style.display = 'none';
+            }
+            if (quitGameButton) {
+                quitGameButton.style.display = 'none';
+            }
+            if (gameModalTitle) {
+                gameModalTitle.textContent = "Quranic Games";
+            }
+        }, 200);
     }
     function updateScoreDisplay() {
         const gameCurrentScoreEl = document.getElementById('gameCurrentScore');
