@@ -2364,7 +2364,7 @@
             completedProgressUnits = 5;
             updateLoadingProgress(0, "Fetching manifest...");
             try {
-                window.appManifest = await fetch(MANIFEST_URL, { cache: "no-store" })
+                window.appManifest = await fetch(MANIFEST_URL)
                     .then(res => res.ok ? res.text() : Promise.reject('Could not fetch manifest.'))
                     .then(text => {
                         const lines = text.trim().split('\n');
