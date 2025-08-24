@@ -1905,6 +1905,9 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             font-size: 1.8rem;
             color: var(--color-text-primary);
             margin-right: 16px;
+            position: absolute;
+            left: 75px;
+            top: 0px;
         }
 
         nav ul {
@@ -3058,6 +3061,10 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             display: flex;
             gap: 5px;
         }
+
+        textarea#admin-translation-text {
+            font-size: large;
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3150,13 +3157,20 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     <label><input type="radio" name="quran-view-mode" value="continuous"> Continuous</label>
                 </div>
                 <div class="quran-controls flex-group mb-20">
-                    <label for="translation-select" class="sr-only">Select Translation</label>
+                    <label for="translation-select">Select Translation:</label>
                     <select id="translation-select" aria-label="Select Translation">
                         <option value="urdu">Urdu (Included)</option>
                         <option value="english">English (Included)</option>
                         <option value="Bangali">Bangali (Included)</option>
                         <option value="pashto">Pashto (Included)</option>
                     </select>
+                </div>
+                <div id="quran-display" class="quran-viewer" lang="ar" dir="rtl">
+                    <p class="text-center">Select a Surah and Ayah to start.</p>
+                </div>
+                <div id="quran-continuous-display" class="quran-viewer" style="display:none;" lang="ar" dir="rtl"></div>
+                <div id="word-translation-area" class="mt-20">
+                    <p class="text-center">Click on an Arabic word to see its translation.</p>
                 </div>
                 <?php if (get_user_role() === 'admin' || get_user_role() === 'registered'): ?>
                     <div class="quran-controls flex-group mb-20">
@@ -3167,19 +3181,12 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                             <option value="pashto">Pashto</option>
                         </select>
                     </div>
-                <?php endif; ?>
-                <div id="quran-display" class="quran-viewer" lang="ar" dir="rtl">
-                    <p class="text-center">Select a Surah and Ayah to start.</p>
-                </div>
-                <div>
-                                            <label for="admin-translation-lang">Edit Translation:</label>
+                    <div>
+                        <label for="admin-translation-lang">Edit Translation:</label>
                         <textarea id="admin-translation-text" placeholder="Enter translation..."></textarea>
                         <button id="admin-save-translation-btn">Save Translation</button>
-                </div>
-                <div id="quran-continuous-display" class="quran-viewer" style="display:none;" lang="ar" dir="rtl"></div>
-                <div id="word-translation-area" class="mt-20">
-                    <p class="text-center">Click on an Arabic word to see its translation.</p>
-                </div>
+                    </div>
+                <?php endif; ?>
             </section>
             <?php if (is_logged_in()): ?>
                 <section id="tafsir" class="section" role="region" aria-labelledby="tafsir-heading">
@@ -10656,6 +10663,54 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 span.textContent = word + " ";
                 recitationGame_UI.ayahDisplayArea.appendChild(span);
             });
+        }
+        async function populateThemesIndexList() {
+            const themeListEl = document.getElementById('fsIndexThemeList');
+            if (!themeListEl) return;
+            themeListEl.innerHTML = '';
+
+            // Add static themes
+            if (typeof staticQuranicThemes !== 'undefined' && Array.isArray(staticQuranicThemes)) {
+                staticQuranicThemes.forEach(theme => {
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.href = '#';
+                    a.dataset.themeId = theme.id;
+                    a.dataset.isStatic = 'true';
+                    a.dataset.exampleSurah = theme.exampleSurah;
+                    a.dataset.exampleAyah = theme.exampleAyah;
+                    a.textContent = theme.name;
+                    a.addEventListener('click', handleIndexThemeClick);
+                    li.appendChild(a);
+                    themeListEl.appendChild(li);
+                });
+            }
+
+            // Add user-defined themes if logged in
+            if (isUserLoggedIn) {
+                try {
+                    const result = await sendAjaxRequest('get_all_themes');
+                    const userThemes = result.success ? result.data : [];
+                    if (userThemes.length > 0) {
+                        const divider = document.createElement('li');
+                        divider.innerHTML = `<hr style="margin: 5px 0; border-color: var(--color-border);">`;
+                        themeListEl.appendChild(divider);
+                    }
+                    userThemes.forEach(theme => {
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+                        a.href = '#';
+                        a.dataset.themeId = theme.id;
+                        a.dataset.isStatic = 'false';
+                        a.textContent = `[My Theme] ${theme.name}`;
+                        a.addEventListener('click', handleIndexThemeClick);
+                        li.appendChild(a);
+                        themeListEl.appendChild(li);
+                    });
+                } catch (error) {
+                    console.error("Failed to load user themes for index:", error);
+                }
+            }
         }
         async function playReferenceAudioWithHighlighting_Engine() {
             if (recitationGame_State.isRecording) {
