@@ -200,15 +200,15 @@ function setup_database()
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
     ");
-    // Check if admin user exists
+
     $stmt_check_admin = db_query("SELECT id FROM users WHERE username = ?", ['admin'], 's');
-    // db_fetch_row will return data if user exists, null otherwise
+
     $admin_exists = db_fetch_row($stmt_check_admin);
     if ($stmt_check_admin) {
         $stmt_check_admin->close();
     }
 
-    // If admin does NOT exist, create it
+
     if (!$admin_exists) {
         $password = password_hash('admin123', PASSWORD_DEFAULT);
         $stmt_insert_admin = db_query(
@@ -222,7 +222,7 @@ function setup_database()
     }
 }
 $manifest_config = [
-    (object)['key' => 'urdu', 'label' => 'Urdu Translation', 'file_type' => 'quran_translation', 'url' => 'data new.AM', 'version' => '1.0', 'lang_code' => 'ur', 'direction' => 'rtl', 'font_var' => '--font-urdu'],
+    (object)['key' => 'urdu', 'label' => 'Urdu Translation', 'file_type' => 'quran_translation', 'url' => 'data new.AM', 'version' => '1.0', 'lang_code' => 'ur', 'direction' => 'rtl', 'font_var' => 'var(--font-urdu)'],
     (object)['key' => 'english', 'label' => 'English Translation', 'file_type' => 'quran_translation', 'url' => 'dataENG.AM', 'version' => '1.0', 'lang_code' => 'en', 'direction' => 'ltr', 'font_var' => '--font-english'],
     (object)['key' => 'Bangali', 'label' => 'Bangali Translation', 'file_type' => 'quran_translation', 'url' => 'dataBNG.AM', 'version' => '1.0', 'lang_code' => 'bn', 'direction' => 'ltr', 'font_var' => '--font-Bangali'],
     (object)['key' => 'pashto', 'label' => 'Pashto Translation', 'file_type' => 'quran_translation', 'url' => 'dataPS.AM', 'version' => '1.0', 'lang_code' => 'ps', 'direction' => 'rtl', 'font_var' => '--font-pashto'],
@@ -328,13 +328,13 @@ function import_data_from_file($file_config)
         } else {
             $values = str_getcsv($line);
             if ($file_config->file_type === 'word_translation' && isset($values[4])) {
-                // Remaps columns: [id, arabic, ur, en, ps] -> [id, ur, en, ps, bn]
+
                 $remapped_values = [
-                    $values[0], // word_id
-                    $values[2], // ur_meaning
-                    $values[3], // en_meaning
-                    $values[4], // pashto_text
-                    ''         // bn_meaning (placeholder as it's missing from the file)
+                    $values[0],
+                    $values[2],
+                    $values[3],
+                    $values[4],
+                    ''
                 ];
                 $values = $remapped_values;
             }
@@ -360,7 +360,7 @@ function import_data_from_file($file_config)
                 $bind_types .= 'i';
             }
 
-            // This is the fix for older PHP versions from the previous step
+
             $bind_names = [$bind_types];
             for ($i = 0; $i < count($bind_params); $i++) {
                 $bind_name = 'bind' . $i;
@@ -993,8 +993,12 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 $lang = $_POST['lang'] ?? '';
                 $text = $_POST['text'] ?? '';
                 if ($word_id && $lang && in_array($lang, ['ur_meaning', 'en_meaning', 'pashto_text', 'bn_meaning'])) {
+
                     $sql = "INSERT INTO word_translations (word_id, $lang) VALUES (?, ?) ON DUPLICATE KEY UPDATE $lang = ?";
-                    $stmt = db_query($sql, [$word_id, $text, $text], 'is');
+
+
+                    $stmt = db_query($sql, [$word_id, $text, $text], 'iss');
+
                     if ($stmt) {
                         echo json_encode(['success' => true, 'message' => 'Translation updated. Admin approval might be required.']);
                     } else {
@@ -1225,12 +1229,27 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 else if ($lang_key === 'pashto') $db_col = 'pashto_text';
                 else if ($lang_key === 'Bangali') $db_col = 'bn_meaning';
                 if ($word_id && $db_col) {
-                    $sql = "INSERT INTO word_translations (word_id, $db_col) VALUES (?, ?) ON DUPLICATE KEY UPDATE $db_col = ?";
-                    $stmt = db_query($sql, [$word_id, $translation_text, $translation_text], 'is');
-                    if ($stmt) {
-                        echo json_encode(['success' => true, 'message' => 'Translation submitted for review.']);
+
+                    if ($user_role === 'admin') {
+
+                        $sql = "INSERT INTO word_translations (word_id, $db_col, approved_by, approved_at) 
+                                VALUES (?, ?, ?, NOW()) 
+                                ON DUPLICATE KEY UPDATE $db_col = ?, approved_by = ?, approved_at = NOW()";
+                        $stmt = db_query($sql, [$word_id, $translation_text, $user_id, $translation_text, $user_id], 'isisi');
+                        if ($stmt) {
+                            echo json_encode(['success' => true, 'message' => 'Translation updated and auto-approved.']);
+                        } else {
+                            echo json_encode(['success' => false, 'message' => 'Failed to approve translation.']);
+                        }
                     } else {
-                        echo json_encode(['success' => false, 'message' => 'Failed to submit translation.']);
+
+                        $sql = "INSERT INTO word_translations (word_id, $db_col) VALUES (?, ?) ON DUPLICATE KEY UPDATE $db_col = ?";
+                        $stmt = db_query($sql, [$word_id, $translation_text, $translation_text], 'iss');
+                        if ($stmt) {
+                            echo json_encode(['success' => true, 'message' => 'Translation submitted for review.']);
+                        } else {
+                            echo json_encode(['success' => false, 'message' => 'Failed to submit translation.']);
+                        }
                     }
                 } else {
                     echo json_encode(['success' => false, 'message' => 'Invalid parameters.']);
@@ -1621,7 +1640,7 @@ $static_quranic_themes = [
     (object)['id' => 'static_40', 'name' => "Friday Prayer (Jumu'ah)", 'exampleSurah' => 62, 'exampleAyah' => 9, 'description' => "O you who have believed, when the adhan is called for the prayer on the day of Jumu'ah..."]
 ];
 $translation_config = [
-    (object)['key' => 'urdu', 'label' => 'Urdu', 'lang_code' => 'ur', 'direction' => 'rtl', 'font_var' => '--font-urdu'],
+    (object)['key' => 'urdu', 'label' => 'Urdu', 'lang_code' => 'ur', 'direction' => 'rtl', 'font_var' => 'var(--font-urdu)'],
     (object)['key' => 'english', 'label' => 'English', 'lang_code' => 'en', 'direction' => 'ltr', 'font_var' => '--font-english'],
     (object)['key' => 'Bangali', 'label' => 'Bangali', 'lang_code' => 'bn', 'direction' => 'ltr', 'font_var' => '--font-Bangali'],
     (object)['key' => 'pashto', 'label' => 'Pashto', 'lang_code' => 'ps', 'direction' => 'rtl', 'font_var' => '--font-pashto']
@@ -1685,7 +1704,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             --color-error: #ef5350;
             --color-success: #66bb6a;
             --font-arabic: 'Scheherazade New', 'Lateef', 'Amiri', 'Traditional Arabic', calibri;
-            --font-urdu: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Pak Nastaleeq', calibri;
+            --font-urdu: Calibri, 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Pak Nastaleeq', calibri;
             --font-pashto: 'Mirza', 'Noto Nastaliq Urdu', 'Pak Nastaleeq', calibri;
             --font-Bangali: 'Noto Sans Bangali', 'Arial', calibri;
             --font-english: 'Roboto', 'Segoe UI', calibri;
@@ -1708,7 +1727,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             --color-error: #c62828;
             --color-success: #388e3c;
             --font-arabic: 'Scheherazade New', calibri;
-            --font-urdu: 'Jameel Noori Nastaleeq', calibri;
+            --font-urdu: Calibri, 'Jameel Noori Nastaleeq', calibri;
             --font-Bangali: 'Noto Sans Bangali', calibri;
             --font-english: 'Merriweather', calibri;
             --font-general: 'Merriweather', calibri;
@@ -1727,7 +1746,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             --color-error: #ff5252;
             --color-success: #00e676;
             --font-arabic: 'Orbitron', calibri;
-            --font-urdu: 'Orbitron', calibri;
+            --font-urdu: Calibri, 'Orbitron', calibri;
             --font-Bangali: 'Orbitron', calibri;
             --font-english: 'Orbitron', calibri;
             --font-general: 'Orbitron', calibri;
@@ -3141,19 +3160,21 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 </div>
                 <?php if (get_user_role() === 'admin' || get_user_role() === 'registered'): ?>
                     <div class="quran-controls flex-group mb-20">
-                        <label for="admin-translation-lang">Edit Translation:</label>
                         <select id="admin-translation-lang" aria-label="Select language to edit">
                             <option value="urdu">Urdu</option>
                             <option value="english">English</option>
                             <option value="Bangali">Bangali</option>
                             <option value="pashto">Pashto</option>
                         </select>
-                        <textarea id="admin-translation-text" placeholder="Enter translation..."></textarea>
-                        <button id="admin-save-translation-btn">Save Translation</button>
                     </div>
                 <?php endif; ?>
                 <div id="quran-display" class="quran-viewer" lang="ar" dir="rtl">
                     <p class="text-center">Select a Surah and Ayah to start.</p>
+                </div>
+                <div>
+                                            <label for="admin-translation-lang">Edit Translation:</label>
+                        <textarea id="admin-translation-text" placeholder="Enter translation..."></textarea>
+                        <button id="admin-save-translation-btn">Save Translation</button>
                 </div>
                 <div id="quran-continuous-display" class="quran-viewer" style="display:none;" lang="ar" dir="rtl"></div>
                 <div id="word-translation-area" class="mt-20">
@@ -4240,7 +4261,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 }
                 translationArea.innerHTML = `
                     <p><strong>Selected Word:</strong> <span lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${wordSpan.dataset.wordText}</span></p>
-                    <p><strong>Urdu Meaning:</strong> <span lang="ur" dir="rtl" style="font-family: var(--font-urdu);">${translations.ur}</span></p>
+                    <p><strong>Urdu Meaning:</strong> <span lang="ur" dir="rtl" style="font-family: var(var(--font-urdu));">${translations.ur}</span></p>
                     <p><strong>Pashto Meaning:</strong> <span lang="ps" dir="rtl" style="font-family: var(--font-pashto);">${translations.ps}</span></p>
                     <p><strong>Bangali Meaning:</strong> <span lang="bn" dir="ltr" style="font-family: var(--font-Bangali);">${translations.bn}</span></p>
                     <p><strong>English Meaning:</strong> <span lang="en" dir="ltr" style="font-family: var(--font-english);">${translations.en}</span></p>
@@ -4260,11 +4281,12 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             const wordText = event.target.dataset.wordText;
             const translations = await getWordTranslationById(wordId);
             let langOptions = TRANSLATION_CONFIGS_PHP.map(config => {
-                const currentMeaning = translations[config.key] || '';
+                const meaning = translations[config.lang_code];
+                const currentMeaning = (meaning && meaning !== 'N/A') ? meaning : '';
                 return `
                     <div style="margin-bottom: 10px;">
                         <label for="edit-trans-${config.key}">${config.label} Meaning:</label>
-                        <textarea id="edit-trans-${config.key}" data-lang-key="${config.key}" dir="${config.direction}" style="font-family: ${config.font}; width: 100%; min-height: 50px;">${currentMeaning}</textarea>
+                        <textarea id="edit-trans-${config.key}" data-lang-key="${config.key}" dir="${config.direction}" style="font-family: var(${config.font_var}); width: 100%; min-height: 50px;">${currentMeaning}</textarea>
                     </div>
                 `;
             }).join('');
@@ -14828,4 +14850,6 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 }
             });
         })();
+
+        document.querySelectorAll('input, textarea, select').forEach(el => el.setAttribute('dir', 'auto'));
     </script>
