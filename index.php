@@ -184,6 +184,27 @@ function db_fetch_all($stmt)
         )
     ");
     $conn->query("
+        CREATE TABLE IF NOT EXISTS languages (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            lang_key VARCHAR(50) UNIQUE NOT NULL,
+            label VARCHAR(100) NOT NULL,
+            lang_code VARCHAR(10) NOT NULL,
+            direction ENUM('ltr', 'rtl') DEFAULT 'ltr',
+            font_var VARCHAR(255),
+            word_col_name VARCHAR(50) UNIQUE NOT NULL
+        )
+    ");
+    $stmt_check_langs = $conn->query("SELECT COUNT(*) as count FROM languages");
+    if ($stmt_check_langs && $stmt_check_langs->fetch_assoc()['count'] == 0) {
+        $conn->query(
+            "INSERT INTO languages (lang_key, label, lang_code, direction, font_var, word_col_name) VALUES
+             ('urdu', 'Urdu Translation', 'ur', 'rtl', 'var(--font-urdu)', 'ur_meaning'),
+             ('english', 'English Translation', 'en', 'ltr', '--font-english', 'en_meaning'),
+             ('Bangali', 'Bangali Translation', 'bn', 'ltr', '--font-Bangali', 'bn_meaning'),
+             ('pashto', 'Pashto Translation', 'ps', 'rtl', '--font-pashto', 'pashto_text')"
+        );
+    }
+    $conn->query("
         CREATE TABLE IF NOT EXISTS goals (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT NOT NULL,
@@ -594,6 +615,14 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 echo json_encode(['success' => false, 'message' => 'Invalid Surah provided.']);
             }
             break;
+        case 'get_all_quran_ayahs':
+            $stmt = db_query("SELECT surah, ayah, arabic FROM quran_ayahs");
+            if ($stmt) {
+                echo json_encode(['success' => true, 'data' => db_fetch_all($stmt)]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to fetch all Quran ayahs.']);
+            }
+            break;
         case 'save_tafsir':
             if (is_logged_in()) {
                 $surah = $_POST['surah'] ?? 0;
@@ -663,6 +692,23 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 echo json_encode(['success' => false, 'message' => 'Not authenticated.']);
             }
             break;
+        case 'get_theme':
+            if (is_logged_in()) {
+                $theme_id = $_POST['theme_id'] ?? 0;
+                if ($theme_id) {
+                    $stmt = db_query("SELECT id, name, description FROM themes WHERE user_id = ? AND id = ?", [$user_id, $theme_id], 'ii');
+                    if ($stmt && $data = db_fetch_row($stmt)) {
+                        echo json_encode(['success' => true, 'data' => $data]);
+                    } else {
+                        echo json_encode(['success' => false, 'message' => 'Theme not found.']);
+                    }
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Invalid theme ID.']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Not authenticated.']);
+            }
+            break;
         case 'get_all_themes':
             if (is_logged_in()) {
                 $stmt = db_query("SELECT id, name, description, parent_id FROM themes WHERE user_id = ?", [$user_id], 'i');
@@ -700,7 +746,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 $ayah = $_POST['ayah'] ?? 0;
                 $notes = $_POST['notes'] ?? '';
                 if ($theme_id && $surah && $ayah) {
-                    $stmt = db_query("INSERT INTO theme_ayahs (user_id, theme_id, surah, ayah, notes) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE notes = ?", [$user_id, $theme_id, $surah, $ayah, $notes, $notes], 'iiiss');
+                    $stmt = db_query("INSERT INTO theme_ayahs (user_id, theme_id, surah, ayah, notes) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE notes = ?", [$user_id, $theme_id, $surah, $ayah, $notes, $notes], 'iiisss');
                     if ($stmt) {
                         echo json_encode(['success' => true, 'message' => 'Ayah linked to theme.']);
                     } else {
@@ -803,7 +849,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 $log_date = $_POST['log_date'] ?? '';
                 $notes = $_POST['notes'] ?? '';
                 if ($surah && $log_date) {
-                    $stmt = db_query("INSERT INTO recitations (user_id, surah, ayah_start, ayah_end, qari, log_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)", [$user_id, $surah, $ayah_start, $ayah_end, $qari, $log_date, $notes], 'iiisss');
+                    $stmt = db_query("INSERT INTO recitations (user_id, surah, ayah_start, ayah_end, qari, log_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)", [$user_id, $surah, $ayah_start, $ayah_end, $qari, $log_date, $notes], 'iiiisss');
                     if ($stmt) {
                         echo json_encode(['success' => true, 'message' => 'Recitation log saved.']);
                     } else {
@@ -873,12 +919,30 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                         $review_count,
                         $notes
                     ];
-                    $types = 'iiississsis';
+                    $types = 'iiisssissssis';
                     $stmt = db_query($sql, $params, $types);
                     if ($stmt) {
                         echo json_encode(['success' => true, 'message' => 'Hifz status updated.']);
                     } else {
                         echo json_encode(['success' => false, 'message' => 'Failed to update hifz status.']);
+                    }
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Invalid parameters.']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Not authenticated.']);
+            }
+            break;
+        case 'get_hifz_for_ayah':
+            if (is_logged_in()) {
+                $surah = $_POST['surah'] ?? 0;
+                $ayah = $_POST['ayah'] ?? 0;
+                if ($surah && $ayah) {
+                    $stmt = db_query("SELECT * FROM hifz WHERE user_id = ? AND surah = ? AND ayah = ?", [$user_id, $surah, $ayah], 'iii');
+                    if ($stmt && $data = db_fetch_row($stmt)) {
+                        echo json_encode(['success' => true, 'data' => $data]);
+                    } else {
+                        echo json_encode(['success' => true, 'data' => null]); // Return null if not found
                     }
                 } else {
                     echo json_encode(['success' => false, 'message' => 'Invalid parameters.']);
@@ -921,77 +985,81 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 $search_term = '%' . ($_POST['search_term'] ?? '') . '%';
                 $scopes = $_POST['scopes'] ?? [];
                 $results = [];
+
                 if (in_array('quran-arabic', $scopes)) {
                     $stmt = db_query("SELECT surah, ayah, arabic FROM quran_ayahs WHERE arabic LIKE ?", [$search_term], 's');
                     if ($stmt) {
                         foreach (db_fetch_all($stmt) as $row) {
-                            $results[] = ['type' => 'Quran', 'ref' => "Surah {$row['surah']}:{$row['ayah']}", 'surah' => $row['surah'], 'ayah' => $row['ayah'], 'context' => $row['arabic'], 'source' => 'Arabic'];
+                            $results[] = ['type' => 'Quran', 'ref' => "Surah {$row['surah']}:{$row['ayah']}", 'surah' => $row['surah'], 'ayah' => $row['ayah'], 'context' => $row['arabic'], 'source' => 'Arabic', 'arabic_text' => $row['arabic']];
                         }
                     }
                 }
+
                 if (in_array('quran-translation', $scopes)) {
-                    $translations = ['urdu', 'english', 'Bangali', 'pashto'];
-                    foreach ($translations as $lang) {
-                        $stmt = db_query("SELECT surah, ayah, $lang FROM quran_ayahs WHERE $lang LIKE ?", [$search_term], 's');
-                        if (in_array('quran-translation', $scopes)) {
-                            // This now dynamically fetches all available language keys for Quran translations
-                            foreach ($valid_quran_lang_keys as $lang_key) {
-                                $stmt = db_query("SELECT surah, ayah, `$lang_key` FROM quran_ayahs WHERE `$lang_key` LIKE ?", [$search_term], 's');
-                                if ($stmt) {
-                                    foreach (db_fetch_all($stmt) as $row) {
-                                        if (!empty($row[$lang_key])) {
-                                            $results[] = ['type' => 'Quran', 'ref' => "Surah {$row['surah']}:{$row['ayah']}", 'surah' => $row['surah'], 'ayah' => $row['ayah'], 'context' => $row[$lang_key], 'source' => ucfirst($lang_key) . ' Translation'];
-                                        }
-                                    }
+                    foreach ($valid_quran_lang_keys as $lang_key) {
+                        $stmt = db_query("SELECT surah, ayah, arabic, `$lang_key` FROM quran_ayahs WHERE `$lang_key` LIKE ?", [$search_term], 's');
+                        if ($stmt) {
+                            foreach (db_fetch_all($stmt) as $row) {
+                                if (!empty($row[$lang_key])) {
+                                    $results[] = ['type' => 'Quran', 'ref' => "Surah {$row['surah']}:{$row['ayah']}", 'surah' => $row['surah'], 'ayah' => $row['ayah'], 'context' => $row[$lang_key], 'source' => ucfirst($lang_key) . ' Translation', 'arabic_text' => $row['arabic']];
                                 }
                             }
                         }
                     }
                 }
+
                 if (in_array('tafsir', $scopes)) {
-                    $stmt = db_query("SELECT surah, ayah, notes FROM tafsir WHERE user_id = ? AND notes LIKE ?", [$user_id, $search_term], 'is');
+                    $sql = "SELECT t.surah, t.ayah, t.notes, q.arabic FROM tafsir t JOIN quran_ayahs q ON t.surah = q.surah AND t.ayah = q.ayah WHERE t.user_id = ? AND t.notes LIKE ?";
+                    $stmt = db_query($sql, [$user_id, $search_term], 'is');
                     if ($stmt) {
                         foreach (db_fetch_all($stmt) as $row) {
-                            $results[] = ['type' => 'Tafsir', 'ref' => "Surah {$row['surah']}:{$row['ayah']}", 'surah' => $row['surah'], 'ayah' => $row['ayah'], 'context' => $row['notes'], 'source' => 'Personal Tafsir'];
+                            $results[] = ['type' => 'Tafsir', 'ref' => "Surah {$row['surah']}:{$row['ayah']}", 'surah' => $row['surah'], 'ayah' => $row['ayah'], 'context' => $row['notes'], 'source' => 'Personal Tafsir', 'arabic_text' => $row['arabic']];
                         }
                     }
                 }
+
                 if (in_array('themes', $scopes)) {
                     $stmt = db_query("SELECT id, name, description FROM themes WHERE user_id = ? AND (name LIKE ? OR description LIKE ?)", [$user_id, $search_term, $search_term], 'iss');
                     if ($stmt) {
                         foreach (db_fetch_all($stmt) as $row) {
-                            $results[] = ['type' => 'Theme', 'ref' => "Theme: {$row['name']}", 'context' => $row['description'], 'source' => 'Theme Description'];
+                            $results[] = ['type' => 'Theme', 'ref' => "Theme: {$row['name']}", 'context' => $row['description'], 'source' => 'Theme Description', 'arabic_text' => null];
                         }
                     }
-                    $stmt = db_query("SELECT ta.surah, ta.ayah, ta.notes, t.name AS theme_name FROM theme_ayahs ta JOIN themes t ON ta.theme_id = t.id WHERE ta.user_id = ? AND ta.notes LIKE ?", [$user_id, $search_term], 'is');
+                    $sql = "SELECT ta.surah, ta.ayah, ta.notes, t.name AS theme_name, q.arabic FROM theme_ayahs ta JOIN themes t ON ta.theme_id = t.id JOIN quran_ayahs q ON ta.surah = q.surah AND ta.ayah = q.ayah WHERE ta.user_id = ? AND ta.notes LIKE ?";
+                    $stmt = db_query($sql, [$user_id, $search_term], 'is');
                     if ($stmt) {
                         foreach (db_fetch_all($stmt) as $row) {
-                            $results[] = ['type' => 'Theme Link', 'ref' => "Surah {$row['surah']}:{$row['ayah']} (Theme: {$row['theme_name']})", 'surah' => $row['surah'], 'ayah' => $row['ayah'], 'context' => $row['notes'], 'source' => 'Theme Link Notes'];
+                            $results[] = ['type' => 'Theme Link', 'ref' => "Surah {$row['surah']}:{$row['ayah']} (Theme: {$row['theme_name']})", 'surah' => $row['surah'], 'ayah' => $row['ayah'], 'context' => $row['notes'], 'source' => 'Theme Link Notes', 'arabic_text' => $row['arabic']];
                         }
                     }
                 }
+
                 if (in_array('roots', $scopes)) {
                     $stmt = db_query("SELECT root, description FROM root_words WHERE user_id = ? AND (root LIKE ? OR description LIKE ?)", [$user_id, $search_term, $search_term], 'iss');
                     if ($stmt) {
                         foreach (db_fetch_all($stmt) as $row) {
-                            $results[] = ['type' => 'Root', 'ref' => "Root: {$row['root']}", 'context' => $row['description'], 'source' => 'Root Notes'];
+                            $results[] = ['type' => 'Root', 'ref' => "Root: {$row['root']}", 'context' => $row['description'], 'source' => 'Root Notes', 'arabic_text' => null];
                         }
                     }
                 }
+
                 if (in_array('recitation', $scopes)) {
-                    $stmt = db_query("SELECT surah, ayah_start, ayah_end, notes FROM recitations WHERE user_id = ? AND notes LIKE ?", [$user_id, $search_term], 'is');
+                    $sql = "SELECT r.surah, r.ayah_start, r.ayah_end, r.notes, q.arabic FROM recitations r JOIN quran_ayahs q ON r.surah = q.surah AND r.ayah_start = q.ayah WHERE r.user_id = ? AND r.notes LIKE ?";
+                    $stmt = db_query($sql, [$user_id, $search_term], 'is');
                     if ($stmt) {
                         foreach (db_fetch_all($stmt) as $row) {
                             $range = ($row['ayah_start'] && $row['ayah_end']) ? "{$row['ayah_start']}-{$row['ayah_end']}" : ($row['ayah_start'] ? "{$row['ayah_start']}" : 'Full Surah');
-                            $results[] = ['type' => 'Recitation Log', 'ref' => "Surah {$row['surah']} ({$range})", 'context' => $row['notes'], 'source' => 'Recitation Notes'];
+                            $results[] = ['type' => 'Recitation Log', 'ref' => "Surah {$row['surah']} ({$range})", 'context' => $row['notes'], 'source' => 'Recitation Notes', 'arabic_text' => $row['arabic']];
                         }
                     }
                 }
+
                 if (in_array('hifz', $scopes)) {
-                    $stmt = db_query("SELECT surah, ayah, notes FROM hifz WHERE user_id = ? AND notes LIKE ?", [$user_id, $search_term], 'is');
+                    $sql = "SELECT h.surah, h.ayah, h.notes, q.arabic FROM hifz h JOIN quran_ayahs q ON h.surah = q.surah AND h.ayah = q.ayah WHERE h.user_id = ? AND h.notes LIKE ?";
+                    $stmt = db_query($sql, [$user_id, $search_term], 'is');
                     if ($stmt) {
                         foreach (db_fetch_all($stmt) as $row) {
-                            $results[] = ['type' => 'Hifz', 'ref' => "Surah {$row['surah']}:{$row['ayah']}", 'surah' => $row['surah'], 'ayah' => $row['ayah'], 'context' => $row['notes'], 'source' => 'Hifz Notes'];
+                            $results[] = ['type' => 'Hifz', 'ref' => "Surah {$row['surah']}:{$row['ayah']}", 'surah' => $row['surah'], 'ayah' => $row['ayah'], 'context' => $row['notes'], 'source' => 'Hifz Notes', 'arabic_text' => $row['arabic']];
                         }
                     }
                 }
@@ -1446,6 +1514,55 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 echo json_encode(['success' => true, 'data' => db_fetch_all($stmt)]);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Failed to fetch languages.']);
+            }
+            break;
+        case 'get_all_theme_ayahs':
+            if (is_logged_in()) {
+                $stmt = db_query("SELECT * FROM theme_ayahs WHERE user_id = ?", [$user_id], 'i');
+                if ($stmt) {
+                    echo json_encode(['success' => true, 'data' => db_fetch_all($stmt)]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to fetch theme links.']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Not authenticated.']);
+            }
+            break;
+
+        case 'get_goal':
+            if (is_logged_in()) {
+                $goal_id = $_POST['id'] ?? 0;
+                if ($goal_id) {
+                    $stmt = db_query("SELECT * FROM goals WHERE user_id = ? AND id = ?", [$user_id, $goal_id], 'ii');
+                    if ($stmt && $data = db_fetch_row($stmt)) {
+                        echo json_encode(['success' => true, 'data' => $data]);
+                    } else {
+                        echo json_encode(['success' => false, 'message' => 'Goal not found.']);
+                    }
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Invalid ID.']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Not authenticated.']);
+            }
+            break;
+
+        case 'get_linked_ayahs_for_ayah':
+            if (is_logged_in()) {
+                $surah = $_POST['surah'] ?? 0;
+                $ayah = $_POST['ayah'] ?? 0;
+                if ($surah && $ayah) {
+                    $stmt = db_query("SELECT * FROM theme_ayahs WHERE user_id = ? AND surah = ? AND ayah = ?", [$user_id, $surah, $ayah], 'iii');
+                    if ($stmt) {
+                        echo json_encode(['success' => true, 'data' => db_fetch_all($stmt)]);
+                    } else {
+                        echo json_encode(['success' => false, 'message' => 'Failed to fetch links for Ayah.']);
+                    }
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Invalid parameters.']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Not authenticated.']);
             }
             break;
         default:
@@ -3809,6 +3926,8 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         const STORE_WORD_METADATA_PLACEHOLDER = 'word_metadata';
         const ajax_url = '<?php echo $_SERVER['PHP_SELF']; ?>';
         let rootNetwork = null;
+        let isLoadingHifzForSurahGlobalFlag = false;
+        let isLoadingRecitationLogsGlobalFlag = false;
         let rootNodePopupEl = null;
         let activeRootNodeIdForPopup = null;
         let allRootOccurrencesCache = [];
@@ -3845,7 +3964,13 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             const formData = new FormData();
             formData.append('action', action);
             for (const key in data) {
-                formData.append(key, data[key]);
+                if (Array.isArray(data[key])) {
+                    data[key].forEach(value => {
+                        formData.append(key + '[]', value); // Correctly format array for PHP
+                    });
+                } else {
+                    formData.append(key, data[key]);
+                }
             }
             try {
                 const response = await fetch(ajax_url, {
@@ -6135,6 +6260,91 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             }
         }
         let eventListenersInitialized = false;
+
+        function updateRootGraphView() {
+            const graphContainer = document.getElementById('root-network-graph');
+            const paginationControls = document.getElementById('root-graph-pagination-controls');
+            const pageInfo = document.getElementById('root-graph-page-info');
+            const prevBtn = document.getElementById('prev-root-graph-page-btn');
+            const nextBtn = document.getElementById('next-root-graph-page-btn');
+
+            if (rootNetwork) {
+                rootNetwork.destroy();
+                rootNetwork = null;
+            }
+            graphContainer.innerHTML = '';
+
+            if (allRootOccurrencesCache.length === 0) {
+                paginationControls.style.display = 'none';
+                return;
+            }
+
+            const totalPages = Math.ceil(allRootOccurrencesCache.length / rootGraphItemsPerPage);
+            pageInfo.textContent = `Page ${currentRootGraphPage} of ${totalPages}`;
+            prevBtn.disabled = currentRootGraphPage === 1;
+            nextBtn.disabled = currentRootGraphPage >= totalPages;
+            paginationControls.style.display = 'flex';
+
+            const startIndex = (currentRootGraphPage - 1) * rootGraphItemsPerPage;
+            const endIndex = startIndex + rootGraphItemsPerPage;
+            const pageOccurrences = allRootOccurrencesCache.slice(startIndex, endIndex);
+
+            const nodes = new vis.DataSet();
+            const edges = new vis.DataSet();
+
+            const rootTerm = document.getElementById('analyzed-root-term').textContent || 'Root';
+
+            nodes.add({
+                id: 'root',
+                label: rootTerm,
+                shape: 'ellipse',
+                color: 'var(--color-accent-dark)',
+                font: {
+                    color: 'white',
+                    size: 20,
+                    face: 'var(--font-arabic)'
+                }
+            });
+
+            pageOccurrences.forEach((occ, index) => {
+                const nodeId = `occ_${startIndex + index}`;
+                nodes.add({
+                    id: nodeId,
+                    label: `S ${occ.surah}:${occ.ayah}\n${occ.word}`,
+                    shape: 'box',
+                    font: {
+                        multi: true,
+                        face: 'var(--font-arabic)',
+                        align: 'right'
+                    },
+                    title: occ.context
+                });
+                edges.add({
+                    from: 'root',
+                    to: nodeId
+                });
+            });
+
+            const data = {
+                nodes: nodes,
+                edges: edges
+            };
+            const options = {
+                physics: {
+                    solver: 'barnesHut',
+                    barnesHut: {
+                        gravitationalConstant: -15000,
+                        centralGravity: 0.1,
+                        springLength: 250
+                    },
+                },
+                interaction: {
+                    hover: true
+                }
+            };
+
+            rootNetwork = new vis.Network(graphContainer, data, options);
+        }
 
         function setupEventListeners() {
             if (eventListenersInitialized) {
