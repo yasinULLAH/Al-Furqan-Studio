@@ -511,6 +511,49 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
         }
     }
     switch ($action) {
+        case 'toggle_public_status':
+            if (get_user_role() !== 'admin') {
+                echo json_encode(['success' => false, 'message' => 'Unauthorized.']);
+                break;
+            }
+            $content_type = $_POST['content_type'] ?? '';
+            $content_id = $_POST['content_id'] ?? 0;
+            $is_public = isset($_POST['is_public']) ? (int)$_POST['is_public'] : 0;
+
+            $valid_tables = ['tafsir' => 'id', 'themes' => 'id', 'root_words' => 'id'];
+            if (array_key_exists($content_type, $valid_tables) && $content_id > 0) {
+                $id_column = $valid_tables[$content_type];
+                $stmt = db_query("UPDATE `$content_type` SET is_public = ? WHERE $id_column = ?", [$is_public, $content_id], 'ii');
+                if ($stmt) {
+                    echo json_encode(['success' => true, 'message' => 'Public status updated.']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Database update failed.']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Invalid parameters.']);
+            }
+            break;
+        case 'get_public_content':
+            $public_data = [
+                'tafsir' => [],
+                'themes' => [],
+                'root_words' => []
+            ];
+
+            // Fetch Public Tafsir
+            $stmt_tafsir = db_query("SELECT t.*, u.full_name, u.username FROM tafsir t JOIN users u ON t.user_id = u.id WHERE t.is_public = 1 ORDER BY t.created_at DESC LIMIT 50");
+            if ($stmt_tafsir) $public_data['tafsir'] = db_fetch_all($stmt_tafsir);
+
+            // Fetch Public Themes
+            $stmt_themes = db_query("SELECT th.*, u.full_name, u.username FROM themes th JOIN users u ON th.user_id = u.id WHERE th.is_public = 1 ORDER BY th.created_at DESC LIMIT 50");
+            if ($stmt_themes) $public_data['themes'] = db_fetch_all($stmt_themes);
+
+            // Fetch Public Root Words
+            $stmt_roots = db_query("SELECT r.*, u.full_name, u.username FROM root_words r JOIN users u ON r.user_id = u.id WHERE r.is_public = 1 ORDER BY r.created_at DESC LIMIT 50");
+            if ($stmt_roots) $public_data['root_words'] = db_fetch_all($stmt_roots);
+
+            echo json_encode(['success' => true, 'data' => $public_data]);
+            break;
         case 'load_quran_ayah':
             $surah = $_POST['surah'] ?? 0;
             $ayah = $_POST['ayah'] ?? 0;
@@ -3190,7 +3233,6 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         <div class="header-controls">
             <?php if (is_logged_in()): ?>
                 <span style="margin-right: 15px;">Welcome, <?= htmlspecialchars($_SESSION['username']); ?>! (<?= htmlspecialchars($_SESSION['role']); ?>)</span>
-                <a href="manage.php" class="button" style="margin-right: 10px;">Manage Dashboard</a>
                 <?php if (get_user_role() === 'admin'): ?>
                     <button id="admin-panel-btn" style="margin-right: 15px;">Admin</button>
                 <?php endif; ?>
@@ -3211,6 +3253,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         <aside class="sidebar">
             <nav>
                 <ul>
+                    <li><a href="#community" class="nav-link" data-section="community">Community Content</a></li>
                     <li><a href="#quran" class="nav-link active" data-section="quran">Quran Viewer</a></li>
                     <?php if (is_logged_in()): ?>
                         <li><a href="#tafsir" class="nav-link" data-section="tafsir">Personal Tafsir</a></li>
@@ -3271,6 +3314,32 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         <button id="admin-save-translation-btn">Save Translation</button>
                     </div>
                 <?php endif; ?>
+            </section>
+            </section>
+            <section id="community" class="section" role="region" aria-labelledby="community-heading">
+                <h2 id="community-heading">Featured Community Content</h2>
+                <p>Explore Tafsir, themes, and notes shared by other users, approved by our admins.</p>
+
+                <div class="report-section">
+                    <h4>Public Tafsir Notes</h4>
+                    <ul id="public-tafsir-list" class="report-list">
+                        <li>Loading...</li>
+                    </ul>
+                </div>
+
+                <div class="report-section">
+                    <h4>Public Themes</h4>
+                    <ul id="public-themes-list" class="report-list">
+                        <li>Loading...</li>
+                    </ul>
+                </div>
+
+                <div class="report-section">
+                    <h4>Public Root Word Notes</h4>
+                    <ul id="public-roots-list" class="report-list">
+                        <li>Loading...</li>
+                    </ul>
+                </div>
             </section>
             <?php if (is_logged_in()): ?>
                 <section id="tafsir" class="section" role="region" aria-labelledby="tafsir-heading">
@@ -6429,6 +6498,51 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         function handleWordBlur(event) {
             event.target.style.backgroundColor = 'transparent';
         }
+        async function loadPublicContent() {
+            const tafsirList = document.getElementById('public-tafsir-list');
+            const themesList = document.getElementById('public-themes-list');
+            const rootsList = document.getElementById('public-roots-list');
+
+            tafsirList.innerHTML = '<li>Loading...</li>';
+            themesList.innerHTML = '<li>Loading...</li>';
+            rootsList.innerHTML = '<li>Loading...</li>';
+
+            const result = await sendAjaxRequest('get_public_content');
+
+            if (result.success) {
+                const {
+                    tafsir,
+                    themes,
+                    root_words
+                } = result.data;
+
+                tafsirList.innerHTML = tafsir.length > 0 ?
+                    tafsir.map(t => `<li><span class="item-surah-ayah" data-surah="${t.surah}" data-ayah="${t.ayah}">S ${t.surah}:${t.ayah}</span> by <strong>${t.full_name || t.username}</strong><span class="item-notes">${t.notes.substring(0, 150)}...</span></li>`).join('') :
+                    '<li>No public Tafsir notes available yet.</li>';
+
+                themesList.innerHTML = themes.length > 0 ?
+                    themes.map(t => `<li><span class="item-ref">${t.name}</span> by <strong>${t.full_name || t.username}</strong><span class="item-notes">${t.description || ''}</span></li>`).join('') :
+                    '<li>No public themes available yet.</li>';
+
+                rootsList.innerHTML = roots.length > 0 ?
+                    roots.map(r => `<li><span class="item-ref" lang="ar" dir="rtl">${r.root}</span> by <strong>${r.full_name || r.username}</strong><span class="item-notes">${r.description || ''}</span></li>`).join('') :
+                    '<li>No public root word notes available yet.</li>';
+
+                // Make Surah:Ayah links clickable
+                tafsirList.querySelectorAll('.item-surah-ayah').forEach(el => el.addEventListener('click', e => {
+                    const s = parseInt(e.currentTarget.dataset.surah);
+                    const a = parseInt(e.currentTarget.dataset.ayah);
+                    loadAyah(s, a);
+                    showSection('quran');
+                }));
+
+            } else {
+                const errorMsg = '<li>Failed to load public content.</li>';
+                tafsirList.innerHTML = errorMsg;
+                themesList.innerHTML = errorMsg;
+                rootsList.innerHTML = errorMsg;
+            }
+        }
 
         function showSection(sectionId) {
             document.querySelectorAll('.section').forEach(section => {
@@ -6451,22 +6565,26 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 activeLink.setAttribute('aria-current', 'page');
             }
             if (isUserLoggedIn) {
-                if (sectionId === 'tafsir' || sectionId === 'themes') {
-                    updateTafsirAndThemeViews();
-                } else if (sectionId === 'themes') {
-                    populateThemeSelects();
-                    displayLinkedAyahsForCurrentTheme();
-                } else if (sectionId === 'recitation') {
-                    loadRecitationLogs();
-                } else if (sectionId === 'hifz') {
-                    const hifzSurahSelect = document.getElementById('hifz-surah-select');
-                    if (hifzSurahSelect && hifzSurahSelect.value) {
-                        loadHifzForSurah(parseInt(hifzSurahSelect.value, 10));
+                if (sectionId === 'community') {
+                    loadPublicContent();
+                } else if (isUserLoggedIn) { // Note the change from 'if' to 'else if'
+                    if (sectionId === 'tafsir' || sectionId === 'themes') {
+                        updateTafsirAndThemeViews();
+                    } else if (sectionId === 'themes') {
+                        populateThemeSelects();
+                        displayLinkedAyahsForCurrentTheme();
+                    } else if (sectionId === 'recitation') {
+                        loadRecitationLogs();
+                    } else if (sectionId === 'hifz') {
+                        const hifzSurahSelect = document.getElementById('hifz-surah-select');
+                        if (hifzSurahSelect && hifzSurahSelect.value) {
+                            loadHifzForSurah(parseInt(hifzSurahSelect.value, 10));
+                        }
+                    } else if (sectionId === 'goals') {
+                        if (typeof renderGoalsUI === 'function') renderGoalsUI();
+                    } else if (sectionId === 'reporting') {
+                        if (typeof loadAndDisplayReportData_Enhanced === 'function') loadAndDisplayReportData_Enhanced();
                     }
-                } else if (sectionId === 'goals') {
-                    if (typeof renderGoalsUI === 'function') renderGoalsUI();
-                } else if (sectionId === 'reporting') {
-                    if (typeof loadAndDisplayReportData_Enhanced === 'function') loadAndDisplayReportData_Enhanced();
                 }
             }
         }

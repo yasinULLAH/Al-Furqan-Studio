@@ -3,14 +3,20 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 session_start();
+
+// Database configuration
 define('DB_SERVER', 'localhost');
 define('DB_USERNAME', 'root');
 define('DB_NAME', 'nur_ul_quran_studio_db');
 define('DB_PASS', 'root');
+
+// Establish database connection
 $conn = new mysqli(DB_SERVER, DB_USERNAME, DB_PASS, DB_NAME);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
+
+// Function to safely execute prepared statements
 function db_query($sql, $params = [], $types = '')
 {
     global $conn;
@@ -23,7 +29,7 @@ function db_query($sql, $params = [], $types = '')
         $bind_names = [$types];
         for ($i = 0; $i < count($params); $i++) {
             $bind_name = 'bind' . $i;
-            $$bind_name = $params[$i];
+            $$bind_name = $params[$i]; 
             $bind_names[] = &$$bind_name;
         }
         call_user_func_array([$stmt, 'bind_param'], $bind_names);
@@ -31,6 +37,8 @@ function db_query($sql, $params = [], $types = '')
     $stmt->execute();
     return $stmt;
 }
+
+// Function to fetch a single row from a statement result
 function db_fetch_row($stmt)
 {
     $result = $stmt->get_result();
@@ -39,6 +47,8 @@ function db_fetch_row($stmt)
     }
     return $result->fetch_assoc();
 }
+
+// Function to fetch all rows from a statement result
 function db_fetch_all($stmt)
 {
     $result = $stmt->get_result();
@@ -47,33 +57,613 @@ function db_fetch_all($stmt)
     }
     return $result->fetch_all(MYSQLI_ASSOC);
 }
+
+// User session management functions
 function is_logged_in()
 {
     return isset($_SESSION['user_id']);
 }
+
 function get_user_role()
 {
     return $_SESSION['role'] ?? 'public';
 }
+
 function get_user_id()
 {
     return $_SESSION['user_id'] ?? 0;
 }
+
+function get_user_username()
+{
+    return $_SESSION['username'] ?? '';
+}
+
 function can_edit_translations()
 {
     $role = get_user_role();
     return $role === 'admin' || $role === 'registered';
 }
+
 function can_approve_translations()
 {
     return get_user_role() === 'admin';
 }
-if (!is_logged_in()) {
-    header('Location: index.php');
+
+// --- AJAX Request Handler ---
+if (isset($_POST['action'])) {
+    $action = $_POST['action'];
+    $response = ['success' => false, 'message' => 'Invalid action.'];
+    $user_id = get_user_id();
+    $user_role = get_user_role();
+
+    header('Content-Type: application/json');
+
+    $isAdmin = ($user_role === 'admin');
+
+    if ($isAdmin) {
+        switch ($action) {
+            case 'get_all_users':
+                $stmt = db_query("SELECT id, username, full_name, email, role, created_at FROM users");
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'update_user_role':
+                $userId = $_POST['user_id'];
+                $newRole = $_POST['new_role'];
+                if ($userId == $user_id && $newRole !== 'admin') { 
+                    $response = ['success' => false, 'message' => 'You cannot change your own role from admin.'];
+                } else {
+                    $stmt = db_query("UPDATE users SET role = ? WHERE id = ?", [$newRole, $userId], 'si');
+                    $response = $stmt ? ['success' => true, 'message' => 'User role updated.'] : ['success' => false, 'message' => $conn->error];
+                }
+                break;
+            case 'update_user_full_name':
+                $userId = $_POST['user_id'];
+                $fullName = $_POST['full_name'];
+                $stmt = db_query("UPDATE users SET full_name = ? WHERE id = ?", [$fullName, $userId], 'si');
+                $response = $stmt ? ['success' => true, 'message' => 'User full name updated.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'delete_user':
+                $userId = $_POST['user_id'];
+                if ($userId == $user_id) { 
+                    $response = ['success' => false, 'message' => 'You cannot delete your own account.'];
+                } else {
+                    $stmt = db_query("DELETE FROM users WHERE id = ?", [$userId], 'i');
+                    $response = $stmt ? ['success' => true, 'message' => 'User deleted.'] : ['success' => false, 'message' => $conn->error];
+                }
+                break;
+            case 'load_quran_ayah':
+                $surah = $_POST['surah'];
+                $ayah = $_POST['ayah'];
+                $select_cols = ['arabic_text AS arabic'];
+                foreach ($translation_config as $lang) {
+                    $select_cols[] = $lang->key;
+                }
+                $sql_select = implode(', ', $select_cols);
+                $stmt = db_query("SELECT $sql_select FROM quran_ayahs WHERE surah_num = ? AND ayah_num = ?", [$surah, $ayah], 'ii');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_row($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'admin_update_quran_translation':
+                $surah = $_POST['surah'];
+                $ayah = $_POST['ayah'];
+                $langKey = $_POST['lang_key'];
+                $translationText = $_POST['translation_text'];
+
+                $validLangKey = false;
+                foreach ($translation_config as $config) {
+                    if ($config->key === $langKey) {
+                        $validLangKey = true;
+                        break;
+                    }
+                }
+                if (!$validLangKey) {
+                    $response = ['success' => false, 'message' => 'Invalid language key.'];
+                    break;
+                }
+
+                $stmt = db_query("UPDATE quran_ayahs SET `$langKey` = ? WHERE surah_num = ? AND ayah_num = ?", [$translationText, $surah, $ayah], 'sii');
+                $response = $stmt ? ['success' => true, 'message' => 'Translation updated.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_unapproved_word_translations': 
+                $sql = "SELECT uwt.id, uwt.word_id, qw.arabic_word, l.lang_key, l.label AS lang_label, uwt.translation, u.username 
+                        FROM user_word_translations uwt
+                        JOIN quran_words qw ON uwt.word_id = qw.word_id
+                        JOIN languages l ON uwt.lang_key = l.lang_key
+                        JOIN users u ON uwt.user_id = u.id
+                        WHERE uwt.approved_by IS NULL";
+                $stmt = db_query($sql);
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'edit_word_translation': 
+                $wordId = $_POST['word_id'];
+                $langKey = $_POST['lang_key'];
+                $translationText = $_POST['translation_text'];
+                $adminApprove = filter_var($_POST['admin_approve'], FILTER_VALIDATE_BOOLEAN);
+
+                $validColName = '';
+                foreach ($translation_config as $config) {
+                    if ($config->key === $langKey) {
+                        $validColName = $config->word_col_name;
+                        break;
+                    }
+                }
+                if (!$validColName) {
+                    $response = ['success' => false, 'message' => 'Invalid language key or column name.'];
+                    break;
+                }
+
+                if ($adminApprove) {
+                    $conn->begin_transaction();
+                    try {
+                        $stmt_update_main = db_query("UPDATE quran_words SET `$validColName` = ?, approved_by = ? WHERE word_id = ?", [$translationText, $user_id, $wordId], 'sii');
+                        if (!$stmt_update_main) {
+                            throw new Exception($conn->error);
+                        }
+                        $stmt_approve_user_submissions = db_query("UPDATE user_word_translations SET approved_by = ? WHERE word_id = ? AND lang_key = ? AND approved_by IS NULL", [$user_id, $wordId, $langKey], 'iis');
+                        if (!$stmt_approve_user_submissions) {
+                            throw new Exception($conn->error);
+                        }
+                        $conn->commit();
+                        $response = ['success' => true, 'message' => 'Word translation approved and updated.'];
+                    } catch (Exception $e) {
+                        $conn->rollback();
+                        $response = ['success' => false, 'message' => 'Failed to approve/update word translation: ' . $e->getMessage()];
+                    }
+                } else {
+                    $stmt = db_query("INSERT INTO user_word_translations (user_id, word_id, lang_key, translation) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE translation = ?, submitted_at = NOW(), approved_by = NULL", [$user_id, $wordId, $langKey, $translationText, $translationText], 'iisss');
+                    $response = $stmt ? ['success' => true, 'message' => 'Word translation submitted for review.'] : ['success' => false, 'message' => $conn->error];
+                }
+                break;
+            case 'delete_word_translation': 
+                $wordId = $_POST['word_id'];
+                $langKey = $_POST['lang_key'];
+                $stmt = db_query("DELETE FROM user_word_translations WHERE word_id = ? AND lang_key = ? AND approved_by IS NULL", [$wordId, $langKey], 'is');
+                $response = $stmt ? ['success' => true, 'message' => 'Pending word translation rejected/deleted.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_all_word_translations_full': 
+                $selectCols = ['qw.word_id', 'qw.arabic_word', 'CONCAT(qw.surah, ":", qw.ayah) AS surah_ayah'];
+                foreach ($translation_config as $lang) {
+                    $selectCols[] = "`" . $lang->word_col_name . "`";
+                }
+                $selectCols[] = "u.username AS approved_by_username";
+                $sql = "SELECT " . implode(', ', $selectCols) . " FROM quran_words qw LEFT JOIN users u ON qw.approved_by = u.id";
+                $stmt = db_query($sql);
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_word_translation': 
+                $wordId = $_POST['word_id'];
+                $selectCols = ['qw.word_id', 'qw.arabic_word', 'qw.surah', 'qw.ayah', 'qw.position'];
+                foreach ($translation_config as $lang) {
+                    $selectCols[] = "`" . $lang->word_col_name . "`";
+                }
+                $sql = "SELECT " . implode(', ', $selectCols) . " FROM quran_words qw WHERE word_id = ?";
+                $stmt = db_query($sql, [$wordId], 'i');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_row($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_all_languages':
+                $stmt = db_query("SELECT `key`, label, lang_code, direction, font_var FROM languages");
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'add_language':
+                $langKey = $_POST['lang_key'];
+                $label = $_POST['label'];
+                $langCode = $_POST['lang_code'];
+                $direction = $_POST['direction'];
+                $fontVar = $_POST['font_var'];
+                $wordColName = "translation_" . $langKey;
+
+                $conn->begin_transaction();
+                try {
+                    $stmt = db_query("INSERT INTO languages (`key`, label, lang_code, direction, font_var, word_col_name) VALUES (?, ?, ?, ?, ?, ?)",
+                        [$langKey, $label, $langCode, $direction, $fontVar, $wordColName], 'ssssss');
+                    if (!$stmt) throw new Exception("Failed to insert into languages: " . $conn->error);
+
+                    $alterAyahSql = "ALTER TABLE quran_ayahs ADD COLUMN `$langKey` TEXT NULL";
+                    if (!$conn->query($alterAyahSql)) throw new Exception("Failed to alter quran_ayahs: " . $conn->error);
+
+                    $alterWordSql = "ALTER TABLE quran_words ADD COLUMN `$wordColName` TEXT NULL";
+                    if (!$conn->query($alterWordSql)) throw new Exception("Failed to alter quran_words: " . $conn->error);
+
+                    $conn->commit();
+                    $response = ['success' => true, 'message' => 'Language added successfully and tables updated.'];
+                } catch (Exception $e) {
+                    $conn->rollback();
+                    $response = ['success' => false, 'message' => 'Failed to add language: ' . $e->getMessage()];
+                }
+                break;
+            case 'update_language': 
+                $originalKey = $_POST['original_key'];
+                $label = $_POST['label'];
+                $langCode = $_POST['lang_code'];
+                $direction = $_POST['direction'];
+                $fontVar = $_POST['font_var'];
+
+                $stmt = db_query("UPDATE languages SET label = ?, lang_code = ?, direction = ?, font_var = ? WHERE `key` = ?",
+                    [$label, $langCode, $direction, $fontVar, $originalKey], 'sssss');
+                $response = $stmt ? ['success' => true, 'message' => 'Language updated successfully.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'delete_language': 
+                $langKey = $_POST['lang_key'];
+                $wordColName = "translation_" . $langKey;
+
+                $conn->begin_transaction();
+                try {
+                    $stmt = db_query("DELETE FROM languages WHERE `key` = ?", [$langKey], 's');
+                    if (!$stmt || $stmt->affected_rows === 0) throw new Exception("Language not found or failed to delete from languages.");
+
+                    $alterAyahSql = "ALTER TABLE quran_ayahs DROP COLUMN `$langKey`";
+                    if (!$conn->query($alterAyahSql)) throw new Exception("Failed to drop column from quran_ayahs: " . $conn->error);
+
+                    $alterWordSql = "ALTER TABLE quran_words DROP COLUMN `$wordColName`";
+                    if (!$conn->query($alterWordSql)) throw new Exception("Failed to drop column from quran_words: " . $conn->error);
+
+                    $conn->commit();
+                    $response = ['success' => true, 'message' => 'Language deleted successfully and columns removed.'];
+                } catch (Exception $e) {
+                    $conn->rollback();
+                    $response = ['success' => false, 'message' => 'Failed to delete language: ' . $e->getMessage()];
+                }
+                break;
+            case 'get_all_tafsir_admin': 
+                $sql = "SELECT ut.id, ut.user_id, u.username, ut.surah, ut.ayah, ut.notes, ut.is_public FROM user_tafsir ut JOIN users u ON ut.user_id = u.id ORDER BY ut.surah, ut.ayah";
+                $stmt = db_query($sql);
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_all_themes_admin': 
+                $sql = "SELECT ut.id, ut.user_id, u.username, ut.name, ut.description, ut.is_public FROM user_themes ut JOIN users u ON ut.user_id = u.id ORDER BY ut.name";
+                $stmt = db_query($sql);
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_all_roots_admin': 
+                $sql = "SELECT ur.id, ur.user_id, u.username, ur.root, ur.description, ur.is_public FROM user_roots ur JOIN users u ON ur.user_id = u.id ORDER BY ur.root";
+                $stmt = db_query($sql);
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'toggle_public_status': 
+                $itemId = $_POST['item_id'];
+                $itemType = $_POST['item_type'];
+                $isPublic = filter_var($_POST['is_public'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+                $table = '';
+
+                switch ($itemType) {
+                    case 'tafsir':
+                        $table = 'user_tafsir';
+                        break;
+                    case 'theme':
+                        $table = 'user_themes';
+                        break;
+                    case 'root':
+                        $table = 'user_roots';
+                        break;
+                    default:
+                        $response = ['success' => false, 'message' => 'Invalid item type.'];
+                        echo json_encode($response);
+                        exit();
+                }
+                $stmt = db_query("UPDATE $table SET is_public = ? WHERE id = ?", [$isPublic, $itemId], 'ii');
+                $response = $stmt ? ['success' => true, 'message' => 'Public status updated.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_all_tafsir': 
+                $stmt = db_query("SELECT id FROM user_tafsir");
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_all_themes': 
+                $stmt = db_query("SELECT id FROM user_themes");
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+        }
+    }
+    
+    if ($user_id > 0) {
+        switch ($action) {
+            case 'get_all_tafsir':
+                $stmt = db_query("SELECT id, surah, ayah, notes, is_public FROM user_tafsir WHERE user_id = ?", [$user_id], 'i');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'save_tafsir':
+                $surah = $_POST['surah'];
+                $ayah = $_POST['ayah'];
+                $notes = $_POST['notes'];
+                $stmt = db_query("INSERT INTO user_tafsir (user_id, surah, ayah, notes, updated_at) VALUES (?, ?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE notes = ?, updated_at = NOW()",
+                    [$user_id, $surah, $ayah, $notes, $notes], 'iisss');
+                $response = $stmt ? ['success' => true, 'message' => 'Tafsir notes saved.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'delete_tafsir': 
+                $surah = $_POST['surah'];
+                $ayah = $_POST['ayah'];
+                // For user, ensure they only delete their own tafsir
+                $stmt = db_query("DELETE FROM user_tafsir WHERE user_id = ? AND surah = ? AND ayah = ?", [$user_id, $surah, $ayah], 'iii');
+                $response = $stmt ? ['success' => true, 'message' => 'Tafsir note deleted.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_all_themes':
+                $stmt = db_query("SELECT id, name, description, is_public FROM user_themes WHERE user_id = ?", [$user_id], 'i');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'add_theme':
+                $name = $_POST['name'];
+                $description = $_POST['description'];
+                $stmt = db_query("INSERT INTO user_themes (user_id, name, description, created_at) VALUES (?, ?, ?, NOW())", [$user_id, $name, $description], 'iss');
+                $response = $stmt ? ['success' => true, 'message' => 'Theme added.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'update_theme': 
+                $themeId = $_POST['theme_id'];
+                $name = $_POST['name'];
+                $description = $_POST['description'];
+                $stmt = db_query("UPDATE user_themes SET name = ?, description = ? WHERE id = ? AND user_id = ?", [$name, $description, $themeId, $user_id], 'ssii');
+                $response = $stmt ? ['success' => true, 'message' => 'Theme updated.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'delete_theme':
+                $themeId = $_POST['theme_id'];
+                $conn->begin_transaction();
+                try {
+                    db_query("DELETE FROM user_theme_ayahs WHERE theme_id = ? AND user_id = ?", [$themeId, $user_id], 'ii');
+                    $stmt = db_query("DELETE FROM user_themes WHERE id = ? AND user_id = ?", [$themeId, $user_id], 'ii');
+                    if (!$stmt) throw new Exception($conn->error);
+                    $conn->commit();
+                    $response = ['success' => true, 'message' => 'Theme and linked ayahs deleted.'];
+                } catch (Exception $e) {
+                    $conn->rollback();
+                    $response = ['success' => false, 'message' => 'Failed to delete theme: ' . $e->getMessage()];
+                }
+                break;
+            case 'get_linked_ayahs_for_theme':
+                $themeId = $_POST['theme_id'];
+                $stmt = db_query("SELECT id, surah, ayah, notes FROM user_theme_ayahs WHERE user_id = ? AND theme_id = ?", [$user_id, $themeId], 'ii');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_all_theme_ayahs': 
+                $stmt = db_query("SELECT id, theme_id, surah, ayah FROM user_theme_ayahs WHERE user_id = ?", [$user_id], 'i');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'unlink_ayah_from_theme':
+                $linkId = $_POST['link_id'];
+                $stmt = db_query("DELETE FROM user_theme_ayahs WHERE id = ? AND user_id = ?", [$linkId, $user_id], 'ii');
+                $response = $stmt ? ['success' => true, 'message' => 'Ayah unlinked.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_all_roots':
+                $stmt = db_query("SELECT id, root, description, is_public FROM user_roots WHERE user_id = ?", [$user_id], 'i');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'save_root_notes':
+                $root = $_POST['root'];
+                $description = $_POST['description'];
+                $stmt = db_query("INSERT INTO user_roots (user_id, root, description, created_at) VALUES (?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE description = ?",
+                    [$user_id, $root, $description, $description], 'isss');
+                $response = $stmt ? ['success' => true, 'message' => 'Root notes saved.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'delete_root_notes': 
+                $root = $_POST['root'];
+                $stmt = db_query("DELETE FROM user_roots WHERE user_id = ? AND root = ?", [$user_id, $root], 'is');
+                $response = $stmt ? ['success' => true, 'message' => 'Root notes deleted.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_all_recitations':
+                $stmt = db_query("SELECT id, surah, ayah_start, ayah_end, qari, log_date, notes FROM user_recitation_logs WHERE user_id = ?", [$user_id], 'i');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'update_recitation_log': 
+                $id = $_POST['id'] ?? null;
+                $surah = $_POST['surah'];
+                $ayah_start = $_POST['ayah_start'] ?: null;
+                $ayah_end = $_POST['ayah_end'] ?: null;
+                $qari = $_POST['qari'];
+                $log_date = $_POST['log_date'];
+                $notes = $_POST['notes'];
+                if ($id) {
+                    $stmt = db_query("UPDATE user_recitation_logs SET surah = ?, ayah_start = ?, ayah_end = ?, qari = ?, log_date = ?, notes = ? WHERE id = ? AND user_id = ?",
+                        [$surah, $ayah_start, $ayah_end, $qari, $log_date, $notes, $id, $user_id], 'iiisssii');
+                } else {
+                    $stmt = db_query("INSERT INTO user_recitation_logs (user_id, surah, ayah_start, ayah_end, qari, log_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        [$user_id, $surah, $ayah_start, $ayah_end, $qari, $log_date, $notes], 'iiissss');
+                }
+                $response = $stmt ? ['success' => true, 'message' => 'Recitation log saved.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'delete_recitation_log':
+                $logId = $_POST['log_id'];
+                $stmt = db_query("DELETE FROM user_recitation_logs WHERE id = ? AND user_id = ?", [$logId, $user_id], 'ii');
+                $response = $stmt ? ['success' => true, 'message' => 'Recitation log deleted.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_all_hifz':
+                $stmt = db_query("SELECT surah, ayah, status, last_review_date, next_review_date, review_count, notes FROM user_hifz WHERE user_id = ?", [$user_id], 'i');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_hifz_for_ayah':
+                $surah = $_POST['surah'];
+                $ayah = $_POST['ayah'];
+                $stmt = db_query("SELECT surah, ayah, status, last_review_date, next_review_date, review_count, notes FROM user_hifz WHERE user_id = ? AND surah = ? AND ayah = ?", [$user_id, $surah, $ayah], 'iii');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_row($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'update_hifz_status':
+                $surah = $_POST['surah'];
+                $ayah = $_POST['ayah'];
+                $status = $_POST['status'];
+                $lastReviewDate = $_POST['last_review_date'] ?: null;
+                $nextReviewDate = $_POST['next_review_date'] ?: null;
+                $reviewCount = $_POST['review_count'];
+                $notes = $_POST['notes'];
+
+                $stmt = db_query("INSERT INTO user_hifz (user_id, surah, ayah, status, last_review_date, next_review_date, review_count, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = ?, last_review_date = ?, next_review_date = ?, review_count = ?, notes = ?",
+                    [$user_id, $surah, $ayah, $status, $lastReviewDate, $nextReviewDate, $reviewCount, $notes, $status, $lastReviewDate, $nextReviewDate, $reviewCount, $notes], 'iiisssissssis');
+                $response = $stmt ? ['success' => true, 'message' => 'Hifz status updated.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_all_goals':
+                $stmt = db_query("SELECT id, title, type, target_surah, target_juz, target_theme_id, target_count, target_day, target_date, creation_date, is_complete FROM user_goals WHERE user_id = ?", [$user_id], 'i');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'add_goal':
+                $title = $_POST['title'];
+                $type = $_POST['type'];
+                $targetSurah = $_POST['targetSurah'] ?? null;
+                $targetJuz = $_POST['targetJuz'] ?? null;
+                $targetTheme = $_POST['targetTheme'] ?? null;
+                $targetCount = $_POST['targetCount'] ?? null;
+                $targetDay = $_POST['targetDay'] ?? null;
+                $targetDate = $_POST['targetDate'] ?: null;
+                $creationDate = $_POST['creationDate'];
+                $isComplete = filter_var($_POST['isComplete'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+
+                $stmt = db_query("INSERT INTO user_goals (user_id, title, type, target_surah, target_juz, target_theme_id, target_count, target_day, target_date, creation_date, is_complete) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    [$user_id, $title, $type, $targetSurah, $targetJuz, $targetTheme, $targetCount, $targetDay, $targetDate, $creationDate, $isComplete], 'isssiiiisssi');
+                $response = $stmt ? ['success' => true, 'message' => 'Goal added.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'update_goal_completion': 
+                $id = $_POST['id'];
+                $isComplete = filter_var($_POST['isComplete'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+                $title = $_POST['title'] ?? null;
+                $targetDate = $_POST['targetDate'] ?? null;
+
+                $sql = "UPDATE user_goals SET is_complete = ?";
+                $types = 'i';
+                $params = [$isComplete];
+
+                if ($title !== null) {
+                    $sql .= ", title = ?";
+                    $types .= 's';
+                    $params[] = $title;
+                }
+                if ($targetDate !== null) {
+                    $sql .= ", target_date = ?";
+                    $types .= 's';
+                    $params[] = $targetDate;
+                }
+                $sql .= " WHERE id = ? AND user_id = ?";
+                $types .= 'ii';
+                $params[] = $id;
+                $params[] = $user_id;
+
+                $stmt = db_query($sql, $params, $types);
+                $response = $stmt ? ['success' => true, 'message' => 'Goal updated.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'delete_goal':
+                $id = $_POST['id'];
+                $stmt = db_query("DELETE FROM user_goals WHERE id = ? AND user_id = ?", [$id, $user_id], 'ii');
+                $response = $stmt ? ['success' => true, 'message' => 'Goal deleted.'] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_user_submitted_word_translations': 
+                $sql = "SELECT uwt.id, uwt.word_id, uwt.lang_key, uwt.translation, uwt.approved_by, l.word_col_name AS translation_column
+                        FROM user_word_translations uwt
+                        JOIN languages l ON uwt.lang_key = l.lang_key
+                        WHERE uwt.user_id = ?";
+                $stmt = db_query($sql, [$user_id], 'i');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_all($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'get_word_metadata': 
+                $wordId = $_POST['word_id'];
+                $stmt = db_query("SELECT word_id, arabic_word FROM quran_words WHERE word_id = ?", [$wordId], 'i');
+                $response = $stmt ? ['success' => true, 'data' => db_fetch_row($stmt)] : ['success' => false, 'message' => $conn->error];
+                break;
+            case 'export_user_data':
+                $data = [
+                    'user_tafsir' => db_fetch_all(db_query("SELECT surah, ayah, notes, created_at, updated_at, is_public FROM user_tafsir WHERE user_id = ?", [$user_id], 'i')),
+                    'user_themes' => db_fetch_all(db_query("SELECT id, name, description, created_at, is_public FROM user_themes WHERE user_id = ?", [$user_id], 'i')),
+                    'user_theme_ayahs' => db_fetch_all(db_query("SELECT theme_id, surah, ayah, notes FROM user_theme_ayahs WHERE user_id = ?", [$user_id], 'i')),
+                    'user_roots' => db_fetch_all(db_query("SELECT root, description, created_at, is_public FROM user_roots WHERE user_id = ?", [$user_id], 'i')),
+                    'user_recitation_logs' => db_fetch_all(db_query("SELECT surah, ayah_start, ayah_end, qari, log_date, notes FROM user_recitation_logs WHERE user_id = ?", [$user_id], 'i')),
+                    'user_hifz' => db_fetch_all(db_query("SELECT surah, ayah, status, last_review_date, next_review_date, review_count, notes FROM user_hifz WHERE user_id = ?", [$user_id], 'i')),
+                    'user_goals' => db_fetch_all(db_query("SELECT title, type, target_surah, target_juz, target_theme_id, target_count, target_day, target_date, creation_date, is_complete FROM user_goals WHERE user_id = ?", [$user_id], 'i')),
+                    'user_word_translations' => db_fetch_all(db_query("SELECT word_id, lang_key, translation, approved_by FROM user_word_translations WHERE user_id = ?", [$user_id], 'i'))
+                ];
+                $response = ['success' => true, 'data' => $data];
+                break;
+            case 'import_user_data':
+                $jsonData = json_decode($_POST['data'], true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $response = ['success' => false, 'message' => 'Invalid JSON data.'];
+                    break;
+                }
+                $conn->begin_transaction();
+                try {
+                    db_query("DELETE FROM user_tafsir WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_theme_ayahs WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_themes WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_roots WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_recitation_logs WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_hifz WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_goals WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_word_translations WHERE user_id = ?", [$user_id], 'i');
+
+                    foreach ($jsonData['user_tafsir'] as $row) {
+                        db_query("INSERT INTO user_tafsir (user_id, surah, ayah, notes, created_at, updated_at, is_public) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            [$user_id, $row['surah'], $row['ayah'], $row['notes'], $row['created_at'], $row['updated_at'], $row['is_public']], 'iissssi');
+                    }
+                    $themeIdMap = []; 
+                    foreach ($jsonData['user_themes'] as $row) {
+                        $stmt = db_query("INSERT INTO user_themes (user_id, name, description, created_at, is_public) VALUES (?, ?, ?, ?, ?)",
+                            [$user_id, $row['name'], $row['description'], $row['created_at'], $row['is_public']], 'isssi');
+                        if ($stmt && $stmt->insert_id) {
+                            $themeIdMap[$row['id']] = $stmt->insert_id;
+                        }
+                    }
+                    foreach ($jsonData['user_theme_ayahs'] as $row) {
+                        $newThemeId = $themeIdMap[$row['theme_id']] ?? null;
+                        if ($newThemeId) {
+                            db_query("INSERT INTO user_theme_ayahs (user_id, theme_id, surah, ayah, notes) VALUES (?, ?, ?, ?, ?)",
+                                [$user_id, $newThemeId, $row['surah'], $row['ayah'], $row['notes']], 'iiiis');
+                        }
+                    }
+                    foreach ($jsonData['user_roots'] as $row) {
+                        db_query("INSERT INTO user_roots (user_id, root, description, created_at, is_public) VALUES (?, ?, ?, ?, ?)",
+                            [$user_id, $row['root'], $row['description'], $row['created_at'], $row['is_public']], 'isssi');
+                    }
+                    foreach ($jsonData['user_recitation_logs'] as $row) {
+                        db_query("INSERT INTO user_recitation_logs (user_id, surah, ayah_start, ayah_end, qari, log_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            [$user_id, $row['surah'], $row['ayah_start'], $row['ayah_end'], $row['qari'], $row['log_date'], $row['notes']], 'iiissss');
+                    }
+                    foreach ($jsonData['user_hifz'] as $row) {
+                        db_query("INSERT INTO user_hifz (user_id, surah, ayah, status, last_review_date, next_review_date, review_count, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                            [$user_id, $row['surah'], $row['ayah'], $row['status'], $row['last_review_date'], $row['next_review_date'], $row['review_count'], $row['notes']], 'iiisssis');
+                    }
+                    foreach ($jsonData['user_goals'] as $row) {
+                        db_query("INSERT INTO user_goals (user_id, title, type, target_surah, target_juz, target_theme_id, target_count, target_day, target_date, creation_date, is_complete) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            [$user_id, $row['title'], $row['type'], $row['target_surah'], $row['target_juz'], $row['target_theme_id'], $row['target_count'], $row['target_day'], $row['target_date'], $row['creation_date'], $row['is_complete']], 'isssiiiisssi');
+                    }
+                    foreach ($jsonData['user_word_translations'] as $row) {
+                        db_query("INSERT INTO user_word_translations (user_id, word_id, lang_key, translation, approved_by, submitted_at) VALUES (?, ?, ?, ?, ?, NOW())",
+                            [$user_id, $row['word_id'], $row['lang_key'], $row['translation'], $row['approved_by']], 'iisssi');
+                    }
+
+                    $conn->commit();
+                    $response = ['success' => true, 'message' => 'Data imported successfully.'];
+                } catch (Exception $e) {
+                    $conn->rollback();
+                    $response = ['success' => false, 'message' => 'Failed to import data: ' . $e->getMessage()];
+                }
+                break;
+            case 'clear_personal_data':
+                $conn->begin_transaction();
+                try {
+                    db_query("DELETE FROM user_tafsir WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_theme_ayahs WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_themes WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_roots WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_recitation_logs WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_hifz WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_goals WHERE user_id = ?", [$user_id], 'i');
+                    db_query("DELETE FROM user_word_translations WHERE user_id = ?", [$user_id], 'i');
+                    $conn->commit();
+                    $response = ['success' => true, 'message' => 'All personal data cleared.'];
+                } catch (Exception $e) {
+                    $conn->rollback();
+                    $response = ['success' => false, 'message' => 'Failed to clear data: ' . $e->getMessage()];
+                }
+                break;
+            default:
+                $response = ['success' => false, 'message' => 'Unauthorized action.'];
+                break;
+        }
+    }
+
+    echo json_encode($response);
     exit();
 }
+
+if (!is_logged_in()) {
+    header('Location: index.php'); 
+    exit();
+}
+
 $user_role = get_user_role();
 $user_id = get_user_id();
+
 $surah_names = [
     "Al-Fatihah", "Al-Baqarah", "Al 'Imran", "An-Nisa'", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus", "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra'", "Al-Kahf", "Maryam", "Taha", "Al-Anbya'", "Al-Hajj", "Al-Mu'minun", "An-Nur", "Al-Furqan", "Ash-Shu'ara'", "An-Naml", "Al-Qasas", "Al-'Ankabut", "Ar-Rum", "Luqman", "As-Sajdah", "Al-Ahzab", "Saba'", "Fatir", "Ya-Sin", "As-Saffat", "Sad", "Az-Zumar", "Ghafir", "Fussilat", "Ash-Shura", "Az-Zukhruf", "Ad-Dukhan", "Al-Jathiyah", "Al-Ahqaf", "Muhammad", "Al-Fath", "Al-Hujurat", "Qaf", "Adh-Dhariyat", "At-Tur", "An-Najm", "Al-Qamar", "Ar-Rahman", "Al-Waqi'ah", "Al-Hadid", "Al-Mujadilah", "Al-Hashr", "Al-Mumtahanah", "As-Saff", "Al-Jumu'ah", "Al-Munafiqun", "At-Taghabun", "At-Talaq", "At-Tahrim", "Al-Mulk", "Al-Qalam", "Al-Haqqah", "Al-Ma'arij", "Nuh", "Al-Jinn", "Al-Muzzammil", "Al-Muddaththir", "Al-Qiyamah", "Al-Insan", "Al-Mursalat", "An-Naba'", "An-Nazi'at", "'Abasa", "At-Takwir", "Al-Infitar", "Al-Mutaffifin", "Al-Inshiqaq", "Al-Buruj", "At-Tariq", "Al-A'la", "Al-Ghashiyah", "Al-Fajr", "Al-Balad", "Ash-Shams", "Al-Layl", "Ad-Duha", "Ash-Sharh", "At-Tin", "Al-'Alaq", "Al-Qadr", "Al-Bayyinah", "Az-Zalzalah", "Al-'Adiyat", "Al-Qari'ah", "At-Takathur", "Al-'Asr", "Al-Humazah", "Al-Fil", "Quraysh", "Al-Ma'un", "Al-Kawthar", "Al-Kafirun", "An-Nasr", "Al-Masad", "Al-Ikhlas", "Al-Falaq", "An-Nas"
 ];
@@ -112,6 +702,7 @@ $juz_boundaries_data = [
     (object)['juz' => 29, 'name' => "Tabarakallazi (تَبَارَكَ الَّذِي)", 'startSurah' => 67, 'startAyah' => 1],
     (object)['juz' => 30, 'name' => "Amma Yatasa'aloon (عَمَّ يَتَسَاءَلُونَ)", 'startSurah' => 78, 'startAyah' => 1]
 ];
+
 $translation_config = [];
 $result = $conn->query("SELECT lang_key as `key`, label, lang_code, direction, font_var, word_col_name FROM languages ORDER BY id");
 if ($result) {
@@ -157,7 +748,7 @@ if ($all_langs_result) {
             --font-arabic: 'Scheherazade New', 'Lateef', 'Amiri', 'Traditional Arabic', calibri;
             --font-urdu: Calibri, 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Pak Nastaleeq', calibri;
             --font-pashto: 'Mirza', 'Noto Nastaliq Urdu', 'Pak Nastaleeq', calibri;
-            --font-Bangali: 'Noto Sans Bangali', 'Arial', calibri;
+            --font-bangali: 'Noto Sans Bangali', 'Arial', calibri;
             --font-english: 'Roboto', 'Segoe UI', calibri;
             --font-general: 'Roboto', 'Segoe UI', calibri;
             --border-radius: 8px;
@@ -353,6 +944,27 @@ if ($all_langs_result) {
             line-height: 20px;
             transition: width 0.6s ease;
         }
+
+        .form-check.form-switch {
+            min-height: 1.5rem;
+            padding-left: 3.5em;
+            cursor: pointer;
+        }
+
+        .form-check.form-switch .form-check-input {
+            width: 3em;
+            height: 1.5em;
+            margin-left: -3.5em;
+            background-color: var(--color-bg-primary);
+            border-color: var(--color-border);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%280,0,0,0.25%29'/%3e%3c/svg%3e");
+        }
+
+        .form-check.form-switch .form-check-input:checked {
+            background-color: var(--color-accent);
+            border-color: var(--color-accent);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -376,45 +988,54 @@ if ($all_langs_result) {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#dashboard-tab" id="dashboard-tab-link">Dashboard</a>
+                        <a class="nav-link active" data-bs-toggle="tab" data-bs-target="#dashboard-tab" href="#dashboard-tab" id="dashboard-tab-link">Dashboard</a>
                     </li>
                     <?php if ($user_role === 'admin') : ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#admin-users-tab" id="admin-users-tab-link">User Management</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#admin-users-tab" href="#admin-users-tab" id="admin-users-tab-link">User Management</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#admin-quran-tab" id="admin-quran-tab-link">Quran Content</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#admin-quran-tab" href="#admin-quran-tab" id="admin-quran-tab-link">Quran Content</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#admin-word-translations-tab" id="admin-word-translations-tab-link">Word Translations</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#admin-word-translations-tab" href="#admin-word-translations-tab" id="admin-word-translations-tab-link">Word Translations</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#admin-languages-tab" id="admin-languages-tab-link">Language Management</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#admin-languages-tab" href="#admin-languages-tab" id="admin-languages-tab-link">Language Management</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#admin-tafsir-tab" href="#admin-tafsir-tab" id="admin-tafsir-tab-link">Tafsir Management</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#admin-themes-tab" href="#admin-themes-tab" id="admin-themes-tab-link">Theme Management</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#admin-roots-tab" href="#admin-roots-tab" id="admin-roots-tab-link">Root Word Management</a>
                         </li>
                     <?php else : ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#user-tafsir-tab" id="user-tafsir-tab-link">My Tafsir</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#user-tafsir-tab" href="#user-tafsir-tab" id="user-tafsir-tab-link">My Tafsir</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#user-themes-tab" id="user-themes-tab-link">My Themes & Links</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#user-themes-tab" href="#user-themes-tab" id="user-themes-tab-link">My Themes & Links</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#user-roots-tab" id="user-roots-tab-link">My Root Words</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#user-roots-tab" href="#user-roots-tab" id="user-roots-tab-link">My Root Words</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#user-recitation-tab" id="user-recitation-tab-link">My Recitation Log</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#user-recitation-tab" href="#user-recitation-tab" id="user-recitation-tab-link">My Recitation Log</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#user-hifz-tab" id="user-hifz-tab-link">My Hifz Plan</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#user-hifz-tab" href="#user-hifz-tab" id="user-hifz-tab-link">My Hifz Plan</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#user-goals-tab" id="user-goals-tab-link">My Goals</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#user-goals-tab" href="#user-goals-tab" id="user-goals-tab-link">My Goals</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#user-contributions-tab" id="user-contributions-tab-link">My Contributions</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#user-contributions-tab" href="#user-contributions-tab" id="user-contributions-tab-link">My Contributions</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#user-data-tab" id="user-data-tab-link">Data Management</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#user-data-tab" href="#user-data-tab" id="user-data-tab-link">Data Management</a>
                         </li>
                     <?php endif; ?>
                 </ul>
@@ -515,6 +1136,7 @@ if ($all_langs_result) {
                                     <tr>
                                         <th>ID</th>
                                         <th>Username</th>
+                                        <th>Full Name</th>
                                         <th>Email</th>
                                         <th>Role</th>
                                         <th>Created At</th>
@@ -637,6 +1259,69 @@ if ($all_langs_result) {
                                         <th>Code</th>
                                         <th>Direction</th>
                                         <th>Font Variable</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="admin-tafsir-tab" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">All User Tafsir Notes Management</div>
+                        <div class="card-body">
+                            <table id="adminTafsirTable" class="table table-striped table-hover w-100">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Surah:Ayah</th>
+                                        <th>Notes</th>
+                                        <th>Public</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="admin-themes-tab" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">All User Themes Management</div>
+                        <div class="card-body">
+                            <table id="adminThemesTable" class="table table-striped table-hover w-100">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Theme Name</th>
+                                        <th>Description</th>
+                                        <th>Public</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="admin-roots-tab" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">All User Root Word Notes Management</div>
+                        <div class="card-body">
+                            <table id="adminRootsTable" class="table table-striped table-hover w-100">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Root Word</th>
+                                        <th>Notes</th>
+                                        <th>Public</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -916,7 +1601,7 @@ if ($all_langs_result) {
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editUserModalLabel">Edit User Role</h5>
+                    <h5 class="modal-title" id="editUserModalLabel">Edit User Role & Details</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -924,6 +1609,10 @@ if ($all_langs_result) {
                     <div class="mb-3">
                         <label for="editUsername" class="form-label">Username:</label>
                         <input type="text" class="form-control" id="editUsername" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editUserFullName" class="form-label">Full Name:</label>
+                        <input type="text" class="form-control" id="editUserFullName">
                     </div>
                     <div class="mb-3">
                         <label for="editUserRole" class="form-label">Role:</label>
@@ -936,7 +1625,7 @@ if ($all_langs_result) {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="saveUserRoleBtn">Save changes</button>
+                    <button type="button" class="btn btn-primary" id="saveUserChangesBtn">Save changes</button>
                 </div>
             </div>
         </div>
@@ -1170,9 +1859,9 @@ if ($all_langs_result) {
                         <label for="editGoalTargetDate" class="form-label">Target Date:</label>
                         <input type="date" class="form-control" id="editGoalTargetDate">
                     </div>
-                    <div class="mb-3">
-                        <label for="editGoalIsComplete" class="form-label">Mark as Complete:</label>
-                        <input type="checkbox" class="form-check-input" id="editGoalIsComplete">
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="editGoalIsComplete">
+                        <label class="form-check-label" for="editGoalIsComplete">Mark as Complete</label>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -1183,12 +1872,12 @@ if ($all_langs_result) {
         </div>
     </div>
     <div class="toast-container"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/2.0.7/js/dataTables.bootstrap5.min.js"></script>
     <script>
-        const ajax_url = 'index.php';
+        const ajax_url = 'manage.php'; 
         const surahNames = <?= json_encode($surah_names); ?>;
         const surahAyahCounts = <?= json_encode($surah_ayah_counts); ?>;
         const juzBoundariesData = <?= json_encode($juz_boundaries_data); ?>;
@@ -1196,18 +1885,17 @@ if ($all_langs_result) {
         const userRole = '<?= $user_role; ?>';
         const currentUserId = <?= $user_id; ?>;
         let myTafsirTable, myThemesTable, myThemeLinksTable, myRootsTable, myRecitationsTable, myHifzTable, myActiveGoalsTable, myCompletedGoalsTable, myContributionsTable;
-        let usersTable, wordTranslationApprovalTable, allWordTranslationsTable, languagesTable;
+        let usersTable, wordTranslationApprovalTable, allWordTranslationsTable, languagesTable, adminTafsirTable, adminThemesTable, adminRootsTable;
 
         $(document).ready(function() {
             function showToast(message, type = 'success') {
                 const toastId = `toast-${Date.now()}`;
                 const toastHtml = `
-                    <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                        <div class="toast-header">
-                            <strong class="me-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
-                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                    <div id="${toastId}" class="toast align-items-center text-bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">${message}</div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
                         </div>
-                        <div class="toast-body">${message}</div>
                     </div>
                 `;
                 $('.toast-container').append(toastHtml);
@@ -1227,46 +1915,56 @@ if ($all_langs_result) {
                         ...data
                     },
                     dataType: 'json'
+                }).fail(function(jqXHR, textStatus, errorThrown) {
+                    let errorMessage = `AJAX Error: ${textStatus}`;
+                    if (errorThrown) errorMessage += ` - ${errorThrown}`;
+                    if (jqXHR.responseText) errorMessage += `\nServer Response: ${jqXHR.responseText.substring(0, 200)}...`; // Log first 200 chars
+                    console.error('Failed AJAX request:', errorMessage, jqXHR);
+                    showToast('Error communicating with server or processing data. Check console for details.', 'error');
                 });
             }
 
-// Listen for Bootstrap's native tab show event to load content
-$('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
-    const targetId = $(e.target).data('bs-target');
+            $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
+                e.preventDefault(); 
+                const targetId = $(e.target).attr('href');
 
-    if (targetId === '#dashboard-tab') {
-        loadDashboardStats();
-    } else if (targetId === '#admin-users-tab') {
-        loadUsers();
-    } else if (targetId === '#admin-quran-tab') {
-        populateAdminQuranSelectors();
-    } else if (targetId === '#admin-word-translations-tab') {
-        loadWordTranslationApprovalQueue();
-        loadAllWordTranslations();
-    } else if (targetId === '#admin-languages-tab') {
-        loadLanguages();
-    } else if (targetId === '#user-tafsir-tab') {
-        loadMyTafsir();
-    } else if (targetId === '#user-themes-tab') {
-        loadMyThemes();
-        populateThemeLinksSelect();
-    } else if (targetId === '#user-roots-tab') {
-        loadMyRoots();
-    } else if (targetId === '#user-recitation-tab') {
-        loadMyRecitations();
-    } else if (targetId === '#user-hifz-tab') {
-        loadMyHifzOverview();
-        loadMyHifzDetails();
-    } else if (targetId === '#user-goals-tab') {
-        renderGoalsUI();
-    } else if (targetId === '#user-contributions-tab') {
-        loadMyContributions();
-    }
-});
-
-            // Initial dashboard load
+                if (targetId === '#dashboard-tab') {
+                    loadDashboardStats();
+                } else if (targetId === '#admin-users-tab') {
+                    loadUsers();
+                } else if (targetId === '#admin-quran-tab') {
+                    populateAdminQuranSelectors();
+                } else if (targetId === '#admin-word-translations-tab') {
+                    loadWordTranslationApprovalQueue();
+                    loadAllWordTranslations();
+                } else if (targetId === '#admin-languages-tab') {
+                    loadLanguages();
+                } else if (targetId === '#admin-tafsir-tab') {
+                    loadAdminTafsir();
+                } else if (targetId === '#admin-themes-tab') {
+                    loadAdminThemes();
+                } else if (targetId === '#admin-roots-tab') {
+                    loadAdminRoots();
+                } else if (targetId === '#user-tafsir-tab') {
+                    loadMyTafsir();
+                } else if (targetId === '#user-themes-tab') {
+                    loadMyThemes();
+                    populateThemeLinksSelect();
+                    loadMyThemeLinks($('#selectThemeToViewLinks').val());
+                } else if (targetId === '#user-roots-tab') {
+                    loadMyRoots();
+                } else if (targetId === '#user-recitation-tab') {
+                    loadMyRecitations();
+                } else if (targetId === '#user-hifz-tab') {
+                    loadMyHifzOverview();
+                    loadMyHifzDetails();
+                } else if (targetId === '#user-goals-tab') {
+                    renderGoalsUI();
+                } else if (targetId === '#user-contributions-tab') {
+                    loadMyContributions();
+                }
+            });
             loadDashboardStats();
-            $('#dashboard-tab-link').addClass('active');
 
             function populateSurahAyahSelectors(surahSelectId, ayahSelectId) {
                 const surahSelect = $(`#${surahSelectId}`);
@@ -1283,10 +1981,9 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         ayahSelect.append(`<option value="${i}">${i}</option>`);
                     }
                 });
-                surahSelect.trigger('change');
+                $(`#${surahSelectId}`).trigger('change');
             }
 
-            // Dashboard Stats
             async function loadDashboardStats() {
                 if (userRole === 'admin') {
                     try {
@@ -1299,7 +1996,7 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             sendAjaxRequest('get_all_users'),
                             sendAjaxRequest('get_all_tafsir'),
                             sendAjaxRequest('get_all_themes'),
-                            sendAjaxRequest('get_all_word_translations')
+                            sendAjaxRequest('get_all_word_translations_full')
                         ]);
 
                         $('#stat-total-users').text(usersResult.data ? usersResult.data.length : 0);
@@ -1310,7 +2007,7 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         showToast('Error loading admin dashboard stats.', 'error');
                         console.error('Error loading admin dashboard stats:', error);
                     }
-                } else { // Registered User Stats
+                } else { 
                     try {
                         const [
                             tafsirResult,
@@ -1321,7 +2018,7 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             sendAjaxRequest('get_all_tafsir'),
                             sendAjaxRequest('get_all_hifz'),
                             sendAjaxRequest('get_all_goals'),
-                            sendAjaxRequest('get_user_submitted_word_translations') // New AJAX action needed
+                            sendAjaxRequest('get_user_submitted_word_translations')
                         ]);
 
                         $('#stat-my-tafsir').text(tafsirResult.data ? tafsirResult.data.length : 0);
@@ -1335,9 +2032,7 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                 }
             }
 
-            // Admin Functions
             if (userRole === 'admin') {
-                // User Management
                 function loadUsers() {
                     if (usersTable) {
                         usersTable.destroy();
@@ -1351,6 +2046,8 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                 }, {
                                     data: 'username'
                                 }, {
+                                    data: 'full_name'
+                                }, {
                                     data: 'email'
                                 }, {
                                     data: 'role'
@@ -1358,11 +2055,11 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                     data: 'created_at'
                                 }, {
                                     data: null,
-                                    render: function(data, type, row) {
+                                    render: function(data) {
                                         return `
-                                            <button class="btn btn-sm btn-info edit-user-btn" data-id="${row.id}" data-username="${row.username}" data-role="${row.role}">Edit Role</button>
-                                            <button class="btn btn-sm btn-danger delete-user-btn" data-id="${row.id}">Delete</button>
-                                        `;
+                                    <button class="btn btn-sm btn-info edit-user-btn" data-id="${data.id}" data-username="${data.username}" data-full-name="${escapeHtml(data.full_name)}" data-role="${data.role}">Edit</button>
+                                    <button class="btn btn-sm btn-danger delete-user-btn" data-id="${data.id}">Delete</button>
+                                `;
                                     }
                                 }],
                                 order: [
@@ -1372,37 +2069,62 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to load users: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 }
                 $(document).on('click', '.edit-user-btn', function() {
                     const id = $(this).data('id');
                     const username = $(this).data('username');
+                    const fullName = unescapeHtml($(this).data('full-name'));
                     const role = $(this).data('role');
                     $('#editUserId').val(id);
                     $('#editUsername').val(username);
+                    $('#editUserFullName').val(fullName);
                     $('#editUserRole').val(role);
                     const editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
                     editUserModal.show();
                 });
-                $('#saveUserRoleBtn').on('click', function() {
+                $('#saveUserChangesBtn').on('click', async function() {
                     const id = $('#editUserId').val();
                     const newRole = $('#editUserRole').val();
-                    sendAjaxRequest('update_user_role', {
-                        user_id: id,
-                        new_role: newRole
-                    }).done(function(response) {
-                        if (response.success) {
-                            showToast('User role updated successfully.');
-                            loadUsers();
-                            bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
-                        } else {
-                            showToast('Failed to update user role: ' + response.message, 'error');
+                    const newFullName = $('#editUserFullName').val();
+
+                    let roleUpdateSuccess = true;
+                    if (newRole !== $('#editUserRole').data('original-role')) {
+                        try {
+                            const roleResponse = await sendAjaxRequest('update_user_role', {
+                                user_id: id,
+                                new_role: newRole
+                            });
+                            if (!roleResponse.success) {
+                                roleUpdateSuccess = false;
+                                showToast('Failed to update user role: ' + roleResponse.message, 'error');
+                            }
+                        } catch (error) {
+                            roleUpdateSuccess = false;
+                            showToast('Error updating user role.', 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
-                    });
+                    }
+
+                    let fullNameUpdateSuccess = true;
+                    try {
+                        const fullNameResponse = await sendAjaxRequest('update_user_full_name', {
+                            user_id: id,
+                            full_name: newFullName
+                        });
+                        if (!fullNameResponse.success) {
+                            fullNameUpdateSuccess = false;
+                            showToast('Failed to update user full name: ' + fullNameResponse.message, 'error');
+                        }
+                    } catch (error) {
+                        fullNameUpdateSuccess = false;
+                        showToast('Error updating user full name.', 'error');
+                    }
+
+                    if (roleUpdateSuccess && fullNameUpdateSuccess) {
+                        showToast('User details updated successfully.');
+                        loadUsers();
+                        bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                    }
                 });
                 $(document).on('click', '.delete-user-btn', function() {
                     const id = $(this).data('id');
@@ -1416,13 +2138,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             } else {
                                 showToast('Failed to delete user: ' + response.message, 'error');
                             }
-                        }).fail(function() {
-                            showToast('Error communicating with server.', 'error');
                         });
                     }
                 });
 
-                // Quran Content Management
                 function populateAdminQuranSelectors() {
                     populateSurahAyahSelectors('adminQuranSurahSelect', 'adminQuranAyahSelect');
                     $('#adminQuranSurahSelect').off('change').on('change', function() {
@@ -1504,12 +2223,11 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                     }
                 });
 
-                // Word-by-Word Translation Management
                 function loadWordTranslationApprovalQueue() {
                     if (wordTranslationApprovalTable) {
                         wordTranslationApprovalTable.destroy();
                     }
-                    sendAjaxRequest('get_unapproved_word_translations').done(function(response) { // New AJAX action needed
+                    sendAjaxRequest('get_unapproved_word_translations').done(function(response) {
                         if (response.success) {
                             wordTranslationApprovalTable = $('#wordTranslationApprovalTable').DataTable({
                                 data: response.data,
@@ -1525,10 +2243,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                     data: 'username'
                                 }, {
                                     data: null,
-                                    render: function(data, type, row) {
+                                    render: function(data) {
                                         return `
-                                            <button class="btn btn-sm btn-success approve-word-trans-btn" data-word-id="${row.word_id}" data-lang-key="${row.lang_key}" data-translation="${row.translation}">Approve</button>
-                                            <button class="btn btn-sm btn-danger reject-word-trans-btn" data-word-id="${row.word_id}" data-lang-key="${row.lang_key}">Reject</button>
+                                            <button class="btn btn-sm btn-success approve-word-trans-btn" data-word-id="${data.word_id}" data-lang-key="${data.lang_key}" data-translation="${escapeHtml(data.translation)}">Approve</button>
+                                            <button class="btn btn-sm btn-danger reject-word-trans-btn" data-word-id="${data.word_id}" data-lang-key="${data.lang_key}">Reject</button>
                                         `;
                                     }
                                 }],
@@ -1539,19 +2257,17 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to load approval queue: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 }
                 $(document).on('click', '.approve-word-trans-btn', function() {
                     const wordId = $(this).data('word-id');
                     const langKey = $(this).data('lang-key');
-                    const translation = $(this).data('translation');
-                    sendAjaxRequest('edit_word_translation', { // Reusing existing logic
+                    const translation = unescapeHtml($(this).data('translation'));
+                    sendAjaxRequest('edit_word_translation', {
                         word_id: wordId,
                         lang_key: langKey,
                         translation_text: translation,
-                        admin_approve: true // Indicate admin approval
+                        admin_approve: true
                     }).done(function(response) {
                         if (response.success) {
                             showToast('Translation approved successfully.');
@@ -1560,15 +2276,13 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to approve translation: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 });
                 $(document).on('click', '.reject-word-trans-btn', function() {
                     const wordId = $(this).data('word-id');
                     const langKey = $(this).data('lang-key');
                     if (confirm('Are you sure you want to reject/delete this translation?')) {
-                        sendAjaxRequest('delete_word_translation', { // New AJAX action needed
+                        sendAjaxRequest('delete_word_translation', {
                             word_id: wordId,
                             lang_key: langKey
                         }).done(function(response) {
@@ -1579,8 +2293,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             } else {
                                 showToast('Failed to reject translation: ' + response.message, 'error');
                             }
-                        }).fail(function() {
-                            showToast('Error communicating with server.', 'error');
                         });
                     }
                 });
@@ -1589,7 +2301,7 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                     if (allWordTranslationsTable) {
                         allWordTranslationsTable.destroy();
                     }
-                    sendAjaxRequest('get_all_word_translations_full').done(function(response) { // New AJAX action needed
+                    sendAjaxRequest('get_all_word_translations_full').done(function(response) {
                         if (response.success) {
                             const tableColumns = [{
                                 data: 'word_id'
@@ -1607,9 +2319,9 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                 data: 'approved_by_username'
                             }, {
                                 data: null,
-                                render: function(data, type, row) {
+                                render: function(data) {
                                     return `
-                                        <button class="btn btn-sm btn-info edit-all-word-trans-btn" data-id="${row.word_id}" data-arabic="${row.arabic_word}">Edit</button>
+                                        <button class="btn btn-sm btn-info edit-all-word-trans-btn" data-id="${data.word_id}" data-arabic="${escapeHtml(data.arabic_word)}">Edit</button>
                                     `;
                                 }
                             });
@@ -1623,8 +2335,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to load all word translations: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 }
                 $(document).on('click', '.edit-all-word-trans-btn', async function() {
@@ -1685,7 +2395,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                     }
                 });
 
-                // Language Management
                 function loadLanguages() {
                     if (languagesTable) {
                         languagesTable.destroy();
@@ -1706,10 +2415,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                     data: 'font_var'
                                 }, {
                                     data: null,
-                                    render: function(data, type, row) {
+                                    render: function(data) {
                                         return `
-                                            <button class="btn btn-sm btn-info edit-lang-btn" data-key="${row.key}" data-label="${row.label}" data-code="${row.lang_code}" data-dir="${row.direction}" data-font="${row.font_var}">Edit</button>
-                                            <button class="btn btn-sm btn-danger delete-lang-btn" data-key="${row.key}">Delete</button>
+                                            <button class="btn btn-sm btn-info edit-lang-btn" data-key="${data.key}" data-label="${escapeHtml(data.label)}" data-code="${data.lang_code}" data-dir="${data.direction}" data-font="${escapeHtml(data.font_var)}">Edit</button>
+                                            <button class="btn btn-sm btn-danger delete-lang-btn" data-key="${data.key}">Delete</button>
                                         `;
                                     }
                                 }],
@@ -1720,8 +2429,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to load languages: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 }
                 $('#addLanguageForm').on('submit', function(e) {
@@ -1742,19 +2449,18 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             showToast('Language added successfully. Database tables updated.');
                             $('#addLanguageForm')[0].reset();
                             loadLanguages();
+                            setTimeout(() => location.reload(), 1000);
                         } else {
                             showToast('Failed to add language: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 });
                 $(document).on('click', '.edit-lang-btn', function() {
                     const key = $(this).data('key');
-                    const label = $(this).data('label');
+                    const label = unescapeHtml($(this).data('label'));
                     const code = $(this).data('code');
                     const dir = $(this).data('dir');
-                    const font = $(this).data('font');
+                    const font = unescapeHtml($(this).data('font'));
                     $('#editLangOriginalKey').val(key);
                     $('#editLangKey').val(key);
                     $('#editLangLabel').val(label);
@@ -1770,7 +2476,7 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                     const code = $('#editLangCode').val();
                     const direction = $('#editLangDirection').val();
                     const fontVar = $('#editLangFontVar').val();
-                    sendAjaxRequest('update_language', { // New AJAX action needed
+                    sendAjaxRequest('update_language', {
                         original_key: originalKey,
                         label: label,
                         lang_code: code,
@@ -1781,32 +2487,196 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             showToast('Language updated successfully.');
                             loadLanguages();
                             bootstrap.Modal.getInstance(document.getElementById('editLanguageModal')).hide();
+                            setTimeout(() => location.reload(), 1000);
                         } else {
                             showToast('Failed to update language: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 });
                 $(document).on('click', '.delete-lang-btn', function() {
                     const key = $(this).data('key');
-                    if (confirm('Are you sure you want to delete this language? This will remove all associated translations.')) {
-                        sendAjaxRequest('delete_language', { // New AJAX action needed
+                    if (confirm('Are you sure you want to delete this language? This will remove all associated translations and columns in the Quran tables. This action cannot be undone.')) {
+                        sendAjaxRequest('delete_language', {
                             lang_key: key
                         }).done(function(response) {
                             if (response.success) {
                                 showToast('Language deleted successfully. Associated columns removed.');
                                 loadLanguages();
+                                setTimeout(() => location.reload(), 1000);
                             } else {
                                 showToast('Failed to delete language: ' + response.message, 'error');
                             }
-                        }).fail(function() {
-                            showToast('Error communicating with server.', 'error');
                         });
                     }
                 });
-            } else { // Registered User Functions
-                // My Tafsir
+
+                function loadAdminTafsir() {
+                    if (adminTafsirTable) {
+                        adminTafsirTable.destroy();
+                    }
+                    sendAjaxRequest('get_all_tafsir_admin').done(async function(response) {
+                        if (response.success) {
+                            const dataWithArabic = await Promise.all(response.data.map(async (item) => {
+                                const ayahData = await sendAjaxRequest('load_quran_ayah', {
+                                    surah: item.surah,
+                                    ayah: item.ayah
+                                });
+                                item.arabic = ayahData.success ? ayahData.data.arabic : 'N/A';
+                                return item;
+                            }));
+                            adminTafsirTable = $('#adminTafsirTable').DataTable({
+                                data: dataWithArabic,
+                                columns: [{
+                                    data: 'id'
+                                }, {
+                                    data: 'username'
+                                }, {
+                                    data: null,
+                                    render: function(data) {
+                                        return `${data.surah}:${data.ayah}`;
+                                    }
+                                }, {
+                                    data: 'notes',
+                                    render: $.fn.dataTable.render.ellipsis(100)
+                                }, {
+                                    data: 'is_public',
+                                    render: function(data, type, row) {
+                                        const checked = data == 1 ? 'checked' : '';
+                                        return `<div class="form-check form-switch d-flex justify-content-center">
+                                            <input class="form-check-input toggle-public-btn" type="checkbox" role="switch" ${checked} data-id="${row.id}" data-type="tafsir">
+                                        </div>`;
+                                    }
+                                }, {
+                                    data: null,
+                                    render: function(data) {
+                                        return `
+                                            <button class="btn btn-sm btn-info edit-tafsir-btn" data-surah="${data.surah}" data-ayah="${data.ayah}" data-notes="${escapeHtml(data.notes)}" data-arabic="${escapeHtml(data.arabic)}">Edit</button>
+                                            <button class="btn btn-sm btn-danger delete-tafsir-btn" data-id="${data.id}" data-surah="${data.surah}" data-ayah="${data.ayah}">Delete</button>
+                                        `;
+                                    }
+                                }],
+                                order: [
+                                    [0, 'asc']
+                                ]
+                            });
+                        } else {
+                            showToast('Failed to load admin Tafsir notes: ' + response.message, 'error');
+                        }
+                    });
+                }
+
+                function loadAdminThemes() {
+                    if (adminThemesTable) {
+                        adminThemesTable.destroy();
+                    }
+                    sendAjaxRequest('get_all_themes_admin').done(function(response) {
+                        if (response.success) {
+                            adminThemesTable = $('#adminThemesTable').DataTable({
+                                data: response.data,
+                                columns: [{
+                                    data: 'id'
+                                }, {
+                                    data: 'username'
+                                }, {
+                                    data: 'name'
+                                }, {
+                                    data: 'description',
+                                    render: $.fn.dataTable.render.ellipsis(100)
+                                }, {
+                                    data: 'is_public',
+                                    render: function(data, type, row) {
+                                        const checked = data == 1 ? 'checked' : '';
+                                        return `<div class="form-check form-switch d-flex justify-content-center">
+                                            <input class="form-check-input toggle-public-btn" type="checkbox" role="switch" ${checked} data-id="${row.id}" data-type="theme">
+                                        </div>`;
+                                    }
+                                }, {
+                                    data: null,
+                                    render: function(data) {
+                                        return `
+                                            <button class="btn btn-sm btn-info edit-theme-btn" data-id="${data.id}" data-name="${escapeHtml(data.name)}" data-desc="${escapeHtml(data.description)}">Edit</button>
+                                            <button class="btn btn-sm btn-danger delete-theme-btn" data-id="${data.id}">Delete</button>
+                                        `;
+                                    }
+                                }],
+                                order: [
+                                    [0, 'asc']
+                                ]
+                            });
+                        } else {
+                            showToast('Failed to load admin themes: ' + response.message, 'error');
+                        }
+                    });
+                }
+
+                function loadAdminRoots() {
+                    if (adminRootsTable) {
+                        adminRootsTable.destroy();
+                    }
+                    sendAjaxRequest('get_all_roots_admin').done(function(response) {
+                        if (response.success) {
+                            adminRootsTable = $('#adminRootsTable').DataTable({
+                                data: response.data,
+                                columns: [{
+                                    data: 'id'
+                                }, {
+                                    data: 'username'
+                                }, {
+                                    data: 'root',
+                                    className: 'ayah-arabic-text'
+                                }, {
+                                    data: 'description',
+                                    render: $.fn.dataTable.render.ellipsis(100)
+                                }, {
+                                    data: 'is_public',
+                                    render: function(data, type, row) {
+                                        const checked = data == 1 ? 'checked' : '';
+                                        return `<div class="form-check form-switch d-flex justify-content-center">
+                                            <input class="form-check-input toggle-public-btn" type="checkbox" role="switch" ${checked} data-id="${row.id}" data-type="root">
+                                        </div>`;
+                                    }
+                                }, {
+                                    data: null,
+                                    render: function(data) {
+                                        return `
+                                            <button class="btn btn-sm btn-info edit-root-btn" data-root="${escapeHtml(data.root)}" data-desc="${escapeHtml(data.description)}">Edit</button>
+                                            <button class="btn btn-sm btn-danger delete-root-btn" data-root="${escapeHtml(data.root)}" data-id="${data.id}">Delete</button>
+                                        `;
+                                    }
+                                }],
+                                order: [
+                                    [0, 'asc']
+                                ]
+                            });
+                        } else {
+                            showToast('Failed to load admin root notes: ' + response.message, 'error');
+                        }
+                    });
+                }
+
+                $(document).on('change', '.toggle-public-btn', function() {
+                    const itemId = $(this).data('id');
+                    const itemType = $(this).data('type');
+                    const isPublic = $(this).is(':checked') ? 1 : 0;
+                    const $this = $(this); 
+                    sendAjaxRequest('toggle_public_status', {
+                        item_id: itemId,
+                        item_type: itemType,
+                        is_public: isPublic
+                    }).done(function(response) {
+                        if (response.success) {
+                            showToast('Public status updated successfully.');
+                        } else {
+                            showToast('Failed to update public status: ' + response.message, 'error');
+                            $this.prop('checked', !isPublic); 
+                        }
+                    }).fail(function() {
+                        showToast('Error communicating with server.', 'error');
+                        $this.prop('checked', !isPublic); 
+                    });
+                });
+
+            } else { 
                 function loadMyTafsir() {
                     if (myTafsirTable) {
                         myTafsirTable.destroy();
@@ -1825,8 +2695,8 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                 data: dataWithArabic,
                                 columns: [{
                                     data: null,
-                                    render: function(data, type, row) {
-                                        return `${row.surah}:${row.ayah}`;
+                                    render: function(data) {
+                                        return `${data.surah}:${data.ayah}`;
                                     }
                                 }, {
                                     data: 'arabic',
@@ -1836,10 +2706,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                     render: $.fn.dataTable.render.ellipsis(100)
                                 }, {
                                     data: null,
-                                    render: function(data, type, row) {
+                                    render: function(data) {
                                         return `
-                                            <button class="btn btn-sm btn-info edit-tafsir-btn" data-surah="${row.surah}" data-ayah="${row.ayah}" data-notes="${escapeHtml(row.notes)}" data-arabic="${escapeHtml(row.arabic)}">Edit</button>
-                                            <button class="btn btn-sm btn-danger delete-tafsir-btn" data-surah="${row.surah}" data-ayah="${row.ayah}">Delete</button>
+                                            <button class="btn btn-sm btn-info edit-tafsir-btn" data-surah="${data.surah}" data-ayah="${data.ayah}" data-notes="${escapeHtml(data.notes)}" data-arabic="${escapeHtml(data.arabic)}">Edit</button>
+                                            <button class="btn btn-sm btn-danger delete-tafsir-btn" data-surah="${data.surah}" data-ayah="${data.ayah}">Delete</button>
                                         `;
                                     }
                                 }],
@@ -1850,8 +2720,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to load Tafsir notes: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 }
                 $(document).on('click', '.edit-tafsir-btn', function() {
@@ -1883,15 +2751,13 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to update Tafsir notes: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 });
                 $(document).on('click', '.delete-tafsir-btn', function() {
                     const surah = $(this).data('surah');
                     const ayah = $(this).data('ayah');
                     if (confirm('Are you sure you want to delete this Tafsir note?')) {
-                        sendAjaxRequest('delete_tafsir', { // New AJAX action needed
+                        sendAjaxRequest('delete_tafsir', {
                             surah: surah,
                             ayah: ayah
                         }).done(function(response) {
@@ -1901,13 +2767,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             } else {
                                 showToast('Failed to delete Tafsir note: ' + response.message, 'error');
                             }
-                        }).fail(function() {
-                            showToast('Error communicating with server.', 'error');
                         });
                     }
                 });
 
-                // My Themes & Links
                 function loadMyThemes() {
                     if (myThemesTable) {
                         myThemesTable.destroy();
@@ -1923,10 +2786,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                     render: $.fn.dataTable.render.ellipsis(50)
                                 }, {
                                     data: null,
-                                    render: function(data, type, row) {
+                                    render: function(data) {
                                         return `
-                                            <button class="btn btn-sm btn-info edit-theme-btn" data-id="${row.id}" data-name="${escapeHtml(row.name)}" data-desc="${escapeHtml(row.description)}">Edit</button>
-                                            <button class="btn btn-sm btn-danger delete-theme-btn" data-id="${row.id}">Delete</button>
+                                            <button class="btn btn-sm btn-info edit-theme-btn" data-id="${data.id}" data-name="${escapeHtml(data.name)}" data-desc="${escapeHtml(data.description)}">Edit</button>
+                                            <button class="btn btn-sm btn-danger delete-theme-btn" data-id="${data.id}">Delete</button>
                                         `;
                                     }
                                 }],
@@ -1937,8 +2800,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to load themes: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 }
                 $('#addThemeForm').on('submit', function(e) {
@@ -1957,8 +2818,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to add theme: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 });
                 $(document).on('click', '.edit-theme-btn', function() {
@@ -1975,7 +2834,7 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                     const id = $('#editThemeId').val();
                     const name = $('#editThemeName').val();
                     const description = $('#editThemeDescription').val();
-                    sendAjaxRequest('update_theme', { // New AJAX action needed
+                    sendAjaxRequest('update_theme', {
                         theme_id: id,
                         name: name,
                         description: description
@@ -1988,8 +2847,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to update theme: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 });
                 $(document).on('click', '.delete-theme-btn', function() {
@@ -2002,12 +2859,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                 showToast('Theme deleted successfully.');
                                 loadMyThemes();
                                 populateThemeLinksSelect();
-                                loadMyThemeLinks();
+                                loadMyThemeLinks(); 
                             } else {
                                 showToast('Failed to delete theme: ' + response.message, 'error');
                             }
-                        }).fail(function() {
-                            showToast('Error communicating with server.', 'error');
                         });
                     }
                 });
@@ -2054,8 +2909,8 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                 data: dataWithArabic,
                                 columns: [{
                                     data: null,
-                                    render: function(data, type, row) {
-                                        return `${row.surah}:${row.ayah}`;
+                                    render: function(data) {
+                                        return `${data.surah}:${data.ayah}`;
                                     }
                                 }, {
                                     data: 'arabic',
@@ -2065,9 +2920,9 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                     render: $.fn.dataTable.render.ellipsis(50)
                                 }, {
                                     data: null,
-                                    render: function(data, type, row) {
+                                    render: function(data) {
                                         return `
-                                            <button class="btn btn-sm btn-danger unlink-ayah-btn" data-id="${row.id}">Unlink</button>
+                                            <button class="btn btn-sm btn-danger unlink-ayah-btn" data-id="${data.id}">Unlink</button>
                                         `;
                                     }
                                 }],
@@ -2078,8 +2933,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to load theme links: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 }
                 $(document).on('click', '.unlink-ayah-btn', function() {
@@ -2094,13 +2947,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             } else {
                                 showToast('Failed to unlink Ayah: ' + response.message, 'error');
                             }
-                        }).fail(function() {
-                            showToast('Error communicating with server.', 'error');
                         });
                     }
                 });
 
-                // My Root Words
                 function loadMyRoots() {
                     if (myRootsTable) {
                         myRootsTable.destroy();
@@ -2117,10 +2967,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                     render: $.fn.dataTable.render.ellipsis(100)
                                 }, {
                                     data: null,
-                                    render: function(data, type, row) {
+                                    render: function(data) {
                                         return `
-                                            <button class="btn btn-sm btn-info edit-root-btn" data-root="${escapeHtml(row.root)}" data-desc="${escapeHtml(row.description)}">Edit</button>
-                                            <button class="btn btn-sm btn-danger delete-root-btn" data-root="${escapeHtml(row.root)}">Delete</button>
+                                            <button class="btn btn-sm btn-info edit-root-btn" data-root="${escapeHtml(data.root)}" data-desc="${escapeHtml(data.description)}">Edit</button>
+                                            <button class="btn btn-sm btn-danger delete-root-btn" data-root="${escapeHtml(data.root)}">Delete</button>
                                         `;
                                     }
                                 }],
@@ -2131,8 +2981,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to load root notes: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 }
                 $(document).on('click', '.edit-root-btn', function() {
@@ -2158,14 +3006,12 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to update root notes: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 });
                 $(document).on('click', '.delete-root-btn', function() {
                     const root = unescapeHtml($(this).data('root'));
                     if (confirm('Are you sure you want to delete notes for this root word?')) {
-                        sendAjaxRequest('delete_root_notes', { // New AJAX action needed
+                        sendAjaxRequest('delete_root_notes', {
                             root: root
                         }).done(function(response) {
                             if (response.success) {
@@ -2174,13 +3020,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             } else {
                                 showToast('Failed to delete root notes: ' + response.message, 'error');
                             }
-                        }).fail(function() {
-                            showToast('Error communicating with server.', 'error');
                         });
                     }
                 });
 
-                // My Recitation Log
                 function loadMyRecitations() {
                     if (myRecitationsTable) {
                         myRecitationsTable.destroy();
@@ -2193,13 +3036,13 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                     data: 'log_date'
                                 }, {
                                     data: null,
-                                    render: function(data, type, row) {
-                                        return `${row.surah}. ${surahNames[row.surah - 1]}`;
+                                    render: function(data) {
+                                        return `${data.surah}. ${surahNames[data.surah - 1]}`;
                                     }
                                 }, {
                                     data: null,
-                                    render: function(data, type, row) {
-                                        return row.ayah_start && row.ayah_end ? `${row.ayah_start}-${row.ayah_end}` : 'Full Surah';
+                                    render: function(data) {
+                                        return data.ayah_start && data.ayah_end ? `${data.ayah_start}-${data.ayah_end}` : 'Full Surah';
                                     }
                                 }, {
                                     data: 'qari'
@@ -2208,10 +3051,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                     render: $.fn.dataTable.render.ellipsis(100)
                                 }, {
                                     data: null,
-                                    render: function(data, type, row) {
+                                    render: function(data) {
                                         return `
-                                            <button class="btn btn-sm btn-info edit-recitation-btn" data-id="${row.id}" data-surah="${row.surah}" data-start="${row.ayah_start}" data-end="${row.ayah_end}" data-qari="${escapeHtml(row.qari)}" data-date="${row.log_date}" data-notes="${escapeHtml(row.notes)}">Edit</button>
-                                            <button class="btn btn-sm btn-danger delete-recitation-btn" data-id="${row.id}">Delete</button>
+                                            <button class="btn btn-sm btn-info edit-recitation-btn" data-id="${data.id}" data-surah="${data.surah}" data-start="${data.ayah_start}" data-end="${data.ayah_end}" data-qari="${escapeHtml(data.qari)}" data-date="${data.log_date}" data-notes="${escapeHtml(data.notes)}">Edit</button>
+                                            <button class="btn btn-sm btn-danger delete-recitation-btn" data-id="${data.id}">Delete</button>
                                         `;
                                     }
                                 }],
@@ -2222,8 +3065,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to load recitation logs: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 }
                 $(document).on('click', '.edit-recitation-btn', function() {
@@ -2241,15 +3082,13 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                     $('#editRecitationQari').val(qari);
                     $('#editRecitationDate').val(date);
                     $('#editRecitationNotes').val(notes);
-                    // Populate Surah/Ayah selectors for edit modal
                     populateSurahAyahSelectors('editRecitationSurah', 'editRecitationAyahStart');
                     $('#editRecitationSurah').val(surah);
                     $('#editRecitationSurah').trigger('change');
                     $('#editRecitationAyahStart').val(start);
-                    // Also need to populate Ayah End based on selected Surah/StartAyah
                     const totalAyahs = surahAyahCounts[surah] || 0;
                     $('#editRecitationAyahEnd').empty().append('<option value="">Full Surah</option>');
-                    for (let i = start; i <= totalAyahs; i++) {
+                    for (let i = (start || 1); i <= totalAyahs; i++) {
                         $('#editRecitationAyahEnd').append(`<option value="${i}">${i}</option>`);
                     }
                     $('#editRecitationAyahEnd').val(end);
@@ -2257,14 +3096,14 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                     editRecitationModal.show();
                 });
                 $('#saveRecitationLogBtn').on('click', function() {
-                    const id = $('#editRecitationId').val();
+                    const id = $('#editRecitationId').val() || null;
                     const surah = $('#editRecitationSurah').val();
-                    const ayah_start = $('#editRecitationAyahStart').val();
-                    const ayah_end = $('#editRecitationAyahEnd').val();
+                    const ayah_start = $('#editRecitationAyahStart').val() || null;
+                    const ayah_end = $('#editRecitationAyahEnd').val() || null;
                     const qari = $('#editRecitationQari').val();
                     const log_date = $('#editRecitationDate').val();
                     const notes = $('#editRecitationNotes').val();
-                    sendAjaxRequest('update_recitation_log', { // New AJAX action needed
+                    sendAjaxRequest('update_recitation_log', {
                         id: id,
                         surah: surah,
                         ayah_start: ayah_start,
@@ -2280,8 +3119,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to update recitation log: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 });
                 $(document).on('click', '.delete-recitation-btn', function() {
@@ -2296,33 +3133,32 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             } else {
                                 showToast('Failed to delete recitation log: ' + response.message, 'error');
                             }
-                        }).fail(function() {
-                            showToast('Error communicating with server.', 'error');
                         });
                     }
                 });
 
-                // My Hifz Plan
                 async function loadMyHifzOverview() {
                     try {
                         const hifzResult = await sendAjaxRequest('get_all_hifz');
                         if (!hifzResult.success) throw new Error(hifzResult.message);
                         const allHifz = hifzResult.data;
                         const surahProgress = {};
+                        for (let i = 1; i <= 114; i++) {
+                            surahProgress[i] = {
+                                totalAyahs: surahAyahCounts[i],
+                                memorized: 0,
+                                inProgress: 0
+                            };
+                        }
                         allHifz.forEach(h => {
-                            if (!surahProgress[h.surah]) {
-                                surahProgress[h.surah] = {
-                                    totalAyahs: surahAyahCounts[h.surah],
-                                    memorized: 0,
-                                    inProgress: 0
-                                };
+                            if (surahProgress[h.surah]) {
+                                if (h.status === 'memorized') surahProgress[h.surah].memorized++;
+                                if (h.status === 'in-progress') surahProgress[h.surah].inProgress++;
                             }
-                            if (h.status === 'memorized') surahProgress[h.surah].memorized++;
-                            if (h.status === 'in-progress') surahProgress[h.surah].inProgress++;
                         });
 
                         let overviewHtml = '';
-                        const sortedSurahs = Object.keys(surahProgress).sort((a, b) => parseInt(a) - parseInt(b));
+                        const sortedSurahs = Object.keys(surahProgress).filter(s => surahProgress[s].memorized > 0 || surahProgress[s].inProgress > 0).sort((a, b) => parseInt(a) - parseInt(b));
                         if (sortedSurahs.length === 0) {
                             overviewHtml = '<p class="text-center">No Hifz progress recorded yet.</p>';
                         } else {
@@ -2370,12 +3206,12 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                 data: filteredData,
                                 columns: [{
                                     data: null,
-                                    render: function(data, type, row) {
-                                        return `${row.surah}:${row.ayah}`;
+                                    render: function(data) {
+                                        return `${data.surah}:${data.ayah}`;
                                     }
                                 }, {
                                     data: 'status',
-                                    render: function(data, type, row) {
+                                    render: function(data) {
                                         return `<span class="hifz-ayah-status status-${data}">${data.replace('-', ' ')}</span>`;
                                     }
                                 }, {
@@ -2389,10 +3225,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                     render: $.fn.dataTable.render.ellipsis(50)
                                 }, {
                                     data: null,
-                                    render: function(data, type, row) {
+                                    render: function(data) {
                                         return `
-                                            <button class="btn btn-sm btn-info edit-hifz-btn" data-surah="${row.surah}" data-ayah="${row.ayah}" data-status="${row.status}" data-last-review="${row.last_review_date}" data-next-review="${row.next_review_date}" data-review-count="${row.review_count}" data-notes="${escapeHtml(row.notes)}">Edit</button>
-                                            <button class="btn btn-sm btn-success record-review-btn" data-surah="${row.surah}" data-ayah="${row.ayah}" ${row.status !== 'memorized' ? 'disabled' : ''}>Record Review</button>
+                                            <button class="btn btn-sm btn-info edit-hifz-btn" data-surah="${data.surah}" data-ayah="${data.ayah}" data-status="${data.status}" data-last-review="${data.last_review_date}" data-next-review="${data.next_review_date}" data-review-count="${data.review_count}" data-notes="${escapeHtml(data.notes)}">Edit</button>
+                                            <button class="btn btn-sm btn-success record-review-btn" data-surah="${data.surah}" data-ayah="${data.ayah}" ${data.status !== 'memorized' ? 'disabled' : ''}>Record Review</button>
                                         `;
                                     }
                                 }],
@@ -2403,8 +3239,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to load Hifz details: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 }
                 $(document).on('click', '.edit-hifz-btn', function() {
@@ -2451,8 +3285,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to update Hifz status: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 });
                 $(document).on('click', '.record-review-btn', function() {
@@ -2484,14 +3316,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                     } else {
                                         showToast('Failed to record review: ' + updateResponse.message, 'error');
                                     }
-                                }).fail(function() {
-                                    showToast('Error communicating with server.', 'error');
                                 });
                             } else {
                                 showToast('Hifz data not found for this Ayah.', 'error');
                             }
-                        }).fail(function() {
-                            showToast('Error communicating with server.', 'error');
                         });
                     }
                 });
@@ -2503,7 +3331,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                     return date.toISOString().split('T')[0];
                 }
 
-                // My Goals
                 function setupGoalsFormListener() {
                     $('#goal-form').off('submit').on('submit', async function(e) {
                         e.preventDefault();
@@ -2649,10 +3476,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             data: 'target_date'
                         }, {
                             data: null,
-                            render: function(data, type, row) {
+                            render: function(data) {
                                 return `
-                                    <button class="btn btn-sm btn-info edit-goal-btn" data-id="${row.id}" data-title="${escapeHtml(row.title)}" data-target-date="${row.target_date}" data-is-complete="${row.is_complete}">Edit</button>
-                                    <button class="btn btn-sm btn-danger delete-goal-btn" data-id="${row.id}">Delete</button>
+                                    <button class="btn btn-sm btn-info edit-goal-btn" data-id="${data.id}" data-title="${escapeHtml(data.title)}" data-target-date="${data.target_date}" data-is-complete="${data.is_complete}">Edit</button>
+                                    <button class="btn btn-sm btn-danger delete-goal-btn" data-id="${data.id}">Delete</button>
                                 `;
                             }
                         }],
@@ -2687,8 +3514,8 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             data: 'target_date'
                         }, {
                             data: null,
-                            render: function(data, type, row) {
-                                return `<button class="btn btn-sm btn-danger delete-goal-btn" data-id="${row.id}">Delete</button>`;
+                            render: function(data) {
+                                return `<button class="btn btn-sm btn-danger delete-goal-btn" data-id="${data.id}">Delete</button>`;
                             }
                         }],
                         order: [
@@ -2699,9 +3526,9 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
 
                 function getGoalTargetDescription(goal) {
                     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                    if (goal.target_surah) return `Surah ${goal.target_surah}: ${surahNames[goal.target_surah - 1]} ${goal.target_day !== null ? `(Every ${days[goal.target_day]})` : ''}`;
+                    if (goal.target_surah) return `Surah ${goal.target_surah}: ${surahNames[goal.target_surah - 1]} ${goal.target_day !== null && goal.target_day !== undefined ? `(Every ${days[goal.target_day]})` : ''}`;
                     if (goal.target_juz) return `Juz ${goal.target_juz}`;
-                    if (goal.target_theme) return `Theme ID: ${goal.target_theme}`;
+                    if (goal.target_theme_id) return `Theme ID: ${goal.target_theme_id}`;
                     if (goal.target_count) return `${goal.target_count} Ayahs/Day`;
                     return 'N/A';
                 }
@@ -2729,7 +3556,7 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         }
                         case 'read_quran':
                         case 'listen_quran': {
-                            const total = 6236; // Total ayahs in Quran
+                            const total = 6236; 
                             const ayahsRead = new Set();
                             allReadingLogs.forEach(r => {
                                 const start = r.ayah_start || 1;
@@ -2763,13 +3590,17 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         case 'recurring_surah_weekly': {
                             const totalWeeks = 4;
                             let weeksMet = 0;
+                            const targetDay = goal.target_day; 
                             const recitationLogsForSurah = allReadingLogs.filter(r => r.surah === goal.target_surah);
+
                             for (let i = 0; i < totalWeeks; i++) {
                                 const checkDate = new Date();
-                                checkDate.setDate(checkDate.getDate() - (i * 7));
-                                const dayOfWeek = checkDate.getDay();
-                                checkDate.setDate(checkDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1) + (goal.target_day === 0 ? 0 : goal.target_day -1)); // Adjust to target day
+                                checkDate.setDate(checkDate.getDate() - (i * 7)); 
+
+                                const dayOffset = (checkDate.getDay() - targetDay + 7) % 7;
+                                checkDate.setDate(checkDate.getDate() - dayOffset);
                                 const dayKey = checkDate.toISOString().split('T')[0];
+
                                 if (recitationLogsForSurah.some(log => log.log_date === dayKey)) {
                                     weeksMet++;
                                 }
@@ -2812,7 +3643,7 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         }
                         case 'link_theme': {
                             const total = goal.target_count;
-                            const completed = userData.themeAyahs.filter(ta => ta.theme_id === goal.target_theme).length;
+                            const completed = userData.themeAyahs.filter(ta => ta.theme_id === goal.target_theme_id).length;
                             progress = total > 0 ? (completed / total) * 100 : 100;
                             progressText = `${completed}/${total} Ayahs`;
                             break;
@@ -2826,31 +3657,32 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
 
                 function getAyahsForJuz(juzNum) {
                     const ayahs = [];
-                    const startJuzData = juzBoundariesData[juzNum - 1];
-                    const endJuzData = juzBoundariesData[juzNum] || {
-                        startSurah: 115,
-                        startAyah: 1
-                    };
-                    for (let s = startJuzData.startSurah; s < endJuzData.startSurah; s++) {
+                    const startJuzData = juzBoundariesData.find(j => j.juz === juzNum);
+                    if (!startJuzData) return ayahs;
+
+                    const nextJuzData = juzBoundariesData.find(j => j.juz === juzNum + 1);
+
+                    for (let s = startJuzData.startSurah; s <= 114; s++) {
                         const startAyah = (s === startJuzData.startSurah) ? startJuzData.startAyah : 1;
-                        for (let a = startAyah; a <= surahAyahCounts[s]; a++) {
+                        let endAyah = surahAyahCounts[s];
+
+                        if (nextJuzData && s === nextJuzData.startSurah) {
+                            endAyah = nextJuzData.startAyah - 1; 
+                            if (endAyah < startAyah) endAyah = startAyah; 
+                        }
+
+                        for (let a = startAyah; a <= endAyah; a++) {
+                            if (a > surahAyahCounts[s]) break; 
                             ayahs.push({
                                 surah: s,
                                 ayah: a
                             });
                         }
-                    }
-                    if (endJuzData.startSurah <= 114) {
-                        const startAyahLastSurah = (endJuzData.startSurah === startJuzData.startSurah) ? startJuzData.startAyah : 1;
-                        for (let a = startAyahLastSurah; a < endJuzData.startAyah; a++) {
-                            ayahs.push({
-                                surah: endJuzData.startSurah,
-                                ayah: a
-                            });
-                        }
+                        if (nextJuzData && s >= nextJuzData.startSurah) break; 
                     }
                     return ayahs;
                 }
+
 
                 function getDailyReadingCounts(allReadingLogs) {
                     const dailyCounts = {};
@@ -2885,10 +3717,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                     const targetDate = $('#editGoalTargetDate').val();
                     const isComplete = $('#editGoalIsComplete').prop('checked');
 
-                    const result = await sendAjaxRequest('update_goal_completion', { // Reusing update_goal_completion
+                    const result = await sendAjaxRequest('update_goal_completion', { 
                         id: id,
-                        title: title, // Pass title for potential backend update (if needed)
-                        targetDate: targetDate, // Pass targetDate for potential backend update (if needed)
+                        title: title, 
+                        targetDate: targetDate, 
                         isComplete: isComplete
                     });
 
@@ -2914,23 +3746,20 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             } else {
                                 showToast('Failed to delete goal: ' + response.message, 'error');
                             }
-                        }).fail(function() {
-                            showToast('Error communicating with server.', 'error');
                         });
                     }
                 });
 
-                // My Contributions
                 function loadMyContributions() {
                     if (myContributionsTable) {
                         myContributionsTable.destroy();
                     }
-                    sendAjaxRequest('get_user_submitted_word_translations').done(async function(response) { // New AJAX action needed
+                    sendAjaxRequest('get_user_submitted_word_translations').done(async function(response) {
                         if (response.success) {
                             const dataWithArabic = await Promise.all(response.data.map(async (item) => {
                                 const metadataResult = await sendAjaxRequest('get_word_metadata', {
                                     word_id: item.word_id
-                                }); // New AJAX action needed
+                                });
                                 item.arabic_word = metadataResult.success && metadataResult.data ? metadataResult.data.arabic_word : 'N/A';
                                 const langConfig = allLanguagesConfig.find(lang => lang.word_col_name === item.translation_column);
                                 item.lang_label = langConfig ? langConfig.label : 'Unknown';
@@ -2962,12 +3791,9 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to load contributions: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 }
 
-                // Data Management
                 $('#exportUserDataBtn').on('click', function() {
                     sendAjaxRequest('export_user_data').done(function(response) {
                         if (response.success) {
@@ -2987,8 +3813,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                         } else {
                             showToast('Failed to export data: ' + response.message, 'error');
                         }
-                    }).fail(function() {
-                        showToast('Error communicating with server.', 'error');
                     });
                 });
                 $('#importUserDataFile').on('change', function() {
@@ -3013,7 +3837,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             }).done(function(response) {
                                 if (response.success) {
                                     showToast('Data imported successfully. Dashboard will refresh.');
-                                    // Refresh all relevant tables/data
                                     loadDashboardStats();
                                     loadMyTafsir();
                                     loadMyThemes();
@@ -3030,8 +3853,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                                 } else {
                                     showToast('Failed to import data: ' + response.message, 'error');
                                 }
-                            }).fail(function() {
-                                showToast('Error communicating with server during import.', 'error');
                             });
                         } catch (error) {
                             showToast('Error parsing JSON file: ' + error.message, 'error');
@@ -3041,11 +3862,10 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                     reader.readAsText(file);
                 });
                 $('#clearAllUserDataBtn').on('click', function() {
-                    if (confirm('WARNING: This will permanently delete ALL your personal data (Tafsir, Themes, Roots, Logs, Hifz, Goals). This action cannot be undone. Are you absolutely sure?')) {
+                    if (confirm('WARNING: This will permanently delete ALL your personal data (Tafsir, Themes, Roots, Logs, Hifz, Goals, Contributions). This action cannot be undone. Are you absolutely sure?')) {
                         sendAjaxRequest('clear_personal_data').done(function(response) {
                             if (response.success) {
                                 showToast('All personal data cleared successfully. Dashboard will refresh.');
-                                // Clear all relevant tables/data
                                 loadDashboardStats();
                                 loadMyTafsir();
                                 loadMyThemes();
@@ -3060,14 +3880,11 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
                             } else {
                                 showToast('Failed to clear data: ' + response.message, 'error');
                             }
-                        }).fail(function() {
-                            showToast('Error communicating with server.', 'error');
                         });
                     }
                 });
             }
 
-            // Utility functions for HTML escaping
             function escapeHtml(text) {
                 if (text === null || typeof text === 'undefined') return '';
                 const map = {
@@ -3090,3 +3907,6 @@ $('a[data-bs-toggle="tab"]').on('show.bs.tab', function(e) {
             }
         });
     </script>
+</body>
+
+</html>
