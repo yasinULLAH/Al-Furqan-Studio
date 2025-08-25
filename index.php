@@ -48,7 +48,7 @@ function db_fetch_all($stmt)
     }
     return $result->fetch_all(MYSQLI_ASSOC);
 }
-function setup_database()
+/* function setup_database()
 {
     global $conn;
     $conn->query("
@@ -382,7 +382,6 @@ function import_data_from_file($file_config)
     $conn->commit();
     return true;
 }
-
 function initial_populate_from_files()
 {
     global $conn, $manifest_config;
@@ -411,7 +410,7 @@ function initial_populate_from_files()
         }
     }
 }
-initial_populate_from_files();
+initial_populate_from_files(); */
 
 function is_logged_in()
 {
@@ -502,6 +501,15 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
     $action = $_POST['action'] ?? $_GET['action'] ?? '';
     $user_id = get_user_id();
     $user_role = get_user_role();
+    $all_langs_result = db_query("SELECT lang_key, word_col_name FROM languages");
+    $valid_quran_lang_keys = [];
+    $valid_word_col_names = [];
+    if ($all_langs_result) {
+        foreach (db_fetch_all($all_langs_result) as $lang) {
+            $valid_quran_lang_keys[] = $lang['lang_key'];
+            $valid_word_col_names[] = $lang['word_col_name'];
+        }
+    }
     switch ($action) {
         case 'load_quran_ayah':
             $surah = $_POST['surah'] ?? 0;
@@ -515,6 +523,32 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 }
             } else {
                 echo json_encode(['success' => false, 'message' => 'Invalid parameters.']);
+            }
+            break;
+        case 'get_all_word_metadata_for_surah':
+            $surah = $_POST['surah'] ?? 0;
+            if ($surah > 0 && $surah <= 114) {
+                $stmt = db_query("SELECT word_id, ayah, word_position, arabic_word FROM word_metadata WHERE surah = ? ORDER BY ayah, word_position", [$surah], 'i');
+                if ($stmt) {
+                    echo json_encode(['success' => true, 'data' => db_fetch_all($stmt)]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to fetch word metadata.']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Invalid Surah for metadata.']);
+            }
+            break;
+        case 'get_all_quran_ayahs_for_surah':
+            $surah = $_POST['surah'] ?? 0;
+            if ($surah > 0 && $surah <= 114) {
+                $stmt = db_query("SELECT * FROM quran_ayahs WHERE surah = ? ORDER BY ayah ASC", [$surah], 'i');
+                if ($stmt) {
+                    echo json_encode(['success' => true, 'data' => db_fetch_all($stmt)]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to fetch Ayahs.']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Invalid Surah provided.']);
             }
             break;
         case 'save_tafsir':
@@ -856,10 +890,16 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                     $translations = ['urdu', 'english', 'Bangali', 'pashto'];
                     foreach ($translations as $lang) {
                         $stmt = db_query("SELECT surah, ayah, $lang FROM quran_ayahs WHERE $lang LIKE ?", [$search_term], 's');
-                        if ($stmt) {
-                            foreach (db_fetch_all($stmt) as $row) {
-                                if (!empty($row[$lang])) {
-                                    $results[] = ['type' => 'Quran', 'ref' => "Surah {$row['surah']}:{$row['ayah']}", 'surah' => $row['surah'], 'ayah' => $row['ayah'], 'context' => $row[$lang], 'source' => ucfirst($lang) . ' Translation'];
+                        if (in_array('quran-translation', $scopes)) {
+                            // This now dynamically fetches all available language keys for Quran translations
+                            foreach ($valid_quran_lang_keys as $lang_key) {
+                                $stmt = db_query("SELECT surah, ayah, `$lang_key` FROM quran_ayahs WHERE `$lang_key` LIKE ?", [$search_term], 's');
+                                if ($stmt) {
+                                    foreach (db_fetch_all($stmt) as $row) {
+                                        if (!empty($row[$lang_key])) {
+                                            $results[] = ['type' => 'Quran', 'ref' => "Surah {$row['surah']}:{$row['ayah']}", 'surah' => $row['surah'], 'ayah' => $row['ayah'], 'context' => $row[$lang_key], 'source' => ucfirst($lang_key) . ' Translation'];
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -992,7 +1032,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 $word_id = $_POST['word_id'] ?? 0;
                 $lang = $_POST['lang'] ?? '';
                 $text = $_POST['text'] ?? '';
-                if ($word_id && $lang && in_array($lang, ['ur_meaning', 'en_meaning', 'pashto_text', 'bn_meaning'])) {
+                if ($word_id && $lang && in_array($lang, $valid_word_col_names)) {
 
                     $sql = "INSERT INTO word_translations (word_id, $lang) VALUES (?, ?) ON DUPLICATE KEY UPDATE $lang = ?";
 
@@ -1223,11 +1263,9 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 $word_id = $_POST['word_id'] ?? 0;
                 $lang_key = $_POST['lang_key'] ?? '';
                 $translation_text = $_POST['translation_text'] ?? '';
-                $db_col = '';
-                if ($lang_key === 'urdu') $db_col = 'ur_meaning';
-                else if ($lang_key === 'english') $db_col = 'en_meaning';
-                else if ($lang_key === 'pashto') $db_col = 'pashto_text';
-                else if ($lang_key === 'Bangali') $db_col = 'bn_meaning';
+                $stmt_get_col = db_query("SELECT word_col_name FROM languages WHERE lang_key = ?", [$lang_key], 's');
+                $db_col_row = db_fetch_row($stmt_get_col);
+                $db_col = $db_col_row ? $db_col_row['word_col_name'] : '';
                 if ($word_id && $db_col) {
 
                     if ($user_role === 'admin') {
@@ -1264,7 +1302,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 $ayah = $_POST['ayah'] ?? 0;
                 $lang_key = $_POST['lang_key'] ?? '';
                 $translation_text = $_POST['translation_text'] ?? '';
-                if ($surah && $ayah && $lang_key && in_array($lang_key, ['urdu', 'english', 'Bangali', 'pashto'])) {
+                if ($surah && $ayah && $lang_key && in_array($lang_key, $valid_quran_lang_keys)) {
                     $sql = "UPDATE quran_ayahs SET $lang_key = ? WHERE surah = ? AND ayah = ?";
                     $stmt = db_query($sql, [$translation_text, $surah, $ayah], 'sii');
                     if ($stmt) {
@@ -1324,6 +1362,47 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 }
             } else {
                 echo json_encode(['success' => false, 'message' => 'Unauthorized.']);
+            }
+            break;
+        case 'add_language':
+            if ($user_role === 'admin') {
+                $lang_key = preg_replace('/[^a-zA-Z0-9_]/', '', $_POST['lang_key'] ?? '');
+                $label = $_POST['label'] ?? '';
+                $lang_code = $_POST['lang_code'] ?? '';
+                $direction = in_array($_POST['direction'], ['ltr', 'rtl']) ? $_POST['direction'] : 'ltr';
+                $font_var = $_POST['font_var'] ?? '';
+                $word_col_name = $lang_key . '_meaning';
+                if ($lang_key && $label && $lang_code) {
+                    $conn->begin_transaction();
+                    try {
+                        db_query(
+                            "INSERT INTO languages (lang_key, label, lang_code, direction, font_var, word_col_name) VALUES (?, ?, ?, ?, ?, ?)",
+                            [$lang_key, $label, $lang_code, $direction, $font_var, $word_col_name],
+                            'ssssss'
+                        );
+                        $conn->query("ALTER TABLE quran_ayahs ADD COLUMN `$lang_key` TEXT NULL");
+                        if ($conn->error) throw new Exception("Failed on quran_ayahs: " . $conn->error);
+                        $conn->query("ALTER TABLE word_translations ADD COLUMN `$word_col_name` TEXT NULL");
+                        if ($conn->error) throw new Exception("Failed on word_translations: " . $conn->error);
+                        $conn->commit();
+                        echo json_encode(['success' => true, 'message' => 'Language added successfully.']);
+                    } catch (Exception $e) {
+                        $conn->rollback();
+                        echo json_encode(['success' => false, 'message' => 'Failed to add language: ' . $e->getMessage()]);
+                    }
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Invalid parameters.']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Unauthorized.']);
+            }
+            break;
+        case 'get_all_languages':
+            $stmt = db_query("SELECT lang_key AS `key`, label, lang_code, direction, font_var FROM languages ORDER BY id");
+            if ($stmt) {
+                echo json_encode(['success' => true, 'data' => db_fetch_all($stmt)]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to fetch languages.']);
             }
             break;
         default:
@@ -1639,13 +1718,14 @@ $static_quranic_themes = [
     (object)['id' => 'static_39', 'name' => "Call to Reflection (Tadabbur)", 'exampleSurah' => 47, 'exampleAyah' => 24, 'description' => "Then do they not reflect upon the Qur'an, or are there locks upon [their] hearts?"],
     (object)['id' => 'static_40', 'name' => "Friday Prayer (Jumu'ah)", 'exampleSurah' => 62, 'exampleAyah' => 9, 'description' => "O you who have believed, when the adhan is called for the prayer on the day of Jumu'ah..."]
 ];
-$translation_config = [
-    (object)['key' => 'urdu', 'label' => 'Urdu', 'lang_code' => 'ur', 'direction' => 'rtl', 'font_var' => 'var(--font-urdu)'],
-    (object)['key' => 'english', 'label' => 'English', 'lang_code' => 'en', 'direction' => 'ltr', 'font_var' => '--font-english'],
-    (object)['key' => 'Bangali', 'label' => 'Bangali', 'lang_code' => 'bn', 'direction' => 'ltr', 'font_var' => '--font-Bangali'],
-    (object)['key' => 'pashto', 'label' => 'Pashto', 'lang_code' => 'ps', 'direction' => 'rtl', 'font_var' => '--font-pashto']
-];
-$stmt_check_quran = $conn->query("SELECT COUNT(*) FROM quran_ayahs");
+$translation_config = [];
+$result = $conn->query("SELECT lang_key AS `key`, label, lang_code, direction, font_var, word_col_name FROM languages ORDER BY id");
+if ($result) {
+    while ($row = $result->fetch_object()) {
+        $translation_config[] = $row;
+    }
+}
+/* $stmt_check_quran = $conn->query("SELECT COUNT(*) FROM quran_ayahs");
 if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
     $conn->query("INSERT INTO quran_ayahs (surah, ayah, arabic, urdu, english, Bangali, pashto) VALUES
         (1, 1, 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ', 'شروع اللہ کے نام سے جو بڑا مہربان نہایت رحم والا ہے', 'In the name of Allah, the Entirely Merciful, the Especially Merciful.', 'আল্লাহর নামে, যিনি পরম করুণাময়, অতি দয়ালু।', 'د الله په نامه، چې ډېر مهربان، ډېر بخښونکی دی.'),
@@ -1671,7 +1751,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         (1007, 'رب', 'Lord', 'پالونکی', 'পালনকর্তা', 1, NOW()),
         (1008, 'جہانوں کا', 'of the worlds', 'د نړيو', 'বিশ্বজগতের', 1, NOW())
     ");
-}
+} */
 ?>
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
@@ -1895,7 +1975,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             padding: 5px var(--padding-main);
             box-shadow: 0 2px 5px var(--color-shadow);
             display: flex;
-            justify-content: center;
+            justify-content: end;
             align-items: center;
             flex-shrink: 0;
         }
@@ -3028,7 +3108,6 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
 
         #admin-modal .modal-content {
             max-width: 900px;
-            max-height: 90vh;
         }
 
         .user-list {
@@ -3064,6 +3143,10 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
 
         textarea#admin-translation-text {
             font-size: large;
+        }
+
+        button {
+            margin-bottom: 8px;
         }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3107,6 +3190,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         <div class="header-controls">
             <?php if (is_logged_in()): ?>
                 <span style="margin-right: 15px;">Welcome, <?= htmlspecialchars($_SESSION['username']); ?>! (<?= htmlspecialchars($_SESSION['role']); ?>)</span>
+                <a href="manage.php" class="button" style="margin-right: 10px;">Manage Dashboard</a>
                 <?php if (get_user_role() === 'admin'): ?>
                     <button id="admin-panel-btn" style="margin-right: 15px;">Admin</button>
                 <?php endif; ?>
@@ -3671,7 +3755,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         const surahAyahCounts = <?php echo json_encode($surah_ayah_counts); ?>;
         const juzBoundariesData = <?php echo json_encode($juz_boundaries_data); ?>;
         const staticQuranicThemes = <?php echo json_encode($static_quranic_themes); ?>;
-        const TRANSLATION_CONFIGS_PHP = <?php echo json_encode($translation_config); ?>;
+        const allLanguagesConfig = <?php echo json_encode($translation_config); ?>;
         const isUserLoggedIn = <?php echo is_logged_in() ? 'true' : 'false'; ?>;
         const userRole = '<?php echo get_user_role(); ?>';
         const currentUserId = <?php echo get_user_id(); ?>;
@@ -3945,7 +4029,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         }
         async function populateTranslationSelect(localManifest) {
             const select = document.getElementById('translation-select');
-            const quranTranslations = TRANSLATION_CONFIGS_PHP;
+            const quranTranslations = allLanguagesConfig;
             const previouslySelected = select.value || 'urdu';
             select.innerHTML = '';
             quranTranslations.forEach(config => {
@@ -3964,7 +4048,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         }
         async function fetchRemoteManifest() {
             const mockManifest = {};
-            TRANSLATION_CONFIGS_PHP.forEach(config => {
+            allLanguagesConfig.forEach(config => {
                 mockManifest[config.key] = {
                     version: '1.0'
                 };
@@ -3973,7 +4057,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         }
 
         function getTranslationConfig(key) {
-            const config = TRANSLATION_CONFIGS_PHP.find(item => item.key === key);
+            const config = allLanguagesConfig.find(item => item.key === key);
             if (!config) return {
                 key: 'english',
                 lang_code: 'en',
@@ -4008,16 +4092,24 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             completedProgressUnits = 5;
             updateLoadingProgress(0, "Fetching manifest...");
             try {
-                window.appManifest = TRANSLATION_CONFIGS_PHP;
-                completedProgressUnits = 10;
+                console.log("--- STARTING DEBUG ---");
+
+                if (typeof allLanguagesConfig === 'undefined') {
+                    throw new Error("Critical Failure: `allLanguagesConfig` is not defined. The PHP script is likely broken before this point.");
+                }
+                window.appManifest = allLanguagesConfig;
+
                 updateLoadingProgress(0, "Checking local data versions...");
                 const localManifest = await getLocalManifest();
+
                 await populateTranslationSelect(localManifest);
-                localStorage.setItem('lastUpdateCheck', new Date().toISOString());
                 await populateSurahAyahSelects();
+
                 await loadAyah(currentSurah, currentAyah);
+
             } catch (e) {
-                alert("Failed to load app manifest. Please check your internet connection and refresh.");
+                console.error(">>> CRITICAL ERROR IN loadQuranData <<<", e);
+                alert(`A specific error occurred. Check the console (F12) for the full error message starting with '>>> CRITICAL ERROR'.\n\nError Message: ${e.message}`);
             } finally {
                 hideLoading();
                 isUpdateCheckInProgress = false;
@@ -4025,7 +4117,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         }
         async function getLocalManifest() {
             const versions = {};
-            TRANSLATION_CONFIGS_PHP.forEach(config => {
+            allLanguagesConfig.forEach(config => {
                 versions[config.key] = {
                     version: '1.0'
                 };
@@ -4246,48 +4338,56 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             }
         }
         async function handleWordClick(event) {
-            if (document.getElementById('translation-select').value === 'pashto') {
-                showPashtoNoticeOnce();
-            }
             const wordSpan = event.target;
             const wordId = parseInt(wordSpan.dataset.wordId, 10);
             document.querySelectorAll('.ayah-arabic span, #quran-continuous-display .arabic-word').forEach(span => span.style.backgroundColor = 'transparent');
             wordSpan.style.backgroundColor = 'var(--color-highlight)';
+            const translationArea = document.getElementById('word-translation-area');
+
             if (isNaN(wordId)) {
-                document.getElementById('word-translation-area').innerHTML = `<p>Translation not available for this word.</p>`;
+                translationArea.innerHTML = `<p>Translation not available for this word.</p>`;
                 return;
             }
+
             try {
-                const translations = await getWordTranslationById(wordId);
-                const translationArea = document.getElementById('word-translation-area');
+                const result = await sendAjaxRequest('get_word_translation', {
+                    word_id: wordId
+                });
+                const translations = result.success && result.data ? result.data : {};
+
                 const fullAyahTranslation = wordSpan.closest('.ayah').querySelector('.ayah-translation').textContent;
                 const fullTranslationInfo = getTranslationConfig(document.getElementById('translation-select').value);
-                let editButtonHTML = '';
+
+                let html = `<p><strong>Selected Word:</strong> <span lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${wordSpan.dataset.wordText}</span></p>`;
+
+                // Dynamically loop through all available languages
+                allLanguagesConfig.forEach(config => {
+                    const meaning = translations[config.word_col_name] || "N/A";
+                    html += `<p><strong>${config.label}:</strong> <span lang="${config.lang_code}" dir="${config.direction}" style="font-family: var(${config.font_var});">${meaning}</span></p>`;
+                });
+
+                html += `<p><strong>Full Ayah Translation:</strong> <span lang="${fullTranslationInfo.lang}" dir="${fullTranslationInfo.dir}" style="font-family: ${fullTranslationInfo.font};">${fullAyahTranslation}</span></p>`;
+
                 if (isUserLoggedIn && (userRole === 'admin' || userRole === 'registered')) {
-                    editButtonHTML = `<button class="edit-word-translation-btn" data-word-id="${wordId}" data-word-text="${wordSpan.dataset.wordText}" style="margin-top: 10px; padding: 5px 10px; font-size: 0.9em;">Edit Word Translation</button>`;
+                    html += `<button class="edit-word-translation-btn" data-word-id="${wordId}" data-word-text="${wordSpan.dataset.wordText}" style="margin-top: 10px; padding: 5px 10px; font-size: 0.9em;">Edit Word Translation</button>`;
                 }
-                translationArea.innerHTML = `
-                    <p><strong>Selected Word:</strong> <span lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${wordSpan.dataset.wordText}</span></p>
-                    <p><strong>Urdu Meaning:</strong> <span lang="ur" dir="rtl" style="font-family: var(var(--font-urdu));">${translations.ur}</span></p>
-                    <p><strong>Pashto Meaning:</strong> <span lang="ps" dir="rtl" style="font-family: var(--font-pashto);">${translations.ps}</span></p>
-                    <p><strong>Bangali Meaning:</strong> <span lang="bn" dir="ltr" style="font-family: var(--font-Bangali);">${translations.bn}</span></p>
-                    <p><strong>English Meaning:</strong> <span lang="en" dir="ltr" style="font-family: var(--font-english);">${translations.en}</span></p>
-                    <p><strong>Full Ayah Translation:</strong> <span lang="${fullTranslationInfo.lang}" dir="${fullTranslationInfo.dir}" style="font-family: ${fullTranslationInfo.font};">${fullAyahTranslation}</span></p>
-                    ${editButtonHTML}
-                `;
+
+                translationArea.innerHTML = html;
+
                 if (isUserLoggedIn && (userRole === 'admin' || userRole === 'registered')) {
-                    document.querySelector('.edit-word-translation-btn').addEventListener('click', handleEditWordTranslation);
+                    document.querySelector('.edit-word-translation-btn')?.addEventListener('click', handleEditWordTranslation);
                 }
+
             } catch (error) {
                 console.error("Error handling word click:", error);
-                document.getElementById('word-translation-area').innerHTML = `<p style="color: var(--color-error);">Error fetching word details.</p>`;
+                translationArea.innerHTML = `<p style="color: var(--color-error);">Error fetching word details.</p>`;
             }
         }
         async function handleEditWordTranslation(event) {
             const wordId = event.target.dataset.wordId;
             const wordText = event.target.dataset.wordText;
             const translations = await getWordTranslationById(wordId);
-            let langOptions = TRANSLATION_CONFIGS_PHP.map(config => {
+            let langOptions = allLanguagesConfig.map(config => {
                 const meaning = translations[config.lang_code];
                 const currentMeaning = (meaning && meaning !== 'N/A') ? meaning : '';
                 return `
@@ -4309,12 +4409,12 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             editModal.querySelector('#quickTafsirText').style.display = 'none';
             editModal.querySelector('#saveQuickTafsirBtn').style.display = 'none';
             editModal.style.display = 'flex';
-            document.getElementById('save-edited-word-translation').addEventListener('click', async () => {
+            document.getElementById('save-edited-word-translation')?.addEventListener('click', async () => {
                 const statusEl = document.getElementById('edit-word-trans-status');
                 statusEl.textContent = 'Saving...';
                 statusEl.style.color = 'var(--color-text-secondary)';
                 let allSuccess = true;
-                for (const config of TRANSLATION_CONFIGS_PHP) {
+                for (const config of allLanguagesConfig) {
                     const textarea = document.getElementById(`edit-trans-${config.key}`);
                     const newText = textarea.value;
                     const result = await sendAjaxRequest('edit_word_translation', {
@@ -4414,7 +4514,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             }
             return await getAllData(storeName);
         }
-        window.TRANSLATION_CONFIG = TRANSLATION_CONFIGS_PHP;
+        window.TRANSLATION_CONFIG = allLanguagesConfig;
         const originalPopulateThemeSelects = populateThemeSelects;
         async function populateThemeSelects() {
             if (!isUserLoggedIn) {
@@ -4501,15 +4601,15 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         themesListElement.querySelectorAll('.view-theme-ayahs').forEach(span => {
                             const newSpan = span.cloneNode(true);
                             span.parentNode.replaceChild(newSpan, span);
-                            newSpan.addEventListener('click', handleViewThemeAyahs);
-                            newSpan.addEventListener('keydown', (e) => {
+                            newSpan?.addEventListener('click', handleViewThemeAyahs);
+                            newSpan?.addEventListener('keydown', (e) => {
                                 if (e.key === 'Enter' || e.key === ' ') handleViewThemeAyahs(e);
                             });
                         });
                         themesListElement.querySelectorAll('.delete-theme-btn').forEach(button => {
                             const newButton = button.cloneNode(true);
                             button.parentNode.replaceChild(newButton, button);
-                            newButton.addEventListener('click', handleDeleteTheme);
+                            newButton?.addEventListener('click', handleDeleteTheme);
                         });
                     }
                 } else {
@@ -4754,13 +4854,13 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         listEl.querySelectorAll('.delete-theme-link-btn').forEach(button => {
                             const newButton = button.cloneNode(true);
                             button.parentNode.replaceChild(newButton, button);
-                            newButton.addEventListener('click', handleDeleteThemeLink);
+                            newButton?.addEventListener('click', handleDeleteThemeLink);
                         });
                         listEl.querySelectorAll('.theme-modal-ayah-link').forEach(span => {
                             const newSpan = span.cloneNode(true);
                             span.parentNode.replaceChild(newSpan, span);
-                            newSpan.addEventListener('click', handleGoToAyahFromThemeModal);
-                            newSpan.addEventListener('keydown', (ev) => {
+                            newSpan?.addEventListener('click', handleGoToAyahFromThemeModal);
+                            newSpan?.addEventListener('keydown', (ev) => {
                                 if (ev.key === 'Enter' || ev.key === ' ') {
                                     handleGoToAyahFromThemeModal(ev);
                                 }
@@ -4987,7 +5087,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         listEl.querySelectorAll('.delete-recitation-btn').forEach(button => {
                             const newButton = button.cloneNode(true);
                             button.parentNode.replaceChild(newButton, button);
-                            newButton.addEventListener('click', handleDeleteRecitationLog);
+                            newButton?.addEventListener('click', handleDeleteRecitationLog);
                         });
                     }
                 } else {
@@ -5162,17 +5262,17 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     listEl.querySelectorAll('.set-hifz-status-btn').forEach(button => {
                         const newButton = button.cloneNode(true);
                         button.parentNode.replaceChild(newButton, button);
-                        newButton.addEventListener('click', handleSetHifzStatus);
+                        newButton?.addEventListener('click', handleSetHifzStatus);
                     });
                     listEl.querySelectorAll('.record-review-btn').forEach(button => {
                         const newButton = button.cloneNode(true);
                         button.parentNode.replaceChild(newButton, button);
-                        newButton.addEventListener('click', handleRecordReview);
+                        newButton?.addEventListener('click', handleRecordReview);
                     });
                     listEl.querySelectorAll('.view-hifz-notes-btn').forEach(button => {
                         const newButton = button.cloneNode(true);
                         button.parentNode.replaceChild(newButton, button);
-                        newButton.addEventListener('click', handleViewHifzNotes);
+                        newButton?.addEventListener('click', handleViewHifzNotes);
                     });
                 }
             } catch (error) {
@@ -5378,7 +5478,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         searchResultsList.appendChild(li);
                     });
                     searchResultsList.querySelectorAll('.go-to-ayah-btn').forEach(button => {
-                        button.addEventListener('click', handleGoToAyahFromSearch);
+                        button?.addEventListener('click', handleGoToAyahFromSearch);
                     });
                 }
             } catch (error) {
@@ -5557,10 +5657,10 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                             userListEl.appendChild(li);
                         });
                         userListEl.querySelectorAll('.user-role-select').forEach(select => {
-                            select.addEventListener('change', handleUserRoleChange);
+                            select?.addEventListener('change', handleUserRoleChange);
                         });
                         userListEl.querySelectorAll('.delete-user-btn').forEach(button => {
-                            button.addEventListener('click', handleDeleteUser);
+                            button?.addEventListener('click', handleDeleteUser);
                         });
                     }
                 } else {
@@ -5642,7 +5742,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     word_id: wordId
                 });
                 const currentTranslations = translationsResult.success && translationsResult.data ? translationsResult.data : {};
-                TRANSLATION_CONFIGS_PHP.forEach(config => {
+                allLanguagesConfig.forEach(config => {
                     const langKey = config.key;
                     const dbColName = `${langKey}_meaning`;
                     const translationText = currentTranslations[dbColName] || '';
@@ -5656,7 +5756,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 });
                 reviewDetailsDiv.style.display = 'block';
                 document.querySelectorAll('.admin-approve-trans-btn').forEach(button => {
-                    button.addEventListener('click', handleAdminApproveTranslation);
+                    button?.addEventListener('click', handleAdminApproveTranslation);
                 });
             } catch (error) {
                 reviewStatus.textContent = `Error loading word for review: ${error.message}`;
@@ -5718,7 +5818,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 }
                 const ayahData = ayahDataResult.data;
                 ayahArabicSpan.textContent = ayahData.arabic;
-                TRANSLATION_CONFIGS_PHP.forEach(config => {
+                allLanguagesConfig.forEach(config => {
                     const langKey = config.key;
                     const translationText = ayahData[langKey] || '';
                     const div = document.createElement('div');
@@ -5731,7 +5831,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 });
                 lineReviewDetailsDiv.style.display = 'block';
                 document.querySelectorAll('.admin-save-line-trans-btn').forEach(button => {
-                    button.addEventListener('click', handleAdminSaveLineTranslation);
+                    button?.addEventListener('click', handleAdminSaveLineTranslation);
                 });
             } catch (error) {
                 lineReviewStatus.textContent = `Error loading ayah for line review: ${error.message}`;
@@ -5777,21 +5877,21 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             const openRegisterFromLogin = document.getElementById('open-register-from-login');
             const openLoginFromRegister = document.getElementById('open-login-from-register');
             if (loginBtn) {
-                loginBtn.addEventListener('click', () => {
+                loginBtn?.addEventListener('click', () => {
                     loginModal.style.display = 'flex';
                     if (registerModal) registerModal.style.display = 'none';
                     document.getElementById('login-username').focus();
                 });
             }
             if (registerBtn) {
-                registerBtn.addEventListener('click', () => {
+                registerBtn?.addEventListener('click', () => {
                     registerModal.style.display = 'flex';
                     if (loginModal) loginModal.style.display = 'none';
                     document.getElementById('register-username').focus();
                 });
             }
             if (openRegisterFromLogin) {
-                openRegisterFromLogin.addEventListener('click', (e) => {
+                openRegisterFromLogin?.addEventListener('click', (e) => {
                     e.preventDefault();
                     if (loginModal) loginModal.style.display = 'none';
                     if (registerModal) registerModal.style.display = 'flex';
@@ -5799,7 +5899,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 });
             }
             if (openLoginFromRegister) {
-                openLoginFromRegister.addEventListener('click', (e) => {
+                openLoginFromRegister?.addEventListener('click', (e) => {
                     e.preventDefault();
                     if (registerModal) registerModal.style.display = 'none';
                     if (loginModal) loginModal.style.display = 'flex';
@@ -5809,12 +5909,12 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             const adminPanelBtn = document.getElementById('admin-panel-btn');
             const adminModal = document.getElementById('admin-modal');
             if (adminPanelBtn && adminModal) {
-                adminPanelBtn.addEventListener('click', () => {
+                adminPanelBtn?.addEventListener('click', () => {
                     adminModal.style.display = 'flex';
                     loadAdminUsers();
                 });
                 document.querySelectorAll('.admin-tab').forEach(tab => {
-                    tab.addEventListener('click', (e) => {
+                    tab?.addEventListener('click', (e) => {
                         document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
                         e.target.classList.add('active');
                         document.querySelectorAll('.admin-tab-content').forEach(c => c.style.display = 'none');
@@ -5833,12 +5933,12 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     });
                 });
                 const loadWordBtn = document.getElementById('load-word-for-review');
-                if (loadWordBtn) loadWordBtn.addEventListener('click', loadWordForReview);
+                if (loadWordBtn) loadWordBtn?.addEventListener('click', loadWordForReview);
                 const loadAyahLineBtn = document.getElementById('load-ayah-for-line-review');
-                if (loadAyahLineBtn) loadAyahLineBtn.addEventListener('click', loadAyahForLineReview);
+                if (loadAyahLineBtn) loadAyahLineBtn?.addEventListener('click', loadAyahForLineReview);
                 const adminAyahSurahSelect = document.getElementById('review-ayah-surah');
                 if (adminAyahSurahSelect) {
-                    adminAyahSurahSelect.addEventListener('change', (event) => {
+                    adminAyahSurahSelect?.addEventListener('change', (event) => {
                         updateAdminAyahSelect(parseInt(event.target.value, 10));
                     });
                 }
@@ -5899,7 +5999,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     a.textContent = linkInfo.text;
                     li.appendChild(a);
                     sidebar.appendChild(li);
-                    a.addEventListener('click', (event) => {
+                    a?.addEventListener('click', (event) => {
                         event.preventDefault();
                         const sectionId = event.currentTarget.dataset.section;
                         if (sectionId && typeof showSection === 'function') {
@@ -5927,7 +6027,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 const langSelect = document.getElementById('admin-translation-lang');
                 const textarea = document.getElementById('admin-translation-text');
                 const saveBtn = document.getElementById('admin-save-translation-btn');
-                langSelect.addEventListener('change', async () => {
+                langSelect?.addEventListener('change', async () => {
                     const selectedLang = langSelect.value;
                     const currentAyahData = await sendAjaxRequest('load_quran_ayah', {
                         surah: currentSurah,
@@ -5939,7 +6039,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         textarea.value = '';
                     }
                 });
-                saveBtn.addEventListener('click', async () => {
+                saveBtn?.addEventListener('click', async () => {
                     const selectedLang = langSelect.value;
                     const newTranslation = textarea.value;
                     try {
@@ -5971,7 +6071,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             if (eventListenersInitialized) {
                 return;
             }
-            document.querySelector('.sidebar nav').addEventListener('click', (e) => {
+            document.querySelector('.sidebar nav')?.addEventListener('click', (e) => {
                 if (e.target.matches('a.nav-link[data-section]')) {
                     e.preventDefault();
                     showSection(e.target.dataset.section);
@@ -5987,24 +6087,24 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     body.classList.toggle('sidebar-open');
                     hamburgerBtn.setAttribute('aria-expanded', isOpening);
                 };
-                hamburgerBtn.addEventListener('click', toggleSidebar);
-                overlay.addEventListener('click', toggleSidebar);
-                sidebar.addEventListener('click', (e) => {
+                hamburgerBtn?.addEventListener('click', toggleSidebar);
+                overlay?.addEventListener('click', toggleSidebar);
+                sidebar?.addEventListener('click', (e) => {
                     if (e.target.matches('a.nav-link') && body.classList.contains('sidebar-open')) {
                         toggleSidebar();
                     }
                 });
             }
-            document.getElementById('surah-select').addEventListener('change', (event) => {
+            document.getElementById('surah-select')?.addEventListener('change', (event) => {
                 currentSurah = parseInt(event.target.value, 10);
                 updateAyahSelect(currentSurah);
                 loadAyah(currentSurah, currentAyah);
             });
-            document.getElementById('ayah-select').addEventListener('change', (event) => {
+            document.getElementById('ayah-select')?.addEventListener('change', (event) => {
                 currentAyah = parseInt(event.target.value, 10);
                 loadAyah(currentSurah, currentAyah);
             });
-            document.getElementById('translation-select').addEventListener('change', async (event) => {
+            document.getElementById('translation-select')?.addEventListener('change', async (event) => {
                 const selectedKey = event.target.value;
                 if (selectedKey === 'pashto') {
                     showPashtoNoticeOnce();
@@ -6013,45 +6113,45 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 await loadAyah(currentSurah, currentAyah);
             });
             if (isUserLoggedIn) {
-                document.getElementById('save-tafsir-btn').addEventListener('click', saveTafsir);
-                document.getElementById('add-theme-btn').addEventListener('click', addTheme);
-                document.getElementById('link-ayah-to-theme-btn').addEventListener('click', linkAyahToTheme);
-                document.getElementById('link-theme-select').addEventListener('change', displayLinkedAyahsForCurrentTheme);
-                document.getElementById('analyze-root-btn').addEventListener('click', analyzeRoot);
-                document.getElementById('save-root-notes-btn').addEventListener('click', saveRootNotes);
-                document.getElementById('save-recitation-btn').addEventListener('click', saveRecitationLog);
-                document.getElementById('rec-surah-select').addEventListener('change', (event) => {
+                document.getElementById('save-tafsir-btn')?.addEventListener('click', saveTafsir);
+                document.getElementById('add-theme-btn')?.addEventListener('click', addTheme);
+                document.getElementById('link-ayah-to-theme-btn')?.addEventListener('click', linkAyahToTheme);
+                document.getElementById('link-theme-select')?.addEventListener('change', displayLinkedAyahsForCurrentTheme);
+                document.getElementById('analyze-root-btn')?.addEventListener('click', analyzeRoot);
+                document.getElementById('save-root-notes-btn')?.addEventListener('click', saveRootNotes);
+                document.getElementById('save-recitation-btn')?.addEventListener('click', saveRecitationLog);
+                document.getElementById('rec-surah-select')?.addEventListener('change', (event) => {
                     const surah = parseInt(event.target.value, 10);
                     const totalAyahs = surahAyahCounts[surah];
                     document.getElementById('rec-ayah-start').max = totalAyahs;
                     document.getElementById('rec-ayah-end').max = totalAyahs;
                 });
-                document.getElementById('hifz-surah-select').addEventListener('change', (event) => {
+                document.getElementById('hifz-surah-select')?.addEventListener('change', (event) => {
                     loadHifzForSurah(parseInt(event.target.value, 10));
                 });
-                document.getElementById('perform-search-btn').addEventListener('click', performSearch);
-                document.getElementById('export-data-btn').addEventListener('click', exportData);
-                document.getElementById('import-file').addEventListener('change', (event) => {
+                document.getElementById('perform-search-btn')?.addEventListener('click', performSearch);
+                document.getElementById('export-data-btn')?.addEventListener('click', exportData);
+                document.getElementById('import-file')?.addEventListener('change', (event) => {
                     document.getElementById('import-data-btn').disabled = !event.target.files[0];
                 });
-                document.getElementById('import-data-btn').addEventListener('click', () => {
+                document.getElementById('import-data-btn')?.addEventListener('click', () => {
                     const fileInput = document.getElementById('import-file');
                     if (fileInput.files.length > 0) importData(fileInput.files[0]);
                     else setStatusMessage('import-status', 'Select file to import.', true);
                 });
-                document.getElementById('clear-data-btn').addEventListener('click', clearAllPersonalData);
+                document.getElementById('clear-data-btn')?.addEventListener('click', clearAllPersonalData);
                 setupTafsirExportButtons();
             }
-            document.getElementById('theme-switcher').addEventListener('change', (event) => applyTheme(event.target.value));
+            document.getElementById('theme-switcher')?.addEventListener('change', (event) => applyTheme(event.target.value));
             document.querySelectorAll('.modal .close-button').forEach(button => {
-                button.addEventListener('click', (event) => event.target.closest('.modal').style.display = 'none');
+                button?.addEventListener('click', (event) => event.target.closest('.modal').style.display = 'none');
             });
-            window.addEventListener('click', (event) => {
+            window?.addEventListener('click', (event) => {
                 document.querySelectorAll('.modal').forEach(modal => {
                     if (event.target === modal) modal.style.display = 'none';
                 });
             });
-            window.addEventListener('keydown', (event) => {
+            window?.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape') {
                     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
                 }
@@ -6062,7 +6162,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 setupAdminTranslationUI();
             }
             document.querySelectorAll('input[name="root-view-mode"]').forEach(radio => {
-                radio.addEventListener('change', function() {
+                radio?.addEventListener('change', function() {
                     const newViewMode = this.value;
                     const rootContents = document.querySelectorAll('.root-view-content');
                     rootContents.forEach(el => {
@@ -6127,11 +6227,11 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     updateRootGraphView();
                 }
             }
-            document.getElementById('prev-root-graph-page-btn').addEventListener('click', goToPrevRootGraphPage);
-            document.getElementById('next-root-graph-page-btn').addEventListener('click', goToNextRootGraphPage);
+            document.getElementById('prev-root-graph-page-btn')?.addEventListener('click', goToPrevRootGraphPage);
+            document.getElementById('next-root-graph-page-btn')?.addEventListener('click', goToNextRootGraphPage);
             let graphCloseButton = null;
             document.querySelectorAll('input[name="root-view-mode"]').forEach(radio => {
-                radio.addEventListener('change', function() {
+                radio?.addEventListener('change', function() {
                     const newViewMode = this.value;
                     const rootSection = document.getElementById('roots');
                     const graphContainerWrapper = document.getElementById('root-network-graph-container');
@@ -6200,17 +6300,18 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     }
                 });
             });
-            window.addEventListener('keydown', (event) => {
+            window?.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape' && document.body.classList.contains('graph-fullscreen-active')) {
                     if (graphCloseButton) {
                         graphCloseButton.click();
                     }
                 }
             });
-            window.addEventListener('beforeunload', handlePageUnload);
+            window?.addEventListener('beforeunload', handlePageUnload);
+            setupQuranViewSwitcher();
             eventListenersInitialized = true;
         }
-        document.addEventListener('DOMContentLoaded', async () => {
+        document?.addEventListener('DOMContentLoaded', async () => {
             setupAuthEventListeners();
             const loginMessageEl = document.querySelector('#login-modal .form-message');
             const registerMessageEl = document.querySelector('#register-modal .form-message');
@@ -6253,7 +6354,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
 
         function setupQuranViewSwitcher() {
             document.querySelectorAll('input[name="quran-view-mode"]').forEach(radio => {
-                radio.addEventListener('change', function() {
+                radio?.addEventListener('change', function() {
                     currentQuranView = this.value;
                     document.getElementById('quran-display').style.display = (currentQuranView === 'single') ? 'block' : 'none';
                     document.getElementById('quran-continuous-display').style.display = (currentQuranView === 'continuous') ? 'block' : 'none';
@@ -6303,16 +6404,26 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         function addWordClickListeners() {
             document.querySelectorAll('.ayah-arabic span').forEach(wordSpan => {
                 wordSpan.removeEventListener('click', handleWordClick);
-                wordSpan.addEventListener('click', handleWordClick);
+                wordSpan?.addEventListener('click', handleWordClick);
                 wordSpan.removeEventListener('focus', handleWordFocus);
-                wordSpan.addEventListener('focus', handleWordFocus);
+                wordSpan?.addEventListener('focus', handleWordFocus);
                 wordSpan.removeEventListener('blur', handleWordBlur);
-                wordSpan.addEventListener('blur', handleWordBlur);
+                wordSpan?.addEventListener('blur', handleWordBlur);
             });
         }
 
         function handleWordFocus(event) {
             handleWordClick(event);
+        }
+
+        function addWordTooltipListeners() {
+            document.querySelectorAll('#quran-continuous-display .arabic-word').forEach(wordSpan => {
+                wordSpan.addEventListener('click', (event) => {
+                    // Make the translation area visible for continuous view clicks
+                    document.getElementById('word-translation-area').style.display = 'block';
+                    handleWordClick(event); // Reuse the existing click handler logic
+                });
+            });
         }
 
         function handleWordBlur(event) {
@@ -6627,13 +6738,13 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         listEl.querySelectorAll('.delete-theme-link-btn').forEach(button => {
                             const newButton = button.cloneNode(true);
                             button.parentNode.replaceChild(newButton, button);
-                            newButton.addEventListener('click', handleDeleteThemeLink);
+                            newButton?.addEventListener('click', handleDeleteThemeLink);
                         });
                         listEl.querySelectorAll('.theme-modal-ayah-link').forEach(span => {
                             const newSpan = span.cloneNode(true);
                             span.parentNode.replaceChild(newSpan, span);
-                            newSpan.addEventListener('click', handleGoToAyahFromThemeModal);
-                            newSpan.addEventListener('keydown', (ev) => {
+                            newSpan?.addEventListener('click', handleGoToAyahFromThemeModal);
+                            newSpan?.addEventListener('keydown', (ev) => {
                                 if (ev.key === 'Enter' || ev.key === ' ') {
                                     handleGoToAyahFromThemeModal(ev);
                                 }
@@ -6693,15 +6804,15 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         themesListElement.querySelectorAll('.view-theme-ayahs').forEach(span => {
                             const newSpan = span.cloneNode(true);
                             span.parentNode.replaceChild(newSpan, span);
-                            newSpan.addEventListener('click', handleViewThemeAyahs);
-                            newSpan.addEventListener('keydown', (e) => {
+                            newSpan?.addEventListener('click', handleViewThemeAyahs);
+                            newSpan?.addEventListener('keydown', (e) => {
                                 if (e.key === 'Enter' || e.key === ' ') handleViewThemeAyahs(e);
                             });
                         });
                         themesListElement.querySelectorAll('.delete-theme-btn').forEach(button => {
                             const newButton = button.cloneNode(true);
                             button.parentNode.replaceChild(newButton, button);
-                            newButton.addEventListener('click', handleDeleteTheme);
+                            newButton?.addEventListener('click', handleDeleteTheme);
                         });
                     }
                 } else {
@@ -6803,15 +6914,15 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         function setupTafsirExportButtons() {
             const exportDocxBtn = document.getElementById('export-tafsir-to-docx-btn');
             if (exportDocxBtn) {
-                exportDocxBtn.addEventListener('click', exportTafsirToDocx);
+                exportDocxBtn?.addEventListener('click', exportTafsirToDocx);
             }
             const exportMdBtn = document.getElementById('export-tafsir-to-md-btn');
             if (exportMdBtn) {
-                exportMdBtn.addEventListener('click', exportTafsirToMd);
+                exportMdBtn?.addEventListener('click', exportTafsirToMd);
             }
             const exportPdfBtn = document.getElementById('export-tafsir-to-pdf-btn');
             if (exportPdfBtn) {
-                exportPdfBtn.addEventListener('click', exportTafsirToPdf);
+                exportPdfBtn?.addEventListener('click', exportTafsirToPdf);
             }
         }
 
@@ -6853,7 +6964,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 console.error("Translation select element not found.");
                 return;
             }
-            selectElement.addEventListener('change', () => {
+            selectElement?.addEventListener('change', () => {
                 localStorage.setItem(storageKey, selectElement.value);
             });
             const savedValue = localStorage.getItem(storageKey);
@@ -7123,22 +7234,22 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     }
                 }, 400);
             }
-            closeButton.addEventListener('click', () => {
+            closeButton?.addEventListener('click', () => {
                 performModalCloseActions(true);
             });
-            window.addEventListener('click', (event) => {
+            window?.addEventListener('click', (event) => {
                 if (event.target === gameModal) {
                     performModalCloseActions(true);
                 }
             });
-            window.addEventListener('keydown', (event) => {
+            window?.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape' && gameModal.style.display === 'flex') {
                     performModalCloseActions(true);
                 }
             });
-            startGameWordWhizBtn.addEventListener('click', () => startWordWhizGame());
-            startGameAyahJumbleBtn.addEventListener('click', () => startAyahJumbleGame());
-            quitGameButton.addEventListener('click', () => {
+            startGameWordWhizBtn?.addEventListener('click', () => startWordWhizGame());
+            startGameAyahJumbleBtn?.addEventListener('click', () => startAyahJumbleGame());
+            quitGameButton?.addEventListener('click', () => {
                 activeGame = null;
                 resetGameUI();
             });
@@ -7151,7 +7262,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 gameLink.id = "openGamesModalBtn";
                 gameLi.appendChild(gameLink);
                 sidebarNav.appendChild(gameLi);
-                gameLink.addEventListener('click', (e) => {
+                gameLink?.addEventListener('click', (e) => {
                     e.preventDefault();
                     document.querySelectorAll('.nav-link.active').forEach(l => l.classList.remove('active'));
                     gameLink.classList.add('active');
@@ -7380,9 +7491,9 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 <button id="nextWordWhizQuestion" style="display:none; margin-top: 10px;">Next Question</button>
             `;
             gamePlayArea.querySelectorAll('.game-options-list button').forEach(button => {
-                button.addEventListener('click', handleWordWhizAnswer);
+                button?.addEventListener('click', handleWordWhizAnswer);
             });
-            document.getElementById('nextWordWhizQuestion').addEventListener('click', () => {
+            document.getElementById('nextWordWhizQuestion')?.addEventListener('click', () => {
                 currentWordWhizQuestionIndex++;
                 displayWordWhizQuestion();
             });
@@ -7420,7 +7531,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 <p>Your final score: ${gameScore}</p>
                 <button id="playWordWhizAgain">Play Again</button>
             `;
-            document.getElementById('playWordWhizAgain').addEventListener('click', startWordWhizGame);
+            document.getElementById('playWordWhizAgain')?.addEventListener('click', startWordWhizGame);
             activeGame = null;
         }
         let jumbledWords = [];
@@ -7495,10 +7606,10 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             addJumbleDragDropListeners();
             const jumbleArea = gamePlayArea;
             jumbleArea.removeEventListener('click', handleJumbleWordClick);
-            jumbleArea.addEventListener('click', handleJumbleWordClick);
-            document.getElementById('jumbleSubmitAnswer').addEventListener('click', handleAyahJumbleSubmit);
-            document.getElementById('jumbleResetArrangement').addEventListener('click', resetJumbleArrangement);
-            document.getElementById('nextAyahJumbleQuestion').addEventListener('click', () => startAyahJumbleGame());
+            jumbleArea?.addEventListener('click', handleJumbleWordClick);
+            document.getElementById('jumbleSubmitAnswer')?.addEventListener('click', handleAyahJumbleSubmit);
+            document.getElementById('jumbleResetArrangement')?.addEventListener('click', resetJumbleArrangement);
+            document.getElementById('nextAyahJumbleQuestion')?.addEventListener('click', () => startAyahJumbleGame());
         }
 
         function addJumbleDragDropListeners() {
@@ -7507,9 +7618,9 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             const attachListenersToWords = (containerSelector) => {
                 document.querySelectorAll(`${containerSelector} .jumble-word`).forEach(draggable => {
                     draggable.removeEventListener('dragstart', dragStartHandler);
-                    draggable.addEventListener('dragstart', dragStartHandler);
+                    draggable?.addEventListener('dragstart', dragStartHandler);
                     draggable.removeEventListener('dragend', dragEndHandler);
-                    draggable.addEventListener('dragend', dragEndHandler);
+                    draggable?.addEventListener('dragend', dragEndHandler);
                 });
             };
             const dragStartHandler = (e) => {
@@ -7526,9 +7637,9 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             attachListenersToWords('#jumbleTargetContainer');
             [sourceContainer, targetContainer].forEach(container => {
                 container.removeEventListener('dragover', dragOverHandler);
-                container.addEventListener('dragover', dragOverHandler);
+                container?.addEventListener('dragover', dragOverHandler);
                 container.removeEventListener('drop', dropHandler);
-                container.addEventListener('drop', dropHandler);
+                container?.addEventListener('drop', dropHandler);
             });
         }
         const dragOverHandler = (e) => {
@@ -7826,10 +7937,10 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             controlsDiv.append(flipButton, gotItButton, notYetButton);
             gameAreaWrapper.appendChild(controlsDiv);
             gamePlayArea.appendChild(gameAreaWrapper);
-            container.addEventListener('click', () => toggleFlashcardFlip_Suite(card, gotItButton, notYetButton, flipButton));
-            flipButton.addEventListener('click', () => toggleFlashcardFlip_Suite(card, gotItButton, notYetButton, flipButton));
-            gotItButton.addEventListener('click', () => handleFlashcardResponse_Suite(true));
-            notYetButton.addEventListener('click', () => handleFlashcardResponse_Suite(false));
+            container?.addEventListener('click', () => toggleFlashcardFlip_Suite(card, gotItButton, notYetButton, flipButton));
+            flipButton?.addEventListener('click', () => toggleFlashcardFlip_Suite(card, gotItButton, notYetButton, flipButton));
+            gotItButton?.addEventListener('click', () => handleFlashcardResponse_Suite(true));
+            notYetButton?.addEventListener('click', () => handleFlashcardResponse_Suite(false));
         }
 
         function toggleFlashcardFlip_Suite(cardEl, gotItBtn, notYetBtn, flipBtn) {
@@ -7875,10 +7986,10 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 </div>
             `;
             const playAgainFCBtn = document.getElementById('playFlashcardsAgain_Suite');
-            if (playAgainFCBtn) playAgainFCBtn.addEventListener('click', startFlashcardGame_Suite);
+            if (playAgainFCBtn) playAgainFCBtn?.addEventListener('click', startFlashcardGame_Suite);
             if (canPlayMemory) {
                 const startMemoryBtn = document.getElementById('startMemoryMatchGameBtn_Suite');
-                if (startMemoryBtn) startMemoryBtn.addEventListener('click', () => startMemoryMatchGame_Suite(uniqueWordsForMemory));
+                if (startMemoryBtn) startMemoryBtn?.addEventListener('click', () => startMemoryMatchGame_Suite(uniqueWordsForMemory));
             }
             activeGame = null;
         }
@@ -7953,7 +8064,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 cardElement.appendChild(contentSpan);
                 if (cardData.isFlipped) cardElement.classList.add('is-flipped');
                 if (cardData.isMatched) cardElement.classList.add('is-matched', 'is-flipped');
-                cardElement.addEventListener('click', () => handleMemoryCardClick_Suite(cardElement, cardData));
+                cardElement?.addEventListener('click', () => handleMemoryCardClick_Suite(cardElement, cardData));
                 grid.appendChild(cardElement);
             });
             gamePlayArea.appendChild(grid);
@@ -8025,9 +8136,9 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 </div>
             `;
             const playAgainMMBtn = document.getElementById('playMemoryMatchAgainBtn_Suite');
-            if (playAgainMMBtn) playAgainMMBtn.addEventListener('click', () => startMemoryMatchGame_Suite(memoryWordPairsForGame));
+            if (playAgainMMBtn) playAgainMMBtn?.addEventListener('click', () => startMemoryMatchGame_Suite(memoryWordPairsForGame));
             const backBtn = document.getElementById('backToGameSelectionBtn_Suite');
-            if (backBtn) backBtn.addEventListener('click', () => {
+            if (backBtn) backBtn?.addEventListener('click', () => {
                 activeGame = null;
                 resetGameUI();
             });
@@ -8042,7 +8153,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 suiteButton.id = buttonId;
                 suiteButton.className = 'game-select-btn';
                 suiteButton.textContent = 'Flashcard & Memory';
-                suiteButton.addEventListener('click', startFlashcardGame_Suite);
+                suiteButton?.addEventListener('click', startFlashcardGame_Suite);
                 const existingButtons = gameSelectionArea.querySelectorAll('.game-select-btn');
                 if (existingButtons.length > 0) {
                     existingButtons[existingButtons.length - 1].insertAdjacentElement('afterend', suiteButton);
@@ -8476,7 +8587,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     ayahSpan.innerHTML = ayahHTML;
                     const s_for_click = currentS_loop_var;
                     const a_for_click = currentA_loop_var;
-                    ayahSpan.addEventListener('click', () => {
+                    ayahSpan?.addEventListener('click', () => {
                         handleAyahSpanClick(s_for_click, a_for_click);
                     });
                     pageDiv.appendChild(ayahSpan);
@@ -8609,7 +8720,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 ayahSpan.innerHTML = ayahHTML;
                 const s_for_click = s_loop;
                 const a_for_click = a_loop;
-                ayahSpan.addEventListener('click', () => {
+                ayahSpan?.addEventListener('click', () => {
                     handleAyahSpanClick(s_for_click, a_for_click);
                 });
                 surahBlockDiv.appendChild(ayahSpan);
@@ -8657,7 +8768,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 a.href = '#';
                 a.dataset.surah = i;
                 a.innerHTML = `<span class="index-list-item-num">${arabicNumber(i)}</span> ${surahNames[i - 1] || `Surah ${i}`}`;
-                a.addEventListener('click', handleIndexSurahClick);
+                a?.addEventListener('click', handleIndexSurahClick);
                 li.appendChild(a);
                 surahListEl.appendChild(li);
             }
@@ -8669,7 +8780,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 a.dataset.startSurah = juzInfo.startSurah;
                 a.dataset.startAyah = juzInfo.startAyah;
                 a.innerHTML = `<span class="index-list-item-num">${arabicNumber(juzInfo.juz)}</span> ${juzInfo.name}`;
-                a.addEventListener('click', handleIndexJuzClick);
+                a?.addEventListener('click', handleIndexJuzClick);
                 li.appendChild(a);
                 juzListEl.appendChild(li);
             });
@@ -9252,7 +9363,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             const footerDiv = document.getElementById('fsReaderFooter');
             const audioSourceSelect = document.getElementById('fsAudioSourceSelect');
             if (audioSourceSelect) {
-                audioSourceSelect.addEventListener('change', (e) => {
+                audioSourceSelect?.addEventListener('change', (e) => {
                     fullScreenReaderSettings.audioSource = e.target.value;
                     stopAndClearAudio();
                     saveFullScreenReaderSettings();
@@ -9260,7 +9371,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             }
             const bookmarkBtn = document.getElementById('fsReaderBookmarkBtn');
             if (bookmarkBtn) {
-                bookmarkBtn.addEventListener('click', async (event) => {
+                bookmarkBtn?.addEventListener('click', async (event) => {
                     if (event.ctrlKey || event.metaKey) {
                         if (isUserLoggedIn) {
                             saveDailyBookmarkPosition();
@@ -9294,26 +9405,26 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 });
             }
             const scrubSlider = document.getElementById('fsReaderScrubSlider');
-            if (closeBtn) closeBtn.addEventListener('click', closeFullScreenQuranReaderEnhanced);
-            if (nextBtn) nextBtn.addEventListener('click', goToNextEnhanced);
-            if (prevBtn) prevBtn.addEventListener('click', goToPrevEnhanced);
-            if (playPauseBtn) playPauseBtn.addEventListener('click', toggleAudioPlaybackEnhanced);
+            if (closeBtn) closeBtn?.addEventListener('click', closeFullScreenQuranReaderEnhanced);
+            if (nextBtn) nextBtn?.addEventListener('click', goToNextEnhanced);
+            if (prevBtn) prevBtn?.addEventListener('click', goToPrevEnhanced);
+            if (playPauseBtn) playPauseBtn?.addEventListener('click', toggleAudioPlaybackEnhanced);
             if (settingsToggleBtn && settingsPanel && indexPanel) {
-                settingsToggleBtn.addEventListener('click', () => {
+                settingsToggleBtn?.addEventListener('click', () => {
                     const isSettingsVisible = settingsPanel.style.display === 'block';
                     settingsPanel.style.display = isSettingsVisible ? 'none' : 'block';
                     indexPanel.style.display = 'none';
                 });
             }
             if (indexToggleBtn && indexPanel && settingsPanel) {
-                indexToggleBtn.addEventListener('click', () => {
+                indexToggleBtn?.addEventListener('click', () => {
                     const isIndexVisible = indexPanel.style.display === 'block';
                     indexPanel.style.display = isIndexVisible ? 'none' : 'block';
                     settingsPanel.style.display = 'none';
                 });
             }
             if (contentDiv && headerDiv && footerDiv && settingsPanel && indexPanel) {
-                contentDiv.addEventListener('click', (e) => {
+                contentDiv?.addEventListener('click', (e) => {
                     if (e.target === contentDiv && settingsPanel.style.display === 'none' && indexPanel.style.display === 'none') {
                         toggleReaderChromeVisibility();
                     } else if (settingsPanel.style.display === 'block' && !settingsPanel.contains(e.target) && e.target !== settingsToggleBtn) {
@@ -9336,52 +9447,52 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             const showTajweedCheck = document.getElementById('fsShowTajweedCheck');
             if (showTajweedCheck) {
                 showTajweedCheck.checked = fullScreenReaderSettings.showTajweedColors;
-                showTajweedCheck.addEventListener('change', (e) => {
+                showTajweedCheck?.addEventListener('change', (e) => {
                     fullScreenReaderSettings.showTajweedColors = e.target.checked;
                     applyFullScreenReaderSettingsChanges();
                 });
             }
             if (arabicFontSelect) {
-                arabicFontSelect.addEventListener('change', (e) => {
+                arabicFontSelect?.addEventListener('change', (e) => {
                     loadAndApplyDynamicFont(e.target.value);
                     applyFontChangeToView();
                     saveFullScreenReaderSettings();
                 });
             }
             if (fontSizeSlider && fontSizeValueEl) {
-                fontSizeSlider.addEventListener('input', (e) => {
+                fontSizeSlider?.addEventListener('input', (e) => {
                     fullScreenReaderSettings.fontSize = `${e.target.value}rem`;
                     fontSizeValueEl.textContent = fullScreenReaderSettings.fontSize;
                     const contentDiv = document.getElementById('fsReaderContent');
                     if (contentDiv) contentDiv.style.fontSize = fullScreenReaderSettings.fontSize;
                 });
-                fontSizeSlider.addEventListener('change', applyFullScreenReaderSettingsChanges);
+                fontSizeSlider?.addEventListener('change', applyFullScreenReaderSettingsChanges);
             }
             if (linesPerPageSlider && linesPerPageValueEl) {
-                linesPerPageSlider.addEventListener('input', (e) => {
+                linesPerPageSlider?.addEventListener('input', (e) => {
                     fullScreenReaderSettings.linesPerPage = parseInt(e.target.value, 10);
                     linesPerPageValueEl.textContent = fullScreenReaderSettings.linesPerPage;
                 });
-                linesPerPageSlider.addEventListener('change', applyFullScreenReaderSettingsChanges);
+                linesPerPageSlider?.addEventListener('change', applyFullScreenReaderSettingsChanges);
             }
-            if (showTransliterationCheck) showTransliterationCheck.addEventListener('change', (e) => {
+            if (showTransliterationCheck) showTransliterationCheck?.addEventListener('change', (e) => {
                 fullScreenReaderSettings.showTransliteration = e.target.checked;
                 applyFullScreenReaderSettingsChanges();
             });
-            if (continuousAudioCheck) continuousAudioCheck.addEventListener('change', (e) => {
+            if (continuousAudioCheck) continuousAudioCheck?.addEventListener('change', (e) => {
                 fullScreenReaderSettings.continuousAudio = e.target.checked;
                 saveFullScreenReaderSettings();
             });
-            if (autoScrollAudioCheck) autoScrollAudioCheck.addEventListener('change', (e) => {
+            if (autoScrollAudioCheck) autoScrollAudioCheck?.addEventListener('change', (e) => {
                 fullScreenReaderSettings.autoScrollAudio = e.target.checked;
                 saveFullScreenReaderSettings();
             });
-            if (highlightColorPicker) highlightColorPicker.addEventListener('change', (e) => {
+            if (highlightColorPicker) highlightColorPicker?.addEventListener('change', (e) => {
                 fullScreenReaderSettings.highlightColor = e.target.value;
                 saveFullScreenReaderSettings();
             });
             if (viewModeSelect) {
-                viewModeSelect.addEventListener('change', async (e) => {
+                viewModeSelect?.addEventListener('change', async (e) => {
                     fullScreenReaderViewMode = e.target.value;
                     saveFullScreenReaderSettings();
                     document.getElementById('fsLinesPerPageSettingDiv').style.display = (fullScreenReaderViewMode === 'paged') ? 'block' : 'none';
@@ -9399,7 +9510,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 });
             }
             document.querySelectorAll('#fsReaderIndexPanel .index-tab').forEach(tab => {
-                tab.addEventListener('click', (e) => {
+                tab?.addEventListener('click', (e) => {
                     document.querySelectorAll('#fsReaderIndexPanel .index-tab').forEach(t => t.classList.remove('active-tab'));
                     e.target.classList.add('active-tab');
                     document.querySelectorAll('#fsReaderIndexPanel .index-content-panel').forEach(p => p.style.display = 'none');
@@ -9407,7 +9518,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 });
             });
             if (scrubSlider) {
-                scrubSlider.addEventListener('input', () => {
+                scrubSlider?.addEventListener('input', () => {
                     if (fullScreenReaderViewMode === 'paged') {
                         const page = parseInt(scrubSlider.value, 10);
                         const pageData = tajMushafPageData.find(p => p.page === page);
@@ -9421,7 +9532,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         document.getElementById('fsReaderPageInfo').textContent = `Juz ${getJuzFromSurahAyah(surah, 1)}`;
                     }
                 });
-                scrubSlider.addEventListener('change', async () => {
+                scrubSlider?.addEventListener('change', async () => {
                     stopAndClearAudio();
                     if (fullScreenReaderViewMode === 'paged') {
                         fullScreenReaderCurrentPage = parseInt(scrubSlider.value, 10);
@@ -9437,7 +9548,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 });
             }
             if (contentDiv) {
-                contentDiv.addEventListener('scroll', async () => {
+                contentDiv?.addEventListener('scroll', async () => {
                     if (fullScreenReaderViewMode === 'continuous-scroll' && !isLoadingMoreAyahs) {
                         const scrollThreshold = contentDiv.scrollHeight - contentDiv.clientHeight - 700;
                         if (contentDiv.scrollTop >= scrollThreshold) {
@@ -9646,7 +9757,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             launchButton.style.fontSize = '1.2rem';
             launchButton.style.marginLeft = '10px';
             launchButton.style.verticalAlign = 'middle';
-            launchButton.addEventListener('click', () => {
+            launchButton?.addEventListener('click', () => {
                 fullScreenReaderCurrentSurah = window.currentSurah || 1;
                 fullScreenReaderCurrentAyah = window.currentAyah || 1;
                 if (fullScreenReaderViewMode === 'paged') {
@@ -9724,7 +9835,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         break;
                 }
             };
-            document.addEventListener('keydown', handleKeyDown);
+            document?.addEventListener('keydown', handleKeyDown);
             if (contentArea) {
                 let touchStartY = 0;
                 let touchEndY = 0;
@@ -9778,13 +9889,13 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         }
                     }
                 };
-                contentArea.addEventListener('touchstart', handleTouchStart, {
+                contentArea?.addEventListener('touchstart', handleTouchStart, {
                     passive: true
                 });
-                contentArea.addEventListener('touchend', handleTouchEnd, {
+                contentArea?.addEventListener('touchend', handleTouchEnd, {
                     passive: true
                 });
-                contentArea.addEventListener('click', handleContentClickForTap);
+                contentArea?.addEventListener('click', handleContentClickForTap);
                 readerOverlay.readerKeyDownHandler = handleKeyDown;
                 contentArea.readerTouchStartHandler = handleTouchStart;
                 contentArea.readerTouchEndHandler = handleTouchEnd;
@@ -9927,19 +10038,19 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             if (isFullScreenReaderActive && fullScreenReaderSettings && fullScreenReaderSettings.fontSize) {
                 ayahDisplay.style.fontSize = fullScreenReaderSettings.fontSize;
             }
-            document.getElementById('startTypingGameBtn_Engine').addEventListener('click', loadNextAyahForTyping_Engine);
-            document.getElementById('resetTypingGameBtn_Engine').addEventListener('click', loadNextAyahForTyping_Engine);
-            document.getElementById('diacriticModeSelect_Engine').addEventListener('change', (e) => {
+            document.getElementById('startTypingGameBtn_Engine')?.addEventListener('click', loadNextAyahForTyping_Engine);
+            document.getElementById('resetTypingGameBtn_Engine')?.addEventListener('click', loadNextAyahForTyping_Engine);
+            document.getElementById('diacriticModeSelect_Engine')?.addEventListener('change', (e) => {
                 ayahTypingDiacriticMode = e.target.value;
             });
-            document.getElementById('playAyahAudioBtn_Engine').addEventListener('click', () => {
+            document.getElementById('playAyahAudioBtn_Engine')?.addEventListener('click', () => {
                 if (ayahTypingCurrentAyahData && typeof playAudioForAyahEnhanced === 'function') {
                     playAudioForAyahEnhanced(ayahTypingCurrentAyahData.surah, ayahTypingCurrentAyahData.ayah);
                 } else {
                     console.warn("Cannot play audio: Ayah data missing or audio player function not available.");
                 }
             });
-            document.getElementById('typingInputArea_Engine').addEventListener('input', handleTypingInput_Engine);
+            document.getElementById('typingInputArea_Engine')?.addEventListener('input', handleTypingInput_Engine);
             ayahTypingSessionHighScoreWPM = parseInt(localStorage.getItem('ayahTypingHighScoreWPM') || '0');
             ayahTypingSessionHighScoreAcc = parseInt(localStorage.getItem('ayahTypingHighScoreAcc') || '0');
             requestAyahTypingFullscreen(gamePlayArea);
@@ -10244,7 +10355,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 typingGameButton.id = buttonId;
                 typingGameButton.className = 'game-select-btn';
                 typingGameButton.textContent = 'Ayah Typing Challenge';
-                typingGameButton.addEventListener('click', () => {
+                typingGameButton?.addEventListener('click', () => {
                     const gamePlayArea = document.getElementById('gamePlayArea');
                     const gameSelectionArea = document.getElementById('game-selection-area');
                     if (gameSelectionArea) gameSelectionArea.style.display = 'none';
@@ -10327,10 +10438,10 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             } else if (fullscreenContainer.msRequestFullscreen) {
                 fullscreenContainer.msRequestFullscreen();
             }
-            document.addEventListener('fullscreenchange', handleBrowserFullscreenChange);
-            document.addEventListener('webkitfullscreenchange', handleBrowserFullscreenChange);
-            document.addEventListener('mozfullscreenchange', handleBrowserFullscreenChange);
-            document.addEventListener('MSFullscreenChange', handleBrowserFullscreenChange);
+            document?.addEventListener('fullscreenchange', handleBrowserFullscreenChange);
+            document?.addEventListener('webkitfullscreenchange', handleBrowserFullscreenChange);
+            document?.addEventListener('mozfullscreenchange', handleBrowserFullscreenChange);
+            document?.addEventListener('MSFullscreenChange', handleBrowserFullscreenChange);
         }
 
         function exitAyahTypingFullscreen() {
@@ -10564,8 +10675,8 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     recitationGame_UI.surahSelect.appendChild(option);
                 }
             } else {}
-            if (recitationGame_UI.surahSelect) recitationGame_UI.surahSelect.addEventListener('change', updateRecitationAyahSelectors_Engine);
-            if (recitationGame_UI.ayahStartSelect) recitationGame_UI.ayahStartSelect.addEventListener('change', () => {
+            if (recitationGame_UI.surahSelect) recitationGame_UI.surahSelect?.addEventListener('change', updateRecitationAyahSelectors_Engine);
+            if (recitationGame_UI.ayahStartSelect) recitationGame_UI.ayahStartSelect?.addEventListener('change', () => {
                 const startAyah = parseInt(recitationGame_UI.ayahStartSelect.value);
                 const endAyahSelect = recitationGame_UI.ayahEndSelect;
                 if (endAyahSelect) {
@@ -10576,9 +10687,9 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     populateRecitationAyahEndSelect_Engine(parseInt(recitationGame_UI.surahSelect.value), startAyah);
                 }
             });
-            if (recitationGame_UI.loadAyahButton) recitationGame_UI.loadAyahButton.addEventListener('click', loadAyahForRecitationPractice_Engine);
-            if (recitationGame_UI.referencePlayButton) recitationGame_UI.referencePlayButton.addEventListener('click', playReferenceAudioWithHighlighting_Engine);
-            if (recitationGame_UI.recordButton) recitationGame_UI.recordButton.addEventListener('click', toggleUserRecording_Recitation_Engine);
+            if (recitationGame_UI.loadAyahButton) recitationGame_UI.loadAyahButton?.addEventListener('click', loadAyahForRecitationPractice_Engine);
+            if (recitationGame_UI.referencePlayButton) recitationGame_UI.referencePlayButton?.addEventListener('click', playReferenceAudioWithHighlighting_Engine);
+            if (recitationGame_UI.recordButton) recitationGame_UI.recordButton?.addEventListener('click', toggleUserRecording_Recitation_Engine);
             updateRecitationAyahSelectors_Engine();
             setupSpeechRecognition_Engine();
         }
@@ -10680,7 +10791,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     a.dataset.exampleSurah = theme.exampleSurah;
                     a.dataset.exampleAyah = theme.exampleAyah;
                     a.textContent = theme.name;
-                    a.addEventListener('click', handleIndexThemeClick);
+                    a?.addEventListener('click', handleIndexThemeClick);
                     li.appendChild(a);
                     themeListEl.appendChild(li);
                 });
@@ -10703,7 +10814,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         a.dataset.themeId = theme.id;
                         a.dataset.isStatic = 'false';
                         a.textContent = `[My Theme] ${theme.name}`;
-                        a.addEventListener('click', handleIndexThemeClick);
+                        a?.addEventListener('click', handleIndexThemeClick);
                         li.appendChild(a);
                         themeListEl.appendChild(li);
                     });
@@ -11092,7 +11203,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 recitationGameButton.id = buttonId;
                 recitationGameButton.className = 'game-select-btn';
                 recitationGameButton.textContent = 'Recitation Practice';
-                recitationGameButton.addEventListener('click', startRecitationPracticeGame_Engine);
+                recitationGameButton?.addEventListener('click', startRecitationPracticeGame_Engine);
                 const existingButtons = gameSelectionArea.querySelectorAll('.game-select-btn');
                 if (existingButtons.length > 0) {
                     existingButtons[existingButtons.length - 1].insertAdjacentElement('afterend', recitationGameButton);
@@ -11127,7 +11238,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         if (mainGameModalForRecitationCleanup) {
             const gameModalCloseBtn = mainGameModalForRecitationCleanup.querySelector('.game-close-button');
             if (gameModalCloseBtn) {
-                gameModalCloseBtn.addEventListener('click', () => {
+                gameModalCloseBtn?.addEventListener('click', () => {
                     if (recitationGame_State.gameActive) {
                         stopReferenceAudio_Engine();
                         if (recitationGame_State.isRecording && recitationGame_State.userAudioRecorder) {
@@ -11169,14 +11280,14 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             function setupLaunchButtonListenerForFullscreen() {
                 const launchButton = document.getElementById(GAME_MODAL_LAUNCH_BUTTON_ID);
                 if (launchButton) {
-                    launchButton.addEventListener('click', (event) => {
+                    launchButton?.addEventListener('click', (event) => {
                         setTimeout(() => {
                             requestFullscreenForElement(TARGET_ELEMENT_FOR_FULLSCREEN_ID);
                         }, 200);
                     });
                 } else {}
             }
-            window.addEventListener('load', () => {
+            window?.addEventListener('load', () => {
                 setTimeout(() => {
                     setupLaunchButtonListenerForFullscreen();
                 }, INITIALIZATION_DELAY_MS);
@@ -11185,10 +11296,10 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             function logFullscreenExit(event) {
                 if (!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement)) {}
             }
-            document.addEventListener('fullscreenchange', logFullscreenExit);
-            document.addEventListener('webkitfullscreenchange', logFullscreenExit);
-            document.addEventListener('mozfullscreenchange', logFullscreenExit);
-            document.addEventListener('MSFullscreenChange', logFullscreenExit);
+            document?.addEventListener('fullscreenchange', logFullscreenExit);
+            document?.addEventListener('webkitfullscreenchange', logFullscreenExit);
+            document?.addEventListener('mozfullscreenchange', logFullscreenExit);
+            document?.addEventListener('MSFullscreenChange', logFullscreenExit);
         })();
         (function() {
             const READER_LAUNCH_BUTTON_ID = 'launchFullScreenReaderBtnEnhanced';
@@ -11225,14 +11336,14 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             function setupReaderFullscreenLaunchListener() {
                 const launchButton = document.getElementById(READER_LAUNCH_BUTTON_ID);
                 if (launchButton) {
-                    launchButton.addEventListener('click', () => {
+                    launchButton?.addEventListener('click', () => {
                         setTimeout(() => {
                             requestFullscreenForReaderOverlay(READER_OVERLAY_ID);
                         }, FULLSCREEN_REQUEST_DELAY_MS);
                     });
                 } else {}
             }
-            window.addEventListener('load', () => {
+            window?.addEventListener('load', () => {
                 setTimeout(() => {
                     setupReaderFullscreenLaunchListener();
                 }, INITIALIZATION_DELAY_MS);
@@ -11242,10 +11353,10 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 const readerOverlayElement = document.getElementById(READER_OVERLAY_ID);
                 if (!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement)) {}
             }
-            document.addEventListener('fullscreenchange', logReaderFullscreenExit);
-            document.addEventListener('webkitfullscreenchange', logReaderFullscreenExit);
-            document.addEventListener('mozfullscreenchange', logReaderFullscreenExit);
-            document.addEventListener('MSFullscreenChange', logReaderFullscreenExit);
+            document?.addEventListener('fullscreenchange', logReaderFullscreenExit);
+            document?.addEventListener('webkitfullscreenchange', logReaderFullscreenExit);
+            document?.addEventListener('mozfullscreenchange', logReaderFullscreenExit);
+            document?.addEventListener('MSFullscreenChange', logReaderFullscreenExit);
         })();
         let currentReportingUserData = null;
 
@@ -11510,7 +11621,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 };
             }
             document.querySelectorAll('.reporting-quick-date-filters button').forEach(button => {
-                button.addEventListener('click', () => {
+                button?.addEventListener('click', () => {
                     const period = button.dataset.period;
                     let range;
                     switch (period) {
@@ -11795,7 +11906,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     }
                 }
             }
-            contentArea.querySelectorAll('.item-surah-ayah').forEach(el => el.addEventListener('click', e => {
+            contentArea.querySelectorAll('.item-surah-ayah').forEach(el => el?.addEventListener('click', e => {
                 const s = parseInt(e.currentTarget.dataset.surah),
                     a = parseInt(e.currentTarget.dataset.ayah);
                 if (s && a && typeof loadAyah === 'function' && typeof window.showSection === 'function') {
@@ -11881,7 +11992,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 } else {
                     sidebarNav.appendChild(reportLi);
                 }
-                reportLink.addEventListener('click', (event) => {
+                reportLink?.addEventListener('click', (event) => {
                     event.preventDefault();
                     if (typeof window.showSection === 'function') {
                         window.showSection('reporting');
@@ -11963,7 +12074,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 document.removeEventListener('DOMContentLoaded', window.originalDOMContentLoadedHandler);
             }
             window.originalDOMContentLoadedHandler = patchedDOMLoadHandler;
-            document.addEventListener('DOMContentLoaded', window.originalDOMContentLoadedHandler);
+            document?.addEventListener('DOMContentLoaded', window.originalDOMContentLoadedHandler);
 
             function patchedShowSection(sectionId) {
                 if (typeof originalShowSectionHandler === 'function' && originalShowSectionHandler !== patchedShowSection) {
@@ -12029,7 +12140,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         const textarea = document.getElementById('tafsir-notes');
         if (textarea) {
             ['input', 'change', 'keyup', 'paste'].forEach(eventType => {
-                textarea.addEventListener(eventType, () => {
+                textarea?.addEventListener(eventType, () => {
                     const dir = detectDirection(textarea.value);
                     textarea.setAttribute('dir', dir);
                 });
@@ -12149,11 +12260,11 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     <div id="jigsawCompletionMessage_Engine"></div>
                 </div>
             `;
-            document.getElementById('jigsawDifficultySelect').addEventListener('change', (e) => {
+            document.getElementById('jigsawDifficultySelect')?.addEventListener('change', (e) => {
                 jigsawState.difficulty = e.target.value;
                 generateNewJigsawPuzzle_Engine();
             });
-            document.getElementById('newJigsawPuzzleBtn').addEventListener('click', generateNewJigsawPuzzle_Engine);
+            document.getElementById('newJigsawPuzzleBtn')?.addEventListener('click', generateNewJigsawPuzzle_Engine);
             generateNewJigsawPuzzle_Engine();
         }
         async function generateNewJigsawPuzzle_Engine() {
@@ -12238,19 +12349,19 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
 
         function addJigsawDragDropListeners_Engine() {
             document.querySelectorAll('.jigsaw-piece').forEach(piece => {
-                piece.addEventListener('dragstart', e => {
+                piece?.addEventListener('dragstart', e => {
                     jigsawState.draggedPiece = e.target;
                     setTimeout(() => e.target.classList.add('dragging'), 0);
                 });
-                piece.addEventListener('dragend', e => e.target.classList.remove('dragging'));
+                piece?.addEventListener('dragend', e => e.target.classList.remove('dragging'));
             });
             document.querySelectorAll('.jigsaw-slot').forEach(slot => {
-                slot.addEventListener('dragover', e => {
+                slot?.addEventListener('dragover', e => {
                     e.preventDefault();
                     if (!slot.hasChildNodes()) slot.classList.add('over');
                 });
-                slot.addEventListener('dragleave', () => slot.classList.remove('over'));
-                slot.addEventListener('drop', e => {
+                slot?.addEventListener('dragleave', () => slot.classList.remove('over'));
+                slot?.addEventListener('drop', e => {
                     e.preventDefault();
                     slot.classList.remove('over');
                     if (jigsawState.draggedPiece && !slot.hasChildNodes() && slot.dataset.slotIndex === jigsawState.draggedPiece.dataset.wordIndex) {
@@ -12277,7 +12388,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 jigsawButton.id = buttonId;
                 jigsawButton.className = 'game-select-btn';
                 jigsawButton.textContent = 'Takmil al-Ayah';
-                jigsawButton.addEventListener('click', startVerseJigsawGame_Engine);
+                jigsawButton?.addEventListener('click', startVerseJigsawGame_Engine);
                 const existingButtons = gameSelectionArea.querySelectorAll('.game-select-btn');
                 if (existingButtons.length > 0) {
                     existingButtons[existingButtons.length - 1].insertAdjacentElement('afterend', jigsawButton);
@@ -12352,7 +12463,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 const question = await fetchAyahMatchQuestion_Engine();
                 if (!question) {
                     gamePlayArea.innerHTML = `<div class="ayah-match-wrapper"><p style="color:red;">Could not generate a question. Please try again.</p><div class="ayah-match-controls"><button id="ayahMatchNextBtn">Try Again</button></div></div>`;
-                    document.getElementById('ayahMatchNextBtn').addEventListener('click', displayNextAyahMatchQuestion);
+                    document.getElementById('ayahMatchNextBtn')?.addEventListener('click', displayNextAyahMatchQuestion);
                     return;
                 }
                 ayahmatState.currentQuestion = question;
@@ -12368,8 +12479,8 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         <div class="ayah-match-feedback"></div>
                         <div class="ayah-match-controls"><button id="ayahMatchNextBtn" style="display:none;">Next Question</button></div>
                     </div>`;
-                document.querySelectorAll('.ayah-match-option-btn').forEach(btn => btn.addEventListener('click', handleAyahMatchAnswer_Engine));
-                document.getElementById('ayahMatchNextBtn').addEventListener('click', displayNextAyahMatchQuestion);
+                document.querySelectorAll('.ayah-match-option-btn').forEach(btn => btn?.addEventListener('click', handleAyahMatchAnswer_Engine));
+                document.getElementById('ayahMatchNextBtn')?.addEventListener('click', displayNextAyahMatchQuestion);
             }
             async function fetchAyahMatchQuestion_Engine() {
                 let attempts = 0;
@@ -12391,7 +12502,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                             const ayahData = ayahDataResult.success ? ayahDataResult.data : null;
                             seenKeys.add(key);
                             if (!ayahData || !ayahData.arabic || ayahData.arabic.trim() === "") continue;
-                            const hasTranslation = TRANSLATION_CONFIGS_PHP.some(conf => ayahData[conf.key] && ayahData[conf.key].trim() !== "");
+                            const hasTranslation = allLanguagesConfig.some(conf => ayahData[conf.key] && ayahData[conf.key].trim() !== "");
                             if (!hasTranslation) continue;
                             candidateAyahs.push(ayahData);
                         }
@@ -12400,7 +12511,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         const distractor2Record = candidateAyahs[2];
                         const getDisplayTranslation = (record) => {
                             const selectedLangKey = document.getElementById('translation-select').value;
-                            const fallbackOrder = TRANSLATION_CONFIGS_PHP.map(c => c.key);
+                            const fallbackOrder = allLanguagesConfig.map(c => c.key);
                             const prioritizedOrder = [selectedLangKey, ...fallbackOrder.filter(k => k !== selectedLangKey)];
                             for (const lang of prioritizedOrder) {
                                 if (record[lang] && record[lang].trim() !== "") {
@@ -12487,7 +12598,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         <p>Your final score: ${ayahmatState.score} / ${ayahmatState.totalQuestions * 10}</p>
                         <div class="ayah-match-controls"><button id="playAyahMatchAgainBtn">Play Again</button></div>
                     </div>`;
-                document.getElementById('playAyahMatchAgainBtn').addEventListener('click', startAyahMatchGame_Engine);
+                document.getElementById('playAyahMatchAgainBtn')?.addEventListener('click', startAyahMatchGame_Engine);
                 activeGame = null;
             }
 
@@ -12501,7 +12612,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     matchButton.id = buttonId;
                     matchButton.className = 'game-select-btn';
                     matchButton.textContent = 'Ayah-Translation Match';
-                    matchButton.addEventListener('click', startAyahMatchGame_Engine);
+                    matchButton?.addEventListener('click', startAyahMatchGame_Engine);
                     gameSelectionArea.appendChild(matchButton);
                 }
             }
@@ -12587,7 +12698,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             goalsLink.dataset.section = "goals";
             goalsLink.textContent = "My Goals";
             goalsLi.appendChild(goalsLink);
-            goalsLink.addEventListener('click', (e) => {
+            goalsLink?.addEventListener('click', (e) => {
                 e.preventDefault();
                 window.showSection('goals');
             });
@@ -12663,7 +12774,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 <div id="goalDetailsModal" class="modal goal-details-modal"><div class="modal-content"><span class="close-button" onclick="this.parentElement.parentElement.style.display='none'">×</span><h3 id="modalGoalTitle"></h3><div id="modalGoalContent" class="goal-details-content"></div></div></div>
             `;
             mainContent.appendChild(goalsSection);
-            document.getElementById('goal-type').addEventListener('change', async (e) => {
+            document.getElementById('goal-type')?.addEventListener('change', async (e) => {
                 const targetWrapper = document.getElementById('goal-target-wrapper');
                 const countWrapper = document.getElementById('goal-count-wrapper');
                 const type = e.target.value;
@@ -12702,7 +12813,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                         break;
                 }
             });
-            document.querySelectorAll('.goal-tab').forEach(tab => tab.addEventListener('click', (e) => {
+            document.querySelectorAll('.goal-tab').forEach(tab => tab?.addEventListener('click', (e) => {
                 document.querySelectorAll('.goal-tab, .goals-list-panel').forEach(el => el.classList.remove('active'));
                 e.target.classList.add('active');
                 document.getElementById(`goals-list-${e.target.dataset.tab}`).classList.add('active');
@@ -12712,7 +12823,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
         function setupGoalsFormListener() {
             const form = document.getElementById('goal-form');
             if (form && !form.dataset.listenerAttached) {
-                form.addEventListener('submit', async (e) => {
+                form?.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const newGoal = {
                         title: document.getElementById('goal-title').value,
@@ -12793,8 +12904,8 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             }
             activeList.innerHTML = activeHTML || '<p>No active goals. Add one above!</p>';
             completedList.innerHTML = completedHTML || '<p>No goals completed yet. Keep going!</p>';
-            document.querySelectorAll('.delete-goal-btn').forEach(btn => btn.addEventListener('click', handleDeleteGoal));
-            document.querySelectorAll('.view-details-btn').forEach(btn => btn.addEventListener('click', handleViewGoalDetails));
+            document.querySelectorAll('.delete-goal-btn').forEach(btn => btn?.addEventListener('click', handleDeleteGoal));
+            document.querySelectorAll('.view-details-btn').forEach(btn => btn?.addEventListener('click', handleViewGoalDetails));
         }
         async function calculateGoalProgress(goal, userData) {
             let progress = 0;
@@ -13134,7 +13245,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             };
             window.showSection.isPatchedForGoals = true;
         }
-        document.addEventListener('DOMContentLoaded', initializeGoalsModule);
+        document?.addEventListener('DOMContentLoaded', initializeGoalsModule);
     </script>
     <script>
         (function() {
@@ -13277,8 +13388,8 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 white-space: nowrap; 
             `;
                 const hoverEffect = (btn, originalColor, hoverColor) => {
-                    btn.addEventListener('mouseover', () => btn.style.backgroundColor = hoverColor);
-                    btn.addEventListener('mouseout', () => btn.style.backgroundColor = originalColor);
+                    btn?.addEventListener('mouseover', () => btn.style.backgroundColor = hoverColor);
+                    btn?.addEventListener('mouseout', () => btn.style.backgroundColor = originalColor);
                 };
                 const downloadZippedButton = document.createElement('button');
                 downloadZippedButton.id = 'downloadAppZippedBtn';
@@ -13287,7 +13398,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 downloadZippedButton.style.cssText = commonButtonStyle;
                 downloadZippedButton.style.backgroundColor = 'var(--color-success, #28a745)';
                 hoverEffect(downloadZippedButton, 'var(--color-success, #28a745)', 'var(--color-accent-dark, #218838)');
-                downloadZippedButton.addEventListener('click', () => handleZippedAppDownload(downloadZippedButton));
+                downloadZippedButton?.addEventListener('click', () => handleZippedAppDownload(downloadZippedButton));
                 const downloadUnzippedButton = document.createElement('button');
                 downloadUnzippedButton.id = 'downloadAppUnzippedBtn';
                 downloadUnzippedButton.innerHTML = 'Files 📁';
@@ -13295,13 +13406,13 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 downloadUnzippedButton.style.cssText = commonButtonStyle;
                 downloadUnzippedButton.style.backgroundColor = 'var(--color-accent, #007bff)';
                 hoverEffect(downloadUnzippedButton, 'var(--color-accent, #007bff)', 'var(--color-accent-dark, #0056b3)');
-                downloadUnzippedButton.addEventListener('click', () => handleUnzippedAppDownload(downloadUnzippedButton));
+                downloadUnzippedButton?.addEventListener('click', () => handleUnzippedAppDownload(downloadUnzippedButton));
                 buttonsContainer.appendChild(downloadZippedButton);
                 buttonsContainer.appendChild(downloadUnzippedButton);
                 quranHeading.appendChild(buttonsContainer);
             }
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', createAndInsertDownloadButtons);
+                document?.addEventListener('DOMContentLoaded', createAndInsertDownloadButtons);
             } else {
                 createAndInsertDownloadButtons();
             }
@@ -13395,8 +13506,8 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     }
                 } else {}
             }
-            document.addEventListener('DOMContentLoaded', () => {
-                document.addEventListener('keydown', handleGlobalKeyDown);
+            document?.addEventListener('DOMContentLoaded', () => {
+                document?.addEventListener('keydown', handleGlobalKeyDown);
             });
         })();
     </script>
@@ -13595,7 +13706,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     });
                     const ayahData = ayahDataResult.success ? ayahDataResult.data : null;
                     if (!ayahData) throw new Error(`Could not find data for Ayah ${surah}:${ayah}.`);
-                    const availableTranslations = TRANSLATION_CONFIGS_PHP.filter(f => ayahData[f.key]);
+                    const availableTranslations = allLanguagesConfig.filter(f => ayahData[f.key]);
                     const currentlySelectedInUI = document.getElementById('translation-select').value;
                     const fullTransOptions = document.getElementById('imageTranslationOptions');
                     const wbywLangOptions = document.getElementById('wordByWordLanguageOptions');
@@ -13614,7 +13725,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     const createBtn = document.getElementById('createImageBtn');
                     const newCreateBtn = createBtn.cloneNode(true);
                     createBtn.parentNode.replaceChild(newCreateBtn, createBtn);
-                    newCreateBtn.addEventListener('click', generateFinalImage);
+                    newCreateBtn?.addEventListener('click', generateFinalImage);
                     modal.style.display = 'flex';
                 } catch (error) {
                     console.error("Error opening image settings modal:", error);
@@ -13634,7 +13745,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 button.innerHTML = '🖼️';
                 button.dataset.surah = surah;
                 button.dataset.ayah = ayah;
-                button.addEventListener('click', openImageSettingsModal);
+                button?.addEventListener('click', openImageSettingsModal);
                 actionsDiv.appendChild(button);
                 ayahDiv.appendChild(actionsDiv);
             }
@@ -13659,7 +13770,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     }
                 }
             }
-            document.addEventListener('DOMContentLoaded', patchAndApplyToInitialView);
+            document?.addEventListener('DOMContentLoaded', patchAndApplyToInitialView);
         })();
     </script>
     <script>
@@ -13715,9 +13826,9 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 }
             }
             handleInitialLoadFromHash();
-            document.addEventListener('DOMContentLoaded', () => {
+            document?.addEventListener('DOMContentLoaded', () => {
                 setTimeout(patchLoadAyahForHashUpdate, 100);
-                window.addEventListener('hashchange', () => {
+                window?.addEventListener('hashchange', () => {
                     const newLocation = parseHash();
                     if (newLocation && (newLocation.surah !== window.currentSurah || newLocation.ayah !== window.currentAyah)) {
                         console.log('[HashNav] Hash changed by user, loading new location.');
@@ -13914,9 +14025,9 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     console.error("Could not find all theme graph control elements.");
                     return;
                 }
-                filterSelect.addEventListener('change', generateThemeGraph);
-                layoutSelect.addEventListener('change', generateThemeGraph);
-                applyBtn.addEventListener('click', generateThemeGraph);
+                filterSelect?.addEventListener('change', generateThemeGraph);
+                layoutSelect?.addEventListener('change', generateThemeGraph);
+                applyBtn?.addEventListener('click', generateThemeGraph);
                 populateThemeFilterDropdown();
             }
             async function populateThemeFilterDropdown() {
@@ -13941,7 +14052,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
 
             function setupThemeViewSwitcher() {
                 document.querySelectorAll('input[name="theme-view-mode"]').forEach(radio => {
-                    radio.addEventListener('change', function() {
+                    radio?.addEventListener('change', function() {
                         const formView = document.getElementById('theme-form-view');
                         const graphView = document.getElementById('theme-graph-view');
                         if (this.value === 'graph') {
@@ -13960,7 +14071,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     });
                 });
             }
-            document.addEventListener('DOMContentLoaded', setupThemeViewSwitcher);
+            document?.addEventListener('DOMContentLoaded', setupThemeViewSwitcher);
         })();
     </script>
     <script>
@@ -14219,7 +14330,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             }
 
             function setupQuickActionsListener() {
-                document.body.addEventListener('click', (e) => {
+                document.body?.addEventListener('click', (e) => {
                     const icon = e.target.closest('.action-icon');
                     if (icon) {
                         const ayahDiv = icon.closest('.ayah');
@@ -14262,7 +14373,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     }
                 });
                 document.querySelectorAll('.quick-action-modal .close-button').forEach(btn => {
-                    btn.addEventListener('click', () => {
+                    btn?.addEventListener('click', () => {
                         btn.closest('.modal').style.display = 'none';
                     });
                 });
@@ -14308,7 +14419,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 observer.observe(continuousViewContainer, config);
                 console.log("[QuickActions] MutationObserver is now watching both views.");
                 document.querySelectorAll('input[name="quran-view-mode"]').forEach(radio => {
-                    radio.addEventListener('change', function() {
+                    radio?.addEventListener('change', function() {
                         console.log(`[QuickActions DEBUG] View mode changed to: ${this.value}. Triggering manual check.`);
                         setTimeout(() => {
                             const targetContainer = this.value === 'single' ? singleViewContainer : continuousViewContainer;
@@ -14319,7 +14430,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 const defaultViewContainer = document.querySelector('input[name="quran-view-mode"]:checked').value === 'single' ? singleViewContainer : continuousViewContainer;
                 processExistingAyahs(defaultViewContainer);
             }
-            document.addEventListener('DOMContentLoaded', () => {
+            document?.addEventListener('DOMContentLoaded', () => {
                 setupQuickActionsListener();
                 initializeQuickActionsModule();
             });
@@ -14399,7 +14510,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                             synthButton.textContent = 'Synthesize';
                             synthButton.title = 'Generate a document from this theme\'s Ayahs and your Tafsir';
                             synthButton.dataset.themeId = themeId;
-                            synthButton.addEventListener('click', handleThemeSynthesis);
+                            synthButton?.addEventListener('click', handleThemeSynthesis);
                             actionsDiv.appendChild(synthButton);
                         }
                     }
@@ -14417,10 +14528,10 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     console.log("displayThemesList has been patched for Theme Synthesis.");
                 }
             }
-            document.addEventListener('DOMContentLoaded', () => {
+            document?.addEventListener('DOMContentLoaded', () => {
                 const printBtn = document.getElementById('synthesisPrintBtn');
                 if (printBtn) {
-                    printBtn.addEventListener('click', () => {
+                    printBtn?.addEventListener('click', () => {
                         window.print();
                     });
                 }
@@ -14532,7 +14643,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 launchButton.className = 'game-select-btn';
                 launchButton.style.backgroundColor = 'var(--color-danger, #dc3545)';
                 launchButton.textContent = 'Launch Exam System';
-                launchButton.addEventListener('click', launchExamSystemInIframe);
+                launchButton?.addEventListener('click', launchExamSystemInIframe);
                 gameSelectionArea.appendChild(launchButton);
                 return true;
             }
@@ -14552,7 +14663,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 }, 500);
             }
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initializeIntegration);
+                document?.addEventListener('DOMContentLoaded', initializeIntegration);
             } else {
                 initializeIntegration();
             }
@@ -14823,7 +14934,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     <span>${cmd.name}</span>
                     <span class="category">${cmd.category}</span>
                 `;
-                    li.addEventListener('click', () => executeCommand(cmd));
+                    li?.addEventListener('click', () => executeCommand(cmd));
                     resultsEl.appendChild(li);
                 });
                 activeIndex = -1;
@@ -14876,17 +14987,17 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     block: 'nearest'
                 });
             }
-            document.addEventListener('keydown', (e) => {
+            document?.addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                     e.preventDefault();
                     openCommandPalette();
                 }
             });
-            paletteEl.addEventListener('click', (e) => {
+            paletteEl?.addEventListener('click', (e) => {
                 if (e.target === paletteEl) closeCommandPalette();
             });
-            inputEl.addEventListener('input', filterAndRender);
-            inputEl.addEventListener('keydown', (e) => {
+            inputEl?.addEventListener('input', filterAndRender);
+            inputEl?.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') closeCommandPalette();
                 else if (e.key === 'ArrowDown') {
                     e.preventDefault();
