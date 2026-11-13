@@ -3184,15 +3184,26 @@
                     for (const item of BUILTIN_FALLBACK_QURAN) {
                         await putData(STORE_QURAN, item);
                     }
+                    const seedArabicWords = {
+                        1: "بِسْمِ", 2: "ٱللَّهِ", 3: "ٱلرَّحْمَٰنِ", 4: "ٱلرَّحِيمِ",
+                        5: "ٱلْحَمْدُ", 6: "لِلَّهِ", 7: "رَبِّ", 8: "ٱلْعَٰلَمِينَ",
+                        9: "ٱلرَّحْمَٰنِ", 10: "ٱلرَّحِيمِ",
+                        11: "مَٰلِكِ", 12: "يَوْمِ", 13: "ٱلدِّينِ",
+                        14: "إِيَّاكَ", 15: "نَعْبُدُ", 16: "وَإِيَّاكَ", 17: "نَسْتَعِينُ"
+                    };
                     for (const wm of BUILTIN_WORD_METADATA) {
+                        const arWord = seedArabicWords[wm.word_id] || "";
                         await putData(STORE_WORD_METADATA, {
                             word_id: wm.word_id,
                             surah: wm.surah,
                             ayah: wm.ayah,
-                            word_position: wm.word_position
+                            word_position: wm.word_position,
+                            arabic_word: arWord
                         });
                         await putData(STORE_WORD_TRANSLATIONS, {
                             word_id: wm.word_id,
+                            quran_text: arWord,
+                            arabic_word: arWord,
                             ur_meaning: wm.ur_meaning,
                             en_meaning: wm.en_meaning,
                             pashto_text: wm.pashto_text,
@@ -3346,6 +3357,9 @@
                     Object.keys(entry).forEach(k => {
                         if (!isNaN(entry[k]) && entry[k] !== '') entry[k] = parseInt(entry[k], 10);
                     });
+                    if (config.file_type === 'word_translation' && entry.quran_text) {
+                        entry.arabic_word = entry.quran_text;
+                    }
                     store.put(entry);
                 }
                 processedLines++;
@@ -3599,13 +3613,28 @@
             if (!displayArea) return;
             try {
                 const quran = await getOrSynthesizeAyahRecord(surah, ayah);
-                const words = quran.arabic.split(/\s+/).filter(w => w.trim());
                 const wordMetadata = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([surah, ayah, 0], [surah, ayah, Infinity]), 'location_idx');
-                const metadataMap = new Map(wordMetadata.map(m => [m.word_position, m.word_id]));
-                const wordsHTML = words.map((word, index) => {
-                    const wordId = metadataMap.get(index) || 'null';
-                    return `<span class="arabic-word" data-word-text="${word.trim()}" data-word-id="${wordId}" tabindex="0" role="button">${word}</span>`;
-                }).join(' ');
+                let wordsHTML = '';
+                let wordCount = 0;
+                if (wordMetadata && wordMetadata.length > 0) {
+                    wordMetadata.sort((a, b) => a.word_position - b.word_position);
+                    wordCount = wordMetadata.length;
+                    const transPromises = wordMetadata.map(m => getData(STORE_WORD_TRANSLATIONS, m.word_id));
+                    const transList = await Promise.all(transPromises);
+                    const transMap = new Map(transList.filter(Boolean).map(t => [t.word_id, t]));
+                    const fallbackWords = quran.arabic.split(/\s+/).filter(w => w.trim());
+                    wordsHTML = wordMetadata.map((m, index) => {
+                        const t = transMap.get(m.word_id);
+                        const wordText = m.arabic_word || t?.quran_text || t?.arabic_word || fallbackWords[index] || '';
+                        return `<span class="arabic-word" data-word-text="${wordText}" data-word-id="${m.word_id}" tabindex="0" role="button">${wordText}</span>`;
+                    }).join(' ');
+                } else {
+                    const words = quran.arabic.split(/\s+/).filter(w => w.trim());
+                    wordCount = words.length;
+                    wordsHTML = words.map(word => {
+                        return `<span class="arabic-word" data-word-text="${word.trim()}" data-word-id="null" tabindex="0" role="button">${word}</span>`;
+                    }).join(' ');
+                }
 
                 const translationInfo = getTranslationConfig(document.getElementById('translation-select').value);
                 const juzNum = getJuzFromSurahAyah(surah, ayah);
@@ -3624,7 +3653,7 @@
                         <div class="ayah-translation" lang="${translationInfo.lang}" dir="${translationInfo.dir}" style="font-family:${translationInfo.font}">${quran[translationInfo.key] || quran.english || "Translation not available."}</div>
                         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:16px; padding-top:12px; border-top:1px solid var(--color-border); direction:ltr;">
                             <div style="font-size:0.8rem; color:var(--color-text-muted); font-weight:600;">
-                                Total Verses in Surah: <strong>${surahAyahCounts[surah]}</strong> • Words in Ayah: <strong>${words.length}</strong>
+                                Total Verses in Surah: <strong>${surahAyahCounts[surah]}</strong> • Words in Ayah: <strong>${wordCount}</strong>
                             </div>
                             <div style="display:flex; gap:6px;">
                                 <button type="button" class="btn-secondary compact-pill-btn" onclick="goToPrevAyah()">← Previous Ayah</button>
@@ -3656,13 +3685,44 @@
                 const allMetadataForSurah = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([surah, 1, 0], [surah, surahAyahCounts[surah], Infinity]), 'location_idx');
                 const translationInfo = getTranslationConfig(document.getElementById('translation-select').value);
 
+                let transMap = new Map();
+                const metaByAyah = new Map();
+                if (allMetadataForSurah && allMetadataForSurah.length > 0) {
+                    let minWordId = Infinity;
+                    let maxWordId = -Infinity;
+                    allMetadataForSurah.forEach(m => {
+                        if (m.word_id < minWordId) minWordId = m.word_id;
+                        if (m.word_id > maxWordId) maxWordId = m.word_id;
+                        if (!metaByAyah.has(m.ayah)) metaByAyah.set(m.ayah, []);
+                        metaByAyah.get(m.ayah).push(m);
+                    });
+                    metaByAyah.forEach(list => list.sort((a, b) => a.word_position - b.word_position));
+                    if (minWordId <= maxWordId) {
+                        try {
+                            const transList = await getAllDataInRange(STORE_WORD_TRANSLATIONS, IDBKeyRange.bound(minWordId, maxWordId));
+                            if (transList && transList.length > 0) {
+                                transList.forEach(t => transMap.set(t.word_id, t));
+                            }
+                        } catch (err) {}
+                    }
+                }
+
                 allAyahsInSurah.forEach(quran => {
-                    const words = quran.arabic.split(/\s+/).filter(w => w.trim());
-                    const metadataMap = new Map(allMetadataForSurah.filter(m => m.ayah === quran.ayah).map(m => [m.word_position, m.word_id]));
-                    const wordsHTML = words.map((word, index) => {
-                        const wordId = metadataMap.get(index) || 'null';
-                        return `<span class="arabic-word" data-word-text="${word.trim()}" data-word-id="${wordId}">${word}</span>`;
-                    }).join(' ');
+                    const ayahMeta = metaByAyah.get(quran.ayah);
+                    let wordsHTML = '';
+                    if (ayahMeta && ayahMeta.length > 0) {
+                        const fallbackWords = quran.arabic.split(/\s+/).filter(w => w.trim());
+                        wordsHTML = ayahMeta.map((m, index) => {
+                            const t = transMap.get(m.word_id);
+                            const wordText = m.arabic_word || t?.quran_text || t?.arabic_word || fallbackWords[index] || '';
+                            return `<span class="arabic-word" data-word-text="${wordText}" data-word-id="${m.word_id}">${wordText}</span>`;
+                        }).join(' ');
+                    } else {
+                        const words = quran.arabic.split(/\s+/).filter(w => w.trim());
+                        wordsHTML = words.map(word => {
+                            return `<span class="arabic-word" data-word-text="${word.trim()}" data-word-id="null">${word}</span>`;
+                        }).join(' ');
+                    }
                     const ayahDiv = document.createElement('div');
                     ayahDiv.id = `s${quran.surah}a${quran.ayah}`;
                     ayahDiv.className = 'ayah';
@@ -3717,7 +3777,7 @@
             const fullAyahTranslation = ayahCard ? ayahCard.querySelector('.ayah-translation')?.textContent : '';
             const fullTranslationInfo = getTranslationConfig(document.getElementById('translation-select').value);
 
-            let translations = { ur: "See full Ayah meaning below", en: "See full Ayah meaning below", ps: "لاندې بشپړه ژباړه وګورئ" };
+            let translations = { ur: "See full Ayah meaning below", en: "See full Ayah meaning below", ps: "لاندې بشپړه ژباړه وګورئ", bn: "N/A" };
             if (!isNaN(wordId)) {
                 try {
                     const trans = await getData(STORE_WORD_TRANSLATIONS, wordId);
@@ -3725,7 +3785,8 @@
                         translations = {
                             ur: trans.ur_meaning || "N/A",
                             en: trans.en_meaning || "N/A",
-                            ps: trans.pashto_text || "N/A"
+                            ps: trans.pashto_text || "N/A",
+                            bn: trans.bn_meaning || "N/A"
                         };
                     }
                 } catch (e) {}
@@ -3749,6 +3810,11 @@
                         <span class="wb-label">Pashto</span>
                         <span class="wb-val" lang="ps" dir="rtl" style="font-family: var(--font-pashto);">${translations.ps}</span>
                     </div>
+                    ${translations.bn && translations.bn !== "N/A" ? `
+                    <div class="word-breakdown-item">
+                        <span class="wb-label">Bangali</span>
+                        <span class="wb-val" lang="bn" dir="ltr" style="font-family: var(--font-Bangali);">${translations.bn}</span>
+                    </div>` : ''}
                 </div>
                 <p style="margin-top:12px; margin-bottom:0; font-size:0.9rem;"><strong>Ayah Context:</strong> <span lang="${fullTranslationInfo.lang}" dir="${fullTranslationInfo.dir}" style="font-family: ${fullTranslationInfo.font};">${fullAyahTranslation}</span></p>
             `;
@@ -3783,11 +3849,12 @@
                 tooltip.innerHTML = `<strong lang="ar" dir="rtl">${span.dataset.wordText}</strong><br><span style="font-size:0.85em;">Tap word in Single View for breakdown</span>`;
             } else {
                 const trans = await getData(STORE_WORD_TRANSLATIONS, wordId);
+                const bnLine = trans?.bn_meaning ? `<br><span lang="bn" dir="ltr">Bengali: ${trans.bn_meaning}</span>` : '';
                 tooltip.innerHTML = `
                     <strong lang="ar" dir="rtl" style="font-size:1.3em;">${span.dataset.wordText}</strong><br>
                     <span lang="ur" dir="rtl">Urdu: ${trans?.ur_meaning || "N/A"}</span><br>
                     <span lang="ps" dir="rtl">Pashto: ${trans?.pashto_text || "N/A"}</span><br>
-                    <span lang="en" dir="ltr">English: ${trans?.en_meaning || "N/A"}</span>
+                    <span lang="en" dir="ltr">English: ${trans?.en_meaning || "N/A"}</span>${bnLine}
                 `;
             }
             tooltip.style.left = `${Math.min(window.innerWidth - 260, Math.max(12, event.pageX - 60))}px`;
@@ -5411,18 +5478,27 @@
                 const includeWbw = document.getElementById('includeWordByWordTable')?.checked;
                 if (includeWbw) {
                     const selectedWbwLangs = Array.from(document.querySelectorAll('#wordByWordLanguageOptions input:checked')).map(cb => cb.value);
-                    const words = ayahData.arabic.split(/\s+/).filter(Boolean);
                     const wordMeta = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([surah, ayah, 0], [surah, ayah, Infinity]), 'location_idx');
-                    const metaByPos = new Map(wordMeta.map(m => [m.word_position, m.word_id]));
                     let rowsHTML = '';
-                    for (let idx = 0; idx < words.length; idx++) {
-                        const wId = metaByPos.get(idx);
-                        const wTrans = wId ? await getData(STORE_WORD_TRANSLATIONS, wId) : null;
-                        const langCells = selectedWbwLangs.map(lk => {
-                            const { meaningText } = getDynamicLanguageData(wTrans, lk);
-                            return `<td>${meaningText || '-'}</td>`;
-                        }).join('');
-                        rowsHTML += `<tr><td class="arabic-word-cell">${words[idx]}</td>${langCells}</tr>`;
+                    if (wordMeta && wordMeta.length > 0) {
+                        wordMeta.sort((a, b) => a.word_position - b.word_position);
+                        const fallbackWords = ayahData.arabic.split(/\s+/).filter(Boolean);
+                        for (let idx = 0; idx < wordMeta.length; idx++) {
+                            const m = wordMeta[idx];
+                            const wTrans = await getData(STORE_WORD_TRANSLATIONS, m.word_id);
+                            const arabicWord = m.arabic_word || wTrans?.quran_text || wTrans?.arabic_word || fallbackWords[idx] || '';
+                            const langCells = selectedWbwLangs.map(lk => {
+                                const { meaningText } = getDynamicLanguageData(wTrans, lk);
+                                return `<td>${meaningText || '-'}</td>`;
+                            }).join('');
+                            rowsHTML += `<tr><td class="arabic-word-cell">${arabicWord}</td>${langCells}</tr>`;
+                        }
+                    } else {
+                        const words = ayahData.arabic.split(/\s+/).filter(Boolean);
+                        for (let idx = 0; idx < words.length; idx++) {
+                            const langCells = selectedWbwLangs.map(() => `<td>-</td>`).join('');
+                            rowsHTML += `<tr><td class="arabic-word-cell">${words[idx]}</td>${langCells}</tr>`;
+                        }
                     }
                     const headersHTML = selectedWbwLangs.map(lk => `<th>${getTranslationConfig(lk).label}</th>`).join('');
                     wordTableHTML = `<table class="word-table" style="margin-top:18px;"><thead><tr><th>Arabic Word</th>${headersHTML}</tr></thead><tbody>${rowsHTML}</tbody></table>`;
@@ -6568,20 +6644,51 @@
                 await ensureSeedDataIfEmpty();
                 const allWordMetadata = await getAllData(STORE_WORD_METADATA);
                 const allWordTranslations = await getAllData(STORE_WORD_TRANSLATIONS);
+                if (!allWordMetadata || allWordMetadata.length === 0 || !allWordTranslations || allWordTranslations.length === 0) {
+                    playArea.innerHTML = '<p>Not enough word data to start the game.</p>';
+                    return;
+                }
                 const translationMap = new Map(allWordTranslations.map(wt => [wt.word_id, wt]));
                 wordWhizQuestions = [];
+                const selectedWordIds = new Set();
                 const selectedLangKey = document.getElementById('translation-select').value;
-                for (let i = 0; i < Math.min(8, allWordMetadata.length); i++) {
-                    const meta = allWordMetadata[i];
-                    const trans = translationMap.get(meta.word_id);
-                    const quranAyah = await getOrSynthesizeAyahRecord(meta.surah, meta.ayah);
-                    const words = quranAyah.arabic.split(/\s+/);
-                    const arabicWord = words[meta.word_position] || words[0];
+                const targetCount = Math.min(8, allWordMetadata.length);
+                for (let i = 0; i < targetCount; i++) {
+                    let attempt = 0;
+                    let meta, trans, arabicWord;
+                    while (attempt < 50) {
+                        attempt++;
+                        const cand = allWordMetadata[Math.floor(Math.random() * allWordMetadata.length)];
+                        if (selectedWordIds.has(cand.word_id)) continue;
+                        const candTrans = translationMap.get(cand.word_id);
+                        if (!candTrans) continue;
+                        const wordText = cand.arabic_word || candTrans.quran_text || candTrans.arabic_word || '';
+                        if (wordText) {
+                            meta = cand;
+                            trans = candTrans;
+                            arabicWord = wordText;
+                            break;
+                        }
+                    }
+                    if (!meta || !trans) {
+                        meta = allWordMetadata[i];
+                        trans = translationMap.get(meta.word_id);
+                        arabicWord = meta.arabic_word || trans?.quran_text || trans?.arabic_word || '';
+                    }
+                    if (!arabicWord) {
+                        const quranAyah = await getOrSynthesizeAyahRecord(meta.surah, meta.ayah);
+                        const words = quranAyah ? quranAyah.arabic.split(/\s+/) : [];
+                        arabicWord = words[meta.word_position] || words[0] || '';
+                    }
+                    if (!arabicWord) continue;
+                    selectedWordIds.add(meta.word_id);
                     const { meaningText, meaningFont, meaningLangDir } = getDynamicLanguageData(trans, selectedLangKey);
                     if (!meaningText) continue;
                     const options = [meaningText];
-                    for (const other of allWordTranslations) {
-                        if (options.length >= 4) break;
+                    let dAttempts = 0;
+                    while (options.length < 4 && dAttempts < 50) {
+                        dAttempts++;
+                        const other = allWordTranslations[Math.floor(Math.random() * allWordTranslations.length)];
                         const { meaningText: dText } = getDynamicLanguageData(other, selectedLangKey);
                         if (dText && !options.includes(dText)) options.push(dText);
                     }
@@ -6717,11 +6824,25 @@
             const transMap = new Map(allTrans.map(t => [t.word_id, t]));
             const langKey = document.getElementById('translation-select').value;
             flashcardQuestions = [];
-            for (const m of allMeta.slice(0, 8)) {
-                const q = await getOrSynthesizeAyahRecord(m.surah, m.ayah);
-                const w = q.arabic.split(/\s+/)[m.word_position] || q.arabic.split(/\s+/)[0];
-                const { meaningText, meaningLangDir, meaningFont } = getDynamicLanguageData(transMap.get(m.word_id), langKey);
-                if (meaningText) flashcardQuestions.push({ arabicWord: w, meaning: meaningText, meaningLangDir, meaningFont });
+            const chosenMeta = [];
+            const usedIds = new Set();
+            for (let i = 0; i < 30 && chosenMeta.length < 8 && chosenMeta.length < allMeta.length; i++) {
+                const cand = allMeta[Math.floor(Math.random() * allMeta.length)];
+                if (cand && !usedIds.has(cand.word_id)) {
+                    usedIds.add(cand.word_id);
+                    chosenMeta.push(cand);
+                }
+            }
+            const listToUse = chosenMeta.length >= 4 ? chosenMeta : allMeta.slice(0, 8);
+            for (const m of listToUse) {
+                const trans = transMap.get(m.word_id);
+                let w = m.arabic_word || trans?.quran_text || trans?.arabic_word || '';
+                if (!w) {
+                    const q = await getOrSynthesizeAyahRecord(m.surah, m.ayah);
+                    w = q ? (q.arabic.split(/\s+/)[m.word_position] || q.arabic.split(/\s+/)[0]) : '';
+                }
+                const { meaningText, meaningLangDir, meaningFont } = getDynamicLanguageData(trans, langKey);
+                if (meaningText && w) flashcardQuestions.push({ arabicWord: w, meaning: meaningText, meaningLangDir, meaningFont });
             }
             currentFlashcardIndex = 0;
             displayFlashcard_Suite();
@@ -8355,7 +8476,7 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v2').catch(() => {});
+                navigator.serviceWorker.register('./sw.js?v3').catch(() => {});
             });
         }
     </script>
