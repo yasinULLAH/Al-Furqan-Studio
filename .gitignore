@@ -1,0 +1,9 @@
+.cache_libs/
+android/app/build/
+android/.gradle/
+android/build/
+android/local.properties
+android/app/src/main/assets/
+electron/dist/
+electron/node_modules/
+electron/app/

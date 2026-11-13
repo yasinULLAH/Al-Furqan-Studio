@@ -1,0 +1,34 @@
+{
+  "name": "al-furqan-studio",
+  "productName": "Al-Furqan Studio",
+  "version": "1.0.0",
+  "description": "Nur Al-Quran Studio Offline",
+  "main": "main.js",
+  "scripts": {
+    "build:portable": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.alfurqan.studio",
+    "productName": "Al-Furqan Studio",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "portable",
+      "icon": "icon.png"
+    },
+    "portable": {
+      "artifactName": "Al-Furqan-Studio-Portable.exe"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "icon.png",
+      "app/**/*"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^28.2.0",
+    "electron-builder": "^24.13.3"
+  }
+}

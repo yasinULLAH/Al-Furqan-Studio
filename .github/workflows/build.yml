@@ -1,0 +1,114 @@
+name: Build Fullscreen Offline APK and EXE
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Prepare Offline Assets
+        run: node build-scripts/prepare-app.js android
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.5
+
+      - name: Build APK
+        run: |
+          cd android
+          gradle assembleDebug --no-daemon --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Al-Furqan-Studio.apk
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Al-Furqan-Studio-Android-APK
+          path: android/app/build/outputs/apk/debug/Al-Furqan-Studio.apk
+          retention-days: 30
+
+  build-windows:
+    name: Build Windows Portable EXE
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Prepare Offline Assets
+        run: node build-scripts/prepare-app.js electron
+
+      - name: Install Electron and Build Portable EXE
+        run: |
+          cd electron
+          npm install
+          npm run build:portable
+
+      - name: Upload Windows Portable EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: Al-Furqan-Studio-Windows-EXE
+          path: electron/dist/Al-Furqan-Studio-Portable.exe
+          retention-days: 30
+
+  publish-release:
+    name: Publish Release
+    needs: [build-android, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Android Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Al-Furqan-Studio-Android-APK
+          path: release-files
+
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Al-Furqan-Studio-Windows-EXE
+          path: release-files
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          tag_name: latest
+          name: Al-Furqan Studio Fullscreen Offline (APK & EXE)
+          body: |
+            Automated build for commit ${{ github.sha }}.
+            
+            - **Android APK**: `Al-Furqan-Studio.apk` (Install directly on Android phones, 100% offline, fullscreen)
+            - **Windows Portable EXE**: `Al-Furqan-Studio-Portable.exe` (Standalone portable, no installation needed, 100% offline, fullscreen)
+          draft: false
+          prerelease: false
+          files: release-files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
