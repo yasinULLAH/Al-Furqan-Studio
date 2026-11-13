@@ -1845,6 +1845,229 @@
             line-height: 1.4;
         }
 
+    
+        /* Production Studio Additions: Parallel Translations, Tajweed Legend, Blindfold Hifz, Khatam Planner, Qari Compare, Duas */
+        .viewer-toggles-bar {
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-lg);
+            padding: 8px 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            box-shadow: 0 1px 4px var(--color-shadow);
+        }
+        .toggle-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 11px;
+            border-radius: var(--border-radius-pill);
+            background-color: var(--color-surface-muted);
+            border: 1px solid var(--color-border);
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s ease;
+            margin: 0;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        .toggle-chip:hover {
+            border-color: var(--color-accent);
+            color: var(--color-text-primary);
+        }
+        .toggle-chip input[type="checkbox"] {
+            margin: 0;
+            width: 14px;
+            height: 14px;
+            accent-color: var(--color-accent);
+        }
+        .toggle-chip:has(input:checked) {
+            background-color: var(--color-accent-soft);
+            border-color: var(--color-accent);
+            color: var(--color-accent-dark);
+            font-weight: 700;
+        }
+        body.theme-holo .toggle-chip:has(input:checked) {
+            color: var(--color-accent);
+        }
+        .surah-meta-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px 14px;
+            background: linear-gradient(90deg, var(--color-accent-soft), transparent);
+            border-left: 4px solid var(--color-accent);
+            border-radius: var(--border-radius);
+            margin-bottom: 12px;
+            font-size: 0.82rem;
+            color: var(--color-text-secondary);
+        }
+        .tajweed-legend-drawer {
+            display: none;
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-lg);
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px var(--color-shadow);
+        }
+        .tajweed-legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .tajweed-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background-color: var(--color-surface-muted);
+            border: 1px solid var(--color-border);
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .tajweed-pill:hover {
+            transform: translateY(-1px);
+            border-color: var(--color-accent);
+        }
+        .tajweed-swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .parallel-translations-stack {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed var(--color-border);
+        }
+        .parallel-trans-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            background-color: var(--color-surface-muted);
+            border-left: 3px solid var(--color-accent);
+        }
+        .parallel-trans-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--color-accent-dark);
+            margin-bottom: 3px;
+            display: block;
+            direction: ltr;
+            text-align: left;
+        }
+        .inline-classical-tafsir {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background-color: var(--color-surface-muted);
+            border: 1px solid var(--color-border);
+            font-size: 0.88rem;
+            color: var(--color-text-secondary);
+            direction: ltr;
+            text-align: left;
+        }
+        .hifz-arabic-preview {
+            font-family: var(--font-arabic);
+            font-size: 1.55rem;
+            line-height: 2;
+            direction: rtl;
+            text-align: right;
+            padding: 10px 12px;
+            margin: 8px 0 10px;
+            background-color: var(--color-surface-muted);
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            cursor: pointer;
+            transition: filter 0.2s ease;
+        }
+        .hifz-masked-word {
+            background-color: var(--color-border);
+            color: transparent;
+            border-radius: 4px;
+            padding: 0 6px;
+            margin: 0 2px;
+            user-select: none;
+            display: inline-block;
+            transition: all 0.15s ease;
+        }
+        .hifz-masked-word.revealed {
+            background-color: var(--color-accent-soft);
+            color: var(--color-text-primary);
+        }
+        .roots-lexicon-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            max-height: 175px;
+            overflow-y: auto;
+            padding: 4px 2px;
+        }
+        .root-lexicon-chip {
+            padding: 4px 10px;
+            border-radius: var(--border-radius-pill);
+            background-color: var(--color-surface-muted);
+            border: 1px solid var(--color-border);
+            font-size: 0.78rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--color-text-primary);
+        }
+        .root-lexicon-chip:hover {
+            border-color: var(--color-accent);
+            background-color: var(--color-accent-soft);
+        }
+        .khatam-planner-card {
+            background: linear-gradient(135deg, var(--color-bg-secondary), var(--color-surface-muted));
+            border: 1px solid var(--color-border);
+            border-left: 5px solid var(--color-accent);
+            border-radius: var(--border-radius-lg);
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 6px var(--color-shadow);
+        }
+        .qari-compare-card {
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-lg);
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 4px var(--color-shadow);
+        }
+        .tafsir-tag-btn {
+            padding: 3px 9px;
+            min-height: 26px;
+            font-size: 0.74rem;
+            border-radius: var(--border-radius-pill);
+            background-color: var(--color-surface-muted);
+            color: var(--color-text-secondary);
+            border: 1px solid var(--color-border);
+        }
+        .tafsir-tag-btn:hover {
+            background-color: var(--color-accent-soft);
+            color: var(--color-accent-dark);
+            border-color: var(--color-accent);
+        }
+
     </style>
 </head>
 
@@ -1933,6 +2156,8 @@
                 <h2 id="quran-heading">
                     <span id="quranHeadingText">Quran Viewer</span>
                     <div id="quranHeadingDownloadButtons">
+                        <button type="button" id="openDuasModalBtn" class="compact-pill-btn btn-secondary" title="40 Rabbana &amp; Quranic Duas">🤲 Duas</button>
+                        <button type="button" id="toggleTajweedLegendBtn" class="compact-pill-btn btn-secondary" title="Interactive Tajweed Rules Guide">🎨 Tajweed Guide</button>
                         <button type="button" id="downloadAppZippedBtn" class="compact-pill-btn btn-secondary" title="Download App &amp; Data (Zipped)">Zip 📦</button>
                         <button type="button" id="downloadAppUnzippedBtn" class="compact-pill-btn btn-secondary" title="Download App &amp; Data (Individual Files)">Files 📁</button>
                     </div>
@@ -1940,6 +2165,10 @@
 
                 <div class="quran-toolbar-card">
                     <div class="quran-controls-grid">
+                        <div>
+                            <label for="juz-select">Juz (Parah)</label>
+                            <select id="juz-select" aria-label="Select Juz"></select>
+                        </div>
                         <div>
                             <label for="surah-select">Surah</label>
                             <select id="surah-select" aria-label="Select Surah"></select>
@@ -2005,6 +2234,37 @@
                     </div>
                 </div>
 
+                <!-- Study Display Toggles & Range Loop Trainer -->
+                <div class="viewer-toggles-bar">
+                    <div class="flex-group" style="flex-wrap:wrap; gap:6px;">
+                        <label class="toggle-chip"><input type="checkbox" id="inlineTajweedToggle"> 🎨 Tajweed Colors</label>
+                        <label class="toggle-chip"><input type="checkbox" id="inlineTransliterationToggle"> 🔤 Transliteration</label>
+                        <label class="toggle-chip"><input type="checkbox" id="parallelTranslationToggle"> 📚 Parallel All 4 Translations</label>
+                        <label class="toggle-chip"><input type="checkbox" id="inlineClassicalTafsirToggle" checked> 💡 Commentary &amp; Notes</label>
+                    </div>
+                    <div class="flex-group" style="flex-wrap:wrap; gap:6px;">
+                        <span style="font-size:0.75rem; font-weight:700; color:var(--color-text-muted);">Hifz Range Loop:</span>
+                        <input type="number" id="loopRangeStartInput" min="1" value="1" title="Loop Start Ayah" style="width:62px; min-height:30px; padding:3px 6px; margin:0; font-size:0.78rem;">
+                        <span style="font-size:0.78rem;">to</span>
+                        <input type="number" id="loopRangeEndInput" min="1" value="7" title="Loop End Ayah" style="width:62px; min-height:30px; padding:3px 6px; margin:0; font-size:0.78rem;">
+                        <button type="button" id="startRangeLoopBtn" class="compact-pill-btn btn-secondary" title="Loop Selected Ayah Range">🔁 Loop Range</button>
+                        <button type="button" id="decreaseArabicFontBtn" class="compact-pill-btn btn-secondary" title="Decrease Arabic Font Size">A-</button>
+                        <button type="button" id="increaseArabicFontBtn" class="compact-pill-btn btn-secondary" title="Increase Arabic Font Size">A+</button>
+                    </div>
+                </div>
+
+                <!-- Interactive Tajweed Rules Legend Drawer -->
+                <div id="tajweedLegendPanel" class="tajweed-legend-drawer">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <strong style="font-size:0.86rem;">🕌 Interactive Tajweed Color Rules &amp; Makharij Guide (Click any rule to hear &amp; inspect example)</strong>
+                        <button type="button" id="closeTajweedLegendBtn" class="compact-pill-btn btn-secondary">Close ✕</button>
+                    </div>
+                    <div class="tajweed-legend-grid" id="tajweedLegendGrid"></div>
+                </div>
+
+                <!-- Surah Metadata Banner -->
+                <div id="surahMetaBanner" class="surah-meta-banner"></div>
+
                 <!-- Saved Bookmarks Strip -->
                 <div class="bookmarks-strip" id="bookmarksStripContainer" aria-label="Saved Bookmarks"></div>
 
@@ -2030,16 +2290,40 @@
                 <h2 id="tafsir-heading">Personal Tafsir Builder</h2>
                 <p>Write your notes, reflections, and linguistic insights for the current Ayah.</p>
                 <div class="tafsir-workspace-grid">
-                    <div id="current-ayah-tafsir" class="ayah" style="margin-bottom:0;">
-                        <p class="text-center">Navigate to an Ayah in the Quran Viewer to add Tafsir.</p>
+                    <div>
+                        <div id="current-ayah-tafsir" class="ayah" style="margin-bottom:12px;">
+                            <p class="text-center">Navigate to an Ayah in the Quran Viewer to add Tafsir.</p>
+                        </div>
+                        <div class="tafsir-editor" style="margin-bottom:0;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                                <label for="tafsir-notes" style="margin:0;">Your Tafsir Notes:</label>
+                                <div class="flex-group" style="flex-wrap:wrap; gap:4px;">
+                                    <button type="button" class="tafsir-tag-btn" data-insert-tag="#Tadabbur ">#Tadabbur</button>
+                                    <button type="button" class="tafsir-tag-btn" data-insert-tag="#Fiqh ">#Fiqh</button>
+                                    <button type="button" class="tafsir-tag-btn" data-insert-tag="#Dua ">#Dua</button>
+                                    <button type="button" class="tafsir-tag-btn" data-insert-tag="#Grammar ">#Grammar</button>
+                                    <button type="button" class="tafsir-tag-btn" data-insert-tag="#ActionItem ">#ActionItem</button>
+                                    <button type="button" id="insertAyahQuoteIntoTafsirBtn" class="tafsir-tag-btn" title="Quote Arabic Verse">❝ Quote Verse</button>
+                                </div>
+                            </div>
+                            <textarea id="tafsir-notes" rows="8" placeholder="Enter your personal notes, interpretations, linguistic insights, and reflections here..."></textarea>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; gap:8px;">
+                                <p id="tafsir-status" aria-live="polite" style="margin:0;"></p>
+                                <div class="flex-group">
+                                    <button type="button" id="delete-current-tafsir-btn" class="btn-secondary compact-pill-btn">Clear Note</button>
+                                    <button type="button" id="save-tafsir-btn">Save Tafsir</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="tafsir-editor" style="margin-bottom:0;">
-                        <label for="tafsir-notes">Your Tafsir Notes:</label>
-                        <textarea id="tafsir-notes" rows="9" placeholder="Enter your personal notes, interpretations, and reflections here..."></textarea>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
-                            <p id="tafsir-status" aria-live="polite" style="margin:0;"></p>
-                            <button type="button" id="save-tafsir-btn">Save Tafsir</button>
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                            <h3 style="margin:0;">Saved Tafsir Notebook (<span id="saved-tafsir-count">0</span>)</h3>
+                            <input type="text" id="tafsir-notebook-search" placeholder="Search saved notes or #tags..." style="max-width:220px; margin:0; min-height:32px; padding:4px 10px;">
                         </div>
+                        <ul id="saved-tafsir-list" class="report-list" style="max-height:430px; overflow-y:auto;">
+                            <li>No saved Tafsir notes yet.</li>
+                        </ul>
                     </div>
                 </div>
             </section>
@@ -2066,6 +2350,10 @@
                                 <option value="">-- No Parent --</option>
                             </select>
                             <button type="button" id="add-theme-btn" style="flex-shrink:0;">Add Theme</button>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                            <input type="text" id="new-theme-description" placeholder="Optional theme description / scope..." style="margin:0; flex:1; min-width:180px;">
+                            <button type="button" id="seedCuratedThemesBtn" class="btn-secondary compact-pill-btn" title="Import Curated Quranic Themes &amp; Key Verses">✨ Load Curated Themes</button>
                         </div>
                         <div class="theme-list mt-20">
                             <h4>Existing Themes</h4>
@@ -2141,9 +2429,16 @@
                     <textarea id="root-description" placeholder="Your notes on this root's meaning..."></textarea>
                     <button type="button" id="save-root-notes-btn">Save Root Notes</button>
                     <p id="root-status" aria-live="polite"></p>
-                    <div style="margin-top:16px; padding-top:12px; border-top:1px solid var(--color-border);">
+                    <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--color-border);">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h4 style="margin:0;">Curated Quranic Roots Lexicon</h4>
+                            <span style="font-size:0.74rem; color:var(--color-text-muted);">Tap any root</span>
+                        </div>
+                        <div id="curated-roots-picker" class="roots-lexicon-grid"></div>
+                    </div>
+                    <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--color-border);">
                         <h4>Saved Roots Library</h4>
-                        <ul id="saved-roots-list" style="list-style:none; padding:0; margin-top:8px; max-height:240px; overflow-y:auto;">
+                        <ul id="saved-roots-list" style="list-style:none; padding:0; margin-top:8px; max-height:200px; overflow-y:auto;">
                             <li>No saved roots yet.</li>
                         </ul>
                     </div>
@@ -2170,8 +2465,41 @@
 
             <!-- 5. RECITATION LOG SECTION -->
             <section id="recitation" class="section" role="region" aria-labelledby="recitation-heading">
-                <h2 id="recitation-heading">Comparative Recitation Log</h2>
-                <p>Log your listening and reading sessions across different Qaris.</p>
+                <h2 id="recitation-heading">Comparative Recitation Studio &amp; Log</h2>
+                <p>Compare Qari recitations side-by-side and log your Tajweed, Maqam, and listening reflections.</p>
+                <div class="qari-compare-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                        <h3 style="margin:0;">🎙️ Side-by-Side Qari Comparison Studio</h3>
+                        <span id="compareStudioVerseRef" style="font-size:0.82rem; font-weight:700; color:var(--color-accent-dark);">Comparing Current Verse</span>
+                    </div>
+                    <div class="form-grid">
+                        <div>
+                            <label for="compareQariASelect">Qari A:</label>
+                            <select id="compareQariASelect" style="margin:0;">
+                                <option value="Alafasy_128kbps">Mishary Rashid Alafasy</option>
+                                <option value="Husary_128kbps">Mahmoud Khalil Al-Husary</option>
+                                <option value="Abdul_Basit_Murattal_192kbps">Abdul Basit (Murattal)</option>
+                                <option value="Minshawy_Murattal_128kbps">Minshawi (Murattal)</option>
+                                <option value="Sudais_192kbps">Abdurrahmaan As-Sudais</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="compareQariBSelect">Qari B:</label>
+                            <select id="compareQariBSelect" style="margin:0;">
+                                <option value="Husary_128kbps" selected>Mahmoud Khalil Al-Husary</option>
+                                <option value="Abdul_Basit_Murattal_192kbps">Abdul Basit (Murattal)</option>
+                                <option value="Alafasy_128kbps">Mishary Rashid Alafasy</option>
+                                <option value="Minshawy_Murattal_128kbps">Minshawi (Murattal)</option>
+                                <option value="Ghamadi_40kbps">Saad Al-Ghamdi</option>
+                            </select>
+                        </div>
+                        <div class="flex-group" style="align-items:flex-end;">
+                            <button type="button" id="playCompareQariABtn" class="compact-pill-btn">▶️ Play Qari A</button>
+                            <button type="button" id="playCompareQariBBtn" class="compact-pill-btn">▶️ Play Qari B</button>
+                            <button type="button" id="prefillCompareLogBtn" class="compact-pill-btn btn-secondary">✍️ Log Comparison</button>
+                        </div>
+                    </div>
+                </div>
                 <div class="recitation-workspace-grid">
                 <div class="recitation-log-form" style="margin-bottom:0;">
                     <h3>Add Log Entry</h3>
@@ -2222,6 +2550,12 @@
                             </select>
                         </div>
                         <div class="flex-group" style="flex-wrap:wrap;">
+                            <label for="hifz-blindfold-select" class="sr-only">Self-Test Mode</label>
+                            <select id="hifz-blindfold-select" title="Active Recall Self-Test Mode" style="margin:0; width:auto; min-height:32px; padding:4px 8px; font-size:0.8rem;">
+                                <option value="visible">👁️ Full Verse Text</option>
+                                <option value="first_last">🌓 First &amp; Last Word Cue</option>
+                                <option value="blindfold">🙈 Blindfold Self-Test (Tap Word)</option>
+                            </select>
                             <button type="button" id="hifzMarkSurahMemorizedBtn" class="compact-pill-btn btn-secondary">✓ Mark All Memorized</button>
                             <button type="button" id="hifzResetSurahBtn" class="compact-pill-btn btn-secondary">↺ Reset Surah</button>
                         </div>
@@ -2238,7 +2572,35 @@
             <!-- 7. STUDY GOALS SECTION (Declaratively placed in HTML) -->
             <section id="goals" class="section" role="region" aria-labelledby="goals-heading">
                 <div class="goals-container">
-                    <h2 id="goals-heading">My Quran Goals</h2>
+                    <h2 id="goals-heading">My Quran Goals &amp; Khatam Planner</h2>
+                    <div class="khatam-planner-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                            <div>
+                                <h3 style="margin:0;">🌙 Interactive Khatam-ul-Quran Planner &amp; Daily Wird</h3>
+                                <p style="margin:2px 0 0; font-size:0.82rem;">Plan your complete Quran reading schedule and jump straight to your current Wird position.</p>
+                            </div>
+                            <span id="khatamSummaryBadge" class="ayah-number">Day 1 / 30 • 208 Ayahs/day</span>
+                        </div>
+                        <div class="form-grid" style="margin-bottom:10px;">
+                            <div>
+                                <label for="khatamTargetDaysInput">Target Completion Days:</label>
+                                <input type="number" id="khatamTargetDaysInput" min="3" max="365" value="30" style="margin:0;">
+                            </div>
+                            <div>
+                                <label for="khatamCurrentSurahSelect">Current Wird Surah:</label>
+                                <select id="khatamCurrentSurahSelect" style="margin:0;"></select>
+                            </div>
+                            <div>
+                                <label for="khatamCurrentAyahInput">Current Wird Ayah:</label>
+                                <input type="number" id="khatamCurrentAyahInput" min="1" value="1" style="margin:0;">
+                            </div>
+                            <div class="flex-group" style="align-items:flex-end;">
+                                <button type="button" id="continueKhatamWirdBtn" class="compact-pill-btn">📖 Read Today's Wird</button>
+                                <button type="button" id="advanceKhatamWirdBtn" class="compact-pill-btn btn-secondary">✓ Complete Daily Quota</button>
+                            </div>
+                        </div>
+                        <div class="progress-bar-bg"><div id="khatamOverallProgressBar" class="progress-bar" style="width:0%;">0%</div></div>
+                    </div>
                     <div class="add-goal-form">
                         <h3>Add a New Goal</h3>
                         <form id="goal-form">
@@ -2387,11 +2749,16 @@
                     <p id="export-status" aria-live="polite"></p>
                 </div>
                 <div class="settings-section mb-20">
-                    <h3>Restore Data</h3>
-                    <p>Import your personal data from a JSON backup file.</p>
+                    <h3>Restore &amp; Smart Merge Data</h3>
+                    <p>Restore a JSON backup (overwrite) or non-destructively merge records from another device.</p>
                     <label for="import-file" class="sr-only">Choose JSON file to import</label>
                     <input type="file" id="import-file" accept="application/json" style="margin-bottom:10px;">
-                    <button type="button" id="import-data-btn" disabled>Import Data</button>
+                    <div class="flex-group" style="flex-wrap:wrap;">
+                        <button type="button" id="import-data-btn" disabled>Import Data</button>
+                        <button type="button" id="merge-data-btn" class="btn-secondary" disabled>Smart Merge</button>
+                        <button type="button" id="copySyncCodeBtn" class="btn-secondary compact-pill-btn" title="Copy Portable Sync String">📋 Copy Sync Code</button>
+                        <button type="button" id="pasteSyncCodeBtn" class="btn-secondary compact-pill-btn" title="Import Portable Sync String">📥 Paste Sync Code</button>
+                    </div>
                     <p id="import-status" aria-live="polite"></p>
                 </div>
                 <div class="settings-section mb-20">
@@ -2583,7 +2950,10 @@
     <div id="quranGameModal" class="modal game-modal" role="dialog" aria-modal="true" aria-labelledby="gameModalTitle">
         <div class="modal-content game-modal-content">
             <span class="close-button game-close-button" aria-label="Close Game">×</span>
-            <h2 id="gameModalTitle" class="text-center">Quranic Games</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding-right:34px; margin-bottom:6px;">
+                <h2 id="gameModalTitle" style="margin:0;">Quranic Games</h2>
+                <button type="button" id="toggleGameSfxBtn" class="compact-pill-btn btn-secondary" title="Toggle Synthesized Sound Effects">🔊 SFX: On</button>
+            </div>
             <div id="game-selection-area" class="game-selection-area">
                 <p>Select an interactive Quranic learning challenge:</p>
                 <div class="games-grid">
@@ -2710,6 +3080,25 @@
             <label for="commandPaletteInput" id="commandPaletteLabel" class="sr-only">Type a command or search...</label>
             <input type="text" id="commandPaletteInput" placeholder="Go to Surah, Export Data, Start Game...">
             <ul id="commandPaletteResults"></ul>
+        </div>
+    </div>
+
+    
+    <!-- Curated Quranic Duas (Rabbana & Prophetic Supplications) Modal -->
+    <div id="quranicDuasModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="duasModalTitle">
+        <div class="modal-content" style="max-width: 780px;">
+            <span class="close-button" aria-label="Close">×</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px; padding-right:28px;">
+                <h3 id="duasModalTitle" style="margin:0;">🤲 Curated Quranic Duas (Rabbana &amp; Prophetic Supplications)</h3>
+                <select id="duasCategoryFilter" style="width:auto; margin:0; min-height:32px; padding:4px 10px;">
+                    <option value="all">All Categories</option>
+                    <option value="Forgiveness">Forgiveness &amp; Mercy</option>
+                    <option value="Guidance">Guidance &amp; Knowledge</option>
+                    <option value="Family">Parents &amp; Family</option>
+                    <option value="Relief">Relief &amp; Protection</option>
+                </select>
+            </div>
+            <div id="duasListContainer" style="max-height: 68dvh; overflow-y: auto; display:flex; flex-direction:column; gap:10px;"></div>
         </div>
     </div>
 
@@ -3642,35 +4031,201 @@
             return result;
         }
 
+        // Surah Revelation Metadata (Makki / Madani)
+        const MADANI_SURAHS = new Set([2, 3, 4, 5, 8, 9, 13, 22, 24, 33, 47, 48, 49, 55, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 76, 98, 99, 110]);
+        let viewerCustomFontSizeRem = parseFloat(safeGetStorage('viewerCustomFontSizeRem', '2.1')) || 2.1;
+
+        const TAJWEED_RULES_GUIDE = [
+            { cls: 'qalqalah', color: '#ef4444', name: 'Qalqalah (قلقلة)', desc: 'Echoing bounce on sukoon of ق ط ب ج د', example: 'قُلْ هُوَ ٱللَّهُ أَحَدٌ', surah: 112, ayah: 1 },
+            { cls: 'ghunnah', color: '#f97316', name: 'Ghunnah (غنة)', desc: '2-beat nasalization on نّ and مّ', example: 'مِنَ ٱلْجِنَّةِ وَٱلنَّاسِ', surah: 114, ayah: 6 },
+            { cls: 'ikhafa', color: '#a855f7', name: 'Ikhfa (إخفاء)', desc: 'Light nasal concealment of Noon Saakin / Tanween', example: 'مِن شَرِّ مَا خَلَقَ', surah: 113, ayah: 2 },
+            { cls: 'idgham_ghunnah', color: '#16a34a', name: 'Idgham (إدغام)', desc: 'Merging Noon Saakin into يرملون letters', example: 'وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدٌ', surah: 112, ayah: 4 },
+            { cls: 'iqlab', color: '#06b6d4', name: 'Iqlab (إقلاب)', desc: 'Turning Noon Saakin into Meem before ب', example: 'لَنَسْفَعًۢا بِٱلنَّاصِيَةِ', surah: 96, ayah: 15 },
+            { cls: 'madda_obligatory', color: '#dc2626', name: 'Madd Wajib/Lazim (مدّ لازم)', desc: 'Prolonged vowel elongation (4–6 beats)', example: 'وَلَا ٱلضَّآلِّينَ', surah: 1, ayah: 7 },
+            { cls: 'madda_normal', color: '#3b82f6', name: 'Madd Tabee\'i (مدّ طبيعي)', desc: 'Natural 2-beat elongation', example: 'مَٰلِكِ يَوْمِ ٱلدِّينِ', surah: 1, ayah: 4 },
+            { cls: 'laam_shamsiyah', color: '#94a3b8', name: 'Laam Shamsiyyah (لام شمسية)', desc: 'Silent Laam assimilated into sun letter', example: 'ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', surah: 1, ayah: 3 }
+        ];
+
+        const CURATED_ROOTS_LEXICON = [
+            { root: 'ر-ح-م', meaningEn: 'Mercy / Compassion', meaningUr: 'رحم اور مہربانی' },
+            { root: 'ع-ل-م', meaningEn: 'Knowledge / Science', meaningUr: 'علم اور جاننا' },
+            { root: 'ح-م-د', meaningEn: 'Praise / Gratitude', meaningUr: 'تعریف اور شکر' },
+            { root: 'ر-ب-ب', meaningEn: 'Lord / Sustainer', meaningUr: 'پالنے والا رب' },
+            { root: 'ع-ب-د', meaningEn: 'Worship / Servitude', meaningUr: 'عبادت اور بندگی' },
+            { root: 'ه-د-ي', meaningEn: 'Guidance / Direction', meaningUr: 'ہدایت اور رہنمائی' },
+            { root: 'ص-ب-ر', meaningEn: 'Patience / Perseverance', meaningUr: 'صبر اور استقامت' },
+            { root: 'أ-م-ن', meaningEn: 'Faith / Security', meaningUr: 'ایمان اور امن' },
+            { root: 'ق-و-ل', meaningEn: 'Speech / Saying', meaningUr: 'قول اور بات کہنا' },
+            { root: 'خ-ل-ق', meaningEn: 'Creation / Forming', meaningUr: 'تخلیق اور پیدا کرنا' },
+            { root: 'ذ-ك-ر', meaningEn: 'Remembrance / Mindful', meaningUr: 'ذکر اور نصیحت' },
+            { root: 'ش-ك-ر', meaningEn: 'Gratitude / Thanks', meaningUr: 'شکر گزاری' },
+            { root: 'ح-ك-م', meaningEn: 'Wisdom / Judgment', meaningUr: 'حکمت اور فیصلہ' },
+            { root: 'ن-و-ر', meaningEn: 'Light / Illumination', meaningUr: 'نور اور روشنی' },
+            { root: 'ق-ل-ب', meaningEn: 'Heart / Turning', meaningUr: 'دل اور پلٹنا' },
+            { root: 'غ-ف-ر', meaningEn: 'Forgiveness / Shielding', meaningUr: 'مغفرت اور بخشش' },
+            { root: 'ت-و-ب', meaningEn: 'Repentance / Return', meaningUr: 'توبہ اور رجوع' },
+            { root: 'و-ك-ل', meaningEn: 'Reliance / Trust (Tawakkul)', meaningUr: 'توکل اور بھروسہ' }
+        ];
+
+        const CLASSICAL_TAFSIR_SUMMARIES = {
+            '1:1': 'Ibn Kathir & Maariful Quran: Opening with the blessed name of Allah affirming that every noble action begins through His encompassing Mercy (Ar-Rahman) and specific Grace for believers (Ar-Rahim).',
+            '1:2': 'All praise and gratitude belong exclusively to Allah, the Rabb (Creator, Nurturer, and Sustainer) of all realms of existence.',
+            '1:4': 'Reminds the believer of accountability on the Day of Recompense (Yawm ad-Din), balancing hope in Allah\'s mercy with awe of His justice.',
+            '1:5': 'The covenant of pure monotheism (Iyyaka na\'budu) and total reliance upon Allah\'s help (wa iyyaka nasta\'in).',
+            '1:6': 'The most comprehensive supplication: asking for steadfastness and continual increase upon Al-Sirat Al-Mustaqim (the Straight Path).',
+            '2:255': 'Ayat al-Kursi — The greatest verse in the Quran, affirming Allah\'s eternal life (Al-Hayy), self-subsisting sustainership (Al-Qayyum), and complete sovereignty over heavens and earth.',
+            '2:285': 'Affirms the unified faith of the Messenger (ﷺ) and the believers in all revealed scriptures, angels, and prophets without distinction.',
+            '2:286': 'A tremendous verse of relief and mercy: Allah never burdens a soul beyond its capacity, followed by prophetic supplications answered directly by Allah.',
+            '36:1': 'Surah Yasin opens with the oath by the Wise Quran (Al-Quran Al-Hakim), testifying to the truthfulness of Prophet Muhammad\'s (ﷺ) mission.',
+            '67:1': 'Surah Al-Mulk (The Protector) highlights Allah\'s blessed dominion (Tabaraka alladhi biyadihil-mulk) and power over life and death as a test of deeds.',
+            '103:1': 'Imam Ash-Shafi\'i noted: If people reflected deeply upon Surah Al-Asr alone, it would suffice them as a complete roadmap to salvation (Faith, Righteous Action, Truth, and Patience).',
+            '108:1': 'Glad tidings of Al-Kawthar (abundant good and the river in Paradise) granted to the Prophet (ﷺ).',
+            '112:1': 'Surah Al-Ikhlas equals one-third of the Quran in meaning, establishing pure Tawhid (Oneness and Eternal Self-Sufficiency of Allah).',
+            '113:1': 'Al-Mu\'awwidhatayn (Al-Falaq & An-Nas): Seeking Allah\'s protection from all external and internal harms, envy, and whispers.'
+        };
+
+        const CURATED_QURANIC_DUAS = [
+            { title: 'Dua for Good in This World & Hereafter', category: 'Guidance', surah: 2, ayah: 201, arabic: 'رَبَّنَآ ءَاتِنَا فِى ٱلدُّنْيَا حَسَنَةً وَفِى ٱلْءَاخِرَةِ حَسَنَةً وَقِنَا عَذَابَ ٱلنَّارِ', en: 'Our Lord, give us in this world [that which is] good and in the Hereafter [that which is] good and protect us from the punishment of the Fire.', ur: 'اے ہمارے رب! ہمیں دنیا میں بھی بھلائی عطا فرما اور آخرت میں بھی بھلائی عطا فرما اور ہمیں آگ کے عذاب سے بچا۔' },
+            { title: 'Dua for Ease & Relief from Burdens', category: 'Relief', surah: 2, ayah: 286, arabic: 'رَبَّنَا لَا تُؤَاخِذْنَآ إِن نَّسِينَآ أَوْ أَخْطَأْنَا ۚ رَبَّنَا وَلَا تَحْمِلْ عَلَيْنَآ إِصْرًا', en: 'Our Lord, do not impose blame upon us if we have forgotten or erred. Our Lord, and lay not upon us a burden...', ur: 'اے ہمارے رب! اگر ہم بھول جائیں یا خطا کریں تو ہماری گرفت نہ فرما۔' },
+            { title: 'Dua for Steadfastness of Heart', category: 'Guidance', surah: 3, ayah: 8, arabic: 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِن لَّدُنكَ رَحْمَةً', en: 'Our Lord, let not our hearts deviate after You have guided us and grant us from Yourself mercy.', ur: 'اے ہمارے رب! ہمارے دلوں کو ہدایت دینے کے بعد ٹیڑھا نہ کر اور ہمیں اپنے پاس سے رحمت عطا فرما۔' },
+            { title: 'Dua for Increase in Knowledge', category: 'Guidance', surah: 20, ayah: 114, arabic: 'رَّبِّ زِدْنِى عِلْمًا', en: 'My Lord, increase me in knowledge.', ur: 'اے میرے رب! میرے علم میں اضافہ فرما۔' },
+            { title: 'Dua of Prophet Musa for Confidence & Speech', category: 'Relief', surah: 20, ayah: 25, arabic: 'رَبِّ ٱشْرَحْ لِى صَدْرِى وَيَسِّرْ لِىٓ أَمْرِى', en: 'My Lord, expand for me my breast [with assurance] and ease for me my task.', ur: 'اے میرے رب! میرا سینہ کھول دے اور میرا کام میرے لیے آسان فرما دے۔' },
+            { title: 'Dua of Prophet Yunus in Distress (Ayat-e-Karima)', category: 'Relief', surah: 21, ayah: 87, arabic: 'لَّآ إِلَٰهَ إِلَّآ أَنتَ سُبْحَٰنَكَ إِنِّى كُنتُ مِنَ ٱلظَّٰلِمِينَ', en: 'There is no deity except You; exalted are You. Indeed, I have been of the wrongdoers.', ur: 'تیرے سوا کوئی معبود نہیں، تو پاک ہے، بے شک میں ہی ظالموں میں سے تھا۔' },
+            { title: 'Dua for Righteous Family & Offspring', category: 'Family', surah: 25, ayah: 74, arabic: 'رَبَّنَا هَبْ لَنَا مِنْ أَزْوَٰجِنَا وَذُرِّيَّٰتِنَا قُرَّةَ أَعْيُنٍ وَٱجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا', en: 'Our Lord, grant us from among our wives and offspring comfort to our eyes and make us an example for the righteous.', ur: 'اے ہمارے رب! ہمیں ہماری بیویوں اور اولاد سے آنکھوں کی ٹھنڈک عطا فرما۔' },
+            { title: 'Dua for Parents & Believers', category: 'Family', surah: 14, ayah: 41, arabic: 'رَبَّنَا ٱغْفِرْ لِى وَلِوَٰلِدَىَّ وَلِلْمُؤْمِنِينَ يَوْمَ يَقُومُ ٱلْحِسَابُ', en: 'Our Lord, forgive me and my parents and the believers the Day the account is established.', ur: 'اے ہمارے رب! مجھے اور میرے والدین کو اور تمام مومنوں کو حساب قائم ہونے کے دن بخش دے۔' },
+            { title: 'Dua for Forgiveness & Mercy', category: 'Forgiveness', surah: 23, ayah: 118, arabic: 'رَّبِّ ٱغْفِرْ وَٱرْحَمْ وَأَنتَ خَيْرُ ٱلرَّٰحِمِينَ', en: 'My Lord, forgive and have mercy, and You are the best of the merciful.', ur: 'اے میرے رب! بخش دے اور رحم فرما اور تو سب سے بہتر رحم فرمانے والا ہے۔' }
+        ];
+
+        function deriveArabicMorphologyAndRoot(rawWord) {
+            if (!rawWord) return { root: 'ع-ل-م', pos: 'Ism (Noun)', stem: '' };
+            const clean = rawWord.replace(/[ًٌٍََُِِّْٰٓۡٔؒٱ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
+            const knownRoots = [
+                { pat: /رحم/, root: 'ر-ح-م', pos: 'Sifah / Ism (Attribute of Mercy)' },
+                { pat: /لله|الله|اله/, root: 'أ-ل-ه', pos: 'Ism Al-Jalalah (Proper Noun)' },
+                { pat: /حمد/, root: 'ح-م-د', pos: 'Masdar / Ism (Verbal Noun)' },
+                { pat: /رب/, root: 'ر-ب-ب', pos: 'Ism (Noun - Sustainer)' },
+                { pat: /علم/, root: 'ع-ل-م', pos: 'Ism / Fi\'l (Knowledge / Worlds)' },
+                { pat: /ملك|مالك/, root: 'م-ل-ك', pos: 'Ism Fa\'il (Sovereign / Master)' },
+                { pat: /يوم/, root: 'ي-و-م', pos: 'Ism Zaman (Noun of Time)' },
+                { pat: /دين/, root: 'د-ي-ن', pos: 'Ism (Recompense / Faith)' },
+                { pat: /عبد|نعبد/, root: 'ع-ب-د', pos: 'Fi\'l Mudari\' (Imperfect Verb)' },
+                { pat: /عون|نستعين/, root: 'ع-و-ن', pos: 'Fi\'l Mudari\' Form X (Seek Help)' },
+                { pat: /هدي|اهد/, root: 'ه-د-ي', pos: 'Fi\'l Amr (Imperative Verb - Guide)' },
+                { pat: /صرط|صراط/, root: 'ص-ر-ط', pos: 'Ism (Noun - Path)' },
+                { pat: /قوم|مستقيم|قيوم/, root: 'ق-و-م', pos: 'Ism (Upright / Sustainer)' },
+                { pat: /نعم|انعمت/, root: 'ن-ع-م', pos: 'Fi\'l Madi Form IV (Bestowed Favor)' },
+                { pat: /غضب|مغضوب/, root: 'غ-ض-ب', pos: 'Ism Maf\'ul (Passive Participle)' },
+                { pat: /ضلل|ضالين/, root: 'ض-ل-ل', pos: 'Ism Fa\'il Plural (Those Astray)' },
+                { pat: /سم/, root: 'س-م-و', pos: 'Jar + Ism (Preposition + Noun)' },
+                { pat: /قل|يقول|قال/, root: 'ق-و-ل', pos: 'Fi\'l (Verb of Speech)' },
+                { pat: /احد|وحد/, root: 'و-ح-د', pos: 'Ism (Unique One)' },
+                { pat: /صمد/, root: 'ص-م-د', pos: 'Ism Sifah (Eternal Refuge)' },
+                { pat: /ولد|يلد|يولد/, root: 'و-ل-د', pos: 'Fi\'l Mudari\' Majzum (Beget)' },
+                { pat: /خلق/, root: 'خ-ل-ق', pos: 'Fi\'l Madi (Created)' },
+                { pat: /فلق/, root: 'ف-ل-ق', pos: 'Ism (Daybreak)' },
+                { pat: /عوذ|اعوذ/, root: 'ع-و-ذ', pos: 'Fi\'l Mudari\' (Seek Refuge)' },
+                { pat: /ناس|انسن|انسان/, root: 'أ-ن-س', pos: 'Ism Jins (Mankind)' },
+                { pat: /وسوس/, root: 'و-س-و-س', pos: 'Quadriliteral Verb/Noun (Whisper)' },
+                { pat: /صدر|صدور/, root: 'ص-د-ر', pos: 'Jam\' Takseer (Plural Noun - Hearts/Chests)' },
+                { pat: /عصر/, root: 'ع-ص-ر', pos: 'Harf Qasam + Ism (Oath by Time)' },
+                { pat: /خسر/, root: 'خ-س-ر', pos: 'Ism (Loss)' },
+                { pat: /امن|مؤمن/, root: 'أ-م-ن', pos: 'Fi\'l / Ism (Believe / Faith)' },
+                { pat: /عمل/, root: 'ع-م-ل', pos: 'Fi\'l Madi (Worked / Did)' },
+                { pat: /صلح|صالح/, root: 'ص-ل-ح', pos: 'Ism (Righteous Deeds)' },
+                { pat: /صبر/, root: 'ص-ب-ر', pos: 'Masdar (Patience)' }
+            ];
+            for (const item of knownRoots) {
+                if (item.pat.test(clean)) return { root: item.root, pos: item.pos, stem: clean };
+            }
+            let stripped = clean.replace(/^(وال|فال|بال|كال|لل|ال|و|ف|ب|ل|ي|ت|ن|ا)/, '').replace(/(ون|ين|ات|هم|كم|نا|ها|ه|ك)$/, '');
+            if (stripped.length >= 3) {
+                return { root: `${stripped[0]}-${stripped[1]}-${stripped[2]}`, pos: 'Quranic Lexical Stem', stem: stripped };
+            }
+            return { root: clean.split('').slice(0, 3).join('-') || 'ع-ل-م', pos: 'Particle / Harf', stem: clean };
+        }
+
         async function renderSingleAyahView(surah, ayah) {
             const displayArea = document.getElementById('quran-display');
             if (!displayArea) return;
             try {
                 const quran = await getOrSynthesizeAyahRecord(surah, ayah);
+                const tafsirRecord = await getData(STORE_TAFSIR, [surah, ayah]).catch(() => null);
                 const wordMetadata = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([surah, ayah, 0], [surah, ayah, Infinity]), 'location_idx');
                 const words = quran.arabic.split(/\s+/).filter(w => w.trim());
                 const wordCount = words.length;
                 const alignedIds = alignWordsToMetadata(words, wordMetadata);
+
+                const showTajweed = document.getElementById('inlineTajweedToggle')?.checked;
+                const showTranslit = document.getElementById('inlineTransliterationToggle')?.checked;
+                const showParallel = document.getElementById('parallelTranslationToggle')?.checked;
+                const showCommentary = document.getElementById('inlineClassicalTafsirToggle')?.checked;
+
                 const wordsHTML = words.map((word, idx) => {
                     const wordId = alignedIds[idx];
-                    return `<span class="arabic-word" data-word-text="${word}" data-word-id="${wordId}" tabindex="0" role="button">${word}</span>`;
+                    const renderedWord = showTajweed ? applyClientSideTajweedColors(word) : word;
+                    return `<span class="arabic-word" data-word-text="${word}" data-word-id="${wordId}" data-word-pos="${idx}" tabindex="0" role="button">${renderedWord}</span>`;
                 }).join(' ');
 
+                const translitBlock = showTranslit
+                    ? `<div style="font-family:var(--font-english); font-size:0.95rem; color:var(--color-accent-dark); direction:ltr; text-align:left; margin-bottom:12px; padding:8px 12px; background:var(--color-surface-muted); border-radius:8px;"><strong>Transliteration:</strong> <em>${transliterateArabicText(quran.arabic)}</em></div>`
+                    : '';
+
                 const translationInfo = getTranslationConfig(document.getElementById('translation-select').value);
+                let translationBlockHTML = '';
+                if (showParallel) {
+                    const allConfigs = window.appManifest.filter(f => f.file_type === 'quran_translation');
+                    const itemsHTML = allConfigs.map(cfg => {
+                        const tInfo = getTranslationConfig(cfg.key);
+                        const txt = quran[cfg.key] || quran.english || '';
+                        return `<div class="parallel-trans-item">
+                            <span class="parallel-trans-label">${tInfo.label}</span>
+                            <div lang="${tInfo.lang}" dir="${tInfo.dir}" style="font-family:${tInfo.font}; font-size:1.02rem; color:var(--color-text-primary);">${txt}</div>
+                        </div>`;
+                    }).join('');
+                    translationBlockHTML = `<div class="parallel-translations-stack">${itemsHTML}</div>`;
+                } else {
+                    translationBlockHTML = `<div class="ayah-translation" lang="${translationInfo.lang}" dir="${translationInfo.dir}" style="font-family:${translationInfo.font}">${quran[translationInfo.key] || quran.english || "Translation not available."}</div>`;
+                }
+
+                const classicalSummary = CLASSICAL_TAFSIR_SUMMARIES[`${surah}:${ayah}`] || `Surah ${surahNames[surah - 1]} (${surah}:${ayah}) — Juz ${getJuzFromSurahAyah(surah, ayah)}. Reflect on the divine message and link this verse to themes or personal Tafsir notes.`;
+                const personalNoteSnippet = tafsirRecord?.notes
+                    ? `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--color-border); color:var(--color-accent-dark);"><strong>✍️ Your Personal Tafsir:</strong> ${tafsirRecord.notes}</div>`
+                    : '';
+                const commentaryBlockHTML = showCommentary
+                    ? `<div class="inline-classical-tafsir"><strong>💡 Tafsir &amp; Context Summary:</strong> ${classicalSummary}${personalNoteSnippet}</div>`
+                    : '';
+
                 const juzNum = getJuzFromSurahAyah(surah, ayah);
+                const revType = MADANI_SURAHS.has(surah) ? '🕌 Madani Revelation' : '🕋 Makki Revelation';
+                const metaBanner = document.getElementById('surahMetaBanner');
+                if (metaBanner) {
+                    metaBanner.innerHTML = `
+                        <div><strong>${surah}. Surah ${surahNames[surah - 1]}</strong> • ${revType} • ${surahAyahCounts[surah]} Verses</div>
+                        <div>Current Position: <strong>Ayah ${ayah}</strong> • <strong>Juz ${juzNum}</strong> • Page ${surahToPageEnhanced(surah, ayah) || 1}</div>
+                    `;
+                }
+
+                const juzSelect = document.getElementById('juz-select');
+                if (juzSelect && parseInt(juzSelect.value, 10) !== juzNum) {
+                    juzSelect.value = juzNum;
+                }
+
                 displayArea.innerHTML = `
                     <div class="ayah" data-surah="${surah}" data-ayah="${ayah}">
                         <div class="ayah-card-top">
                             <div class="ayah-number">
                                 <span>Surah ${surah}:${ayah} (${surahNames[surah - 1]})</span>
-                                <span style="opacity:0.7;">• Juz ${juzNum}</span>
+                                <span style="opacity:0.75;">• Juz ${juzNum}</span>
                             </div>
                             <div class="ayah-actions-bar">
                                 ${buildAyahActionsHTML(surah, ayah)}
+                                <button type="button" class="action-icon" data-action="copy" title="Copy Verse &amp; Translation">📋</button>
                             </div>
                         </div>
-                        <div class="ayah-arabic">${wordsHTML}</div>
-                        <div class="ayah-translation" lang="${translationInfo.lang}" dir="${translationInfo.dir}" style="font-family:${translationInfo.font}">${quran[translationInfo.key] || quran.english || "Translation not available."}</div>
+                        <div class="ayah-arabic" style="font-size:${viewerCustomFontSizeRem}rem;">${wordsHTML}</div>
+                        ${translitBlock}
+                        ${translationBlockHTML}
+                        ${commentaryBlockHTML}
                         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:16px; padding-top:12px; border-top:1px solid var(--color-border); direction:ltr;">
                             <div style="font-size:0.8rem; color:var(--color-text-muted); font-weight:600;">
                                 Total Verses in Surah: <strong>${surahAyahCounts[surah]}</strong> • Words in Ayah: <strong>${wordCount}</strong>
@@ -3704,6 +4259,8 @@
                 }
                 const allMetadataForSurah = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([surah, 1, 0], [surah, surahAyahCounts[surah], Infinity]), 'location_idx');
                 const translationInfo = getTranslationConfig(document.getElementById('translation-select').value);
+                const showTajweed = document.getElementById('inlineTajweedToggle')?.checked;
+                const showTranslit = document.getElementById('inlineTransliterationToggle')?.checked;
 
                 const metaByAyah = new Map();
                 if (allMetadataForSurah && allMetadataForSurah.length > 0) {
@@ -3719,7 +4276,8 @@
                     const alignedIds = alignWordsToMetadata(words, ayahMeta);
                     const wordsHTML = words.map((word, idx) => {
                         const wordId = alignedIds[idx];
-                        return `<span class="arabic-word" data-word-text="${word}" data-word-id="${wordId}">${word}</span>`;
+                        const renderedWord = showTajweed ? applyClientSideTajweedColors(word) : word;
+                        return `<span class="arabic-word" data-word-text="${word}" data-word-id="${wordId}">${renderedWord}</span>`;
                     }).join(' ');
                     const ayahDiv = document.createElement('div');
                     ayahDiv.id = `s${quran.surah}a${quran.ayah}`;
@@ -3731,9 +4289,11 @@
                             <div class="ayah-number">Surah ${quran.surah}:${quran.ayah}</div>
                             <div class="ayah-actions-bar">
                                 ${buildAyahActionsHTML(quran.surah, quran.ayah)}
+                                <button type="button" class="action-icon" data-action="copy" title="Copy Verse">📋</button>
                             </div>
                         </div>
-                        <div class="ayah-arabic">${wordsHTML}</div>
+                        <div class="ayah-arabic" style="font-size:${viewerCustomFontSizeRem}rem;">${wordsHTML}</div>
+                        ${showTranslit ? `<div style="font-size:0.88rem; color:var(--color-accent-dark); direction:ltr; text-align:left; margin-bottom:8px;"><em>${transliterateArabicText(quran.arabic)}</em></div>` : ''}
                         <div class="ayah-translation" lang="${translationInfo.lang}" dir="${translationInfo.dir}" style="font-family:${translationInfo.font}">${quran[translationInfo.key] || quran.english || "Translation not available."}</div>
                     `;
                     displayArea.appendChild(ayahDiv);
@@ -3765,6 +4325,7 @@
             }
             const wordSpan = event.currentTarget || event.target;
             const wordId = parseInt(wordSpan.dataset.wordId, 10);
+            const rawWordText = wordSpan.dataset.wordText || wordSpan.textContent.trim();
             document.querySelectorAll('.ayah-arabic span, #quran-continuous-display .arabic-word').forEach(span => {
                 span.style.backgroundColor = '';
             });
@@ -3775,16 +4336,24 @@
             const fullAyahTranslation = ayahCard ? ayahCard.querySelector('.ayah-translation')?.textContent : '';
             const fullTranslationInfo = getTranslationConfig(document.getElementById('translation-select').value);
 
-            let translations = { ur: "See full Ayah meaning below", en: "See full Ayah meaning below", ps: "لاندې بشپړه ژباړه وګورئ", bn: "N/A" };
+            const morph = deriveArabicMorphologyAndRoot(rawWordText);
+            const wordTranslit = transliterateArabicText(rawWordText);
+
+            let translations = {
+                ur: "آیت کے سیاق و سباق میں معنی دیکھیں",
+                en: `Contextual word (${morph.pos})`,
+                ps: "په آیت کې معنی وګورئ",
+                bn: "আয়াতের প্রাসঙ্গিক অর্থ"
+            };
             if (!isNaN(wordId)) {
                 try {
                     const trans = await getData(STORE_WORD_TRANSLATIONS, wordId);
                     if (trans) {
                         translations = {
-                            ur: trans.ur_meaning || "N/A",
-                            en: trans.en_meaning || "N/A",
-                            ps: trans.pashto_text || "N/A",
-                            bn: trans.bn_meaning || "N/A"
+                            ur: trans.ur_meaning || translations.ur,
+                            en: trans.en_meaning || translations.en,
+                            ps: trans.pashto_text || translations.ps,
+                            bn: trans.bn_meaning || translations.bn
                         };
                     }
                 } catch (e) {}
@@ -3792,8 +4361,21 @@
 
             translationArea.innerHTML = `
                 <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--color-border); padding-bottom:8px; margin-bottom:10px;">
-                    <span style="font-size:0.82rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase;">Selected Word</span>
-                    <span lang="ar" dir="rtl" style="font-family: var(--font-arabic); font-size: 1.75rem; color: var(--color-accent-dark); font-weight:700;">${wordSpan.dataset.wordText}</span>
+                    <div>
+                        <span style="font-size:0.75rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; display:block;">Selected Word (${wordTranslit})</span>
+                        <span style="font-size:0.76rem; color:var(--color-accent-dark); font-weight:600;">${morph.pos}</span>
+                    </div>
+                    <span lang="ar" dir="rtl" style="font-family: var(--font-arabic); font-size: 1.85rem; color: var(--color-accent-dark); font-weight:700;">${rawWordText}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:var(--color-accent-soft); border-radius:8px; margin-bottom:8px;">
+                    <div>
+                        <span style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--color-text-secondary);">Trilateral Root (جذر):</span>
+                        <strong lang="ar" dir="rtl" style="font-family:var(--font-arabic); font-size:1.15rem; margin-left:6px; color:var(--color-accent-dark);">${morph.root}</strong>
+                    </div>
+                    <div class="flex-group" style="gap:4px;">
+                        <button type="button" id="inspectRootFromWordBtn" class="compact-pill-btn" data-root="${morph.root}" title="Open Root in Concordance">🌱 Root</button>
+                        <button type="button" id="speakSelectedWordBtn" class="compact-pill-btn btn-secondary" data-word="${rawWordText}" title="Pronounce Arabic Word">🔊</button>
+                    </div>
                 </div>
                 <div class="word-breakdown-grid">
                     <div class="word-breakdown-item">
@@ -3808,14 +4390,31 @@
                         <span class="wb-label">Pashto</span>
                         <span class="wb-val" lang="ps" dir="rtl" style="font-family: var(--font-pashto);">${translations.ps}</span>
                     </div>
-                    ${translations.bn && translations.bn !== "N/A" ? `
                     <div class="word-breakdown-item">
                         <span class="wb-label">Bangali</span>
                         <span class="wb-val" lang="bn" dir="ltr" style="font-family: var(--font-Bangali);">${translations.bn}</span>
-                    </div>` : ''}
+                    </div>
                 </div>
-                <p style="margin-top:12px; margin-bottom:0; font-size:0.9rem;"><strong>Ayah Context:</strong> <span lang="${fullTranslationInfo.lang}" dir="${fullTranslationInfo.dir}" style="font-family: ${fullTranslationInfo.font};">${fullAyahTranslation}</span></p>
+                <p style="margin-top:12px; margin-bottom:0; font-size:0.86rem;"><strong>Ayah Context:</strong> <span lang="${fullTranslationInfo.lang}" dir="${fullTranslationInfo.dir}" style="font-family: ${fullTranslationInfo.font};">${fullAyahTranslation || ''}</span></p>
             `;
+
+            document.getElementById('inspectRootFromWordBtn')?.addEventListener('click', async (e) => {
+                const rTerm = e.currentTarget.dataset.root;
+                document.getElementById('root-input').value = rTerm;
+                showSection('roots');
+                await analyzeRoot();
+            });
+            document.getElementById('speakSelectedWordBtn')?.addEventListener('click', (e) => {
+                const wTxt = e.currentTarget.dataset.word;
+                if ('speechSynthesis' in window) {
+                    const utter = new SpeechSynthesisUtterance(wTxt);
+                    utter.lang = 'ar-SA';
+                    utter.rate = 0.85;
+                    window.speechSynthesis.speak(utter);
+                } else {
+                    playAudioForAyahEnhanced(currentSurah, currentAyah);
+                }
+            });
         }
 
         function handleWordFocus(event) {
@@ -3926,6 +4525,7 @@
             // Trigger Section-Specific Data Updates
             if (sectionId === 'tafsir' || sectionId === 'themes') {
                 updateTafsirAndThemeViews();
+                if (sectionId === 'tafsir') renderSavedTafsirNotebook();
             }
             if (sectionId === 'themes') {
                 populateThemeSelects();
@@ -3994,6 +4594,7 @@
             try {
                 await putData(STORE_TAFSIR, { surah: currentSurah, ayah: currentAyah, notes: notes });
                 setStatusMessage('tafsir-status', `Tafsir saved for ${currentSurah}:${currentAyah}.`, false);
+                await renderSavedTafsirNotebook();
             } catch (error) {
                 setStatusMessage('tafsir-status', 'Failed to save Tafsir.', true);
             } finally {
@@ -4642,10 +5243,41 @@
                         allRootOccurrencesCache.forEach(occ => {
                             const li = document.createElement('li');
                             li.innerHTML = `
-                                <strong>Surah ${occ.surah}:${occ.ayah}</strong> - Word: <span lang="ar" dir="rtl" style="font-family: var(--font-arabic); font-size:1.3em; color:var(--color-accent-dark);">${occ.word}</span>
+                                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                                    <div>
+                                        <strong>Surah ${occ.surah}:${occ.ayah} (${surahNames[occ.surah - 1]})</strong> — Word: <span lang="ar" dir="rtl" style="font-family: var(--font-arabic); font-size:1.35em; color:var(--color-accent-dark); font-weight:700;">${occ.word}</span>
+                                    </div>
+                                    <div class="flex-group">
+                                        <button type="button" class="compact-pill-btn btn-secondary pin-root-occ-btn" data-surah="${occ.surah}" data-ayah="${occ.ayah}" data-word="${occ.word}">📌 Pin Verse</button>
+                                        <button type="button" class="compact-pill-btn jump-root-occ-btn" data-surah="${occ.surah}" data-ayah="${occ.ayah}">Go to Ayah →</button>
+                                    </div>
+                                </div>
                                 <div class="result-context" lang="ar" dir="rtl" style="font-family: var(--font-arabic); font-size:1.45rem;">${occ.context}</div>
                             `;
                             occurrencesListElement.appendChild(li);
+                        });
+                        occurrencesListElement.querySelectorAll('.jump-root-occ-btn').forEach(btn => {
+                            btn.addEventListener('click', async (e) => {
+                                const s = parseInt(e.currentTarget.dataset.surah, 10);
+                                const a = parseInt(e.currentTarget.dataset.ayah, 10);
+                                await loadAyah(s, a);
+                                showSection('quran');
+                            });
+                        });
+                        occurrencesListElement.querySelectorAll('.pin-root-occ-btn').forEach(btn => {
+                            btn.addEventListener('click', async (e) => {
+                                const s = parseInt(e.currentTarget.dataset.surah, 10);
+                                const a = parseInt(e.currentTarget.dataset.ayah, 10);
+                                const w = e.currentTarget.dataset.word;
+                                let rootRec = matchedRoot;
+                                if (!rootRec) {
+                                    const newId = await addData(STORE_ROOTS, { root: rootTerm, description: document.getElementById('root-description').value.trim() });
+                                    rootRec = { id: newId, root: rootTerm };
+                                    await displaySavedRootsList();
+                                }
+                                await addData(STORE_ROOT_AYAHS, { rootId: rootRec.id, surah: s, ayah: a, word: w });
+                                showToast(`Pinned Surah ${s}:${a} (${w}) to Root ${rootTerm}`, 'success');
+                            });
                         });
                     } else {
                         updateRootGraphView();
@@ -4975,6 +5607,10 @@
                     barEl.textContent = `${pct}%`;
                 }
 
+                const blindfoldMode = document.getElementById('hifz-blindfold-select')?.value || 'visible';
+                const surahQuranRecords = await getAllDataInRange(STORE_QURAN, IDBKeyRange.bound([surah, 1], [surah, totalAyahs]));
+                const quranMap = new Map((surahQuranRecords || []).map(q => [q.ayah, q.arabic]));
+
                 for (let i = 1; i <= totalAyahs; i++) {
                     const ayahData = hifzMap.get(i) || { surah, ayah: i, status: 'not-started', lastReviewDate: null, nextReviewDate: null, reviewCount: 0, notes: '' };
                     const isDue = ayahData.status === 'memorized' && ayahData.nextReviewDate && ayahData.nextReviewDate <= todayISO;
@@ -4985,6 +5621,14 @@
                     card.setAttribute('data-ayah-ref', `${surah}:${i}`);
                     const statusText = ayahData.status.replace('-', ' ');
                     const reviewInfo = (ayahData.status === 'memorized' && ayahData.nextReviewDate) ? ` • Next Review: ${ayahData.nextReviewDate}` : '';
+                    const rawArabic = quranMap.get(i) || `﴿سُورَةُ ${surahNames[surah - 1]} - آيَة ${arabicNumber(i)}﴾`;
+                    const words = rawArabic.trim().split(/\s+/);
+                    let formattedArabicHTML = rawArabic;
+                    if (blindfoldMode === 'first_last' && words.length > 2) {
+                        formattedArabicHTML = words.map((w, idx) => (idx === 0 || idx === words.length - 1) ? w : `<span class="hifz-masked-word" title="Tap to reveal word">${w}</span>`).join(' ');
+                    } else if (blindfoldMode === 'blindfold') {
+                        formattedArabicHTML = words.map(w => `<span class="hifz-masked-word" title="Tap to reveal word">${w}</span>`).join(' ');
+                    }
                     card.innerHTML = `
                         <div class="ayah-card-top">
                             <div class="ayah-number">Surah ${surah}:${i}</div>
@@ -4993,6 +5637,7 @@
                                 <span style="font-size:0.8rem; color:var(--color-text-muted);">${reviewInfo}</span>
                             </div>
                         </div>
+                        <div class="hifz-arabic-preview" lang="ar" dir="rtl">${formattedArabicHTML}</div>
                         ${ayahData.notes ? `<p style="font-size:0.88rem; font-style:italic; margin-bottom:10px;">Note: ${ayahData.notes}</p>` : ''}
                         <div class="hifz-ayah-controls flex-group" style="justify-content: flex-start; flex-wrap:wrap; gap: 6px;">
                             <button type="button" data-surah="${surah}" data-ayah="${i}" data-status="not-started" class="set-hifz-status-btn compact-pill-btn btn-secondary" ${ayahData.status === 'not-started' ? 'disabled' : ''}>Not Started</button>
@@ -5000,10 +5645,24 @@
                             <button type="button" data-surah="${surah}" data-ayah="${i}" data-status="memorized" class="set-hifz-status-btn compact-pill-btn" ${ayahData.status === 'memorized' ? 'disabled' : ''}>Memorized</button>
                             ${ayahData.status === 'memorized' ? `<button type="button" data-surah="${surah}" data-ayah="${i}" class="record-review-btn compact-pill-btn btn-secondary">Record Review</button>` : ''}
                             <button type="button" data-surah="${surah}" data-ayah="${i}" class="view-hifz-notes-btn compact-pill-btn btn-secondary">Notes</button>
+                            <button type="button" data-surah="${surah}" data-ayah="${i}" class="play-hifz-ayah-btn compact-pill-btn btn-secondary" title="Listen Recitation">🔊</button>
                         </div>
                     `;
                     listEl.appendChild(card);
                 }
+                listEl.querySelectorAll('.hifz-masked-word').forEach(span => {
+                    span.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        e.currentTarget.classList.toggle('revealed');
+                    });
+                });
+                listEl.querySelectorAll('.play-hifz-ayah-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const s = parseInt(e.currentTarget.dataset.surah, 10);
+                        const a = parseInt(e.currentTarget.dataset.ayah, 10);
+                        playAudioForAyahEnhanced(s, a);
+                    });
+                });
                 listEl.querySelectorAll('.set-hifz-status-btn').forEach(btn => btn.addEventListener('click', handleSetHifzStatus));
                 listEl.querySelectorAll('.record-review-btn').forEach(btn => btn.addEventListener('click', handleRecordReview));
                 listEl.querySelectorAll('.view-hifz-notes-btn').forEach(btn => btn.addEventListener('click', handleViewHifzNotes));
@@ -6017,10 +6676,16 @@
         }
 
         function applyClientSideTajweedColors(arabicText) {
+            if (!arabicText) return '';
             return arabicText
-                .replace(/([قطبجد]ْ)/g, '<span class="tajweed qalqalah">$1</span>')
-                .replace(/([نم]ّ)/g, '<span class="tajweed ghunnah">$1</span>')
-                .replace(/(آ|ـٰ)/g, '<span class="tajweed madda_normal">$1</span>');
+                .replace(/(ٱل[تثدذرزسشصضطظلن]ّ)/g, '<span class="tajweed laam_shamsiyah" title="Laam Shamsiyyah">$1</span>')
+                .replace(/([قطبجد]ْ)/g, '<span class="tajweed qalqalah" title="Qalqalah (Echoing)">$1</span>')
+                .replace(/([نم]ّ)/g, '<span class="tajweed ghunnah" title="Ghunnah (Nasalization)">$1</span>')
+                .replace(/(نْ\s*ب|[ًٌٍ]\s*ب)/g, '<span class="tajweed iqlab" title="Iqlab">$1</span>')
+                .replace(/(نْ\s*[يرملون]|[ًٌٍ]\s*[يرملون])/g, '<span class="tajweed idgham_ghunnah" title="Idgham">$1</span>')
+                .replace(/(نْ\s*[تثجدذزسشصضطظفقك]|[ًٌٍ]\s*[تثجدذزسشصضطظفقك])/g, '<span class="tajweed ikhafa" title="Ikhfa (Concealment)">$1</span>')
+                .replace(/(ٓ)/g, '<span class="tajweed madda_obligatory" title="Madd Obligatory">$1</span>')
+                .replace(/(آ|ـٰ)/g, '<span class="tajweed madda_normal" title="Madd Normal">$1</span>');
         }
 
         async function getAyahHTML(surah, ayah) {
@@ -6722,13 +7387,13 @@
                     if (b.dataset.answer === q.correctAnswer) b.classList.add('correct');
                 });
                 if (selectedAnswer === q.correctAnswer) {
-                    feedbackEl.textContent = "Correct! Masha'Allah!";
+                    playGameSfx("correct"); feedbackEl.textContent = "Correct! Masha'Allah!";
                     feedbackEl.style.color = 'var(--color-success)';
                     gameScore += 10;
                     if (gameScore > gameHighScore) gameHighScore = gameScore;
                     updateScoreDisplay();
                 } else {
-                    e.currentTarget.classList.add('incorrect');
+                    playGameSfx("wrong"); e.currentTarget.classList.add('incorrect');
                     feedbackEl.textContent = `Incorrect. Correct meaning: ${q.correctAnswer}`;
                     feedbackEl.style.color = 'var(--color-error)';
                 }
@@ -6873,7 +7538,7 @@
                 </div>
             `;
             const cardEl = document.getElementById('activeFlashcardEl');
-            const toggleFlip = () => cardEl.classList.toggle('is-flipped');
+            const toggleFlip = () => { playGameSfx("flip"); cardEl.classList.toggle('is-flipped'); };
             document.getElementById('activeFlashcardContainer').onclick = toggleFlip;
             document.getElementById('flipFlashcardBtn').onclick = toggleFlip;
             document.getElementById('gotItFlashcardBtn').onclick = () => {
@@ -7433,7 +8098,7 @@
                         if (gameScore > gameHighScore) gameHighScore = gameScore;
                         updateScoreDisplay();
                     } else {
-                        e.currentTarget.classList.add('incorrect');
+                        playGameSfx("wrong"); e.currentTarget.classList.add('incorrect');
                         fb.textContent = "Not quite. The correct translation is highlighted in green.";
                         fb.style.color = 'var(--color-error)';
                     }
@@ -7822,6 +8487,319 @@
         /* --------------------------------------------------------------------------
            20. THEME SWITCHER & INITIALIZATION
            -------------------------------------------------------------------------- */
+        
+        /* --------------------------------------------------------------------------
+           21. PRODUCTION UPGRADE MODULES: SFX, TAFSIR NOTEBOOK, KHATAM, DUAS, MERGE
+           -------------------------------------------------------------------------- */
+        let gameSfxMuted = false;
+        let sharedAudioCtx = null;
+
+        function playGameSfx(type = 'correct') {
+            if (gameSfxMuted) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                if (!sharedAudioCtx) sharedAudioCtx = new AudioCtx();
+                if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
+                const osc = sharedAudioCtx.createOscillator();
+                const gain = sharedAudioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(sharedAudioCtx.destination);
+                const now = sharedAudioCtx.currentTime;
+                if (type === 'correct') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.12);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'wrong') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(160, now + 0.2);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
+                } else if (type === 'flip') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    gain.gain.setValueAtTime(0.06, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                }
+            } catch (e) {}
+        }
+
+        async function renderSavedTafsirNotebook(filterQuery = '') {
+            if (!db) return;
+            const listEl = document.getElementById('saved-tafsir-list');
+            const countEl = document.getElementById('saved-tafsir-count');
+            if (!listEl) return;
+            try {
+                const allNotes = await getAllData(STORE_TAFSIR);
+                if (countEl) countEl.textContent = allNotes.length;
+                const q = (filterQuery || '').toLowerCase().trim();
+                const filtered = allNotes.filter(item => {
+                    if (!q) return true;
+                    const sName = (surahNames[item.surah - 1] || '').toLowerCase();
+                    return (item.notes && item.notes.toLowerCase().includes(q)) || sName.includes(q) || `${item.surah}:${item.ayah}`.includes(q);
+                });
+                filtered.sort((a, b) => (a.surah !== b.surah) ? a.surah - b.surah : a.ayah - b.ayah);
+                if (filtered.length === 0) {
+                    listEl.innerHTML = '<li>No saved Tafsir notes match your filter.</li>';
+                    return;
+                }
+                listEl.innerHTML = '';
+                filtered.forEach(entry => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                            <strong style="color:var(--color-accent-dark); cursor:pointer;" class="open-saved-tafsir-link" data-surah="${entry.surah}" data-ayah="${entry.ayah}">
+                                Surah ${entry.surah}:${entry.ayah} (${surahNames[entry.surah - 1]})
+                            </strong>
+                            <div class="flex-group">
+                                <button type="button" class="compact-pill-btn btn-secondary open-saved-tafsir-link" data-surah="${entry.surah}" data-ayah="${entry.ayah}">Edit</button>
+                                <button type="button" class="compact-pill-btn btn-danger delete-saved-tafsir-btn" data-surah="${entry.surah}" data-ayah="${entry.ayah}">Delete</button>
+                            </div>
+                        </div>
+                        <span class="item-notes" style="white-space:pre-wrap;">${entry.notes}</span>
+                    `;
+                    listEl.appendChild(li);
+                });
+                listEl.querySelectorAll('.open-saved-tafsir-link').forEach(el => {
+                    el.addEventListener('click', async (e) => {
+                        const s = parseInt(e.currentTarget.dataset.surah, 10);
+                        const a = parseInt(e.currentTarget.dataset.ayah, 10);
+                        await loadAyah(s, a);
+                        document.getElementById('tafsir-notes')?.focus();
+                    });
+                });
+                listEl.querySelectorAll('.delete-saved-tafsir-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const s = parseInt(e.currentTarget.dataset.surah, 10);
+                        const a = parseInt(e.currentTarget.dataset.ayah, 10);
+                        await deleteData(STORE_TAFSIR, [s, a]);
+                        if (s === currentSurah && a === currentAyah) {
+                            document.getElementById('tafsir-notes').value = '';
+                        }
+                        await renderSavedTafsirNotebook(document.getElementById('tafsir-notebook-search')?.value || '');
+                        showToast(`Deleted Tafsir note for ${s}:${a}`, 'info');
+                    });
+                });
+            } catch (e) {
+                console.warn('Error rendering Tafsir notebook:', e);
+            }
+        }
+
+        async function seedCuratedQuranicThemes(silentIfNonEmpty = false) {
+            if (!db) return;
+            const existing = await getAllData(STORE_THEMES);
+            if (silentIfNonEmpty && existing.length > 0) return;
+            const existingNames = new Set(existing.map(t => t.name.toLowerCase()));
+            const themesToSeed = silentIfNonEmpty ? staticQuranicThemes.slice(0, 8) : staticQuranicThemes;
+            let addedCount = 0;
+            for (const st of themesToSeed) {
+                if (!existingNames.has(st.name.toLowerCase())) {
+                    const themeId = await addData(STORE_THEMES, {
+                        name: st.name,
+                        parentId: null,
+                        description: st.description || ''
+                    });
+                    if (st.exampleSurah && st.exampleAyah) {
+                        await addData(STORE_THEME_AYAHS, {
+                            themeId,
+                            surah: st.exampleSurah,
+                            ayah: st.exampleAyah,
+                            notes: st.description || ''
+                        });
+                    }
+                    addedCount++;
+                }
+            }
+            if (addedCount > 0) {
+                await populateThemeSelects();
+                await displayThemesList();
+                if (!silentIfNonEmpty) showToast(`Imported ${addedCount} curated Quranic themes & linked verses!`, 'success');
+            } else if (!silentIfNonEmpty) {
+                showToast('All curated Quranic themes are already in your library.', 'info');
+            }
+        }
+
+        function renderCuratedRootsLexicon() {
+            const container = document.getElementById('curated-roots-picker');
+            if (!container) return;
+            container.innerHTML = '';
+            CURATED_ROOTS_LEXICON.forEach(item => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'root-lexicon-chip';
+                chip.innerHTML = `<strong lang="ar" dir="rtl" style="font-family:var(--font-arabic); font-size:1.05rem; color:var(--color-accent-dark);">${item.root}</strong> <span>${item.meaningEn}</span>`;
+                chip.addEventListener('click', async () => {
+                    document.getElementById('root-input').value = item.root;
+                    document.getElementById('root-description').value = `${item.meaningEn} — ${item.meaningUr}`;
+                    await analyzeRoot();
+                });
+                container.appendChild(chip);
+            });
+        }
+
+        function renderTajweedLegendDrawer() {
+            const grid = document.getElementById('tajweedLegendGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            TAJWEED_RULES_GUIDE.forEach(rule => {
+                const pill = document.createElement('div');
+                pill.className = 'tajweed-pill';
+                pill.innerHTML = `
+                    <span class="tajweed-swatch" style="background:${rule.color};"></span>
+                    <div style="flex:1;">
+                        <div style="font-weight:700; color:var(--color-text-primary);">${rule.name}</div>
+                        <div style="font-size:0.72rem; color:var(--color-text-secondary);">${rule.desc}</div>
+                        <div lang="ar" dir="rtl" style="font-family:var(--font-arabic); font-size:1.1rem; color:${rule.color}; margin-top:2px;">${rule.example}</div>
+                    </div>
+                `;
+                pill.addEventListener('click', async () => {
+                    document.getElementById('inlineTajweedToggle').checked = true;
+                    await loadAyah(rule.surah, rule.ayah);
+                    playAudioForAyahEnhanced(rule.surah, rule.ayah);
+                });
+                grid.appendChild(pill);
+            });
+        }
+
+        function renderQuranicDuasModal(category = 'all') {
+            const container = document.getElementById('duasListContainer');
+            if (!container) return;
+            const filtered = category === 'all' ? CURATED_QURANIC_DUAS : CURATED_QURANIC_DUAS.filter(d => d.category === category);
+            container.innerHTML = filtered.map(dua => `
+                <div class="ayah" style="margin:0; padding:14px 16px;">
+                    <div class="ayah-card-top" style="margin-bottom:8px; padding-bottom:6px;">
+                        <span class="ayah-number">${dua.title} (Surah ${dua.surah}:${dua.ayah})</span>
+                        <div class="flex-group">
+                            <button type="button" class="compact-pill-btn btn-secondary play-dua-audio-btn" data-surah="${dua.surah}" data-ayah="${dua.ayah}">🔊 Listen</button>
+                            <button type="button" class="compact-pill-btn open-dua-ayah-btn" data-surah="${dua.surah}" data-ayah="${dua.ayah}">Open in Viewer →</button>
+                        </div>
+                    </div>
+                    <div class="ayah-arabic" style="font-size:1.65rem; margin-bottom:8px;">${dua.arabic}</div>
+                    <div style="font-size:0.92rem; color:var(--color-text-secondary); margin-bottom:4px;">${dua.en}</div>
+                    <div lang="ur" dir="rtl" style="font-family:var(--font-urdu); font-size:1rem; color:var(--color-text-primary);">${dua.ur}</div>
+                </div>
+            `).join('');
+
+            container.querySelectorAll('.play-dua-audio-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    playAudioForAyahEnhanced(parseInt(e.currentTarget.dataset.surah, 10), parseInt(e.currentTarget.dataset.ayah, 10));
+                });
+            });
+            container.querySelectorAll('.open-dua-ayah-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const s = parseInt(e.currentTarget.dataset.surah, 10);
+                    const a = parseInt(e.currentTarget.dataset.ayah, 10);
+                    document.getElementById('quranicDuasModal').style.display = 'none';
+                    await loadAyah(s, a);
+                    showSection('quran');
+                });
+            });
+        }
+
+        function getAbsoluteAyahIndex(surah, ayah) {
+            let idx = 0;
+            for (let s = 1; s < surah; s++) idx += (surahAyahCounts[s] || 0);
+            return idx + ayah;
+        }
+
+        function getSurahAyahFromAbsoluteIndex(absIdx) {
+            let rem = Math.max(1, Math.min(6236, absIdx));
+            for (let s = 1; s <= 114; s++) {
+                const count = surahAyahCounts[s] || 0;
+                if (rem <= count) return { surah: s, ayah: rem };
+                rem -= count;
+            }
+            return { surah: 114, ayah: 6 };
+        }
+
+        function updateKhatamPlannerUI() {
+            const daysInput = document.getElementById('khatamTargetDaysInput');
+            const surahSel = document.getElementById('khatamCurrentSurahSelect');
+            const ayahInput = document.getElementById('khatamCurrentAyahInput');
+            const badge = document.getElementById('khatamSummaryBadge');
+            const bar = document.getElementById('khatamOverallProgressBar');
+            if (!daysInput || !surahSel || !ayahInput) return;
+
+            if (surahSel.options.length === 0) {
+                for (let i = 1; i <= 114; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = `${i}. ${surahNames[i - 1]}`;
+                    surahSel.appendChild(opt);
+                }
+                const savedKhatam = safeGetStorage('khatamPlannerState');
+                if (savedKhatam) {
+                    try {
+                        const parsed = JSON.parse(savedKhatam);
+                        daysInput.value = parsed.targetDays || 30;
+                        surahSel.value = parsed.surah || 1;
+                        ayahInput.value = parsed.ayah || 1;
+                    } catch (e) {}
+                }
+            }
+
+            const targetDays = Math.max(1, parseInt(daysInput.value, 10) || 30);
+            const curS = Math.max(1, Math.min(114, parseInt(surahSel.value, 10) || 1));
+            const curA = Math.max(1, Math.min(surahAyahCounts[curS] || 7, parseInt(ayahInput.value, 10) || 1));
+            const dailyQuota = Math.ceil(6236 / targetDays);
+            const absPos = getAbsoluteAyahIndex(curS, curA);
+            const pct = Math.min(100, Math.round(((absPos - 1) / 6236) * 100));
+            const currentDay = Math.min(targetDays, Math.floor((absPos - 1) / dailyQuota) + 1);
+
+            if (badge) badge.textContent = `Day ${currentDay} / ${targetDays} • ${dailyQuota} Ayahs/day (~${Math.max(1, Math.round(604 / targetDays))} Pages/day)`;
+            if (bar) {
+                bar.style.width = `${pct}%`;
+                bar.textContent = `${pct}% (${absPos - 1} / 6236 Ayahs)`;
+            }
+            safeSetStorage('khatamPlannerState', JSON.stringify({ targetDays, surah: curS, ayah: curA }));
+        }
+
+        async function mergeDataFromFile(file) {
+            if (!db || !file) return;
+            showLoading("Smart-merging backup data...");
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                const userStores = [STORE_TAFSIR, STORE_THEMES, STORE_THEME_AYAHS, STORE_ROOTS, STORE_ROOT_AYAHS, STORE_RECITATIONS, STORE_HIFZ, 'goals'];
+                let mergedRecords = 0;
+                for (const storeName of userStores) {
+                    if (Array.isArray(data[storeName])) {
+                        for (const item of data[storeName]) {
+                            if ([STORE_TAFSIR, STORE_HIFZ].includes(storeName)) {
+                                await putData(storeName, item);
+                            } else {
+                                const copy = { ...item };
+                                delete copy.id;
+                                await addData(storeName, copy);
+                            }
+                            mergedRecords++;
+                        }
+                    }
+                }
+                setStatusMessage('import-status', `Smart Merge complete! Merged ${mergedRecords} records without losing local data.`, false);
+                await loadAyah(currentSurah, currentAyah);
+                await seedCuratedQuranicThemes(true);
+                await displayThemesList();
+                await displaySavedRootsList();
+                await renderSavedTafsirNotebook();
+                await loadRecitationLogs();
+                await renderSavedTafsirNotebook();
+            } catch (error) {
+                setStatusMessage('import-status', 'Invalid JSON file for Smart Merge.', true);
+            } finally {
+                hideLoading();
+            }
+        }
+
         function applyTheme(themeName) {
             const wasSidebarOpen = document.body.classList.contains('sidebar-open');
             document.body.className = '';
@@ -8426,6 +9404,233 @@
                 }
             });
 
+            // Populate Juz Select (1-30) & Wire Change Event
+            const juzSelectEl = document.getElementById('juz-select');
+            if (juzSelectEl && juzSelectEl.options.length === 0) {
+                juzBoundariesData.forEach(j => {
+                    const opt = document.createElement('option');
+                    opt.value = j.juz;
+                    opt.textContent = `Juz ${j.juz} — ${j.name}`;
+                    juzSelectEl.appendChild(opt);
+                });
+                juzSelectEl.addEventListener('change', (e) => {
+                    const jNum = parseInt(e.target.value, 10);
+                    const boundary = juzBoundariesData.find(b => b.juz === jNum);
+                    if (boundary) loadAyah(boundary.startSurah, boundary.startAyah);
+                });
+            }
+
+            // Inline Display Toggles & Font Size Controls
+            ['inlineTajweedToggle', 'inlineTransliterationToggle', 'parallelTranslationToggle', 'inlineClassicalTafsirToggle'].forEach(id => {
+                document.getElementById(id)?.addEventListener('change', () => {
+                    loadAyah(currentSurah, currentAyah);
+                });
+            });
+            document.getElementById('decreaseArabicFontBtn')?.addEventListener('click', () => {
+                viewerCustomFontSizeRem = Math.max(1.4, +(viewerCustomFontSizeRem - 0.2).toFixed(1));
+                safeSetStorage('viewerCustomFontSizeRem', String(viewerCustomFontSizeRem));
+                document.querySelectorAll('.ayah-arabic').forEach(el => { el.style.fontSize = `${viewerCustomFontSizeRem}rem`; });
+            });
+            document.getElementById('increaseArabicFontBtn')?.addEventListener('click', () => {
+                viewerCustomFontSizeRem = Math.min(3.6, +(viewerCustomFontSizeRem + 0.2).toFixed(1));
+                safeSetStorage('viewerCustomFontSizeRem', String(viewerCustomFontSizeRem));
+                document.querySelectorAll('.ayah-arabic').forEach(el => { el.style.fontSize = `${viewerCustomFontSizeRem}rem`; });
+            });
+
+            // Tajweed Legend Drawer & Duas Modal
+            renderTajweedLegendDrawer();
+            document.getElementById('toggleTajweedLegendBtn')?.addEventListener('click', () => {
+                const drawer = document.getElementById('tajweedLegendPanel');
+                if (drawer) drawer.style.display = drawer.style.display === 'block' ? 'none' : 'block';
+            });
+            document.getElementById('closeTajweedLegendBtn')?.addEventListener('click', () => {
+                const drawer = document.getElementById('tajweedLegendPanel');
+                if (drawer) drawer.style.display = 'none';
+            });
+            document.getElementById('openDuasModalBtn')?.addEventListener('click', () => {
+                renderQuranicDuasModal('all');
+                document.getElementById('quranicDuasModal').style.display = 'flex';
+            });
+            document.getElementById('duasCategoryFilter')?.addEventListener('change', (e) => {
+                renderQuranicDuasModal(e.target.value);
+            });
+
+            // Range Loop Trainer
+            document.getElementById('startRangeLoopBtn')?.addEventListener('click', async () => {
+                const startA = Math.max(1, parseInt(document.getElementById('loopRangeStartInput')?.value, 10) || 1);
+                const endA = Math.min(surahAyahCounts[currentSurah] || 7, parseInt(document.getElementById('loopRangeEndInput')?.value, 10) || startA);
+                await loadAyah(currentSurah, startA);
+                playAudioForAyahEnhanced(currentSurah, startA);
+                showToast(`Looping Surah ${currentSurah} Ayahs ${startA} to ${Math.max(startA, endA)}`, 'success');
+            });
+
+            // Copy Ayah Action Delegation
+            document.body.addEventListener('click', async (e) => {
+                const copyBtn = e.target.closest('.action-icon[data-action="copy"]');
+                if (!copyBtn) return;
+                const ayahDiv = copyBtn.closest('.ayah');
+                const s = parseInt(ayahDiv?.dataset.surah, 10) || currentSurah;
+                const a = parseInt(ayahDiv?.dataset.ayah, 10) || currentAyah;
+                const q = await getOrSynthesizeAyahRecord(s, a);
+                const langKey = document.getElementById('translation-select')?.value || 'english';
+                const textToCopy = `${q.arabic}\n${q[langKey] || q.english || ''}\n— Quran ${s}:${a} (${surahNames[s - 1]})`;
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                } catch (err) {
+                    const ta = document.createElement('textarea');
+                    ta.value = textToCopy;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                showToast(`Copied Surah ${s}:${a} to clipboard!`, 'success');
+            });
+
+            // Tafsir Tag Insertion, Quote, Clear & Notebook Search
+            document.querySelectorAll('.tafsir-tag-btn[data-insert-tag]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const tag = e.currentTarget.dataset.insertTag;
+                    const ta = document.getElementById('tafsir-notes');
+                    if (ta) {
+                        ta.value = (ta.value ? ta.value + ' ' : '') + tag;
+                        ta.focus();
+                    }
+                });
+            });
+            document.getElementById('insertAyahQuoteIntoTafsirBtn')?.addEventListener('click', async () => {
+                const q = await getOrSynthesizeAyahRecord(currentSurah, currentAyah);
+                const ta = document.getElementById('tafsir-notes');
+                if (ta && q) {
+                    ta.value = `﴿${q.arabic}﴾ [${currentSurah}:${currentAyah}]\n` + ta.value;
+                    ta.focus();
+                }
+            });
+            document.getElementById('delete-current-tafsir-btn')?.addEventListener('click', async () => {
+                await deleteData(STORE_TAFSIR, [currentSurah, currentAyah]);
+                document.getElementById('tafsir-notes').value = '';
+                await renderSavedTafsirNotebook();
+                showToast(`Cleared Tafsir for ${currentSurah}:${currentAyah}`, 'info');
+            });
+            document.getElementById('tafsir-notebook-search')?.addEventListener('input', (e) => {
+                renderSavedTafsirNotebook(e.target.value);
+            });
+
+            // Curated Themes Seeder & Curated Roots Lexicon
+            document.getElementById('seedCuratedThemesBtn')?.addEventListener('click', () => seedCuratedQuranicThemes(false));
+            renderCuratedRootsLexicon();
+
+            // Hifz Blindfold Mode Selector
+            document.getElementById('hifz-blindfold-select')?.addEventListener('change', () => {
+                const s = parseInt(document.getElementById('hifz-surah-select')?.value, 10) || 1;
+                loadHifzForSurah(s);
+            });
+
+            // Comparative Qari Studio Controls
+            document.getElementById('playCompareQariABtn')?.addEventListener('click', () => {
+                const qari = document.getElementById('compareQariASelect')?.value || 'Alafasy_128kbps';
+                const mainQari = document.getElementById('mainQariSelect');
+                if (mainQari) mainQari.value = qari;
+                playAudioForAyahEnhanced(currentSurah, currentAyah);
+            });
+            document.getElementById('playCompareQariBBtn')?.addEventListener('click', () => {
+                const qari = document.getElementById('compareQariBSelect')?.value || 'Husary_128kbps';
+                const mainQari = document.getElementById('mainQariSelect');
+                if (mainQari) mainQari.value = qari;
+                playAudioForAyahEnhanced(currentSurah, currentAyah);
+            });
+            document.getElementById('prefillCompareLogBtn')?.addEventListener('click', () => {
+                const qA = document.getElementById('compareQariASelect')?.selectedOptions[0]?.textContent || 'Qari A';
+                const qB = document.getElementById('compareQariBSelect')?.selectedOptions[0]?.textContent || 'Qari B';
+                document.getElementById('rec-surah-select').value = currentSurah;
+                document.getElementById('rec-ayah-start').value = currentAyah;
+                document.getElementById('rec-ayah-end').value = currentAyah;
+                document.getElementById('rec-qari').value = `${qA} vs. ${qB}`;
+                document.getElementById('rec-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('rec-notes').focus();
+                showToast('Pre-filled comparison session in log form!', 'info');
+            });
+
+            // Khatam-ul-Quran Planner Controls
+            updateKhatamPlannerUI();
+            ['khatamTargetDaysInput', 'khatamCurrentSurahSelect', 'khatamCurrentAyahInput'].forEach(id => {
+                document.getElementById(id)?.addEventListener('change', updateKhatamPlannerUI);
+            });
+            document.getElementById('continueKhatamWirdBtn')?.addEventListener('click', async () => {
+                const s = parseInt(document.getElementById('khatamCurrentSurahSelect')?.value, 10) || 1;
+                const a = parseInt(document.getElementById('khatamCurrentAyahInput')?.value, 10) || 1;
+                await loadAyah(s, a);
+                showSection('quran');
+                showToast(`Resumed Khatam Wird at Surah ${s}:${a}`, 'success');
+            });
+            document.getElementById('advanceKhatamWirdBtn')?.addEventListener('click', async () => {
+                const days = Math.max(1, parseInt(document.getElementById('khatamTargetDaysInput')?.value, 10) || 30);
+                const quota = Math.ceil(6236 / days);
+                const curS = parseInt(document.getElementById('khatamCurrentSurahSelect')?.value, 10) || 1;
+                const curA = parseInt(document.getElementById('khatamCurrentAyahInput')?.value, 10) || 1;
+                const nextPos = getSurahAyahFromAbsoluteIndex(getAbsoluteAyahIndex(curS, curA) + quota);
+                document.getElementById('khatamCurrentSurahSelect').value = nextPos.surah;
+                document.getElementById('khatamCurrentAyahInput').value = nextPos.ayah;
+                updateKhatamPlannerUI();
+                await addData(STORE_RECITATIONS, {
+                    surah: curS,
+                    ayahStart: curA,
+                    ayahEnd: Math.min(surahAyahCounts[curS], curA + quota - 1),
+                    qari: 'Daily Khatam Wird',
+                    date: new Date().toISOString().split('T')[0],
+                    notes: `Completed daily Khatam quota (${quota} Ayahs). Next: Surah ${nextPos.surah}:${nextPos.ayah}`
+                });
+                showToast(`Masha'Allah! Daily Wird complete. Next stop: Surah ${nextPos.surah}:${nextPos.ayah}`, 'success');
+            });
+
+            // Smart Merge & Portable Sync Code Controls
+            document.getElementById('import-file')?.addEventListener('change', (e) => {
+                const hasFile = !!e.target.files[0];
+                const mergeBtn = document.getElementById('merge-data-btn');
+                if (mergeBtn) mergeBtn.disabled = !hasFile;
+            });
+            document.getElementById('merge-data-btn')?.addEventListener('click', () => {
+                const fileInput = document.getElementById('import-file');
+                if (fileInput?.files.length > 0) mergeDataFromFile(fileInput.files[0]);
+            });
+            document.getElementById('copySyncCodeBtn')?.addEventListener('click', async () => {
+                const payload = {
+                    tafsir: await getAllData(STORE_TAFSIR),
+                    themes: await getAllData(STORE_THEMES),
+                    hifz: await getAllData(STORE_HIFZ),
+                    goals: await getAllData('goals')
+                };
+                const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+                try {
+                    await navigator.clipboard.writeText(encoded);
+                } catch (err) {
+                    const ta = document.createElement('textarea');
+                    ta.value = encoded;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                showToast('Copied portable Base64 Sync Code to clipboard!', 'success');
+            });
+            document.getElementById('pasteSyncCodeBtn')?.addEventListener('click', async () => {
+                const code = await showPromptModal('Paste your portable Sync Code below to merge study progress:', '', 'Import Sync Code');
+                if (!code) return;
+                try {
+                    const decoded = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+                    const blob = new Blob([JSON.stringify(decoded)], { type: 'application/json' });
+                    await mergeDataFromFile(blob);
+                } catch (e) {
+                    showToast('Invalid Sync Code format.', 'error');
+                }
+            });
+
+            // Game SFX Mute Toggle
+            document.getElementById('toggleGameSfxBtn')?.addEventListener('click', (e) => {
+                gameSfxMuted = !gameSfxMuted;
+                e.currentTarget.textContent = gameSfxMuted ? '🔇 SFX: Off' : '🔊 SFX: On';
+            });
+
             // Hash Navigation Support
             window.addEventListener('hashchange', () => {
                 const hash = window.location.hash.substring(1);
@@ -8453,8 +9658,10 @@
                 await loadThemePreference();
                 setupEventListeners();
                 await loadQuranData();
+                await seedCuratedQuranicThemes(true);
                 await displayThemesList();
                 await displaySavedRootsList();
+                await renderSavedTafsirNotebook();
                 window.rootNodePopupEl = document.getElementById('root-node-popup');
             } catch (error) {
                 console.error("App initialization error:", error);
@@ -8465,7 +9672,7 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v4').catch(() => {});
+                navigator.serviceWorker.register('./sw.js?v5').catch(() => {});
             });
         }
     </script>
