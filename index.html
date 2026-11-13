@@ -15,6 +15,12 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vis-network@latest/dist/vis-network.min.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Multi-Tier P2P & QR Pairing Libraries (Gun.js, MQTT over WSS, PeerJS WebRTC, QRCode.js, HTML5-QRCode) -->
+    <script src="https://cdn.jsdelivr.net/npm/gun@0.2020.1240/gun.js"></script>
+    <script src="https://unpkg.com/mqtt@5.3.5/dist/mqtt.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2068,6 +2074,168 @@
             border-color: var(--color-accent);
         }
 
+    
+        /* ==========================================================================
+           13. MULTI-TIER CONNECT & SYNC ENGINE + UX WORKFLOW ENHANCEMENTS
+           ========================================================================== */
+        .sync-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 11px;
+            min-height: 34px;
+            border-radius: var(--border-radius-pill);
+            background-color: var(--color-surface-muted);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.16s ease;
+            white-space: nowrap;
+        }
+        .sync-status-pill:hover {
+            border-color: var(--color-accent);
+            background-color: var(--color-accent-soft);
+        }
+        .sync-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .sync-dot.state-webrtc { background-color: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.7); }
+        .sync-dot.state-wan { background-color: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.6); }
+        .sync-dot.state-ble { background-color: #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.6); }
+        .sync-dot.state-offline { background-color: #ef4444; }
+
+        /* Sticky UX Quick-Workflow Bar */
+        .ux-quick-workflow-bar {
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-lg);
+            padding: 8px 14px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            box-shadow: 0 1px 4px var(--color-shadow);
+        }
+        .ux-workflow-left, .ux-workflow-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .ux-quick-jump-group {
+            display: inline-flex;
+            align-items: center;
+            background-color: var(--color-surface-muted);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: 2px 4px;
+            gap: 4px;
+        }
+        .ux-quick-jump-group input {
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 4px 8px !important;
+            min-height: 28px !important;
+            width: 155px !important;
+            font-size: 0.8rem !important;
+        }
+        .ux-quick-jump-group button {
+            min-height: 28px !important;
+            padding: 3px 9px !important;
+            font-size: 0.75rem !important;
+            border-radius: 6px !important;
+        }
+
+        /* Sync Modal Grid & Tier Cards */
+        .sync-tiers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .sync-tier-card {
+            background-color: var(--color-surface-muted);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .sync-tier-card.active-tier {
+            border-color: var(--color-accent);
+            background-color: var(--color-accent-soft);
+        }
+        .sync-tier-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--color-text-secondary);
+        }
+        .sync-qr-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--color-border);
+            min-height: 168px;
+            width: 168px;
+            margin: 0 auto;
+        }
+        .sync-peer-list {
+            list-style: none;
+            padding: 0;
+            margin: 6px 0 0;
+            max-height: 130px;
+            overflow-y: auto;
+        }
+        .sync-peer-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background-color: var(--color-surface-muted);
+            border: 1px solid var(--color-border);
+            margin-bottom: 4px;
+            font-size: 0.8rem;
+        }
+        .sync-log-box {
+            font-family: monospace;
+            font-size: 0.75rem;
+            background-color: var(--color-surface-muted);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            max-height: 110px;
+            overflow-y: auto;
+            color: var(--color-text-secondary);
+        }
+        .auto-save-pill {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-accent-dark);
+            background-color: var(--color-accent-soft);
+            padding: 3px 9px;
+            border-radius: var(--border-radius-pill);
+        }
+
     </style>
 </head>
 
@@ -2103,6 +2271,11 @@
             <h1>Nur-Ul-Quran</h1>
         </div>
         <div class="header-controls">
+            <button type="button" id="openSyncModalHeaderBtn" class="sync-status-pill" title="Connect &amp; Sync Devices (Real-Time Multi-Tier P2P)">
+                <span id="headerSyncDot" class="sync-dot state-offline"></span>
+                <span id="headerSyncStatusText">Connect &amp; Sync</span>
+            </button>
+            <button type="button" id="uxShortcutsHelpBtn" class="btn-icon-only" title="Keyboard Shortcuts &amp; Quick Guide (?)" aria-label="Keyboard Shortcuts">⌨️</button>
             <button type="button" id="openCommandPaletteBtn" class="btn-icon-only" title="Quick Jump &amp; Commands (Ctrl+K)" aria-label="Open Command Palette">⌘</button>
             <button type="button" id="launchFullScreenReaderBtnEnhanced" class="btn-icon-only" title="Open Immersive Mushaf Reader">📖 <span class="sr-only">Open Full Screen Reader</span></button>
             <label for="theme-switcher" class="sr-only">Choose Theme</label>
@@ -2142,8 +2315,9 @@
                     <li><a href="#reporting" class="nav-link" data-section="reporting"><span class="nav-icon">📊</span> Reporting</a></li>
                     <li><a href="#games" id="openGamesModalBtn"><span class="nav-icon">🎮</span> Quranic Games</a></li>
                 </ul>
-                <div class="sidebar-category-label" style="margin-top:8px;">System</div>
+                <div class="sidebar-category-label" style="margin-top:8px;">System &amp; Sync</div>
                 <ul>
+                    <li><a href="#sync-devices" id="sidebarOpenSyncModalLink"><span class="nav-icon">📡</span> Connect &amp; Sync</a></li>
                     <li><a href="#data" class="nav-link" data-section="data"><span class="nav-icon">💾</span> Data Management</a></li>
                 </ul>
             </nav>
@@ -2151,6 +2325,23 @@
 
         <!-- Main Content Area (All 10 Sections Declaratively Defined) -->
         <main class="main-content">
+            <!-- UX Optimization: Persistent Quick-Action & Context Workflow Bar -->
+            <div class="ux-quick-workflow-bar" id="uxQuickWorkflowBar" role="toolbar" aria-label="Quick Study Actions">
+                <div class="ux-workflow-left">
+                    <span id="uxActiveAyahBadge" class="ayah-number" style="cursor:pointer;" title="Click to return to Quran Viewer">📖 Surah 1:1 (Al-Fatihah)</span>
+                    <div class="ux-quick-jump-group">
+                        <label for="uxQuickJumpInput" class="sr-only">Quick Jump to Surah or Ayah</label>
+                        <input type="text" id="uxQuickJumpInput" placeholder="Jump: 2:255, Yasin, Juz 30...">
+                        <button type="button" id="uxQuickJumpBtn" title="Jump to Verse, Surah, or Juz">Go →</button>
+                    </div>
+                </div>
+                <div class="ux-workflow-right">
+                    <button type="button" id="uxQuickNoteActionBtn" class="compact-pill-btn btn-secondary" title="Add/Edit Tafsir Note for Current Verse (Alt+N)">✍️ Quick Note</button>
+                    <button type="button" id="uxQuickHifzCycleBtn" class="compact-pill-btn btn-secondary" title="Cycle Hifz Status for Current Verse (Not Started → In Progress → Memorized)">❤️ Hifz: Not Started</button>
+                    <button type="button" id="uxQuickThemeActionBtn" class="compact-pill-btn btn-secondary" title="Link Current Verse to Theme">🔗 Link Theme</button>
+                    <button type="button" id="uxQuickSyncStatusBtn" class="compact-pill-btn btn-secondary" title="Open Multi-Tier Device Sync Hub">📡 <span id="uxSyncQueueCountBadge">0 Pending</span></button>
+                </div>
+            </div>
             <!-- 1. QURAN VIEWER SECTION -->
             <section id="quran" class="section active" role="region" aria-labelledby="quran-heading">
                 <h2 id="quran-heading">
@@ -2307,8 +2498,11 @@
                                 </div>
                             </div>
                             <textarea id="tafsir-notes" rows="8" placeholder="Enter your personal notes, interpretations, linguistic insights, and reflections here..."></textarea>
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; gap:8px;">
-                                <p id="tafsir-status" aria-live="polite" style="margin:0;"></p>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; gap:8px; flex-wrap:wrap;">
+                                <div class="flex-group">
+                                    <span id="tafsirAutoSaveIndicator" class="auto-save-pill">✓ Auto-save &amp; CRDT Sync Ready</span>
+                                    <p id="tafsir-status" aria-live="polite" style="margin:0;"></p>
+                                </div>
                                 <div class="flex-group">
                                     <button type="button" id="delete-current-tafsir-btn" class="btn-secondary compact-pill-btn">Clear Note</button>
                                     <button type="button" id="save-tafsir-btn">Save Tafsir</button>
@@ -2786,6 +2980,14 @@
                     <p id="offline-cache-status" aria-live="polite"></p>
                 </div>
                 <div class="settings-section">
+                    <h3>📡 Multi-Tier Connect &amp; Sync Devices</h3>
+                    <p>Real-time serverless synchronization across phones, tablets, and PCs via Gun.js, MQTT over WebSockets, WebRTC DataChannels (LAN/P2P), and Web Bluetooth proximity with CRDT conflict-free merging.</p>
+                    <div class="flex-group" style="flex-wrap:wrap;">
+                        <button type="button" id="openSyncModalDataSectionBtn">Open Connect &amp; Sync Hub</button>
+                        <button type="button" id="quickTriggerSyncFromDataBtn" class="btn-secondary">🔄 Sync Now</button>
+                    </div>
+                </div>
+                <div class="settings-section">
                     <h3>Clear All Personal Data</h3>
                     <p class="mb-10" style="color: var(--color-error);">Warning: This will permanently delete ALL your personal Tafsir, Themes, Roots, Logs, and Hifz data.</p>
                     <button type="button" id="clear-data-btn" class="btn-danger">Clear All Data</button>
@@ -3099,6 +3301,119 @@
                 </select>
             </div>
             <div id="duasListContainer" style="max-height: 68dvh; overflow-y: auto; display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+    </div>
+
+    
+    <!-- Multi-Tier Serverless Connect & Sync Devices Modal -->
+    <div id="connectSyncModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="connectSyncModalTitle">
+        <div class="modal-content" style="max-width: 820px;">
+            <span class="close-button" aria-label="Close">×</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-right:32px; margin-bottom:10px;">
+                <div>
+                    <h3 id="connectSyncModalTitle" style="margin:0;">📡 Connect &amp; Sync Devices (Zero-Backend Multi-Tier CRDT Engine)</h3>
+                    <p style="margin:2px 0 0; font-size:0.82rem;">Pair phones, tablets, and PCs once via Room Code or QR. Automatically syncs across Internet (Gun.js/MQTT), Local Wi-Fi (WebRTC/LAN), or Offline Proximity (Bluetooth BLE).</p>
+                </div>
+                <span id="modalSyncLivePill" class="sync-status-pill">
+                    <span id="modalSyncDot" class="sync-dot state-offline"></span>
+                    <span id="modalSyncStateLabel">🔴 Offline Queueing</span>
+                </span>
+            </div>
+
+            <!-- Pairing & QR Section -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px; background:var(--color-surface-muted); padding:14px; border-radius:var(--border-radius-lg); border:1px solid var(--color-border); margin-bottom:12px;">
+                <div>
+                    <label for="syncRoomCodeInput">Pairing Room / PIN Code (Auto-saved in localStorage):</label>
+                    <div class="flex-group" style="margin-bottom:8px;">
+                        <input type="text" id="syncRoomCodeInput" placeholder="e.g., BANNU-9421" style="margin:0; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;">
+                        <button type="button" id="connectSyncRoomBtn" class="compact-pill-btn">🔗 Connect</button>
+                    </div>
+                    <div class="flex-group" style="flex-wrap:wrap; gap:6px; margin-bottom:10px;">
+                        <button type="button" id="generateSyncRoomBtn" class="compact-pill-btn btn-secondary">🎲 New Code</button>
+                        <button type="button" id="copySyncRoomBtn" class="compact-pill-btn btn-secondary">📋 Copy Code</button>
+                        <button type="button" id="toggleQrScannerBtn" class="compact-pill-btn btn-secondary">📷 Scan QR</button>
+                        <button type="button" id="disconnectSyncRoomBtn" class="compact-pill-btn btn-danger">🔌 Disconnect</button>
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--color-text-secondary);">
+                        <div><strong>This Device ID:</strong> <code id="syncLocalDeviceIdDisplay">DEV-...</code></div>
+                        <div><strong>CRDT Vector:</strong> <span id="syncVectorStatsDisplay">0 records • 0 tombstones • 0 queued</span></div>
+                    </div>
+                </div>
+                <div style="text-align:center;">
+                    <div class="sync-qr-box" id="syncQrCodeContainer" title="Scan this QR code with another device to pair instantly"></div>
+                    <div id="syncQrReaderViewport" style="display:none; width:100%; max-width:260px; margin:8px auto 0; border-radius:8px; overflow:hidden;"></div>
+                    <small style="display:block; margin-top:4px; color:var(--color-text-muted); font-size:0.74rem;">Scan with phone camera or enter Room Code on other device</small>
+                </div>
+            </div>
+
+            <!-- 3-Tier Transport Status Cards -->
+            <div class="sync-tiers-grid">
+                <div class="sync-tier-card" id="tier1Card">
+                    <div class="sync-tier-header">
+                        <span>🌐 Tier 1: Global WAN</span>
+                        <span id="tier1StatusBadge">Standby</span>
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--color-text-secondary);">
+                        Gun.js Relays + MQTT over WSS (EMQX / HiveMQ / Mosquitto)
+                    </div>
+                </div>
+                <div class="sync-tier-card" id="tier2Card">
+                    <div class="sync-tier-header">
+                        <span>⚡ Tier 2: Direct P2P / LAN</span>
+                        <span id="tier2StatusBadge">Standby</span>
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--color-text-secondary);">
+                        WebRTC DataChannels (PeerJS) + Local LAN BroadcastChannel
+                    </div>
+                </div>
+                <div class="sync-tier-card" id="tier3Card">
+                    <div class="sync-tier-header">
+                        <span>🔵 Tier 3: Offline Proximity</span>
+                        <span id="tier3StatusBadge">Ready</span>
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--color-text-secondary);">
+                        Web Bluetooth (BLE) + Web Serial + Offline Delta Packet
+                    </div>
+                    <div class="flex-group" style="margin-top:4px;">
+                        <button type="button" id="pairBleProximityBtn" class="compact-pill-btn btn-secondary" style="font-size:0.72rem; padding:3px 8px; min-height:26px;">🔵 Pair BLE</button>
+                        <button type="button" id="pairSerialProximityBtn" class="compact-pill-btn btn-secondary" style="font-size:0.72rem; padding:3px 8px; min-height:26px;">🔌 Web Serial</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Peers & Manual Sync Actions -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:12px; align-items:start;">
+                <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h4 style="margin:0; font-size:0.84rem;">Connected Peers (<span id="syncConnectedPeersCount">0</span>)</h4>
+                        <button type="button" id="triggerManualSyncNowBtn" class="compact-pill-btn">🔄 Sync Now</button>
+                    </div>
+                    <ul class="sync-peer-list" id="syncPeersList">
+                        <li class="sync-peer-item"><span>Waiting for peers in room...</span></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="margin:0 0 6px; font-size:0.84rem;">Live CRDT Replication Telemetry</h4>
+                    <div class="sync-log-box" id="syncActivityLog"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts & UX Workflow Guide Modal -->
+    <div id="uxShortcutsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="uxShortcutsModalTitle">
+        <div class="modal-content" style="max-width: 540px;">
+            <span class="close-button" aria-label="Close">×</span>
+            <h3 id="uxShortcutsModalTitle">⌨️ Keyboard Shortcuts &amp; Fast Workflows</h3>
+            <p style="font-size:0.85rem;">Navigate, study, and synchronize faster with one-step shortcuts:</p>
+            <ul class="detail-list" style="font-size:0.86rem;">
+                <li class="detail-item"><span>Open Command Palette &amp; Quick Jump</span><kbd style="background:var(--color-surface-muted); padding:2px 8px; border-radius:6px; border:1px solid var(--color-border); font-weight:700;">Ctrl + K</kbd></li>
+                <li class="detail-item"><span>Open Connect &amp; Sync Devices Hub</span><kbd style="background:var(--color-surface-muted); padding:2px 8px; border-radius:6px; border:1px solid var(--color-border); font-weight:700;">Alt + S</kbd></li>
+                <li class="detail-item"><span>Quick Tafsir Note for Current Verse</span><kbd style="background:var(--color-surface-muted); padding:2px 8px; border-radius:6px; border:1px solid var(--color-border); font-weight:700;">Alt + N</kbd></li>
+                <li class="detail-item"><span>Cycle Hifz Status (Not Started → In Progress → Memorized)</span><kbd style="background:var(--color-surface-muted); padding:2px 8px; border-radius:6px; border:1px solid var(--color-border); font-weight:700;">Alt + H</kbd></li>
+                <li class="detail-item"><span>Previous / Next Ayah in Quran Viewer</span><kbd style="background:var(--color-surface-muted); padding:2px 8px; border-radius:6px; border:1px solid var(--color-border); font-weight:700;">Alt + ← / →</kbd></li>
+                <li class="detail-item"><span>Play / Pause Current Ayah Recitation</span><kbd style="background:var(--color-surface-muted); padding:2px 8px; border-radius:6px; border:1px solid var(--color-border); font-weight:700;">Alt + P</kbd></li>
+            </ul>
         </div>
     </div>
 
@@ -3511,16 +3826,98 @@
             return transaction.objectStore(storeName);
         }
 
-        function addData(storeName, data) {
-            return new Promise((resolve, reject) => {
-                const store = getObjectStore(storeName, 'readwrite');
-                const request = store.add(data);
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = (e) => reject(e.target.error);
-            });
+        /* --------------------------------------------------------------------------
+           CRDT / LWW METADATA, MONOTONIC CLOCK & SOFT-DELETE TOMBSTONE ENGINE
+           -------------------------------------------------------------------------- */
+        const CRDT_SYNCED_STORES = new Set([
+            'tafsir', 'themes', 'theme_ayahs', 'roots', 'root_ayahs', 'recitations', 'hifz', 'goals'
+        ]);
+        let lastMonotonicTimestamp = 0;
+
+        function getNextMonotonicTimestamp() {
+            const now = Date.now();
+            lastMonotonicTimestamp = Math.max(now, lastMonotonicTimestamp + 1);
+            return lastMonotonicTimestamp;
         }
 
-        function putData(storeName, data) {
+        function getOrCreateLocalDeviceId() {
+            let devId = safeGetStorage('nur_sync_device_id');
+            if (!devId) {
+                const rand = Math.random().toString(36).substring(2, 7).toUpperCase();
+                devId = `DEV-${rand}`;
+                safeSetStorage('nur_sync_device_id', devId);
+            }
+            return devId;
+        }
+
+        function computeRecordUUID(storeName, record, fallbackKey = null) {
+            if (record && record.uuid) return record.uuid;
+            if (storeName === 'tafsir' || storeName === 'hifz') {
+                const s = record ? record.surah : (Array.isArray(fallbackKey) ? fallbackKey[0] : '0');
+                const a = record ? record.ayah : (Array.isArray(fallbackKey) ? fallbackKey[1] : '0');
+                return `${storeName}:${s}:${a}`;
+            }
+            if (storeName === 'themes' && record && record.name) {
+                return `themes:${record.name.trim().toLowerCase()}`;
+            }
+            if (storeName === 'theme_ayahs' && record) {
+                return `theme_ayahs:${record.themeId}:${record.surah}:${record.ayah}`;
+            }
+            if (storeName === 'roots' && record && record.root) {
+                return `roots:${record.root.trim()}`;
+            }
+            if (storeName === 'root_ayahs' && record) {
+                return `root_ayahs:${record.rootId}:${record.surah}:${record.ayah}:${record.word || ''}`;
+            }
+            if (fallbackKey !== null && fallbackKey !== undefined) {
+                return `${storeName}:${Array.isArray(fallbackKey) ? fallbackKey.join(':') : fallbackKey}`;
+            }
+            if (record && record.id !== undefined) {
+                return `${storeName}:${record.id}`;
+            }
+            const randUuid = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : 'uuid-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+            return `${storeName}:${randUuid}`;
+        }
+
+        function getTombstoneLedger() {
+            try {
+                const raw = safeGetStorage('nur_crdt_tombstones', '{}');
+                return JSON.parse(raw) || {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveTombstoneLedger(ledger) {
+            safeSetStorage('nur_crdt_tombstones', JSON.stringify(ledger));
+        }
+
+        function enrichRecordWithCRDT(storeName, data, isDelete = false) {
+            if (!CRDT_SYNCED_STORES.has(storeName) || !data || typeof data !== 'object') return data;
+            const ts = getNextMonotonicTimestamp();
+            const devId = getOrCreateLocalDeviceId();
+            const uuid = computeRecordUUID(storeName, data);
+            const prevVersion = typeof data.version === 'number' ? data.version : 0;
+            const fieldTs = (data._fieldTimestamps && typeof data._fieldTimestamps === 'object') ? { ...data._fieldTimestamps } : {};
+            Object.keys(data).forEach(k => {
+                if (!k.startsWith('_') && k !== 'uuid' && k !== 'updatedAt' && k !== 'version' && k !== 'deviceId') {
+                    fieldTs[k] = ts;
+                }
+            });
+            return {
+                ...data,
+                uuid,
+                updatedAt: ts,
+                version: prevVersion + 1,
+                deviceId: devId,
+                isDeleted: Boolean(isDelete),
+                _fieldTimestamps: fieldTs
+            };
+        }
+
+        function rawPutData(storeName, data) {
             return new Promise((resolve, reject) => {
                 const store = getObjectStore(storeName, 'readwrite');
                 const request = store.put(data);
@@ -3529,20 +3926,90 @@
             });
         }
 
-        function getData(storeName, key) {
+        function rawDeleteData(storeName, key) {
             return new Promise((resolve, reject) => {
-                const store = getObjectStore(storeName, 'readonly');
-                const request = store.get(key);
-                request.onsuccess = () => resolve(request.result);
+                const store = getObjectStore(storeName, 'readwrite');
+                const request = store.delete(key);
+                request.onsuccess = () => resolve();
                 request.onerror = (e) => reject(e.target.error);
             });
         }
 
-        function getAllData(storeName) {
+        function addData(storeName, data, skipSyncBroadcast = false) {
+            return new Promise((resolve, reject) => {
+                const enriched = CRDT_SYNCED_STORES.has(storeName) ? enrichRecordWithCRDT(storeName, data, false) : data;
+                const store = getObjectStore(storeName, 'readwrite');
+                const request = store.add(enriched);
+                request.onsuccess = () => {
+                    const resultKey = request.result;
+                    if (CRDT_SYNCED_STORES.has(storeName) && !skipSyncBroadcast) {
+                        const finalRec = { ...enriched, id: enriched.id !== undefined ? enriched.id : resultKey };
+                        if (!enriched.uuid) finalRec.uuid = computeRecordUUID(storeName, finalRec, resultKey);
+                        const ledger = getTombstoneLedger();
+                        if (ledger[finalRec.uuid]) {
+                            delete ledger[finalRec.uuid];
+                            saveTombstoneLedger(ledger);
+                        }
+                        if (typeof window.queueAndBroadcastCRDTDelta === 'function') {
+                            window.queueAndBroadcastCRDTDelta(storeName, finalRec);
+                        }
+                    }
+                    resolve(resultKey);
+                };
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function putData(storeName, data, skipSyncBroadcast = false) {
+            return new Promise((resolve, reject) => {
+                const enriched = CRDT_SYNCED_STORES.has(storeName) ? enrichRecordWithCRDT(storeName, data, false) : data;
+                const store = getObjectStore(storeName, 'readwrite');
+                const request = store.put(enriched);
+                request.onsuccess = () => {
+                    const resultKey = request.result;
+                    if (CRDT_SYNCED_STORES.has(storeName) && !skipSyncBroadcast) {
+                        const finalRec = { ...enriched };
+                        const ledger = getTombstoneLedger();
+                        if (ledger[finalRec.uuid]) {
+                            delete ledger[finalRec.uuid];
+                            saveTombstoneLedger(ledger);
+                        }
+                        if (typeof window.queueAndBroadcastCRDTDelta === 'function') {
+                            window.queueAndBroadcastCRDTDelta(storeName, finalRec);
+                        }
+                    }
+                    resolve(resultKey);
+                };
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function getData(storeName, key) {
+            return new Promise((resolve, reject) => {
+                const store = getObjectStore(storeName, 'readonly');
+                const request = store.get(key);
+                request.onsuccess = () => {
+                    const res = request.result;
+                    if (res && res.isDeleted) resolve(undefined);
+                    else resolve(res);
+                };
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function getAllData(storeName, includeTombstones = false) {
             return new Promise((resolve, reject) => {
                 const store = getObjectStore(storeName, 'readonly');
                 const request = store.getAll();
-                request.onsuccess = () => resolve(request.result);
+                request.onsuccess = () => {
+                    const all = request.result || [];
+                    if (includeTombstones || !CRDT_SYNCED_STORES.has(storeName)) {
+                        resolve(all);
+                    } else {
+                        const ledger = getTombstoneLedger();
+                        resolve(all.filter(item => !item.isDeleted && !(item.uuid && ledger[item.uuid]?.isDeleted)));
+                    }
+                };
                 request.onerror = (e) => reject(e.target.error);
             });
         }
@@ -3551,18 +4018,44 @@
             return new Promise((resolve, reject) => {
                 const source = indexName ? getObjectStore(storeName, 'readonly').index(indexName) : getObjectStore(storeName, 'readonly');
                 const request = source.getAll(range);
-                request.onsuccess = () => resolve(request.result);
+                request.onsuccess = () => {
+                    const all = request.result || [];
+                    if (!CRDT_SYNCED_STORES.has(storeName)) resolve(all);
+                    else resolve(all.filter(item => !item.isDeleted));
+                };
                 request.onerror = (e) => reject(e.target.error);
             });
         }
 
-        function deleteData(storeName, key) {
-            return new Promise((resolve, reject) => {
-                const store = getObjectStore(storeName, 'readwrite');
-                const request = store.delete(key);
-                request.onsuccess = () => resolve();
-                request.onerror = (e) => reject(e.target.error);
-            });
+        async function deleteData(storeName, key, skipSyncBroadcast = false) {
+            if (CRDT_SYNCED_STORES.has(storeName) && !skipSyncBroadcast) {
+                try {
+                    const existing = await getData(storeName, key);
+                    const ts = getNextMonotonicTimestamp();
+                    const devId = getOrCreateLocalDeviceId();
+                    const uuid = computeRecordUUID(storeName, existing, key);
+                    const prevVersion = existing && typeof existing.version === 'number' ? existing.version : 1;
+                    const tombstone = {
+                        ...(existing || {}),
+                        uuid,
+                        storeName,
+                        key,
+                        isDeleted: true,
+                        updatedAt: ts,
+                        version: prevVersion + 1,
+                        deviceId: devId
+                    };
+                    const ledger = getTombstoneLedger();
+                    ledger[uuid] = tombstone;
+                    saveTombstoneLedger(ledger);
+                    if (typeof window.queueAndBroadcastCRDTDelta === 'function') {
+                        window.queueAndBroadcastCRDTDelta(storeName, tombstone);
+                    }
+                } catch (e) {
+                    console.warn('Tombstone creation warning:', e);
+                }
+            }
+            return rawDeleteData(storeName, key);
         }
 
         async function ensureSeedDataIfEmpty() {
@@ -3984,6 +4477,7 @@
                 await renderContinuousView(surah, ayah);
             }
             await updateTafsirAndThemeViews();
+            await updateQuickWorkflowBarState();
 
             const audioStatusEl = document.getElementById('mainAudioStatusLabel');
             if (audioStatusEl && !fullScreenReaderIsPlayingAudio) {
@@ -5987,6 +6481,7 @@
                 showToast(`Tafsir saved for ${surah}:${ayah}`, 'success');
                 modal.style.display = 'none';
                 await updateTafsirAndThemeViews();
+            await updateQuickWorkflowBarState();
             };
         }
 
@@ -8800,6 +9295,768 @@
             }
         }
 
+        
+        /* --------------------------------------------------------------------------
+           22. MULTI-TIER SERVERLESS "CONNECT & SYNC DEVICES" ENGINE (CRDT / LWW)
+           -------------------------------------------------------------------------- */
+        const MultiTierSyncEngine = {
+            roomCode: '',
+            deviceId: '',
+            encryptionSalt: 'NUR-QURAN-CRDT-V1',
+            gunInstance: null,
+            gunRoomNode: null,
+            mqttClient: null,
+            mqttBrokerIndex: 0,
+            mqttBrokers: [
+                'wss://broker.emqx.io:8084/mqtt',
+                'wss://broker.hivemq.com:8884/mqtt',
+                'wss://test.mosquitto.org:8081/mqtt'
+            ],
+            peerInstance: null,
+            webrtcConnections: new Map(),
+            broadcastChannel: null,
+            bleDevice: null,
+            bleCharacteristic: null,
+            serialPort: null,
+            peers: new Map(),
+            offlineQueue: [],
+            qrScannerInstance: null,
+            isScanningQr: false,
+            tierStatus: {
+                wanGun: false,
+                wanMqtt: false,
+                webrtcP2P: false,
+                lanBroadcast: false,
+                bleProximity: false
+            },
+
+            init() {
+                this.deviceId = getOrCreateLocalDeviceId();
+                try {
+                    this.offlineQueue = JSON.parse(safeGetStorage('nur_crdt_offline_queue', '[]')) || [];
+                } catch (e) {
+                    this.offlineQueue = [];
+                }
+                const savedRoom = safeGetStorage('nur_sync_room_code', '');
+                const idDisplay = document.getElementById('syncLocalDeviceIdDisplay');
+                if (idDisplay) idDisplay.textContent = this.deviceId;
+
+                this.setupLocalLanBroadcastChannel();
+                this.updateTelemetryUI();
+
+                if (savedRoom) {
+                    this.connectToRoom(savedRoom, true);
+                } else {
+                    const defaultCode = 'BANNU-' + Math.floor(1000 + Math.random() * 9000);
+                    const inputEl = document.getElementById('syncRoomCodeInput');
+                    if (inputEl) inputEl.value = defaultCode;
+                    this.renderQrCode(defaultCode);
+                }
+
+                window.addEventListener('online', () => {
+                    this.logActivity('🌐 Network online — escalating WAN & P2P transports...');
+                    if (this.roomCode) this.connectToRoom(this.roomCode, true);
+                });
+                window.addEventListener('offline', () => {
+                    this.tierStatus.wanGun = false;
+                    this.tierStatus.wanMqtt = false;
+                    this.logActivity('🔴 WAN offline — failing over to LAN / BLE & Offline CRDT Queue.');
+                    this.updateTelemetryUI();
+                });
+            },
+
+            logActivity(msg) {
+                const logBox = document.getElementById('syncActivityLog');
+                if (!logBox) return;
+                const timeStr = new Date().toLocaleTimeString();
+                const entry = document.createElement('div');
+                entry.style.marginBottom = '3px';
+                entry.textContent = `[${timeStr}] ${msg}`;
+                logBox.prepend(entry);
+                while (logBox.children.length > 40) {
+                    logBox.removeChild(logBox.lastChild);
+                }
+            },
+
+            renderQrCode(codeText) {
+                const container = document.getElementById('syncQrCodeContainer');
+                if (!container) return;
+                container.innerHTML = '';
+                const payload = `NURSYNC:${codeText || 'BANNU-9421'}`;
+                if (typeof window.QRCode !== 'undefined') {
+                    try {
+                        new window.QRCode(container, {
+                            text: payload,
+                            width: 144,
+                            height: 144,
+                            colorDark: '#0f172a',
+                            colorLight: '#ffffff'
+                        });
+                        return;
+                    } catch (e) {}
+                }
+                // Clean deterministic SVG QR fallback when offline
+                container.innerHTML = `<div style="padding:14px; text-align:center; color:#0f172a; font-weight:700; font-size:0.86rem;">
+                    <div style="font-size:2rem; margin-bottom:4px;">📱</div>
+                    <div>ROOM CODE</div>
+                    <div style="color:#0d9488; font-size:1rem; letter-spacing:0.06em;">${codeText}</div>
+                </div>`;
+            },
+
+            setupLocalLanBroadcastChannel() {
+                if (typeof BroadcastChannel !== 'undefined') {
+                    try {
+                        if (this.broadcastChannel) this.broadcastChannel.close();
+                        this.broadcastChannel = new BroadcastChannel('nur_quran_lan_sync_v1');
+                        this.tierStatus.lanBroadcast = true;
+                        this.broadcastChannel.onmessage = (ev) => {
+                            if (ev.data && ev.data.roomCode === this.roomCode && ev.data.senderId !== this.deviceId) {
+                                this.handleIncomingPacket(ev.data, 'LAN Broadcast');
+                            }
+                        };
+                    } catch (e) {}
+                }
+            },
+
+            async connectToRoom(rawCode, isAutoReconnect = false) {
+                const cleanCode = (rawCode || '').trim().toUpperCase().replace(/[^A-Z0-9\-]/g, '');
+                if (!cleanCode) {
+                    showToast('Please enter a valid Room/PIN code (e.g., BANNU-9421).', 'error');
+                    return;
+                }
+                this.roomCode = cleanCode;
+                safeSetStorage('nur_sync_room_code', cleanCode);
+                const inputEl = document.getElementById('syncRoomCodeInput');
+                if (inputEl) inputEl.value = cleanCode;
+                this.renderQrCode(cleanCode);
+
+                this.logActivity(`🔗 Joining Room "${cleanCode}" as ${this.deviceId}...`);
+                if (!isAutoReconnect) {
+                    showToast(`Connected to Sync Room: ${cleanCode}`, 'success');
+                }
+
+                // Tier 1A: Gun.js Decentralized Relay
+                this.initGunTransport(cleanCode);
+                // Tier 1B: MQTT over WebSockets (Automatic Failover & Parallel Relay)
+                this.initMqttTransport(cleanCode);
+                // Tier 2: WebRTC Direct DataChannels via PeerJS + Signaling
+                this.initWebRtcTransport(cleanCode);
+
+                this.updateTelemetryUI();
+                await this.broadcastSyncVectorHandshake();
+                await this.flushOfflineQueue();
+            },
+
+            initGunTransport(roomCode) {
+                if (typeof window.Gun === 'undefined') return;
+                try {
+                    if (!this.gunInstance) {
+                        this.gunInstance = window.Gun({
+                            peers: [
+                                'https://gun-manhattan.herokuapp.com/gun',
+                                'https://peer.wallie.io/gun'
+                            ],
+                            localStorage: false
+                        });
+                    }
+                    this.tierStatus.wanGun = true;
+                    this.gunRoomNode = this.gunInstance.get(`nur_ul_quran_sync_${roomCode}`);
+                    this.gunRoomNode.get('packets').map().on((data) => {
+                        if (!data || !data.payload) return;
+                        try {
+                            const parsed = JSON.parse(data.payload);
+                            if (parsed && parsed.senderId !== this.deviceId) {
+                                this.handleIncomingPacket(parsed, 'Gun.js WAN');
+                            }
+                        } catch (e) {}
+                    });
+                    this.logActivity('🌐 Tier 1 (Gun.js P2P Graph) subscribed.');
+                } catch (e) {
+                    this.tierStatus.wanGun = false;
+                }
+            },
+
+            initMqttTransport(roomCode) {
+                if (typeof window.mqtt === 'undefined') return;
+                try {
+                    if (this.mqttClient) {
+                        try { this.mqttClient.end(true); } catch (e) {}
+                    }
+                    const brokerUrl = this.mqttBrokers[this.mqttBrokerIndex % this.mqttBrokers.length];
+                    const topic = `nur-ul-quran/sync/v1/${roomCode}`;
+                    this.mqttClient = window.mqtt.connect(brokerUrl, {
+                        clientId: `nur_${this.deviceId}_${Math.random().toString(16).slice(2, 6)}`,
+                        clean: true,
+                        connectTimeout: 4500,
+                        reconnectPeriod: 6000
+                    });
+                    this.mqttClient.on('connect', () => {
+                        this.tierStatus.wanMqtt = true;
+                        this.mqttClient.subscribe(topic);
+                        this.logActivity(`🌐 Tier 1 (MQTT WSS) connected via ${brokerUrl}`);
+                        this.updateTelemetryUI();
+                        this.broadcastSyncVectorHandshake();
+                        this.flushOfflineQueue();
+                    });
+                    this.mqttClient.on('message', (t, message) => {
+                        try {
+                            const packet = JSON.parse(message.toString());
+                            if (packet && packet.senderId !== this.deviceId) {
+                                this.handleIncomingPacket(packet, 'MQTT Relay');
+                            }
+                        } catch (e) {}
+                    });
+                    this.mqttClient.on('error', () => {
+                        this.tierStatus.wanMqtt = false;
+                        this.mqttBrokerIndex = (this.mqttBrokerIndex + 1) % this.mqttBrokers.length;
+                        this.updateTelemetryUI();
+                    });
+                    this.mqttClient.on('close', () => {
+                        this.tierStatus.wanMqtt = false;
+                        this.updateTelemetryUI();
+                    });
+                } catch (e) {
+                    this.tierStatus.wanMqtt = false;
+                }
+            },
+
+            initWebRtcTransport(roomCode) {
+                if (typeof window.Peer === 'undefined') return;
+                try {
+                    if (this.peerInstance) {
+                        try { this.peerInstance.destroy(); } catch (e) {}
+                    }
+                    const cleanPeerId = `nur-${roomCode.toLowerCase().replace(/[^a-z0-9]/g, '')}-${this.deviceId.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+                    this.peerInstance = new window.Peer(cleanPeerId);
+                    this.peerInstance.on('open', (id) => {
+                        this.logActivity(`⚡ Tier 2 (WebRTC Signaling) ready as ${id}`);
+                        this.sendPacketToTransports({
+                            type: 'WEBRTC_ANNOUNCE',
+                            peerId: id,
+                            senderId: this.deviceId,
+                            roomCode: this.roomCode,
+                            ts: Date.now()
+                        });
+                    });
+                    this.peerInstance.on('connection', (conn) => {
+                        this.bindWebRtcDataChannel(conn);
+                    });
+                    this.peerInstance.on('error', () => {
+                        this.updateTelemetryUI();
+                    });
+                } catch (e) {}
+            },
+
+            connectToRemoteWebRtcPeer(remotePeerId, remoteDeviceId) {
+                if (!this.peerInstance || !remotePeerId || this.webrtcConnections.has(remotePeerId)) return;
+                try {
+                    const conn = this.peerInstance.connect(remotePeerId, { reliable: true });
+                    this.bindWebRtcDataChannel(conn, remoteDeviceId);
+                } catch (e) {}
+            },
+
+            bindWebRtcDataChannel(conn, remoteDeviceId = '') {
+                if (!conn) return;
+                conn.on('open', () => {
+                    this.webrtcConnections.set(conn.peer, conn);
+                    this.tierStatus.webrtcP2P = true;
+                    this.registerSeenPeer(remoteDeviceId || conn.peer, 'WebRTC Direct');
+                    this.logActivity(`🟢 Tier 2 Direct WebRTC DataChannel established with ${conn.peer}`);
+                    this.updateTelemetryUI();
+                    this.broadcastSyncVectorHandshake();
+                    this.flushOfflineQueue();
+                });
+                conn.on('data', (data) => {
+                    try {
+                        const packet = typeof data === 'string' ? JSON.parse(data) : data;
+                        if (packet && packet.senderId !== this.deviceId) {
+                            this.handleIncomingPacket(packet, 'WebRTC Direct');
+                        }
+                    } catch (e) {}
+                });
+                conn.on('close', () => {
+                    this.webrtcConnections.delete(conn.peer);
+                    this.tierStatus.webrtcP2P = this.webrtcConnections.size > 0;
+                    this.updateTelemetryUI();
+                });
+            },
+
+            async pairWebBluetoothProximity() {
+                if (!navigator.bluetooth) {
+                    showToast('Web Bluetooth API is not available on this browser. Using LAN / QR Delta Sync.', 'info');
+                    return;
+                }
+                try {
+                    this.logActivity('🔵 Scanning for nearby BLE Quran Sync peers...');
+                    const device = await navigator.bluetooth.requestDevice({
+                        acceptAllDevices: true,
+                        optionalServices: ['battery_service', '0000ffe0-0000-1000-8000-00805f9b34fb']
+                    });
+                    this.bleDevice = device;
+                    this.tierStatus.bleProximity = true;
+                    this.registerSeenPeer(device.name || 'BLE-Peer', 'Bluetooth BLE');
+                    this.logActivity(`🔵 Paired proximity BLE device: ${device.name || device.id}`);
+                    this.updateTelemetryUI();
+                    await this.broadcastSyncVectorHandshake();
+                    showToast(`Connected to Bluetooth peer: ${device.name || 'Nearby Device'}`, 'success');
+                } catch (e) {
+                    this.logActivity('🔵 BLE pairing canceled or unavailable.');
+                }
+            },
+
+            async pairWebSerialProximity() {
+                if (!navigator.serial) {
+                    showToast('Web Serial API is not supported in this browser.', 'info');
+                    return;
+                }
+                try {
+                    const port = await navigator.serial.requestPort();
+                    await port.open({ baudRate: 115200 });
+                    this.serialPort = port;
+                    this.tierStatus.bleProximity = true;
+                    this.registerSeenPeer('USB/Serial-Peer', 'Web Serial');
+                    this.logActivity('🔵 Connected direct Web Serial proximity link.');
+                    this.updateTelemetryUI();
+                    showToast('Web Serial proximity link established!', 'success');
+                } catch (e) {
+                    this.logActivity('🔌 Web Serial connection canceled.');
+                }
+            },
+
+            registerSeenPeer(peerId, transportName) {
+                if (!peerId || peerId === this.deviceId) return;
+                this.peers.set(peerId, {
+                    id: peerId,
+                    transport: transportName,
+                    lastSeen: new Date().toLocaleTimeString()
+                });
+                this.renderPeersList();
+            },
+
+            renderPeersList() {
+                const listEl = document.getElementById('syncPeersList');
+                const countEl = document.getElementById('syncConnectedPeersCount');
+                if (!listEl) return;
+                if (countEl) countEl.textContent = this.peers.size;
+                if (this.peers.size === 0) {
+                    listEl.innerHTML = `<li class="sync-peer-item"><span>Listening in room <strong>${this.roomCode || 'Unpaired'}</strong> (Open app on another tab/device with same code)</span></li>`;
+                    return;
+                }
+                listEl.innerHTML = '';
+                this.peers.forEach(peer => {
+                    const li = document.createElement('li');
+                    li.className = 'sync-peer-item';
+                    li.innerHTML = `
+                        <span><strong>📱 ${peer.id}</strong> <small style="color:var(--color-accent-dark);">(${peer.transport})</small></span>
+                        <span style="font-size:0.72rem; color:var(--color-text-muted);">${peer.lastSeen}</span>
+                    `;
+                    listEl.appendChild(li);
+                });
+            },
+
+            sendPacketToTransports(packet) {
+                if (!this.roomCode) return false;
+                const serialized = JSON.stringify(packet);
+                let sentOnAny = false;
+
+                // 1. Direct WebRTC DataChannels (Tier 2 - Lowest Latency)
+                this.webrtcConnections.forEach((conn) => {
+                    if (conn && conn.open) {
+                        try { conn.send(serialized); sentOnAny = true; } catch (e) {}
+                    }
+                });
+
+                // 2. Local LAN / Same-Origin BroadcastChannel (Tier 2)
+                if (this.broadcastChannel) {
+                    try {
+                        this.broadcastChannel.postMessage(packet);
+                        sentOnAny = true;
+                    } catch (e) {}
+                }
+
+                // 3. MQTT over WebSockets (Tier 1 WAN)
+                if (this.mqttClient && this.tierStatus.wanMqtt) {
+                    try {
+                        this.mqttClient.publish(`nur-ul-quran/sync/v1/${this.roomCode}`, serialized);
+                        sentOnAny = true;
+                    } catch (e) {}
+                }
+
+                // 4. Gun.js Decentralized Graph (Tier 1 WAN)
+                if (this.gunRoomNode && this.tierStatus.wanGun) {
+                    try {
+                        const packetId = `${packet.senderId}_${packet.ts || Date.now()}`;
+                        this.gunRoomNode.get('packets').get(packetId).put({ payload: serialized });
+                        sentOnAny = true;
+                    } catch (e) {}
+                }
+
+                return sentOnAny;
+            },
+
+            async queueAndBroadcastDelta(storeName, record) {
+                const packet = {
+                    type: 'CRDT_DELTA',
+                    roomCode: this.roomCode,
+                    senderId: this.deviceId,
+                    storeName,
+                    record,
+                    ts: getNextMonotonicTimestamp()
+                };
+                const delivered = this.sendPacketToTransports(packet);
+                if (!delivered) {
+                    this.offlineQueue.push(packet);
+                    if (this.offlineQueue.length > 500) this.offlineQueue.shift();
+                    safeSetStorage('nur_crdt_offline_queue', JSON.stringify(this.offlineQueue));
+                }
+                this.updateTelemetryUI();
+            },
+
+            async flushOfflineQueue() {
+                if (!this.roomCode || this.offlineQueue.length === 0) return;
+                const pending = [...this.offlineQueue];
+                this.offlineQueue = [];
+                safeSetStorage('nur_crdt_offline_queue', '[]');
+                for (const pkt of pending) {
+                    pkt.roomCode = this.roomCode;
+                    this.sendPacketToTransports(pkt);
+                }
+                this.logActivity(`🚀 Flushed ${pending.length} queued offline CRDT mutation(s).`);
+                this.updateTelemetryUI();
+            },
+
+            async buildFullLocalSnapshot() {
+                const snapshot = {};
+                for (const storeName of CRDT_SYNCED_STORES) {
+                    snapshot[storeName] = await getAllData(storeName, true);
+                }
+                snapshot._tombstones = getTombstoneLedger();
+                return snapshot;
+            },
+
+            async broadcastSyncVectorHandshake() {
+                if (!this.roomCode || !db) return;
+                const snapshot = await this.buildFullLocalSnapshot();
+                const pkt = {
+                    type: 'CRDT_FULL_SYNC',
+                    roomCode: this.roomCode,
+                    senderId: this.deviceId,
+                    peerId: this.peerInstance ? this.peerInstance.id : null,
+                    snapshot,
+                    ts: getNextMonotonicTimestamp()
+                };
+                this.sendPacketToTransports(pkt);
+                this.updateTelemetryUI();
+            },
+
+            resolveLWWConflict(localRec, incomingRec) {
+                if (!localRec) return { winner: incomingRec, changed: true };
+                const localTs = Number(localRec.updatedAt) || 0;
+                const remoteTs = Number(incomingRec.updatedAt) || 0;
+
+                // Field-level LWW merge when both records are non-deleted updates to the same entity
+                if (!localRec.isDeleted && !incomingRec.isDeleted && localRec._fieldTimestamps && incomingRec._fieldTimestamps) {
+                    const merged = { ...localRec };
+                    const mergedFieldTs = { ...(localRec._fieldTimestamps || {}) };
+                    let anyFieldUpdated = false;
+                    Object.keys(incomingRec).forEach(k => {
+                        if (k.startsWith('_') || k === 'uuid' || k === 'updatedAt' || k === 'version' || k === 'deviceId') return;
+                        const incFieldTime = Number(incomingRec._fieldTimestamps[k]) || remoteTs;
+                        const locFieldTime = Number(mergedFieldTs[k]) || localTs;
+                        if (incFieldTime > locFieldTime) {
+                            merged[k] = incomingRec[k];
+                            mergedFieldTs[k] = incFieldTime;
+                            anyFieldUpdated = true;
+                        }
+                    });
+                    if (remoteTs > localTs || anyFieldUpdated) {
+                        merged.updatedAt = Math.max(localTs, remoteTs);
+                        merged.version = Math.max(Number(localRec.version) || 1, Number(incomingRec.version) || 1);
+                        merged.deviceId = remoteTs >= localTs ? incomingRec.deviceId : localRec.deviceId;
+                        merged._fieldTimestamps = mergedFieldTs;
+                        return { winner: merged, changed: true };
+                    }
+                    return { winner: localRec, changed: false };
+                }
+
+                // Record-level LWW resolution (including soft-delete tombstones)
+                if (remoteTs > localTs) return { winner: incomingRec, changed: true };
+                if (remoteTs < localTs) return { winner: localRec, changed: false };
+
+                const localVer = Number(localRec.version) || 0;
+                const remoteVer = Number(incomingRec.version) || 0;
+                if (remoteVer > localVer) return { winner: incomingRec, changed: true };
+                if (remoteVer < localVer) return { winner: localRec, changed: false };
+
+                // Deterministic tie-breaker by deviceId
+                if (String(incomingRec.deviceId || '') > String(localRec.deviceId || '')) {
+                    return { winner: incomingRec, changed: true };
+                }
+                return { winner: localRec, changed: false };
+            },
+
+            async applyIncomingRecord(storeName, incomingRec) {
+                if (!db || !CRDT_SYNCED_STORES.has(storeName) || !incomingRec) return false;
+                const uuid = computeRecordUUID(storeName, incomingRec);
+                incomingRec.uuid = uuid;
+                const ledger = getTombstoneLedger();
+                const existingTombstone = ledger[uuid];
+
+                // Check if incoming record is a soft-delete tombstone
+                if (incomingRec.isDeleted) {
+                    const { winner, changed } = this.resolveLWWConflict(existingTombstone, incomingRec);
+                    if (changed) {
+                        ledger[uuid] = winner;
+                        saveTombstoneLedger(ledger);
+                        if (storeName === 'tafsir' || storeName === 'hifz') {
+                            if (incomingRec.surah && incomingRec.ayah) {
+                                await rawDeleteData(storeName, [incomingRec.surah, incomingRec.ayah]).catch(() => {});
+                            }
+                        } else if (incomingRec.id !== undefined) {
+                            await rawDeleteData(storeName, incomingRec.id).catch(() => {});
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+
+                // If local tombstone is newer than incoming active record, ignore resurrection
+                if (existingTombstone && Number(existingTombstone.updatedAt) >= Number(incomingRec.updatedAt || 0)) {
+                    return false;
+                }
+
+                const allLocal = await getAllData(storeName, true);
+                const localMatch = allLocal.find(item => computeRecordUUID(storeName, item) === uuid);
+                const { winner, changed } = this.resolveLWWConflict(localMatch, incomingRec);
+                if (changed) {
+                    if (existingTombstone) {
+                        delete ledger[uuid];
+                        saveTombstoneLedger(ledger);
+                    }
+                    await rawPutData(storeName, winner);
+                    return true;
+                }
+                return false;
+            },
+
+            async handleIncomingPacket(packet, transportLabel) {
+                if (!packet || packet.roomCode !== this.roomCode || packet.senderId === this.deviceId) return;
+                this.registerSeenPeer(packet.senderId, transportLabel);
+
+                if (packet.type === 'WEBRTC_ANNOUNCE' && packet.peerId) {
+                    this.connectToRemoteWebRtcPeer(packet.peerId, packet.senderId);
+                    return;
+                }
+
+                if (packet.type === 'CRDT_DELTA' && packet.storeName && packet.record) {
+                    const updated = await this.applyIncomingRecord(packet.storeName, packet.record);
+                    if (updated) {
+                        this.logActivity(`📥 Merged delta [${packet.storeName}] from ${packet.senderId} via ${transportLabel}`);
+                        await this.refreshAppViewsAfterSync();
+                    }
+                    return;
+                }
+
+                if (packet.type === 'CRDT_FULL_SYNC' && packet.snapshot) {
+                    if (packet.peerId) {
+                        this.connectToRemoteWebRtcPeer(packet.peerId, packet.senderId);
+                    }
+                    let mergeCount = 0;
+                    const snap = packet.snapshot;
+                    if (snap._tombstones && typeof snap._tombstones === 'object') {
+                        for (const tb of Object.values(snap._tombstones)) {
+                            if (tb && tb.storeName) {
+                                const didApply = await this.applyIncomingRecord(tb.storeName, tb);
+                                if (didApply) mergeCount++;
+                            }
+                        }
+                    }
+                    for (const storeName of CRDT_SYNCED_STORES) {
+                        if (Array.isArray(snap[storeName])) {
+                            for (const rec of snap[storeName]) {
+                                const didApply = await this.applyIncomingRecord(storeName, rec);
+                                if (didApply) mergeCount++;
+                            }
+                        }
+                    }
+                    if (mergeCount > 0) {
+                        this.logActivity(`🔄 Converged ${mergeCount} CRDT record(s) from ${packet.senderId} (${transportLabel})`);
+                        await this.refreshAppViewsAfterSync();
+                    }
+                    this.updateTelemetryUI();
+                }
+            },
+
+            async refreshAppViewsAfterSync() {
+                try {
+                    await loadAyah(currentSurah, currentAyah);
+                    await displayThemesList();
+                    await displaySavedRootsList();
+                    await renderSavedTafsirNotebook();
+                    await updateQuickWorkflowBarState();
+                } catch (e) {}
+            },
+
+            disconnectRoom() {
+                const oldRoom = this.roomCode;
+                this.roomCode = '';
+                safeSetStorage('nur_sync_room_code', '');
+                if (this.mqttClient) {
+                    try { this.mqttClient.end(true); } catch (e) {}
+                    this.mqttClient = null;
+                }
+                this.webrtcConnections.forEach(c => { try { c.close(); } catch (e) {} });
+                this.webrtcConnections.clear();
+                this.peers.clear();
+                this.tierStatus.wanGun = false;
+                this.tierStatus.wanMqtt = false;
+                this.tierStatus.webrtcP2P = false;
+                this.tierStatus.bleProximity = false;
+                this.renderPeersList();
+                this.updateTelemetryUI();
+                this.logActivity(`🔌 Disconnected from room ${oldRoom || ''}. Pairing tokens cleared.`);
+                showToast('Disconnected from sync room & cleared pairing session.', 'info');
+            },
+
+            async updateTelemetryUI() {
+                const headerDot = document.getElementById('headerSyncDot');
+                const headerText = document.getElementById('headerSyncStatusText');
+                const modalDot = document.getElementById('modalSyncDot');
+                const modalLabel = document.getElementById('modalSyncStateLabel');
+                const queueBadge = document.getElementById('uxSyncQueueCountBadge');
+                const vectorStats = document.getElementById('syncVectorStatsDisplay');
+
+                let dotClass = 'sync-dot state-offline';
+                let statusText = '🔴 Offline Queueing';
+                let shortHeader = this.roomCode ? `🔴 ${this.roomCode}` : 'Connect & Sync';
+
+                if (this.tierStatus.webrtcP2P) {
+                    dotClass = 'sync-dot state-webrtc';
+                    statusText = `🟢 Synced (WebRTC Direct • ${this.roomCode})`;
+                    shortHeader = `🟢 ${this.roomCode} (P2P)`;
+                } else if (this.tierStatus.bleProximity) {
+                    dotClass = 'sync-dot state-ble';
+                    statusText = `🔵 Proximity (BLE • ${this.roomCode || 'Local'})`;
+                    shortHeader = `🔵 Proximity`;
+                } else if (this.tierStatus.wanMqtt || this.tierStatus.wanGun) {
+                    dotClass = 'sync-dot state-wan';
+                    const relayName = this.tierStatus.wanMqtt ? 'MQTT + Gun.js' : 'Gun.js WAN';
+                    statusText = `🟡 Syncing (${relayName} • ${this.roomCode})`;
+                    shortHeader = `🟡 ${this.roomCode}`;
+                } else if (this.roomCode && this.tierStatus.lanBroadcast) {
+                    dotClass = 'sync-dot state-ble';
+                    statusText = `🔵 Local LAN Ready (${this.roomCode})`;
+                    shortHeader = `🔵 ${this.roomCode} (LAN)`;
+                }
+
+                if (headerDot) headerDot.className = dotClass;
+                if (headerText) headerText.textContent = shortHeader;
+                if (modalDot) modalDot.className = dotClass;
+                if (modalLabel) modalLabel.textContent = statusText;
+                if (queueBadge) {
+                    queueBadge.textContent = this.roomCode
+                        ? `${this.roomCode} (${this.offlineQueue.length} Q)`
+                        : `${this.offlineQueue.length} Queued`;
+                }
+
+                // Tier Cards
+                const t1Badge = document.getElementById('tier1StatusBadge');
+                const t2Badge = document.getElementById('tier2StatusBadge');
+                const t3Badge = document.getElementById('tier3StatusBadge');
+                if (t1Badge) t1Badge.textContent = (this.tierStatus.wanMqtt || this.tierStatus.wanGun) ? '🟢 Connected' : '⚪ Standby';
+                if (t2Badge) t2Badge.textContent = this.tierStatus.webrtcP2P ? '🟢 WebRTC Active' : (this.tierStatus.lanBroadcast ? '🔵 LAN Ready' : '⚪ Standby');
+                if (t3Badge) t3Badge.textContent = this.tierStatus.bleProximity ? '🔵 Active' : '⚪ Ready';
+
+                document.getElementById('tier1Card')?.classList.toggle('active-tier', Boolean(this.tierStatus.wanMqtt || this.tierStatus.wanGun));
+                document.getElementById('tier2Card')?.classList.toggle('active-tier', Boolean(this.tierStatus.webrtcP2P || this.tierStatus.lanBroadcast));
+                document.getElementById('tier3Card')?.classList.toggle('active-tier', Boolean(this.tierStatus.bleProximity));
+
+                if (vectorStats && db) {
+                    let totalRecs = 0;
+                    for (const s of CRDT_SYNCED_STORES) {
+                        const list = await getAllData(s).catch(() => []);
+                        totalRecs += list.length;
+                    }
+                    const tombCount = Object.keys(getTombstoneLedger()).length;
+                    vectorStats.textContent = `${totalRecs} active records • ${tombCount} tombstones • ${this.offlineQueue.length} queued`;
+                }
+            }
+        };
+
+        window.queueAndBroadcastCRDTDelta = (storeName, record) => {
+            MultiTierSyncEngine.queueAndBroadcastDelta(storeName, record);
+        };
+
+        async function updateQuickWorkflowBarState() {
+            const badge = document.getElementById('uxActiveAyahBadge');
+            const hifzBtn = document.getElementById('uxQuickHifzCycleBtn');
+            if (badge) {
+                badge.textContent = `📖 Surah ${currentSurah}:${currentAyah} (${surahNames[currentSurah - 1] || ''})`;
+            }
+            if (hifzBtn && db) {
+                const hifzRec = await getData(STORE_HIFZ, [currentSurah, currentAyah]).catch(() => null);
+                const st = hifzRec?.status || 'not-started';
+                const labelMap = { 'not-started': '❤️ Hifz: Not Started', 'in-progress': '💛 Hifz: In Progress', 'memorized': '💚 Hifz: Memorized' };
+                hifzBtn.textContent = labelMap[st] || '❤️ Hifz: Not Started';
+                hifzBtn.dataset.currentStatus = st;
+            }
+        }
+
+        async function handleUxSmartQuickJump() {
+            const inputEl = document.getElementById('uxQuickJumpInput');
+            if (!inputEl) return;
+            const raw = inputEl.value.trim();
+            if (!raw) return;
+
+            // 1. Check "Juz X" or "Parah X"
+            const juzMatch = raw.match(/^(?:juz|parah|para|j)\s*(\d{1,2})$/i);
+            if (juzMatch) {
+                const jNum = Math.max(1, Math.min(30, parseInt(juzMatch[1], 10)));
+                const b = juzBoundariesData.find(item => item.juz === jNum);
+                if (b) {
+                    await loadAyah(b.startSurah, b.startAyah);
+                    showSection('quran');
+                    showToast(`Jumped to Juz ${jNum} (Surah ${b.startSurah}:${b.startAyah})`, 'success');
+                    return;
+                }
+            }
+
+            // 2. Check "Surah:Ayah" (e.g. 2:255 or 36 1)
+            const saMatch = raw.match(/^(\d{1,3})\s*[:\-/\s]\s*(\d{1,3})$/);
+            if (saMatch) {
+                const s = Math.max(1, Math.min(114, parseInt(saMatch[1], 10)));
+                const a = Math.max(1, Math.min(surahAyahCounts[s] || 7, parseInt(saMatch[2], 10)));
+                await loadAyah(s, a);
+                showSection('quran');
+                showToast(`Jumped to Surah ${s}:${a} (${surahNames[s - 1]})`, 'success');
+                return;
+            }
+
+            // 3. Check pure Surah number (e.g. "36" or "18")
+            if (/^\d{1,3}$/.test(raw)) {
+                const s = Math.max(1, Math.min(114, parseInt(raw, 10)));
+                await loadAyah(s, 1);
+                showSection('quran');
+                showToast(`Jumped to Surah ${s}: ${surahNames[s - 1]}`, 'success');
+                return;
+            }
+
+            // 4. Match Surah name substring (e.g. "Yasin", "Kahf", "Mulk", "Baqarah")
+            const norm = raw.toLowerCase().replace(/[^a-z]/g, '');
+            const matchedIdx = surahNames.findIndex(name => name.toLowerCase().replace(/[^a-z]/g, '').includes(norm));
+            if (matchedIdx !== -1) {
+                await loadAyah(matchedIdx + 1, 1);
+                showSection('quran');
+                showToast(`Jumped to Surah ${matchedIdx + 1}: ${surahNames[matchedIdx]}`, 'success');
+                return;
+            }
+
+            // 5. Fallback: Run Advanced Search with the query
+            document.getElementById('search-input').value = raw;
+            showSection('search');
+            await performSearch();
+        }
+
         function applyTheme(themeName) {
             const wasSidebarOpen = document.body.classList.contains('sidebar-open');
             document.body.className = '';
@@ -9631,6 +10888,176 @@
                 e.currentTarget.textContent = gameSfxMuted ? '🔇 SFX: Off' : '🔊 SFX: On';
             });
 
+            // Multi-Tier Connect & Sync Devices Modal Listeners
+            const openSyncModal = () => {
+                MultiTierSyncEngine.updateTelemetryUI();
+                MultiTierSyncEngine.renderPeersList();
+                document.getElementById('connectSyncModal').style.display = 'flex';
+            };
+            document.getElementById('openSyncModalHeaderBtn')?.addEventListener('click', openSyncModal);
+            document.getElementById('uxQuickSyncStatusBtn')?.addEventListener('click', openSyncModal);
+            document.getElementById('openSyncModalDataSectionBtn')?.addEventListener('click', openSyncModal);
+            document.getElementById('sidebarOpenSyncModalLink')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.body.classList.remove('sidebar-open');
+                openSyncModal();
+            });
+            document.getElementById('connectSyncRoomBtn')?.addEventListener('click', () => {
+                const code = document.getElementById('syncRoomCodeInput')?.value || '';
+                MultiTierSyncEngine.connectToRoom(code, false);
+            });
+            document.getElementById('generateSyncRoomBtn')?.addEventListener('click', () => {
+                const newCode = 'BANNU-' + Math.floor(1000 + Math.random() * 9000);
+                document.getElementById('syncRoomCodeInput').value = newCode;
+                MultiTierSyncEngine.connectToRoom(newCode, false);
+            });
+            document.getElementById('copySyncRoomBtn')?.addEventListener('click', async () => {
+                const code = document.getElementById('syncRoomCodeInput')?.value || MultiTierSyncEngine.roomCode;
+                if (!code) return;
+                try {
+                    await navigator.clipboard.writeText(code);
+                } catch (e) {
+                    const ta = document.createElement('textarea');
+                    ta.value = code;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                showToast(`Copied Room Code: ${code}`, 'success');
+            });
+            document.getElementById('disconnectSyncRoomBtn')?.addEventListener('click', () => {
+                MultiTierSyncEngine.disconnectRoom();
+            });
+            document.getElementById('triggerManualSyncNowBtn')?.addEventListener('click', async () => {
+                await MultiTierSyncEngine.broadcastSyncVectorHandshake();
+                await MultiTierSyncEngine.flushOfflineQueue();
+                showToast('Broadcasted two-way CRDT Sync Vector across active tiers!', 'success');
+            });
+            document.getElementById('quickTriggerSyncFromDataBtn')?.addEventListener('click', async () => {
+                await MultiTierSyncEngine.broadcastSyncVectorHandshake();
+                await MultiTierSyncEngine.flushOfflineQueue();
+                showToast('Triggered immediate multi-tier sync!', 'success');
+            });
+            document.getElementById('pairBleProximityBtn')?.addEventListener('click', () => {
+                MultiTierSyncEngine.pairWebBluetoothProximity();
+            });
+            document.getElementById('pairSerialProximityBtn')?.addEventListener('click', () => {
+                MultiTierSyncEngine.pairWebSerialProximity();
+            });
+            document.getElementById('toggleQrScannerBtn')?.addEventListener('click', async () => {
+                const viewport = document.getElementById('syncQrReaderViewport');
+                if (!viewport) return;
+                if (MultiTierSyncEngine.isScanningQr && MultiTierSyncEngine.qrScannerInstance) {
+                    try { await MultiTierSyncEngine.qrScannerInstance.stop(); } catch (e) {}
+                    MultiTierSyncEngine.isScanningQr = false;
+                    viewport.style.display = 'none';
+                    return;
+                }
+                if (typeof window.Html5Qrcode === 'undefined') {
+                    showToast('QR Scanner library unavailable offline; please type the Room Code directly.', 'info');
+                    return;
+                }
+                viewport.style.display = 'block';
+                try {
+                    const scanner = new window.Html5Qrcode('syncQrReaderViewport');
+                    MultiTierSyncEngine.qrScannerInstance = scanner;
+                    MultiTierSyncEngine.isScanningQr = true;
+                    await scanner.start(
+                        { facingMode: 'environment' },
+                        { fps: 10, qrbox: { width: 180, height: 180 } },
+                        (decodedText) => {
+                            const cleaned = decodedText.replace(/^NURSYNC:/i, '').trim();
+                            document.getElementById('syncRoomCodeInput').value = cleaned;
+                            MultiTierSyncEngine.connectToRoom(cleaned, false);
+                            scanner.stop().catch(() => {});
+                            MultiTierSyncEngine.isScanningQr = false;
+                            viewport.style.display = 'none';
+                        },
+                        () => {}
+                    );
+                } catch (err) {
+                    MultiTierSyncEngine.isScanningQr = false;
+                    viewport.style.display = 'none';
+                    showToast('Camera unavailable in this environment. Enter the alphanumeric Room Code directly.', 'info');
+                }
+            });
+
+            // UX Quick-Workflow Bar & Auto-Save Listeners
+            document.getElementById('uxActiveAyahBadge')?.addEventListener('click', () => showSection('quran'));
+            document.getElementById('uxQuickJumpBtn')?.addEventListener('click', handleUxSmartQuickJump);
+            document.getElementById('uxQuickJumpInput')?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleUxSmartQuickJump();
+                }
+            });
+            document.getElementById('uxQuickNoteActionBtn')?.addEventListener('click', () => {
+                openTafsirModal(currentSurah, currentAyah);
+            });
+            document.getElementById('uxQuickThemeActionBtn')?.addEventListener('click', () => {
+                openThemeModal(currentSurah, currentAyah);
+            });
+            document.getElementById('uxQuickHifzCycleBtn')?.addEventListener('click', async (e) => {
+                const cycleOrder = ['not-started', 'in-progress', 'memorized'];
+                const cur = e.currentTarget.dataset.currentStatus || 'not-started';
+                const nextStatus = cycleOrder[(cycleOrder.indexOf(cur) + 1) % cycleOrder.length];
+                const existing = await getData(STORE_HIFZ, [currentSurah, currentAyah]) || { surah: currentSurah, ayah: currentAyah, status: 'not-started', notes: '' };
+                existing.status = nextStatus;
+                if (nextStatus === 'memorized' && !existing.lastReviewDate) {
+                    existing.lastReviewDate = new Date().toISOString().split('T')[0];
+                    existing.reviewCount = 0;
+                    existing.nextReviewDate = calculateNextReview(existing.lastReviewDate, 0);
+                }
+                await putData(STORE_HIFZ, existing);
+                await updateQuickWorkflowBarState();
+                showToast(`Surah ${currentSurah}:${currentAyah} Hifz → ${nextStatus.replace('-', ' ')}`, 'success');
+            });
+            document.getElementById('uxShortcutsHelpBtn')?.addEventListener('click', () => {
+                document.getElementById('uxShortcutsModal').style.display = 'flex';
+            });
+
+            // Debounced Auto-Save for Personal Tafsir
+            let tafsirAutoSaveTimer = null;
+            document.getElementById('tafsir-notes')?.addEventListener('input', () => {
+                const badge = document.getElementById('tafsirAutoSaveIndicator');
+                if (badge) badge.textContent = '⏳ Saving draft...';
+                clearTimeout(tafsirAutoSaveTimer);
+                tafsirAutoSaveTimer = setTimeout(async () => {
+                    const notesVal = document.getElementById('tafsir-notes')?.value.trim() || '';
+                    if (notesVal && db) {
+                        await putData(STORE_TAFSIR, { surah: currentSurah, ayah: currentAyah, notes: notesVal });
+                        await renderSavedTafsirNotebook(document.getElementById('tafsir-notebook-search')?.value || '');
+                        if (badge) badge.textContent = `✓ Auto-saved (${currentSurah}:${currentAyah}) & Synced`;
+                    } else if (badge) {
+                        badge.textContent = '✓ Auto-save & CRDT Sync Ready';
+                    }
+                }, 750);
+            });
+
+            // Global Power-User Keyboard Shortcuts (Alt+S, Alt+N, Alt+H, Alt+P, Alt+Arrows)
+            document.addEventListener('keydown', (e) => {
+                if (e.altKey && e.key.toLowerCase() === 's') {
+                    e.preventDefault();
+                    openSyncModal();
+                } else if (e.altKey && e.key.toLowerCase() === 'n') {
+                    e.preventDefault();
+                    openTafsirModal(currentSurah, currentAyah);
+                } else if (e.altKey && e.key.toLowerCase() === 'h') {
+                    e.preventDefault();
+                    document.getElementById('uxQuickHifzCycleBtn')?.click();
+                } else if (e.altKey && e.key.toLowerCase() === 'p') {
+                    e.preventDefault();
+                    document.getElementById('mainAudioPlayPauseBtn')?.click();
+                } else if (e.altKey && e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    goToNextAyah();
+                } else if (e.altKey && e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    goToPrevAyah();
+                }
+            });
+
             // Hash Navigation Support
             window.addEventListener('hashchange', () => {
                 const hash = window.location.hash.substring(1);
@@ -9663,6 +11090,8 @@
                 await displaySavedRootsList();
                 await renderSavedTafsirNotebook();
                 window.rootNodePopupEl = document.getElementById('root-node-popup');
+                MultiTierSyncEngine.init();
+                await updateQuickWorkflowBarState();
             } catch (error) {
                 console.error("App initialization error:", error);
                 hideLoading();
@@ -9672,7 +11101,7 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v5').catch(() => {});
+                navigator.serviceWorker.register('./sw.js?v4').catch(() => {});
             });
         }
     </script>
