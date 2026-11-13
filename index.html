@@ -3608,33 +3608,53 @@
             }
         }
 
+        function alignWordsToMetadata(words, wordMetadata) {
+            if (!words || words.length === 0) return [];
+            if (!wordMetadata || wordMetadata.length === 0) {
+                return words.map(() => 'null');
+            }
+            const metaList = [...wordMetadata].sort((a, b) => a.word_position - b.word_position);
+            if (words.length === metaList.length) {
+                return metaList.map(m => m.word_id);
+            }
+            const result = new Array(words.length).fill(null);
+            let wIdx = 0;
+            let mIdx = 0;
+            while (wIdx < words.length && mIdx < metaList.length) {
+                const wClean = words[wIdx].replace(/[\u064B-\u065F\u0670\u0640\u06D6-\u06ED\u08F0-\u08FF]/g, '');
+                if ((words.length - wIdx) > (metaList.length - mIdx)) {
+                    if (wClean === 'يا' || wClean === 'ويا' || wClean === 'ها' || wClean === 'ابن') {
+                        result[wIdx] = metaList[mIdx].word_id;
+                        wIdx++;
+                        continue;
+                    }
+                }
+                result[wIdx] = metaList[mIdx].word_id;
+                wIdx++;
+                mIdx++;
+            }
+            const lastId = metaList[metaList.length - 1].word_id;
+            for (let i = 0; i < words.length; i++) {
+                if (result[i] === null) {
+                    result[i] = lastId;
+                }
+            }
+            return result;
+        }
+
         async function renderSingleAyahView(surah, ayah) {
             const displayArea = document.getElementById('quran-display');
             if (!displayArea) return;
             try {
                 const quran = await getOrSynthesizeAyahRecord(surah, ayah);
                 const wordMetadata = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([surah, ayah, 0], [surah, ayah, Infinity]), 'location_idx');
-                let wordsHTML = '';
-                let wordCount = 0;
-                if (wordMetadata && wordMetadata.length > 0) {
-                    wordMetadata.sort((a, b) => a.word_position - b.word_position);
-                    wordCount = wordMetadata.length;
-                    const transPromises = wordMetadata.map(m => getData(STORE_WORD_TRANSLATIONS, m.word_id));
-                    const transList = await Promise.all(transPromises);
-                    const transMap = new Map(transList.filter(Boolean).map(t => [t.word_id, t]));
-                    const fallbackWords = quran.arabic.split(/\s+/).filter(w => w.trim());
-                    wordsHTML = wordMetadata.map((m, index) => {
-                        const t = transMap.get(m.word_id);
-                        const wordText = m.arabic_word || t?.quran_text || t?.arabic_word || fallbackWords[index] || '';
-                        return `<span class="arabic-word" data-word-text="${wordText}" data-word-id="${m.word_id}" tabindex="0" role="button">${wordText}</span>`;
-                    }).join(' ');
-                } else {
-                    const words = quran.arabic.split(/\s+/).filter(w => w.trim());
-                    wordCount = words.length;
-                    wordsHTML = words.map(word => {
-                        return `<span class="arabic-word" data-word-text="${word.trim()}" data-word-id="null" tabindex="0" role="button">${word}</span>`;
-                    }).join(' ');
-                }
+                const words = quran.arabic.split(/\s+/).filter(w => w.trim());
+                const wordCount = words.length;
+                const alignedIds = alignWordsToMetadata(words, wordMetadata);
+                const wordsHTML = words.map((word, idx) => {
+                    const wordId = alignedIds[idx];
+                    return `<span class="arabic-word" data-word-text="${word}" data-word-id="${wordId}" tabindex="0" role="button">${word}</span>`;
+                }).join(' ');
 
                 const translationInfo = getTranslationConfig(document.getElementById('translation-select').value);
                 const juzNum = getJuzFromSurahAyah(surah, ayah);
@@ -3685,44 +3705,22 @@
                 const allMetadataForSurah = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([surah, 1, 0], [surah, surahAyahCounts[surah], Infinity]), 'location_idx');
                 const translationInfo = getTranslationConfig(document.getElementById('translation-select').value);
 
-                let transMap = new Map();
                 const metaByAyah = new Map();
                 if (allMetadataForSurah && allMetadataForSurah.length > 0) {
-                    let minWordId = Infinity;
-                    let maxWordId = -Infinity;
                     allMetadataForSurah.forEach(m => {
-                        if (m.word_id < minWordId) minWordId = m.word_id;
-                        if (m.word_id > maxWordId) maxWordId = m.word_id;
                         if (!metaByAyah.has(m.ayah)) metaByAyah.set(m.ayah, []);
                         metaByAyah.get(m.ayah).push(m);
                     });
-                    metaByAyah.forEach(list => list.sort((a, b) => a.word_position - b.word_position));
-                    if (minWordId <= maxWordId) {
-                        try {
-                            const transList = await getAllDataInRange(STORE_WORD_TRANSLATIONS, IDBKeyRange.bound(minWordId, maxWordId));
-                            if (transList && transList.length > 0) {
-                                transList.forEach(t => transMap.set(t.word_id, t));
-                            }
-                        } catch (err) {}
-                    }
                 }
 
                 allAyahsInSurah.forEach(quran => {
-                    const ayahMeta = metaByAyah.get(quran.ayah);
-                    let wordsHTML = '';
-                    if (ayahMeta && ayahMeta.length > 0) {
-                        const fallbackWords = quran.arabic.split(/\s+/).filter(w => w.trim());
-                        wordsHTML = ayahMeta.map((m, index) => {
-                            const t = transMap.get(m.word_id);
-                            const wordText = m.arabic_word || t?.quran_text || t?.arabic_word || fallbackWords[index] || '';
-                            return `<span class="arabic-word" data-word-text="${wordText}" data-word-id="${m.word_id}">${wordText}</span>`;
-                        }).join(' ');
-                    } else {
-                        const words = quran.arabic.split(/\s+/).filter(w => w.trim());
-                        wordsHTML = words.map(word => {
-                            return `<span class="arabic-word" data-word-text="${word.trim()}" data-word-id="null">${word}</span>`;
-                        }).join(' ');
-                    }
+                    const ayahMeta = metaByAyah.get(quran.ayah) || [];
+                    const words = quran.arabic.split(/\s+/).filter(w => w.trim());
+                    const alignedIds = alignWordsToMetadata(words, ayahMeta);
+                    const wordsHTML = words.map((word, idx) => {
+                        const wordId = alignedIds[idx];
+                        return `<span class="arabic-word" data-word-text="${word}" data-word-id="${wordId}">${word}</span>`;
+                    }).join(' ');
                     const ayahDiv = document.createElement('div');
                     ayahDiv.id = `s${quran.surah}a${quran.ayah}`;
                     ayahDiv.className = 'ayah';
@@ -5478,27 +5476,18 @@
                 const includeWbw = document.getElementById('includeWordByWordTable')?.checked;
                 if (includeWbw) {
                     const selectedWbwLangs = Array.from(document.querySelectorAll('#wordByWordLanguageOptions input:checked')).map(cb => cb.value);
+                    const words = ayahData.arabic.split(/\s+/).filter(Boolean);
                     const wordMeta = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([surah, ayah, 0], [surah, ayah, Infinity]), 'location_idx');
+                    const alignedIds = alignWordsToMetadata(words, wordMeta);
                     let rowsHTML = '';
-                    if (wordMeta && wordMeta.length > 0) {
-                        wordMeta.sort((a, b) => a.word_position - b.word_position);
-                        const fallbackWords = ayahData.arabic.split(/\s+/).filter(Boolean);
-                        for (let idx = 0; idx < wordMeta.length; idx++) {
-                            const m = wordMeta[idx];
-                            const wTrans = await getData(STORE_WORD_TRANSLATIONS, m.word_id);
-                            const arabicWord = m.arabic_word || wTrans?.quran_text || wTrans?.arabic_word || fallbackWords[idx] || '';
-                            const langCells = selectedWbwLangs.map(lk => {
-                                const { meaningText } = getDynamicLanguageData(wTrans, lk);
-                                return `<td>${meaningText || '-'}</td>`;
-                            }).join('');
-                            rowsHTML += `<tr><td class="arabic-word-cell">${arabicWord}</td>${langCells}</tr>`;
-                        }
-                    } else {
-                        const words = ayahData.arabic.split(/\s+/).filter(Boolean);
-                        for (let idx = 0; idx < words.length; idx++) {
-                            const langCells = selectedWbwLangs.map(() => `<td>-</td>`).join('');
-                            rowsHTML += `<tr><td class="arabic-word-cell">${words[idx]}</td>${langCells}</tr>`;
-                        }
+                    for (let idx = 0; idx < words.length; idx++) {
+                        const wId = alignedIds[idx];
+                        const wTrans = (wId && wId !== 'null') ? await getData(STORE_WORD_TRANSLATIONS, wId) : null;
+                        const langCells = selectedWbwLangs.map(lk => {
+                            const { meaningText } = getDynamicLanguageData(wTrans, lk);
+                            return `<td>${meaningText || '-'}</td>`;
+                        }).join('');
+                        rowsHTML += `<tr><td class="arabic-word-cell">${words[idx]}</td>${langCells}</tr>`;
                     }
                     const headersHTML = selectedWbwLangs.map(lk => `<th>${getTranslationConfig(lk).label}</th>`).join('');
                     wordTableHTML = `<table class="word-table" style="margin-top:18px;"><thead><tr><th>Arabic Word</th>${headersHTML}</tr></thead><tbody>${rowsHTML}</tbody></table>`;
@@ -8476,7 +8465,7 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v3').catch(() => {});
+                navigator.serviceWorker.register('./sw.js?v4').catch(() => {});
             });
         }
     </script>
