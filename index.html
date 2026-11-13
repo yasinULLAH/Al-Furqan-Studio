@@ -1519,14 +1519,15 @@
             border: 1px solid var(--color-border);
             border-radius: var(--border-radius-lg);
             box-shadow: 0 4px 20px var(--color-shadow);
-            padding: 24px 28px;
-            margin-bottom: 14px;
+            padding: 24px 32px;
+            margin-bottom: 0;
             width: 100%;
-            max-width: 860px;
+            max-width: 100%;
+            flex-grow: 1;
             direction: rtl;
             text-align: justify;
         }
-        #continuousScrollSurahContainer { width: 100%; max-width: 860px; margin: 0 auto; }
+        #continuousScrollSurahContainer { width: 100%; max-width: 100%; margin: 0 auto; }
         .continuousSurahBlock {
             background-color: var(--color-bg-secondary);
             border: 1px solid var(--color-border);
@@ -7152,6 +7153,14 @@
             document.body.style.overflow = 'hidden';
             overlay.style.display = 'flex';
 
+            const reqFs = overlay.requestFullscreen || overlay.webkitRequestFullscreen || overlay.msRequestFullscreen || document.documentElement.requestFullscreen;
+            if (reqFs && !document.fullscreenElement && !document.webkitFullscreenElement) {
+                try {
+                    const p = reqFs.call(overlay);
+                    if (p && typeof p.catch === 'function') p.catch(() => {});
+                } catch (e) {}
+            }
+
             loadFullScreenReaderSettings();
             await loadTajMushafPageDataIfNeeded();
             fullScreenReaderCurrentSurah = currentSurah || 1;
@@ -7183,6 +7192,15 @@
             if (overlay) overlay.style.display = 'none';
             document.body.style.overflow = '';
             isFullScreenReaderActive = false;
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                const exitFs = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+                if (exitFs) {
+                    try {
+                        const p = exitFs.call(document);
+                        if (p && typeof p.catch === 'function') p.catch(() => {});
+                    } catch (e) {}
+                }
+            }
             stopAndClearAudio();
             saveLastReadPosition();
             saveFullScreenReaderSettings();
@@ -10997,7 +11015,7 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v6').catch(() => {});
+                navigator.serviceWorker.register('./sw.js?v7').catch(() => {});
             });
         }
     </script>

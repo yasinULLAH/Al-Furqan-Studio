@@ -784,10 +784,20 @@
 
         .ayah-translation {
             font-size: 1.08rem;
-            line-height: 1.75;
+            line-height: 1.85;
             color: var(--color-text-secondary);
             padding-top: 12px;
             border-top: 1px dashed var(--color-border);
+        }
+
+        .ayah-translation[dir="ltr"], .parallel-trans-item [dir="ltr"] {
+            direction: ltr;
+            text-align: left;
+        }
+
+        .ayah-translation[dir="rtl"], .parallel-trans-item [dir="rtl"] {
+            direction: rtl;
+            text-align: right;
         }
 
         /* Ayah Action Bar */
@@ -858,9 +868,9 @@
             border-radius: 10px;
             border: 1px solid var(--color-border);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 4px;
         }
 
         .word-breakdown-item .wb-label {
@@ -869,12 +879,15 @@
             letter-spacing: 0.04em;
             color: var(--color-text-muted);
             font-weight: 700;
+            direction: ltr;
+            text-align: left;
         }
 
         .word-breakdown-item .wb-val {
-            font-size: 1rem;
+            font-size: 1.02rem;
             font-weight: 600;
             color: var(--color-text-primary);
+            width: 100%;
         }
 
         /* ==========================================================================
@@ -2256,9 +2269,8 @@
             </div>
             <div id="loading-percentage">0%</div>
             <div id="loading-first-time-notice" style="font-size: 0.82rem; margin-top: 12px; color: var(--color-text-muted);">
-                (Loads first time or after update; opens instantly offline afterwards.)
-                <br />
-                <span dir="rtl">(پہلی بار یا اپ ڈیٹ کے بعد ایپ تھوڑا وقت لے گا، اگلی بار فوراً کھلے گا۔)</span>
+                <div dir="ltr">(Loads first time or after update; opens instantly offline afterwards.)</div>
+                <div lang="ur" dir="rtl" style="font-family: var(--font-urdu); margin-top: 6px;">(پہلی بار یا اپ ڈیٹ کے بعد ایپ تھوڑا وقت لے گا، اگلی بار فوراً کھلے گا۔)</div>
             </div>
         </div>
     </div>
@@ -2425,20 +2437,14 @@
                     </div>
                 </div>
 
-                <!-- Study Display Toggles & Range Loop Trainer -->
+                <!-- Study Display Toggles -->
                 <div class="viewer-toggles-bar">
                     <div class="flex-group" style="flex-wrap:wrap; gap:6px;">
                         <label class="toggle-chip"><input type="checkbox" id="inlineTajweedToggle"> 🎨 Tajweed Colors</label>
-                        <label class="toggle-chip"><input type="checkbox" id="inlineTransliterationToggle"> 🔤 Transliteration</label>
                         <label class="toggle-chip"><input type="checkbox" id="parallelTranslationToggle"> 📚 Parallel All 4 Translations</label>
-                        <label class="toggle-chip"><input type="checkbox" id="inlineClassicalTafsirToggle" checked> 💡 Commentary &amp; Notes</label>
                     </div>
                     <div class="flex-group" style="flex-wrap:wrap; gap:6px;">
-                        <span style="font-size:0.75rem; font-weight:700; color:var(--color-text-muted);">Hifz Range Loop:</span>
-                        <input type="number" id="loopRangeStartInput" min="1" value="1" title="Loop Start Ayah" style="width:62px; min-height:30px; padding:3px 6px; margin:0; font-size:0.78rem;">
-                        <span style="font-size:0.78rem;">to</span>
-                        <input type="number" id="loopRangeEndInput" min="1" value="7" title="Loop End Ayah" style="width:62px; min-height:30px; padding:3px 6px; margin:0; font-size:0.78rem;">
-                        <button type="button" id="startRangeLoopBtn" class="compact-pill-btn btn-secondary" title="Loop Selected Ayah Range">🔁 Loop Range</button>
+                        <span style="font-size:0.75rem; font-weight:700; color:var(--color-text-muted);">Arabic Text Size:</span>
                         <button type="button" id="decreaseArabicFontBtn" class="compact-pill-btn btn-secondary" title="Decrease Arabic Font Size">A-</button>
                         <button type="button" id="increaseArabicFontBtn" class="compact-pill-btn btn-secondary" title="Increase Arabic Font Size">A+</button>
                     </div>
@@ -2452,9 +2458,6 @@
                     </div>
                     <div class="tajweed-legend-grid" id="tajweedLegendGrid"></div>
                 </div>
-
-                <!-- Surah Metadata Banner -->
-                <div id="surahMetaBanner" class="surah-meta-banner"></div>
 
                 <!-- Saved Bookmarks Strip -->
                 <div class="bookmarks-strip" id="bookmarksStripContainer" aria-label="Saved Bookmarks"></div>
@@ -3225,7 +3228,6 @@
                     <label for="fsLinesPerPageSlider">Lines Per Page (<span id="fsLinesPerPageValue">15</span>):</label>
                     <input type="range" id="fsLinesPerPageSlider" min="8" max="35" step="1" value="15">
                 </div>
-                <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="fsShowTransliterationCheck" style="width:auto; margin:0;"> Show Transliteration</label>
                 <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="fsShowTajweedCheck" style="width:auto; margin:0;"> Show Tajweed Colors</label>
             </div>
             <div class="panel-section">
@@ -3701,23 +3703,23 @@
         ];
 
         const BUILTIN_WORD_METADATA = [
-            { word_id: 1, surah: 1, ayah: 1, word_position: 0, ur_meaning: "نام کے ساتھ", en_meaning: "In (the) name", pashto_text: "په نامه", bn_meaning: "নামে" },
-            { word_id: 2, surah: 1, ayah: 1, word_position: 1, ur_meaning: "اللہ کے", en_meaning: "(of) Allah", pashto_text: "د الله", bn_meaning: "আল্লাহর" },
-            { word_id: 3, surah: 1, ayah: 1, word_position: 2, ur_meaning: "نہایت مہربان", en_meaning: "the Most Gracious", pashto_text: "ډېر مهربان", bn_meaning: "পরম করুণাময়" },
-            { word_id: 4, surah: 1, ayah: 1, word_position: 3, ur_meaning: "بڑا رحم کرنے والا", en_meaning: "the Most Merciful", pashto_text: "تل رحم کوونکی", bn_meaning: "অসীম দয়ালু" },
-            { word_id: 5, surah: 1, ayah: 2, word_position: 0, ur_meaning: "سب تعریف", en_meaning: "All praise", pashto_text: "ټولې ستاینې", bn_meaning: "সমস্ত প্রশংসা" },
-            { word_id: 6, surah: 1, ayah: 2, word_position: 1, ur_meaning: "اللہ کے لیے", en_meaning: "(is) for Allah", pashto_text: "الله لره دي", bn_meaning: "আল্লাহর জন্য" },
-            { word_id: 7, surah: 1, ayah: 2, word_position: 2, ur_meaning: "رب (پالنے والا)", en_meaning: "Lord", pashto_text: "پالونکی", bn_meaning: "রব" },
-            { word_id: 8, surah: 1, ayah: 2, word_position: 3, ur_meaning: "تمام جہانوں کا", en_meaning: "(of) the worlds", pashto_text: "د عالمونو", bn_meaning: "সৃষ্টিকুলের" },
-            { word_id: 9, surah: 1, ayah: 3, word_position: 0, ur_meaning: "بڑا مہربان", en_meaning: "The Most Gracious", pashto_text: "ډېر مهربان", bn_meaning: "পরম করুণাময়" },
-            { word_id: 10, surah: 1, ayah: 3, word_position: 1, ur_meaning: "نہایت رحم والا", en_meaning: "the Most Merciful", pashto_text: "نهایت رحم کوونکی", bn_meaning: "অতি দয়ালু" },
-            { word_id: 11, surah: 1, ayah: 4, word_position: 0, ur_meaning: "مالک", en_meaning: "Master / Sovereign", pashto_text: "واکمن", bn_meaning: "মালিক" },
-            { word_id: 12, surah: 1, ayah: 4, word_position: 1, ur_meaning: "دن کا", en_meaning: "(of the) Day", pashto_text: "د ورځې", bn_meaning: "দিবসের" },
-            { word_id: 13, surah: 1, ayah: 4, word_position: 2, ur_meaning: "بدلے (جزا) کے", en_meaning: "(of) Judgment", pashto_text: "د جزا", bn_meaning: "বিচারের" },
-            { word_id: 14, surah: 1, ayah: 5, word_position: 0, ur_meaning: "تیری ہی", en_meaning: "You Alone", pashto_text: "یوازې ستا", bn_meaning: "কেবল আপনারই" },
-            { word_id: 15, surah: 1, ayah: 5, word_position: 1, ur_meaning: "ہم عبادت کرتے ہیں", en_meaning: "we worship", pashto_text: "موږ عبادت کوو", bn_meaning: "আমরা ইবাদত করি" },
-            { word_id: 16, surah: 1, ayah: 5, word_position: 2, ur_meaning: "اور تجھ ہی سے", en_meaning: "and You Alone", pashto_text: "او یوازې له تا", bn_meaning: "এবং কেবল আপনারই" },
-            { word_id: 17, surah: 1, ayah: 5, word_position: 3, ur_meaning: "ہم مدد مانگتے ہیں", en_meaning: "we ask for help", pashto_text: "موږ مرسته غواړو", bn_meaning: "সাহায্য চাই" }
+            { word_id: 1, surah: 1, ayah: 1, word_position: 0, ur_meaning: "نام کے ساتھ", en_meaning: "In (the) name", pashto_text: "په نامه" },
+            { word_id: 2, surah: 1, ayah: 1, word_position: 1, ur_meaning: "اللہ کے", en_meaning: "(of) Allah", pashto_text: "د الله" },
+            { word_id: 3, surah: 1, ayah: 1, word_position: 2, ur_meaning: "نہایت مہربان", en_meaning: "the Most Gracious", pashto_text: "ډېر مهربان" },
+            { word_id: 4, surah: 1, ayah: 1, word_position: 3, ur_meaning: "بڑا رحم کرنے والا", en_meaning: "the Most Merciful", pashto_text: "تل رحم کوونکی" },
+            { word_id: 5, surah: 1, ayah: 2, word_position: 0, ur_meaning: "سب تعریف", en_meaning: "All praise", pashto_text: "ټولې ستاینې" },
+            { word_id: 6, surah: 1, ayah: 2, word_position: 1, ur_meaning: "اللہ کے لیے", en_meaning: "(is) for Allah", pashto_text: "الله لره دي" },
+            { word_id: 7, surah: 1, ayah: 2, word_position: 2, ur_meaning: "رب (پالنے والا)", en_meaning: "Lord", pashto_text: "پالونکی" },
+            { word_id: 8, surah: 1, ayah: 2, word_position: 3, ur_meaning: "تمام جہانوں کا", en_meaning: "(of) the worlds", pashto_text: "د عالمونو" },
+            { word_id: 9, surah: 1, ayah: 3, word_position: 0, ur_meaning: "بڑا مہربان", en_meaning: "The Most Gracious", pashto_text: "ډېر مهربان" },
+            { word_id: 10, surah: 1, ayah: 3, word_position: 1, ur_meaning: "نہایت رحم والا", en_meaning: "the Most Merciful", pashto_text: "نهایت رحم کوونکی" },
+            { word_id: 11, surah: 1, ayah: 4, word_position: 0, ur_meaning: "مالک", en_meaning: "Master / Sovereign", pashto_text: "واکمن" },
+            { word_id: 12, surah: 1, ayah: 4, word_position: 1, ur_meaning: "دن کا", en_meaning: "(of the) Day", pashto_text: "د ورځې" },
+            { word_id: 13, surah: 1, ayah: 4, word_position: 2, ur_meaning: "بدلے (جزا) کے", en_meaning: "(of) Judgment", pashto_text: "د جزا" },
+            { word_id: 14, surah: 1, ayah: 5, word_position: 0, ur_meaning: "تیری ہی", en_meaning: "You Alone", pashto_text: "یوازې ستا" },
+            { word_id: 15, surah: 1, ayah: 5, word_position: 1, ur_meaning: "ہم عبادت کرتے ہیں", en_meaning: "we worship", pashto_text: "موږ عبادت کوو" },
+            { word_id: 16, surah: 1, ayah: 5, word_position: 2, ur_meaning: "اور تجھ ہی سے", en_meaning: "and You Alone", pashto_text: "او یوازې له تا" },
+            { word_id: 17, surah: 1, ayah: 5, word_position: 3, ur_meaning: "ہم مدد مانگتے ہیں", en_meaning: "we ask for help", pashto_text: "موږ مرسته غواړو" }
         ];
 
         function getJuzFromSurahAyah(surah, ayah) {
@@ -4088,8 +4090,7 @@
                             arabic_word: arWord,
                             ur_meaning: wm.ur_meaning,
                             en_meaning: wm.en_meaning,
-                            pashto_text: wm.pashto_text,
-                            bn_meaning: wm.bn_meaning
+                            pashto_text: wm.pashto_text
                         });
                     }
                 }
@@ -4530,14 +4531,14 @@
         let viewerCustomFontSizeRem = parseFloat(safeGetStorage('viewerCustomFontSizeRem', '2.1')) || 2.1;
 
         const TAJWEED_RULES_GUIDE = [
-            { cls: 'qalqalah', color: '#ef4444', name: 'Qalqalah (قلقلة)', desc: 'Echoing bounce on sukoon of ق ط ب ج د', example: 'قُلْ هُوَ ٱللَّهُ أَحَدٌ', surah: 112, ayah: 1 },
-            { cls: 'ghunnah', color: '#f97316', name: 'Ghunnah (غنة)', desc: '2-beat nasalization on نّ and مّ', example: 'مِنَ ٱلْجِنَّةِ وَٱلنَّاسِ', surah: 114, ayah: 6 },
-            { cls: 'ikhafa', color: '#a855f7', name: 'Ikhfa (إخفاء)', desc: 'Light nasal concealment of Noon Saakin / Tanween', example: 'مِن شَرِّ مَا خَلَقَ', surah: 113, ayah: 2 },
-            { cls: 'idgham_ghunnah', color: '#16a34a', name: 'Idgham (إدغام)', desc: 'Merging Noon Saakin into يرملون letters', example: 'وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدٌ', surah: 112, ayah: 4 },
-            { cls: 'iqlab', color: '#06b6d4', name: 'Iqlab (إقلاب)', desc: 'Turning Noon Saakin into Meem before ب', example: 'لَنَسْفَعًۢا بِٱلنَّاصِيَةِ', surah: 96, ayah: 15 },
-            { cls: 'madda_obligatory', color: '#dc2626', name: 'Madd Wajib/Lazim (مدّ لازم)', desc: 'Prolonged vowel elongation (4–6 beats)', example: 'وَلَا ٱلضَّآلِّينَ', surah: 1, ayah: 7 },
-            { cls: 'madda_normal', color: '#3b82f6', name: 'Madd Tabee\'i (مدّ طبيعي)', desc: 'Natural 2-beat elongation', example: 'مَٰلِكِ يَوْمِ ٱلدِّينِ', surah: 1, ayah: 4 },
-            { cls: 'laam_shamsiyah', color: '#94a3b8', name: 'Laam Shamsiyyah (لام شمسية)', desc: 'Silent Laam assimilated into sun letter', example: 'ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', surah: 1, ayah: 3 }
+            { cls: 'qalqalah', color: '#ef4444', name: 'Qalqalah', desc: 'Echoing bounce on sukoon of ق ط ب ج د', example: 'قُلْ هُوَ ٱللَّهُ أَحَدٌ', surah: 112, ayah: 1 },
+            { cls: 'ghunnah', color: '#f97316', name: 'Ghunnah', desc: '2-beat nasalization on نّ and مّ', example: 'مِنَ ٱلْجِنَّةِ وَٱلنَّاسِ', surah: 114, ayah: 6 },
+            { cls: 'ikhafa', color: '#a855f7', name: 'Ikhfa', desc: 'Light nasal concealment of Noon Saakin / Tanween', example: 'مِن شَرِّ مَا خَلَقَ', surah: 113, ayah: 2 },
+            { cls: 'idgham_ghunnah', color: '#16a34a', name: 'Idgham', desc: 'Merging Noon Saakin into يرملون letters', example: 'وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدٌ', surah: 112, ayah: 4 },
+            { cls: 'iqlab', color: '#06b6d4', name: 'Iqlab', desc: 'Turning Noon Saakin into Meem before ب', example: 'لَنَسْفَعًۢا بِٱلنَّاصِيَةِ', surah: 96, ayah: 15 },
+            { cls: 'madda_obligatory', color: '#dc2626', name: 'Madd Wajib / Lazim', desc: 'Prolonged vowel elongation (4–6 beats)', example: 'وَلَا ٱلضَّآلِّينَ', surah: 1, ayah: 7 },
+            { cls: 'madda_normal', color: '#3b82f6', name: 'Madd Tabee\'i', desc: 'Natural 2-beat elongation', example: 'مَٰلِكِ يَوْمِ ٱلدِّينِ', surah: 1, ayah: 4 },
+            { cls: 'laam_shamsiyah', color: '#94a3b8', name: 'Laam Shamsiyyah', desc: 'Silent Laam assimilated into sun letter', example: 'ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', surah: 1, ayah: 3 }
         ];
 
         const CURATED_ROOTS_LEXICON = [
@@ -4561,23 +4562,6 @@
             { root: 'و-ك-ل', meaningEn: 'Reliance / Trust (Tawakkul)', meaningUr: 'توکل اور بھروسہ' }
         ];
 
-        const CLASSICAL_TAFSIR_SUMMARIES = {
-            '1:1': 'Ibn Kathir & Maariful Quran: Opening with the blessed name of Allah affirming that every noble action begins through His encompassing Mercy (Ar-Rahman) and specific Grace for believers (Ar-Rahim).',
-            '1:2': 'All praise and gratitude belong exclusively to Allah, the Rabb (Creator, Nurturer, and Sustainer) of all realms of existence.',
-            '1:4': 'Reminds the believer of accountability on the Day of Recompense (Yawm ad-Din), balancing hope in Allah\'s mercy with awe of His justice.',
-            '1:5': 'The covenant of pure monotheism (Iyyaka na\'budu) and total reliance upon Allah\'s help (wa iyyaka nasta\'in).',
-            '1:6': 'The most comprehensive supplication: asking for steadfastness and continual increase upon Al-Sirat Al-Mustaqim (the Straight Path).',
-            '2:255': 'Ayat al-Kursi — The greatest verse in the Quran, affirming Allah\'s eternal life (Al-Hayy), self-subsisting sustainership (Al-Qayyum), and complete sovereignty over heavens and earth.',
-            '2:285': 'Affirms the unified faith of the Messenger (ﷺ) and the believers in all revealed scriptures, angels, and prophets without distinction.',
-            '2:286': 'A tremendous verse of relief and mercy: Allah never burdens a soul beyond its capacity, followed by prophetic supplications answered directly by Allah.',
-            '36:1': 'Surah Yasin opens with the oath by the Wise Quran (Al-Quran Al-Hakim), testifying to the truthfulness of Prophet Muhammad\'s (ﷺ) mission.',
-            '67:1': 'Surah Al-Mulk (The Protector) highlights Allah\'s blessed dominion (Tabaraka alladhi biyadihil-mulk) and power over life and death as a test of deeds.',
-            '103:1': 'Imam Ash-Shafi\'i noted: If people reflected deeply upon Surah Al-Asr alone, it would suffice them as a complete roadmap to salvation (Faith, Righteous Action, Truth, and Patience).',
-            '108:1': 'Glad tidings of Al-Kawthar (abundant good and the river in Paradise) granted to the Prophet (ﷺ).',
-            '112:1': 'Surah Al-Ikhlas equals one-third of the Quran in meaning, establishing pure Tawhid (Oneness and Eternal Self-Sufficiency of Allah).',
-            '113:1': 'Al-Mu\'awwidhatayn (Al-Falaq & An-Nas): Seeking Allah\'s protection from all external and internal harms, envy, and whispers.'
-        };
-
         const CURATED_QURANIC_DUAS = [
             { title: 'Dua for Good in This World & Hereafter', category: 'Guidance', surah: 2, ayah: 201, arabic: 'رَبَّنَآ ءَاتِنَا فِى ٱلدُّنْيَا حَسَنَةً وَفِى ٱلْءَاخِرَةِ حَسَنَةً وَقِنَا عَذَابَ ٱلنَّارِ', en: 'Our Lord, give us in this world [that which is] good and in the Hereafter [that which is] good and protect us from the punishment of the Fire.', ur: 'اے ہمارے رب! ہمیں دنیا میں بھی بھلائی عطا فرما اور آخرت میں بھی بھلائی عطا فرما اور ہمیں آگ کے عذاب سے بچا۔' },
             { title: 'Dua for Ease & Relief from Burdens', category: 'Relief', surah: 2, ayah: 286, arabic: 'رَبَّنَا لَا تُؤَاخِذْنَآ إِن نَّسِينَآ أَوْ أَخْطَأْنَا ۚ رَبَّنَا وَلَا تَحْمِلْ عَلَيْنَآ إِصْرًا', en: 'Our Lord, do not impose blame upon us if we have forgotten or erred. Our Lord, and lay not upon us a burden...', ur: 'اے ہمارے رب! اگر ہم بھول جائیں یا خطا کریں تو ہماری گرفت نہ فرما۔' },
@@ -4590,79 +4574,23 @@
             { title: 'Dua for Forgiveness & Mercy', category: 'Forgiveness', surah: 23, ayah: 118, arabic: 'رَّبِّ ٱغْفِرْ وَٱرْحَمْ وَأَنتَ خَيْرُ ٱلرَّٰحِمِينَ', en: 'My Lord, forgive and have mercy, and You are the best of the merciful.', ur: 'اے میرے رب! بخش دے اور رحم فرما اور تو سب سے بہتر رحم فرمانے والا ہے۔' }
         ];
 
-        function deriveArabicMorphologyAndRoot(rawWord) {
-            if (!rawWord) return { root: 'ع-ل-م', pos: 'Ism (Noun)', stem: '' };
-            const clean = rawWord.replace(/[ًٌٍََُِِّْٰٓۡٔؒٱ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
-            const knownRoots = [
-                { pat: /رحم/, root: 'ر-ح-م', pos: 'Sifah / Ism (Attribute of Mercy)' },
-                { pat: /لله|الله|اله/, root: 'أ-ل-ه', pos: 'Ism Al-Jalalah (Proper Noun)' },
-                { pat: /حمد/, root: 'ح-م-د', pos: 'Masdar / Ism (Verbal Noun)' },
-                { pat: /رب/, root: 'ر-ب-ب', pos: 'Ism (Noun - Sustainer)' },
-                { pat: /علم/, root: 'ع-ل-م', pos: 'Ism / Fi\'l (Knowledge / Worlds)' },
-                { pat: /ملك|مالك/, root: 'م-ل-ك', pos: 'Ism Fa\'il (Sovereign / Master)' },
-                { pat: /يوم/, root: 'ي-و-م', pos: 'Ism Zaman (Noun of Time)' },
-                { pat: /دين/, root: 'د-ي-ن', pos: 'Ism (Recompense / Faith)' },
-                { pat: /عبد|نعبد/, root: 'ع-ب-د', pos: 'Fi\'l Mudari\' (Imperfect Verb)' },
-                { pat: /عون|نستعين/, root: 'ع-و-ن', pos: 'Fi\'l Mudari\' Form X (Seek Help)' },
-                { pat: /هدي|اهد/, root: 'ه-د-ي', pos: 'Fi\'l Amr (Imperative Verb - Guide)' },
-                { pat: /صرط|صراط/, root: 'ص-ر-ط', pos: 'Ism (Noun - Path)' },
-                { pat: /قوم|مستقيم|قيوم/, root: 'ق-و-م', pos: 'Ism (Upright / Sustainer)' },
-                { pat: /نعم|انعمت/, root: 'ن-ع-م', pos: 'Fi\'l Madi Form IV (Bestowed Favor)' },
-                { pat: /غضب|مغضوب/, root: 'غ-ض-ب', pos: 'Ism Maf\'ul (Passive Participle)' },
-                { pat: /ضلل|ضالين/, root: 'ض-ل-ل', pos: 'Ism Fa\'il Plural (Those Astray)' },
-                { pat: /سم/, root: 'س-م-و', pos: 'Jar + Ism (Preposition + Noun)' },
-                { pat: /قل|يقول|قال/, root: 'ق-و-ل', pos: 'Fi\'l (Verb of Speech)' },
-                { pat: /احد|وحد/, root: 'و-ح-د', pos: 'Ism (Unique One)' },
-                { pat: /صمد/, root: 'ص-م-د', pos: 'Ism Sifah (Eternal Refuge)' },
-                { pat: /ولد|يلد|يولد/, root: 'و-ل-د', pos: 'Fi\'l Mudari\' Majzum (Beget)' },
-                { pat: /خلق/, root: 'خ-ل-ق', pos: 'Fi\'l Madi (Created)' },
-                { pat: /فلق/, root: 'ف-ل-ق', pos: 'Ism (Daybreak)' },
-                { pat: /عوذ|اعوذ/, root: 'ع-و-ذ', pos: 'Fi\'l Mudari\' (Seek Refuge)' },
-                { pat: /ناس|انسن|انسان/, root: 'أ-ن-س', pos: 'Ism Jins (Mankind)' },
-                { pat: /وسوس/, root: 'و-س-و-س', pos: 'Quadriliteral Verb/Noun (Whisper)' },
-                { pat: /صدر|صدور/, root: 'ص-د-ر', pos: 'Jam\' Takseer (Plural Noun - Hearts/Chests)' },
-                { pat: /عصر/, root: 'ع-ص-ر', pos: 'Harf Qasam + Ism (Oath by Time)' },
-                { pat: /خسر/, root: 'خ-س-ر', pos: 'Ism (Loss)' },
-                { pat: /امن|مؤمن/, root: 'أ-م-ن', pos: 'Fi\'l / Ism (Believe / Faith)' },
-                { pat: /عمل/, root: 'ع-م-ل', pos: 'Fi\'l Madi (Worked / Did)' },
-                { pat: /صلح|صالح/, root: 'ص-ل-ح', pos: 'Ism (Righteous Deeds)' },
-                { pat: /صبر/, root: 'ص-ب-ر', pos: 'Masdar (Patience)' }
-            ];
-            for (const item of knownRoots) {
-                if (item.pat.test(clean)) return { root: item.root, pos: item.pos, stem: clean };
-            }
-            let stripped = clean.replace(/^(وال|فال|بال|كال|لل|ال|و|ف|ب|ل|ي|ت|ن|ا)/, '').replace(/(ون|ين|ات|هم|كم|نا|ها|ه|ك)$/, '');
-            if (stripped.length >= 3) {
-                return { root: `${stripped[0]}-${stripped[1]}-${stripped[2]}`, pos: 'Quranic Lexical Stem', stem: stripped };
-            }
-            return { root: clean.split('').slice(0, 3).join('-') || 'ع-ل-م', pos: 'Particle / Harf', stem: clean };
-        }
-
         async function renderSingleAyahView(surah, ayah) {
             const displayArea = document.getElementById('quran-display');
             if (!displayArea) return;
             try {
                 const quran = await getOrSynthesizeAyahRecord(surah, ayah);
-                const tafsirRecord = await getData(STORE_TAFSIR, [surah, ayah]).catch(() => null);
                 const wordMetadata = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([surah, ayah, 0], [surah, ayah, Infinity]), 'location_idx');
                 const words = quran.arabic.split(/\s+/).filter(w => w.trim());
-                const wordCount = words.length;
                 const alignedIds = alignWordsToMetadata(words, wordMetadata);
 
                 const showTajweed = document.getElementById('inlineTajweedToggle')?.checked;
-                const showTranslit = document.getElementById('inlineTransliterationToggle')?.checked;
                 const showParallel = document.getElementById('parallelTranslationToggle')?.checked;
-                const showCommentary = document.getElementById('inlineClassicalTafsirToggle')?.checked;
 
                 const wordsHTML = words.map((word, idx) => {
                     const wordId = alignedIds[idx];
                     const renderedWord = showTajweed ? applyClientSideTajweedColors(word) : word;
                     return `<span class="arabic-word" data-word-text="${word}" data-word-id="${wordId}" data-word-pos="${idx}" tabindex="0" role="button">${renderedWord}</span>`;
                 }).join(' ');
-
-                const translitBlock = showTranslit
-                    ? `<div style="font-family:var(--font-english); font-size:0.95rem; color:var(--color-accent-dark); direction:ltr; text-align:left; margin-bottom:12px; padding:8px 12px; background:var(--color-surface-muted); border-radius:8px;"><strong>Transliteration:</strong> <em>${transliterateArabicText(quran.arabic)}</em></div>`
-                    : '';
 
                 const translationInfo = getTranslationConfig(document.getElementById('translation-select').value);
                 let translationBlockHTML = '';
@@ -4672,33 +4600,16 @@
                         const tInfo = getTranslationConfig(cfg.key);
                         const txt = quran[cfg.key] || quran.english || '';
                         return `<div class="parallel-trans-item">
-                            <span class="parallel-trans-label">${tInfo.label}</span>
-                            <div lang="${tInfo.lang}" dir="${tInfo.dir}" style="font-family:${tInfo.font}; font-size:1.02rem; color:var(--color-text-primary);">${txt}</div>
+                            <span class="parallel-trans-label" dir="ltr">${tInfo.label}</span>
+                            <div lang="${tInfo.lang}" dir="${tInfo.dir}" style="font-family:${tInfo.font}; font-size:1.02rem; line-height:1.85; text-align:${tInfo.dir === 'rtl' ? 'right' : 'left'}; color:var(--color-text-primary);">${txt}</div>
                         </div>`;
                     }).join('');
                     translationBlockHTML = `<div class="parallel-translations-stack">${itemsHTML}</div>`;
                 } else {
-                    translationBlockHTML = `<div class="ayah-translation" lang="${translationInfo.lang}" dir="${translationInfo.dir}" style="font-family:${translationInfo.font}">${quran[translationInfo.key] || quran.english || "Translation not available."}</div>`;
+                    translationBlockHTML = `<div class="ayah-translation" lang="${translationInfo.lang}" dir="${translationInfo.dir}" style="font-family:${translationInfo.font}; text-align:${translationInfo.dir === 'rtl' ? 'right' : 'left'};">${quran[translationInfo.key] || quran.english || "Translation not available."}</div>`;
                 }
-
-                const classicalSummary = CLASSICAL_TAFSIR_SUMMARIES[`${surah}:${ayah}`] || `Surah ${surahNames[surah - 1]} (${surah}:${ayah}) — Juz ${getJuzFromSurahAyah(surah, ayah)}. Reflect on the divine message and link this verse to themes or personal Tafsir notes.`;
-                const personalNoteSnippet = tafsirRecord?.notes
-                    ? `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--color-border); color:var(--color-accent-dark);"><strong>✍️ Your Personal Tafsir:</strong> ${tafsirRecord.notes}</div>`
-                    : '';
-                const commentaryBlockHTML = showCommentary
-                    ? `<div class="inline-classical-tafsir"><strong>💡 Tafsir &amp; Context Summary:</strong> ${classicalSummary}${personalNoteSnippet}</div>`
-                    : '';
 
                 const juzNum = getJuzFromSurahAyah(surah, ayah);
-                const revType = MADANI_SURAHS.has(surah) ? '🕌 Madani Revelation' : '🕋 Makki Revelation';
-                const metaBanner = document.getElementById('surahMetaBanner');
-                if (metaBanner) {
-                    metaBanner.innerHTML = `
-                        <div><strong>${surah}. Surah ${surahNames[surah - 1]}</strong> • ${revType} • ${surahAyahCounts[surah]} Verses</div>
-                        <div>Current Position: <strong>Ayah ${ayah}</strong> • <strong>Juz ${juzNum}</strong> • Page ${surahToPageEnhanced(surah, ayah) || 1}</div>
-                    `;
-                }
-
                 const juzSelect = document.getElementById('juz-select');
                 if (juzSelect && parseInt(juzSelect.value, 10) !== juzNum) {
                     juzSelect.value = juzNum;
@@ -4707,7 +4618,7 @@
                 displayArea.innerHTML = `
                     <div class="ayah" data-surah="${surah}" data-ayah="${ayah}">
                         <div class="ayah-card-top">
-                            <div class="ayah-number">
+                            <div class="ayah-number" dir="ltr">
                                 <span>Surah ${surah}:${ayah} (${surahNames[surah - 1]})</span>
                                 <span style="opacity:0.75;">• Juz ${juzNum}</span>
                             </div>
@@ -4717,18 +4628,7 @@
                             </div>
                         </div>
                         <div class="ayah-arabic" style="font-size:${viewerCustomFontSizeRem}rem;">${wordsHTML}</div>
-                        ${translitBlock}
                         ${translationBlockHTML}
-                        ${commentaryBlockHTML}
-                        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:16px; padding-top:12px; border-top:1px solid var(--color-border); direction:ltr;">
-                            <div style="font-size:0.8rem; color:var(--color-text-muted); font-weight:600;">
-                                Total Verses in Surah: <strong>${surahAyahCounts[surah]}</strong> • Words in Ayah: <strong>${wordCount}</strong>
-                            </div>
-                            <div style="display:flex; gap:6px;">
-                                <button type="button" class="btn-secondary compact-pill-btn" onclick="goToPrevAyah()">← Previous Ayah</button>
-                                <button type="button" class="compact-pill-btn" onclick="goToNextAyah()">Next Ayah →</button>
-                            </div>
-                        </div>
                     </div>`;
                 addWordClickListeners();
                 const firstWordSpan = displayArea.querySelector('.arabic-word');
@@ -4754,7 +4654,6 @@
                 const allMetadataForSurah = await getAllDataInRange(STORE_WORD_METADATA, IDBKeyRange.bound([surah, 1, 0], [surah, surahAyahCounts[surah], Infinity]), 'location_idx');
                 const translationInfo = getTranslationConfig(document.getElementById('translation-select').value);
                 const showTajweed = document.getElementById('inlineTajweedToggle')?.checked;
-                const showTranslit = document.getElementById('inlineTransliterationToggle')?.checked;
 
                 const metaByAyah = new Map();
                 if (allMetadataForSurah && allMetadataForSurah.length > 0) {
@@ -4780,15 +4679,14 @@
                     ayahDiv.dataset.ayah = quran.ayah;
                     ayahDiv.innerHTML = `
                         <div class="ayah-card-top">
-                            <div class="ayah-number">Surah ${quran.surah}:${quran.ayah}</div>
+                            <div class="ayah-number" dir="ltr">Surah ${quran.surah}:${quran.ayah}</div>
                             <div class="ayah-actions-bar">
                                 ${buildAyahActionsHTML(quran.surah, quran.ayah)}
                                 <button type="button" class="action-icon" data-action="copy" title="Copy Verse">📋</button>
                             </div>
                         </div>
                         <div class="ayah-arabic" style="font-size:${viewerCustomFontSizeRem}rem;">${wordsHTML}</div>
-                        ${showTranslit ? `<div style="font-size:0.88rem; color:var(--color-accent-dark); direction:ltr; text-align:left; margin-bottom:8px;"><em>${transliterateArabicText(quran.arabic)}</em></div>` : ''}
-                        <div class="ayah-translation" lang="${translationInfo.lang}" dir="${translationInfo.dir}" style="font-family:${translationInfo.font}">${quran[translationInfo.key] || quran.english || "Translation not available."}</div>
+                        <div class="ayah-translation" lang="${translationInfo.lang}" dir="${translationInfo.dir}" style="font-family:${translationInfo.font}; text-align:${translationInfo.dir === 'rtl' ? 'right' : 'left'};">${quran[translationInfo.key] || quran.english || "Translation not available."}</div>
                     `;
                     displayArea.appendChild(ayahDiv);
                 });
@@ -4830,74 +4728,53 @@
             const fullAyahTranslation = ayahCard ? ayahCard.querySelector('.ayah-translation')?.textContent : '';
             const fullTranslationInfo = getTranslationConfig(document.getElementById('translation-select').value);
 
-            const morph = deriveArabicMorphologyAndRoot(rawWordText);
-            const wordTranslit = transliterateArabicText(rawWordText);
-
             let translations = {
-                ur: "آیت کے سیاق و سباق میں معنی دیکھیں",
-                en: `Contextual word (${morph.pos})`,
-                ps: "په آیت کې معنی وګورئ",
-                bn: "আয়াতের প্রাসঙ্গিক অর্থ"
+                ur: "—",
+                en: "—",
+                ps: "—"
             };
             if (!isNaN(wordId)) {
                 try {
                     const trans = await getData(STORE_WORD_TRANSLATIONS, wordId);
                     if (trans) {
                         translations = {
-                            ur: trans.ur_meaning || translations.ur,
-                            en: trans.en_meaning || translations.en,
-                            ps: trans.pashto_text || translations.ps,
-                            bn: trans.bn_meaning || translations.bn
+                            ur: trans.ur_meaning || "—",
+                            en: trans.en_meaning || "—",
+                            ps: trans.pashto_text || "—"
                         };
                     }
                 } catch (e) {}
             }
 
             translationArea.innerHTML = `
-                <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--color-border); padding-bottom:8px; margin-bottom:10px;">
-                    <div>
-                        <span style="font-size:0.75rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; display:block;">Selected Word (${wordTranslit})</span>
-                        <span style="font-size:0.76rem; color:var(--color-accent-dark); font-weight:600;">${morph.pos}</span>
+                <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--color-border); padding-bottom:8px; margin-bottom:10px; direction:ltr;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:0.75rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase;">Selected Word</span>
+                        <button type="button" id="speakSelectedWordBtn" class="compact-pill-btn btn-secondary" data-word="${rawWordText}" title="Pronounce Arabic Word" style="min-height:26px; padding:2px 8px;">🔊</button>
                     </div>
-                    <span lang="ar" dir="rtl" style="font-family: var(--font-arabic); font-size: 1.85rem; color: var(--color-accent-dark); font-weight:700;">${rawWordText}</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:var(--color-accent-soft); border-radius:8px; margin-bottom:8px;">
-                    <div>
-                        <span style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--color-text-secondary);">Trilateral Root (جذر):</span>
-                        <strong lang="ar" dir="rtl" style="font-family:var(--font-arabic); font-size:1.15rem; margin-left:6px; color:var(--color-accent-dark);">${morph.root}</strong>
-                    </div>
-                    <div class="flex-group" style="gap:4px;">
-                        <button type="button" id="inspectRootFromWordBtn" class="compact-pill-btn" data-root="${morph.root}" title="Open Root in Concordance">🌱 Root</button>
-                        <button type="button" id="speakSelectedWordBtn" class="compact-pill-btn btn-secondary" data-word="${rawWordText}" title="Pronounce Arabic Word">🔊</button>
-                    </div>
+                    <div lang="ar" dir="rtl" style="font-family: var(--font-arabic); font-size: 1.85rem; color: var(--color-accent-dark); font-weight:700;">${rawWordText}</div>
                 </div>
                 <div class="word-breakdown-grid">
                     <div class="word-breakdown-item">
-                        <span class="wb-label">English</span>
-                        <span class="wb-val" lang="en" dir="ltr" style="font-family: var(--font-english);">${translations.en}</span>
+                        <div class="wb-label" dir="ltr">English</div>
+                        <div class="wb-val" lang="en" dir="ltr" style="font-family: var(--font-english); text-align: left;">${translations.en}</div>
                     </div>
                     <div class="word-breakdown-item">
-                        <span class="wb-label">Urdu</span>
-                        <span class="wb-val" lang="ur" dir="rtl" style="font-family: var(--font-urdu);">${translations.ur}</span>
+                        <div class="wb-label" dir="ltr">Urdu</div>
+                        <div class="wb-val" lang="ur" dir="rtl" style="font-family: var(--font-urdu); text-align: right; line-height: 1.85;">${translations.ur}</div>
                     </div>
                     <div class="word-breakdown-item">
-                        <span class="wb-label">Pashto</span>
-                        <span class="wb-val" lang="ps" dir="rtl" style="font-family: var(--font-pashto);">${translations.ps}</span>
-                    </div>
-                    <div class="word-breakdown-item">
-                        <span class="wb-label">Bangali</span>
-                        <span class="wb-val" lang="bn" dir="ltr" style="font-family: var(--font-Bangali);">${translations.bn}</span>
+                        <div class="wb-label" dir="ltr">Pashto</div>
+                        <div class="wb-val" lang="ps" dir="rtl" style="font-family: var(--font-pashto); text-align: right; line-height: 1.85;">${translations.ps}</div>
                     </div>
                 </div>
-                <p style="margin-top:12px; margin-bottom:0; font-size:0.86rem;"><strong>Ayah Context:</strong> <span lang="${fullTranslationInfo.lang}" dir="${fullTranslationInfo.dir}" style="font-family: ${fullTranslationInfo.font};">${fullAyahTranslation || ''}</span></p>
+                ${fullAyahTranslation ? `
+                <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--color-border);">
+                    <div dir="ltr" style="font-size:0.74rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--color-text-muted); margin-bottom:6px; text-align:left;">Ayah Context</div>
+                    <div lang="${fullTranslationInfo.lang}" dir="${fullTranslationInfo.dir}" style="font-family: ${fullTranslationInfo.font}; font-size:0.95rem; line-height:1.85; text-align:${fullTranslationInfo.dir === 'rtl' ? 'right' : 'left'}; color:var(--color-text-secondary);">${fullAyahTranslation}</div>
+                </div>` : ''}
             `;
 
-            document.getElementById('inspectRootFromWordBtn')?.addEventListener('click', async (e) => {
-                const rTerm = e.currentTarget.dataset.root;
-                document.getElementById('root-input').value = rTerm;
-                showSection('roots');
-                await analyzeRoot();
-            });
             document.getElementById('speakSelectedWordBtn')?.addEventListener('click', (e) => {
                 const wTxt = e.currentTarget.dataset.word;
                 if ('speechSynthesis' in window) {
@@ -4937,15 +4814,23 @@
             const tooltip = document.getElementById('word-tooltip');
             const wordId = parseInt(span.dataset.wordId, 10);
             if (isNaN(wordId)) {
-                tooltip.innerHTML = `<strong lang="ar" dir="rtl">${span.dataset.wordText}</strong><br><span style="font-size:0.85em;">Tap word in Single View for breakdown</span>`;
+                tooltip.innerHTML = `<div lang="ar" dir="rtl" style="font-family:var(--font-arabic); font-size:1.35rem; text-align:right; font-weight:700;">${span.dataset.wordText}</div>`;
             } else {
                 const trans = await getData(STORE_WORD_TRANSLATIONS, wordId);
-                const bnLine = trans?.bn_meaning ? `<br><span lang="bn" dir="ltr">Bengali: ${trans.bn_meaning}</span>` : '';
                 tooltip.innerHTML = `
-                    <strong lang="ar" dir="rtl" style="font-size:1.3em;">${span.dataset.wordText}</strong><br>
-                    <span lang="ur" dir="rtl">Urdu: ${trans?.ur_meaning || "N/A"}</span><br>
-                    <span lang="ps" dir="rtl">Pashto: ${trans?.pashto_text || "N/A"}</span><br>
-                    <span lang="en" dir="ltr">English: ${trans?.en_meaning || "N/A"}</span>${bnLine}
+                    <div lang="ar" dir="rtl" style="font-family:var(--font-arabic); font-size:1.4rem; text-align:right; font-weight:700; color:var(--color-accent-dark); border-bottom:1px solid var(--color-border); padding-bottom:4px; margin-bottom:6px;">${span.dataset.wordText}</div>
+                    <div style="margin-bottom:4px;">
+                        <div dir="ltr" style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--color-text-muted); text-align:left;">Urdu</div>
+                        <div lang="ur" dir="rtl" style="font-family:var(--font-urdu); text-align:right; font-size:0.95rem; line-height:1.75;">${trans?.ur_meaning || "—"}</div>
+                    </div>
+                    <div style="margin-bottom:4px;">
+                        <div dir="ltr" style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--color-text-muted); text-align:left;">Pashto</div>
+                        <div lang="ps" dir="rtl" style="font-family:var(--font-pashto); text-align:right; font-size:0.95rem; line-height:1.75;">${trans?.pashto_text || "—"}</div>
+                    </div>
+                    <div>
+                        <div dir="ltr" style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--color-text-muted); text-align:left;">English</div>
+                        <div lang="en" dir="ltr" style="font-family:var(--font-english); text-align:left; font-size:0.88rem;">${trans?.en_meaning || "—"}</div>
+                    </div>
                 `;
             }
             tooltip.style.left = `${Math.min(window.innerWidth - 260, Math.max(12, event.pageX - 60))}px`;
@@ -6270,7 +6155,7 @@
                             ayah.arabic.toLowerCase().replace(/[ًٌٍََُِِّْٰٓۡٔؒ]/g, "").includes(cleanTerm);
                         let matchTranslation = false;
                         let translationSource = '';
-                        const allTranslationsContext = [];
+                        const matchingTransBlocks = [];
                         if (searchScopes.includes('quran-translation')) {
                             const translationConfigs = window.appManifest.filter(f => f.file_type === 'quran_translation');
                             translationConfigs.forEach(config => {
@@ -6278,8 +6163,14 @@
                                 if (ayah[langKey] && ayah[langKey].toLowerCase().includes(cleanTerm)) {
                                     matchTranslation = true;
                                     translationSource = config.label;
+                                    matchingTransBlocks.push({
+                                        label: config.label,
+                                        lang: config.lang_code,
+                                        dir: config.direction,
+                                        font: `var(--font-${config.key})`,
+                                        text: ayah[langKey]
+                                    });
                                 }
-                                if (ayah[langKey]) allTranslationsContext.push(`${config.label}: ${ayah[langKey]}`);
                             });
                         }
                         if (matchArabic || matchTranslation) {
@@ -6288,7 +6179,8 @@
                                 ref: `Surah ${ayah.surah}:${ayah.ayah}`,
                                 surah: ayah.surah,
                                 ayah: ayah.ayah,
-                                context: `${ayah.arabic}${allTranslationsContext.length > 0 ? ' — ' + allTranslationsContext.join(' | ') : ''}`,
+                                arabicText: ayah.arabic,
+                                transBlocks: matchingTransBlocks,
                                 source: matchArabic && matchTranslation ? `Arabic & ${translationSource}` : matchArabic ? 'Arabic' : translationSource
                             });
                         }
@@ -6348,12 +6240,28 @@
                     setStatusMessage('search-status', `Found ${results.length} results for "${searchTerm}".`, false);
                     results.forEach(result => {
                         const li = document.createElement('li');
+                        let bodyHTML = '';
+                        if (result.type === 'Quran') {
+                            const transHTML = (result.transBlocks || []).map(tb => `
+                                <div style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--color-border);">
+                                    <div dir="ltr" style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--color-text-muted); text-align:left;">${tb.label}</div>
+                                    <div lang="${tb.lang}" dir="${tb.dir}" style="font-family:${tb.font}; text-align:${tb.dir === 'rtl' ? 'right' : 'left'}; line-height:1.85;">${highlightMatch(tb.text, searchTerm)}</div>
+                                </div>
+                            `).join('');
+                            bodyHTML = `
+                                <div class="result-context" lang="ar" dir="rtl" style="font-family:var(--font-arabic); font-size:1.45rem; text-align:right; line-height:2;">${highlightMatch(result.arabicText, searchTerm)}</div>
+                                ${transHTML}
+                            `;
+                        } else {
+                            const cDir = detectDirection(result.context || '');
+                            bodyHTML = `<div class="result-context" dir="${cDir}" style="text-align:${cDir === 'rtl' ? 'right' : 'left'};">${highlightMatch(result.context, searchTerm)}</div>`;
+                        }
                         li.innerHTML = `
-                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                                <strong>${result.type}: ${result.ref} <span style="font-weight:normal; color:var(--color-text-muted);">(${result.source})</span></strong>
+                            <div dir="ltr" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                                <strong>${result.type}: <bdi>${result.ref}</bdi> <span style="font-weight:normal; color:var(--color-text-muted);">(${result.source})</span></strong>
                                 ${result.surah && result.ayah ? `<button type="button" data-surah="${result.surah}" data-ayah="${result.ayah}" class="go-to-ayah-btn compact-pill-btn">Go to Ayah</button>` : ''}
                             </div>
-                            <div class="result-context">${highlightMatch(result.context, searchTerm)}</div>
+                            ${bodyHTML}
                         `;
                         searchResultsList.appendChild(li);
                     });
@@ -6600,7 +6508,9 @@
                 wbywLangOptions.innerHTML = '';
                 availableTranslations.forEach(config => {
                     fullTransOptions.innerHTML += `<label><input type="checkbox" value="${config.key}" ${config.key === currentlySelectedInUI ? 'checked' : ''}> ${config.label}</label>`;
-                    wbywLangOptions.innerHTML += `<label><input type="checkbox" class="wbyw-lang-option" value="${config.key}" ${config.key === currentlySelectedInUI ? 'checked' : ''}> ${config.label}</label>`;
+                    if (config.key !== 'Bangali') {
+                        wbywLangOptions.innerHTML += `<label><input type="checkbox" class="wbyw-lang-option" value="${config.key}" ${config.key === currentlySelectedInUI ? 'checked' : ''}> ${config.label}</label>`;
+                    }
                 });
                 const includeWbyWCheckbox = document.getElementById('includeWordByWordTable');
                 includeWbyWCheckbox.checked = false;
@@ -7186,12 +7096,7 @@
         async function getAyahHTML(surah, ayah) {
             const ayahData = await getOrSynthesizeAyahRecord(surah, ayah);
             const rawText = ayahData.arabic.trim();
-            const displayArabic = fullScreenReaderSettings.showTajweedColors ? applyClientSideTajweedColors(rawText) : rawText;
-            if (fullScreenReaderSettings.showTransliteration) {
-                const tr = transliterateArabicText(rawText);
-                return `${displayArabic} <span class="fsTransliterationText">[${surah}:${ayah}] ${tr}</span>`;
-            }
-            return displayArabic;
+            return fullScreenReaderSettings.showTajweedColors ? applyClientSideTajweedColors(rawText) : rawText;
         }
 
         async function loadTajMushafPageDataIfNeeded() {
@@ -7773,11 +7678,10 @@
         function getDynamicLanguageData(entry, langKey) {
             const config = getTranslationConfig(langKey);
             if (!entry || !config) return { meaningText: null, meaningFont: 'var(--font-general)', meaningLangDir: 'ltr' };
-            let meaningText = entry.en_meaning || entry.ur_meaning || entry.pashto_text || entry.bn_meaning || null;
+            let meaningText = entry.en_meaning || entry.ur_meaning || entry.pashto_text || null;
             if (langKey === 'urdu' && entry.ur_meaning) meaningText = entry.ur_meaning;
             else if (langKey === 'english' && entry.en_meaning) meaningText = entry.en_meaning;
             else if (langKey === 'pashto' && entry.pashto_text) meaningText = entry.pashto_text;
-            else if (langKey === 'Bangali' && entry.bn_meaning) meaningText = entry.bn_meaning;
             return { meaningText, meaningFont: config.font, meaningLangDir: config.dir };
         }
 
@@ -9050,8 +8954,9 @@
                 listEl.innerHTML = '';
                 filtered.forEach(entry => {
                     const li = document.createElement('li');
+                    const noteDir = detectDirection(entry.notes || '');
                     li.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                        <div dir="ltr" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                             <strong style="color:var(--color-accent-dark); cursor:pointer;" class="open-saved-tafsir-link" data-surah="${entry.surah}" data-ayah="${entry.ayah}">
                                 Surah ${entry.surah}:${entry.ayah} (${surahNames[entry.surah - 1]})
                             </strong>
@@ -9060,7 +8965,7 @@
                                 <button type="button" class="compact-pill-btn btn-danger delete-saved-tafsir-btn" data-surah="${entry.surah}" data-ayah="${entry.ayah}">Delete</button>
                             </div>
                         </div>
-                        <span class="item-notes" style="white-space:pre-wrap;">${entry.notes}</span>
+                        <div class="item-notes" dir="${noteDir}" style="white-space:pre-wrap; text-align:${noteDir === 'rtl' ? 'right' : 'left'}; font-family:${noteDir === 'rtl' ? 'var(--font-urdu)' : 'var(--font-general)'}; line-height:1.8;">${entry.notes}</div>
                     `;
                     listEl.appendChild(li);
                 });
@@ -9131,10 +9036,10 @@
                 const chip = document.createElement('button');
                 chip.type = 'button';
                 chip.className = 'root-lexicon-chip';
-                chip.innerHTML = `<strong lang="ar" dir="rtl" style="font-family:var(--font-arabic); font-size:1.05rem; color:var(--color-accent-dark);">${item.root}</strong> <span>${item.meaningEn}</span>`;
+                chip.setAttribute('dir', 'ltr');
+                chip.innerHTML = `<bdi lang="ar" dir="rtl" style="font-family:var(--font-arabic); font-size:1.05rem; font-weight:700; color:var(--color-accent-dark);">${item.root}</bdi> <span>${item.meaningEn}</span>`;
                 chip.addEventListener('click', async () => {
                     document.getElementById('root-input').value = item.root;
-                    document.getElementById('root-description').value = `${item.meaningEn} — ${item.meaningUr}`;
                     await analyzeRoot();
                 });
                 container.appendChild(chip);
@@ -9151,9 +9056,9 @@
                 pill.innerHTML = `
                     <span class="tajweed-swatch" style="background:${rule.color};"></span>
                     <div style="flex:1;">
-                        <div style="font-weight:700; color:var(--color-text-primary);">${rule.name}</div>
-                        <div style="font-size:0.72rem; color:var(--color-text-secondary);">${rule.desc}</div>
-                        <div lang="ar" dir="rtl" style="font-family:var(--font-arabic); font-size:1.1rem; color:${rule.color}; margin-top:2px;">${rule.example}</div>
+                        <div dir="ltr" style="font-weight:700; color:var(--color-text-primary); text-align:left;">${rule.name}</div>
+                        <div dir="ltr" style="font-size:0.72rem; color:var(--color-text-secondary); text-align:left;">${rule.desc}</div>
+                        <div lang="ar" dir="rtl" style="font-family:var(--font-arabic); font-size:1.15rem; color:${rule.color}; margin-top:4px; text-align:right;">${rule.example}</div>
                     </div>
                 `;
                 pill.addEventListener('click', async () => {
@@ -9172,15 +9077,15 @@
             container.innerHTML = filtered.map(dua => `
                 <div class="ayah" style="margin:0; padding:14px 16px;">
                     <div class="ayah-card-top" style="margin-bottom:8px; padding-bottom:6px;">
-                        <span class="ayah-number">${dua.title} (Surah ${dua.surah}:${dua.ayah})</span>
+                        <span class="ayah-number" dir="ltr">${dua.title} (Surah ${dua.surah}:${dua.ayah})</span>
                         <div class="flex-group">
                             <button type="button" class="compact-pill-btn btn-secondary play-dua-audio-btn" data-surah="${dua.surah}" data-ayah="${dua.ayah}">🔊 Listen</button>
                             <button type="button" class="compact-pill-btn open-dua-ayah-btn" data-surah="${dua.surah}" data-ayah="${dua.ayah}">Open in Viewer →</button>
                         </div>
                     </div>
                     <div class="ayah-arabic" style="font-size:1.65rem; margin-bottom:8px;">${dua.arabic}</div>
-                    <div style="font-size:0.92rem; color:var(--color-text-secondary); margin-bottom:4px;">${dua.en}</div>
-                    <div lang="ur" dir="rtl" style="font-family:var(--font-urdu); font-size:1rem; color:var(--color-text-primary);">${dua.ur}</div>
+                    <div dir="ltr" style="font-size:0.92rem; color:var(--color-text-secondary); margin-bottom:6px; text-align:left;">${dua.en}</div>
+                    <div lang="ur" dir="rtl" style="font-family:var(--font-urdu); font-size:1.02rem; color:var(--color-text-primary); text-align:right; line-height:1.9;">${dua.ur}</div>
                 </div>
             `).join('');
 
@@ -10678,7 +10583,7 @@
             }
 
             // Inline Display Toggles & Font Size Controls
-            ['inlineTajweedToggle', 'inlineTransliterationToggle', 'parallelTranslationToggle', 'inlineClassicalTafsirToggle'].forEach(id => {
+            ['inlineTajweedToggle', 'parallelTranslationToggle'].forEach(id => {
                 document.getElementById(id)?.addEventListener('change', () => {
                     loadAyah(currentSurah, currentAyah);
                 });
@@ -10710,15 +10615,6 @@
             });
             document.getElementById('duasCategoryFilter')?.addEventListener('change', (e) => {
                 renderQuranicDuasModal(e.target.value);
-            });
-
-            // Range Loop Trainer
-            document.getElementById('startRangeLoopBtn')?.addEventListener('click', async () => {
-                const startA = Math.max(1, parseInt(document.getElementById('loopRangeStartInput')?.value, 10) || 1);
-                const endA = Math.min(surahAyahCounts[currentSurah] || 7, parseInt(document.getElementById('loopRangeEndInput')?.value, 10) || startA);
-                await loadAyah(currentSurah, startA);
-                playAudioForAyahEnhanced(currentSurah, startA);
-                showToast(`Looping Surah ${currentSurah} Ayahs ${startA} to ${Math.max(startA, endA)}`, 'success');
             });
 
             // Copy Ayah Action Delegation
@@ -11101,7 +10997,7 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v4').catch(() => {});
+                navigator.serviceWorker.register('./sw.js?v6').catch(() => {});
             });
         }
     </script>
