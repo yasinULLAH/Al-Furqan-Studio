@@ -248,7 +248,7 @@ $manifest_config = [
     (object)['key' => 'Bangali', 'label' => 'Bangali Translation', 'file_type' => 'quran_translation', 'url' => 'dataBNG.AM', 'version' => '1.0', 'lang_code' => 'bn', 'direction' => 'ltr', 'font_var' => '--font-Bangali'],
     (object)['key' => 'pashto', 'label' => 'Pashto Translation', 'file_type' => 'quran_translation', 'url' => 'dataPS.AM', 'version' => '1.0', 'lang_code' => 'ps', 'direction' => 'rtl', 'font_var' => '--font-pashto'],
     (object)['key' => 'word_translation', 'label' => 'Word-by-Word Translations', 'file_type' => 'word_translation', 'url' => 'data5 new.AM', 'version' => '1.0', 'headers' => ['word_id', 'ur_meaning', 'en_meaning', 'pashto_text', 'bn_meaning'], 'auto_approve_user_id' => 1],
-    (object)['key' => 'word_metadata', 'label' => 'Word Metadata', 'file_type' => 'word_metadata', 'url' => 'word2.AM', 'version' => '1.0', 'headers' => ['word_id', 'surah', 'ayah', 'word_position', 'arabic_word']]
+    (object)['key' => 'word_metadata', 'label' => 'Word Metadata', 'file_type' => 'word_metadata', 'url' => 'word2.AM', 'version' => '1.0', 'headers' => ['word_id', 'surah', 'ayah', 'word_position']]
 ];
 setup_database();
 function import_data_from_file($file_config)
@@ -348,6 +348,9 @@ function import_data_from_file($file_config)
             }
         } else {
             $values = str_getcsv($line);
+            if (empty($values) || !is_numeric(trim($values[0]))) {
+                continue;
+            }
             if ($file_config->file_type === 'word_translation' && isset($values[4])) {
 
                 $remapped_values = [
@@ -1108,6 +1111,53 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                 echo json_encode(['success' => false, 'message' => 'Invalid word_id.']);
             }
             break;
+        case 'get_word_metadata':
+            $word_id = $_POST['word_id'] ?? 0;
+            if ($word_id) {
+                $stmt = db_query("SELECT word_id, surah, ayah, word_position, arabic_word FROM word_metadata WHERE word_id = ?", [$word_id], 'i');
+                if ($stmt && $data = db_fetch_row($stmt)) {
+                    echo json_encode(['success' => true, 'data' => $data]);
+                } else {
+                    echo json_encode(['success' => true, 'data' => null]);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Invalid word_id.']);
+            }
+            break;
+        case 'get_ayahs_in_range':
+            $min_surah = (int)($_POST['min_surah'] ?? 0);
+            $min_ayah = (int)($_POST['min_ayah'] ?? 0);
+            $max_surah = (int)($_POST['max_surah'] ?? 0);
+            $max_ayah = (int)($_POST['max_ayah'] ?? 0);
+            $stmt = db_query(
+                "SELECT * FROM quran_ayahs WHERE (surah > ? OR (surah = ? AND ayah >= ?)) AND (surah < ? OR (surah = ? AND ayah <= ?)) ORDER BY surah, ayah",
+                [$min_surah, $min_surah, $min_ayah, $max_surah, $max_surah, $max_ayah],
+                'iiiiii'
+            );
+            if ($stmt) {
+                echo json_encode(['success' => true, 'data' => db_fetch_all($stmt)]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to fetch ayahs in range.']);
+            }
+            break;
+        case 'get_word_metadata_in_range':
+            $min_surah = (int)($_POST['min_surah'] ?? 0);
+            $min_ayah = (int)($_POST['min_ayah'] ?? 0);
+            $min_pos = (int)($_POST['min_pos'] ?? 0);
+            $max_surah = (int)($_POST['max_surah'] ?? 0);
+            $max_ayah = (int)($_POST['max_ayah'] ?? 0);
+            $max_pos = (int)($_POST['max_pos'] ?? 0);
+            $stmt = db_query(
+                "SELECT word_id, surah, ayah, word_position, arabic_word FROM word_metadata WHERE (surah > ? OR (surah = ? AND (ayah > ? OR (ayah = ? AND word_position >= ?)))) AND (surah < ? OR (surah = ? AND (ayah < ? OR (ayah = ? AND word_position <= ?)))) ORDER BY surah, ayah, word_position",
+                [$min_surah, $min_surah, $min_ayah, $min_ayah, $min_pos, $max_surah, $max_surah, $max_ayah, $max_ayah, $max_pos],
+                'iiiiiiiiii'
+            );
+            if ($stmt) {
+                echo json_encode(['success' => true, 'data' => db_fetch_all($stmt)]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to fetch word metadata in range.']);
+            }
+            break;
         case 'get_word_metadata_for_ayah':
             $surah = $_POST['surah'] ?? 0;
             $ayah = $_POST['ayah'] ?? 0;
@@ -1166,7 +1216,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
             if (can_approve_translations()) {
                 $word_id = $_POST['word_id'] ?? 0;
                 $lang = $_POST['lang'] ?? '';
-                if ($word_id && $lang && in_array($lang, ['ur_meaning', 'en_meaning', 'pashto_text', 'bn_meaning'])) {
+                if ($word_id && $lang && (in_array($lang, $valid_word_col_names) || in_array($lang, ['ur_meaning', 'en_meaning', 'pashto_text', 'bn_meaning']))) {
                     $stmt = db_query("UPDATE word_translations SET approved_by = ?, approved_at = NOW() WHERE word_id = ?", [$user_id, $word_id], 'ii');
                     if ($stmt) {
                         echo json_encode(['success' => true, 'message' => 'Translation approved.']);
@@ -4254,17 +4304,24 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             const config = allLanguagesConfig.find(item => item.key === key);
             if (!config) return {
                 key: 'english',
+                lang: 'en',
                 lang_code: 'en',
+                dir: 'ltr',
                 direction: 'ltr',
                 label: 'English',
+                font: 'var(--font-english)',
                 font_var: 'var(--font-english)'
             };
+            const fontVal = config.font_var ? (config.font_var.startsWith('var(') ? config.font_var : `var(${config.font_var})`) : `var(--font-${config.key})`;
             return {
                 key: config.key,
                 lang: config.lang_code,
+                lang_code: config.lang_code,
                 dir: config.direction,
+                direction: config.direction,
                 label: config.label,
-                font: config.font_var
+                font: fontVal,
+                font_var: fontVal
             };
         }
         async function processDataFile(config, progressCallback) {
@@ -4458,17 +4515,23 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 if (!quran) {
                     return;
                 }
-                const words = quran.arabic.split(/\s+/).filter(w => w.trim());
                 const metadataResult = await sendAjaxRequest('get_word_metadata_for_ayah', {
                     surah: surah,
                     ayah: ayah
                 });
                 const wordMetadata = metadataResult.success ? metadataResult.data : [];
-                const metadataMap = new Map(wordMetadata.map(m => [m.word_position, m.word_id]));
-                let wordsHTML = words.map((word, index) => {
-                    const wordId = metadataMap.get(index) || 'null';
-                    return `<span class="arabic-word" data-word-text="${word.trim()}" data-word-id="${wordId}" tabindex="0" role="button">${word}</span>`;
-                }).join(' ');
+                let wordsHTML = '';
+                if (wordMetadata && wordMetadata.length > 0) {
+                    wordsHTML = wordMetadata.map(m => {
+                        const wordText = (m.arabic_word && m.arabic_word.trim()) ? m.arabic_word.trim() : '';
+                        return `<span class="arabic-word" data-word-text="${wordText}" data-word-id="${m.word_id}" tabindex="0" role="button">${wordText}</span>`;
+                    }).join(' ');
+                } else {
+                    const words = quran.arabic.split(/\s+/).filter(w => w.trim());
+                    wordsHTML = words.map(word => {
+                        return `<span class="arabic-word" data-word-text="${word.trim()}" data-word-id="null" tabindex="0" role="button">${word}</span>`;
+                    }).join(' ');
+                }
                 currentSurah = surah;
                 currentAyah = ayah;
                 document.getElementById('surah-select').value = surah;
@@ -4508,6 +4571,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 if (result.success && result.data) {
                     const trans = result.data;
                     return {
+                        ...trans,
                         ur: trans.ur_meaning || "N/A",
                         en: trans.en_meaning || "N/A",
                         ps: trans.pashto_text || "N/A",
@@ -4532,7 +4596,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             }
         }
         async function handleWordClick(event) {
-            const wordSpan = event.target;
+            const wordSpan = event.target.closest('.arabic-word') || event.target;
             const wordId = parseInt(wordSpan.dataset.wordId, 10);
             document.querySelectorAll('.ayah-arabic span, #quran-continuous-display .arabic-word').forEach(span => span.style.backgroundColor = 'transparent');
             wordSpan.style.backgroundColor = 'var(--color-highlight)';
@@ -4549,18 +4613,20 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 });
                 const translations = result.success && result.data ? result.data : {};
 
-                const fullAyahTranslation = wordSpan.closest('.ayah').querySelector('.ayah-translation').textContent;
+                const fullAyahTranslation = wordSpan.closest('.ayah')?.querySelector('.ayah-translation')?.textContent || '';
                 const fullTranslationInfo = getTranslationConfig(document.getElementById('translation-select').value);
 
                 let html = `<p><strong>Selected Word:</strong> <span lang="ar" dir="rtl" style="font-family: var(--font-arabic);">${wordSpan.dataset.wordText}</span></p>`;
 
-                // Dynamically loop through all available languages
                 allLanguagesConfig.forEach(config => {
                     const meaning = translations[config.word_col_name] || "N/A";
-                    html += `<p><strong>${config.label}:</strong> <span lang="${config.lang_code}" dir="${config.direction}" style="font-family: var(${config.font_var});">${meaning}</span></p>`;
+                    const fontStyle = config.font_var ? (config.font_var.startsWith('var(') ? config.font_var : `var(${config.font_var})`) : 'inherit';
+                    html += `<p><strong>${config.label}:</strong> <span lang="${config.lang_code}" dir="${config.direction}" style="font-family: ${fontStyle};">${meaning}</span></p>`;
                 });
 
-                html += `<p><strong>Full Ayah Translation:</strong> <span lang="${fullTranslationInfo.lang}" dir="${fullTranslationInfo.dir}" style="font-family: ${fullTranslationInfo.font};">${fullAyahTranslation}</span></p>`;
+                if (fullAyahTranslation) {
+                    html += `<p><strong>Full Ayah Translation:</strong> <span lang="${fullTranslationInfo.lang}" dir="${fullTranslationInfo.dir}" style="font-family: ${fullTranslationInfo.font};">${fullAyahTranslation}</span></p>`;
+                }
 
                 if (isUserLoggedIn && (userRole === 'admin' || userRole === 'registered')) {
                     html += `<button class="edit-word-translation-btn" data-word-id="${wordId}" data-word-text="${wordSpan.dataset.wordText}" style="margin-top: 10px; padding: 5px 10px; font-size: 0.9em;">Edit Word Translation</button>`;
@@ -4582,12 +4648,14 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
             const wordText = event.target.dataset.wordText;
             const translations = await getWordTranslationById(wordId);
             let langOptions = allLanguagesConfig.map(config => {
-                const meaning = translations[config.lang_code];
+                const colName = config.word_col_name;
+                const meaning = translations[colName] || translations[config.lang_code];
                 const currentMeaning = (meaning && meaning !== 'N/A') ? meaning : '';
+                const fontStyle = config.font_var ? (config.font_var.startsWith('var(') ? config.font_var : `var(${config.font_var})`) : 'inherit';
                 return `
                     <div style="margin-bottom: 10px;">
                         <label for="edit-trans-${config.key}">${config.label} Meaning:</label>
-                        <textarea id="edit-trans-${config.key}" data-lang-key="${config.key}" dir="${config.direction}" style="font-family: var(${config.font_var}); width: 100%; min-height: 50px;">${currentMeaning}</textarea>
+                        <textarea id="edit-trans-${config.key}" data-lang-key="${config.key}" dir="${config.direction}" style="font-family: ${fontStyle}; width: 100%; min-height: 50px;">${currentMeaning}</textarea>
                     </div>
                 `;
             }).join('');
@@ -4652,12 +4720,19 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 const allMetadataForSurah = allMetadataResult.success ? allMetadataResult.data : [];
                 const translationInfo = getTranslationConfig(document.getElementById('translation-select').value);
                 allAyahsInSurah.forEach(quran => {
-                    const words = quran.arabic.split(/\s+/).filter(w => w.trim());
-                    const metadataMap = new Map(allMetadataForSurah.filter(m => m.ayah === quran.ayah).map(m => [m.word_position, m.word_id]));
-                    let wordsHTML = words.map((word, index) => {
-                        const wordId = metadataMap.get(index) || 'null';
-                        return `<span class="arabic-word" data-word-text="${word.trim()}" data-word-id="${wordId}">${word}</span>`;
-                    }).join(' ');
+                    const ayahMetadata = allMetadataForSurah.filter(m => m.ayah === quran.ayah);
+                    let wordsHTML = '';
+                    if (ayahMetadata && ayahMetadata.length > 0) {
+                        wordsHTML = ayahMetadata.map(m => {
+                            const wordText = (m.arabic_word && m.arabic_word.trim()) ? m.arabic_word.trim() : '';
+                            return `<span class="arabic-word" data-word-text="${wordText}" data-word-id="${m.word_id}">${wordText}</span>`;
+                        }).join(' ');
+                    } else {
+                        const words = quran.arabic.split(/\s+/).filter(w => w.trim());
+                        wordsHTML = words.map(word => {
+                            return `<span class="arabic-word" data-word-text="${word.trim()}" data-word-id="null">${word}</span>`;
+                        }).join(' ');
+                    }
                     const ayahDiv = document.createElement('div');
                     ayahDiv.id = `s${quran.surah}a${quran.ayah}`;
                     ayahDiv.className = 'ayah';
@@ -5938,12 +6013,13 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 const currentTranslations = translationsResult.success && translationsResult.data ? translationsResult.data : {};
                 allLanguagesConfig.forEach(config => {
                     const langKey = config.key;
-                    const dbColName = `${langKey}_meaning`;
+                    const dbColName = config.word_col_name || `${langKey}_meaning`;
                     const translationText = currentTranslations[dbColName] || '';
+                    const fontStyle = config.font_var ? (config.font_var.startsWith('var(') ? config.font_var : `var(${config.font_var})`) : 'inherit';
                     const div = document.createElement('div');
                     div.innerHTML = `
                         <label for="review-trans-${langKey}">${config.label} Translation:</label>
-                        <textarea id="review-trans-${langKey}" data-lang-key="${langKey}" dir="${config.direction}" style="font-family: ${config.font}; width: 100%; min-height: 50px;">${translationText}</textarea>
+                        <textarea id="review-trans-${langKey}" data-lang-key="${langKey}" dir="${config.direction}" style="font-family: ${fontStyle}; width: 100%; min-height: 50px;">${translationText}</textarea>
                         <button class="admin-approve-trans-btn" data-word-id="${wordId}" data-lang-key="${langKey}">Approve & Save ${config.label}</button>
                     `;
                     translationReviewLanguagesDiv.appendChild(div);
@@ -7692,7 +7768,11 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 'pashto': 'pashto_text',
                 'Bangali': 'bn_meaning'
             };
-            const meaningText = entry[propertyMap[langKey]] || null;
+            allLanguagesConfig.forEach(c => {
+                if (c.word_col_name) propertyMap[c.key] = c.word_col_name;
+            });
+            const colName = propertyMap[langKey] || config.word_col_name || `${langKey}_meaning`;
+            const meaningText = entry[colName] || null;
             if (meaningText && meaningText.trim() === "") {
                 return {
                     meaningText: null,
@@ -7729,7 +7809,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 const selectedLangKey = document.getElementById('translation-select').value;
                 for (let i = 0; i < 10; i++) {
                     let attempt = 0;
-                    let randomMetaEntry, quranAyah, wordText, translationEntry;
+                    let randomMetaEntry, wordText, translationEntry;
                     while (attempt < 50) {
                         randomMetaEntry = allWordMetadata[Math.floor(Math.random() * allWordMetadata.length)];
                         if (selectedWordIds.has(randomMetaEntry.word_id)) {
@@ -7741,20 +7821,8 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                             attempt++;
                             continue;
                         }
-                        const quranAyahResult = await sendAjaxRequest('load_quran_ayah', {
-                            surah: randomMetaEntry.surah,
-                            ayah: randomMetaEntry.ayah
-                        });
-                        quranAyah = quranAyahResult.success ? quranAyahResult.data : null;
-                        if (!quranAyah || !quranAyah.arabic) {
-                            attempt++;
-                            continue;
-                        }
-                        const wordsInAyah = quranAyah.arabic.split(/\s+/);
-                        if (randomMetaEntry.word_position < wordsInAyah.length) {
-                            wordText = wordsInAyah[randomMetaEntry.word_position];
-                            if (wordText && wordText.trim() !== "") break;
-                        }
+                        wordText = (randomMetaEntry.arabic_word && randomMetaEntry.arabic_word.trim()) ? randomMetaEntry.arabic_word.trim() : "";
+                        if (wordText !== "") break;
                         attempt++;
                     }
                     if (!wordText) continue;
@@ -8167,7 +8235,7 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 const selectedLangKey = document.getElementById('translation-select').value;
                 for (let i = 0; i < maxCards * 2 && flashcardQuestions.length < maxCards; i++) {
                     let attempt = 0;
-                    let randomMetaEntry, quranAyah, wordText, translationEntry;
+                    let randomMetaEntry, wordText, translationEntry;
                     while (attempt < 20) {
                         randomMetaEntry = allWordMetadata[Math.floor(Math.random() * allWordMetadata.length)];
                         if (selectedWordIds.has(randomMetaEntry.word_id)) {
@@ -8179,20 +8247,8 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                             attempt++;
                             continue;
                         }
-                        const quranAyahResult = await sendAjaxRequest('load_quran_ayah', {
-                            surah: randomMetaEntry.surah,
-                            ayah: randomMetaEntry.ayah
-                        });
-                        quranAyah = quranAyahResult.success ? quranAyahResult.data : null;
-                        if (!quranAyah || !quranAyah.arabic) {
-                            attempt++;
-                            continue;
-                        }
-                        const wordsInAyah = quranAyah.arabic.split(/\s+/);
-                        if (randomMetaEntry.word_position < wordsInAyah.length) {
-                            wordText = wordsInAyah[randomMetaEntry.word_position];
-                            if (wordText && wordText.trim() !== "") break;
-                        }
+                        wordText = (randomMetaEntry.arabic_word && randomMetaEntry.arabic_word.trim()) ? randomMetaEntry.arabic_word.trim() : "";
+                        if (wordText !== "") break;
                         attempt++;
                     }
                     if (!wordText) continue;
@@ -13934,6 +13990,11 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     'pashto': 'pashto_text',
                     'Bangali': 'bn_meaning'
                 };
+                allLanguagesConfig.forEach(config => {
+                    if (config.word_col_name) {
+                        propertyMap[config.key] = config.word_col_name;
+                    }
+                });
                 const metadataResult = await sendAjaxRequest('get_word_metadata_for_ayah', {
                     surah: ayahData.surah,
                     ayah: ayahData.ayah
@@ -13946,7 +14007,6 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                 }));
                 const translationResults = await Promise.all(translationPromises);
                 const translations = translationResults.map(res => res.success ? res.data : {});
-                const arabicWords = ayahData.arabic.split(/\s+/).filter(w => w);
                 const table = document.createElement('table');
                 table.className = 'word-table';
                 const thead = table.createTHead();
@@ -13957,18 +14017,19 @@ if ($stmt_check_quran && $stmt_check_quran->fetch_row()[0] == 0) {
                     headerRow.innerHTML += `<th>${config.label}</th>`;
                 });
                 const tbody = table.createTBody();
-                for (let i = 0; i < arabicWords.length; i++) {
+                for (let i = 0; i < metadata.length; i++) {
                     const row = tbody.insertRow();
                     const arabicCell = row.insertCell();
                     arabicCell.className = 'arabic-word-cell';
-                    arabicCell.textContent = arabicWords[i];
+                    arabicCell.textContent = (metadata[i].arabic_word && metadata[i].arabic_word.trim()) ? metadata[i].arabic_word.trim() : '';
                     const wordTrans = translations[i] || {};
                     languageKeys.forEach(key => {
                         const transCell = row.insertCell();
                         const config = getTranslationConfig(key);
-                        const propertyName = propertyMap[key];
+                        const propertyName = propertyMap[key] || `${key}_meaning`;
                         transCell.textContent = wordTrans[propertyName] || 'N/A';
-                        transCell.style.fontFamily = `var(--font-${config.key})`;
+                        const fontStyle = config.font_var ? (config.font_var.startsWith('var(') ? config.font_var : `var(${config.font_var})`) : `var(--font-${config.key})`;
+                        transCell.style.fontFamily = fontStyle;
                         transCell.style.direction = config.dir;
                     });
                 }
